@@ -1,0 +1,431 @@
+/***************************** ls_arpeggiator: LinnStrument Arpeggiator ****************************
+These routines implement the internal LinnStrument arpeggiator. They closely work together with the
+MIDI clock when that is active and with the internal tracking of how notes map for each split to the
+actual cell that was pressed, allowing velocity to be continuously varied during the arpeggiator
+sequence.
+***************************************************************************************************/
+
+const unsigned long internalClockUnitBase = 2500000;  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
+
+unsigned long lastInternalClockMoment;                // the last time the internal clock stepped
+signed char lastInternalClockCount;                   // the count of the internal clock steps, from 0 to 23
+     
+signed char lastArpMidiClock;                         // the last MIDI clock that the arpeggiator played on
+signed char lastArpInternalClock;                     // the last internal clock that the arpeggiator played on
+signed char lastArpNote[2];                           // the last note played by the arpeggiator or -1 if it should be starting from scratch
+signed char lastArpChannel[2];                        // the last channel played by the arpeggiator or -1 if it should be starting from scratch
+boolean lastArpStepOdd[2];                            // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
+ArpeggiatorDirection arpUpDownState[2];               // the state in the alternating up/down pattern
+signed char arpOctaveState[2];                        // the octave that is used while playing the arpeggiator sequence
+
+unsigned long lastTapTempo = 0;
+
+#define MICROS_PER_MINUTE 60000000UL
+
+short getInternalClockCount() {
+  return lastInternalClockCount;
+}
+
+void initializeArpeggiator() {
+  randomSeed(analogRead(0));
+
+  lastArpMidiClock = 0;
+  lastInternalClockCount = 0;
+
+  for (int split = 0; split < 2; ++split) {
+    noteTouchMapping[split].initialize();
+    resetArpeggiatorState(split);
+  }
+
+  resetArpeggiatorAdvancement(0);
+}
+
+void resetArpeggiatorAdvancement(unsigned long now) {
+  lastInternalClockMoment = now;
+  lastInternalClockCount = 0;
+  lastArpMidiClock = -1;
+  lastArpInternalClock = -1;
+}
+
+void resetArpeggiatorState(byte split) {
+  lastArpNote[split] = -1;
+  lastArpChannel[split] = -1;
+  lastArpStepOdd[split] = false;
+  arpUpDownState[split] = ArpUp;
+  arpOctaveState[split] = 0;
+}
+
+byte getArpeggiatorNote(byte split, byte notenum) {
+  return getOctaveNote(arpOctaveState[split], notenum);
+}
+
+byte getOctaveNote(byte octave, byte notenum) {
+  return notenum + (octave * 12);
+}
+
+void temporarilyEnableArpeggiator() {
+  Split[sensorSplit].arpTempoDelta = 0;
+  if (!Split[sensorSplit].arpeggiator) {
+    midiSendNoteOffForAllTouches(sensorSplit);
+    resetArpeggiatorState(sensorSplit);
+  }
+}
+
+void disableTemporaryArpeggiator() {
+  if (!Split[sensorSplit].arpeggiator) {
+    turnArpeggiatorOff(sensorSplit);
+  }
+}
+
+void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
+  // handle replay all differently since it plays multiple notes simultaneously
+  if (Global.arpDirection == ArpReplayAll) {
+    if (lastArpNote[split] != -1) {
+      for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+        midiSendNoteOff(getOctaveNote(octave, notenum), channel);
+      }
+    }
+  }
+  // if this is a strummed note, always turn all octave notes off
+  else if (isStrummedSplit(split)) {
+    for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+      midiSendNoteOff(getOctaveNote(octave, notenum), channel);
+    }
+  }
+  // handle single note sequences, send the note off and reset the arpeggiator state if the note off was the last played
+  else  if (lastArpNote[split] == notenum && lastArpChannel[split] == channel) {
+    midiSendNoteOff(getArpeggiatorNote(split, notenum), channel);
+    resetArpeggiatorState(split);
+  }
+
+  // reset state when no notes are played at all anymore
+  if (noteTouchMapping[split].noteCount == 0) {
+    resetArpeggiatorState(split);
+  }
+}
+
+void turnArpeggiatorOff(byte split) {
+  sendArpeggiatorStepMidiOff(split);
+  resetArpeggiatorState( split);
+}
+
+void sendArpeggiatorStepMidiOff(byte split) {
+  if (lastArpNote[split] != -1) {
+    if (Global.arpDirection == ArpReplayAll) {
+      if (noteTouchMapping[split].noteCount > 0) {
+        signed char arpNote = noteTouchMapping[split].firstNote;
+        signed char arpChannel = noteTouchMapping[split].firstChannel;
+
+        while (arpNote != -1) {
+          for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+            midiSendNoteOff(getOctaveNote(octave, arpNote), arpChannel);
+          }
+
+          NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+          arpNote = entry.getNextNote();
+          arpChannel = entry.getNextChannel();
+        }
+      }
+    }
+    else {
+      midiSendNoteOff(getArpeggiatorNote(split, lastArpNote[split]), lastArpChannel[split]);
+    }
+  }
+}
+
+inline void checkAdvanceArpeggiator(unsigned long now) {
+  short clockCount;
+
+  if (isMidiClockRunning()) {
+    clockCount = getMidiClockCount();
+    if (lastArpMidiClock == clockCount) {
+      return;
+    }
+
+    lastArpMidiClock = clockCount;
+  }
+  else {
+    // calculate the time since the last arpeggiator step
+    unsigned long internalClockDelta = calcTimeDelta(now, lastInternalClockMoment);
+
+    // check if the time since the last arpeggiator step
+    unsigned long clockUnit = FXD4_TO_INT(FXD4_DIV(FXD4_FROM_INT(internalClockUnitBase), fxd4CurrentTempo));
+
+    // check if the time since the last arpeggiator step and now has exceeded the delay for the next step, but only if within 10ms of the intended step duration
+    if (internalClockDelta >= clockUnit && (internalClockDelta % clockUnit) < 10000) {
+      lastInternalClockCount = (lastInternalClockCount + 1) % 24;
+      lastInternalClockMoment += ((now - lastInternalClockMoment) / clockUnit) * clockUnit;
+
+      // flash the tempo led in the global display when it is on
+      updateGlobalDisplay();
+
+      if (lastArpInternalClock == lastInternalClockCount) {
+        return;
+      }
+
+      clockCount = lastInternalClockCount;
+      lastArpInternalClock = clockCount;
+    }
+    else {
+      return;
+    }
+  }
+
+  checkAdvanceArpeggiatorForSplit(clockCount, LEFT);
+  checkAdvanceArpeggiatorForSplit(clockCount, RIGHT);
+}
+
+#define TEMPO_SIXTEENTH_SWING 0xff
+byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
+
+inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
+  if (isArpeggiatorEnabled(split)) {
+
+    int combinedTempoIndex = constrain(Global.arpTempo + Split[split].arpTempoDelta, 0, 8);
+    int combinedTempo = tempoChoices[combinedTempoIndex];
+
+    if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clockCount % 12 == 0) || (clockCount % 12 == 7))) ||  // we need to handle swing differently since it's irregular
+        (combinedTempo != TEMPO_SIXTEENTH_SWING && (clockCount % combinedTempo == 0 ))) {
+      advanceArpeggiatorForSplit(split);
+    }
+  }
+}
+
+void advanceArpeggiatorForSplit(byte split) {
+
+  signed char arpNote = -1;
+  signed char arpChannel = -1;
+
+  sendArpeggiatorStepMidiOff(split);
+
+  // handle replayAll differently since it plays multiple notes simultaneously
+  if (Global.arpDirection == ArpReplayAll) {
+    if (noteTouchMapping[split].noteCount > 0) {
+
+      // send all the note ons
+      arpNote = noteTouchMapping[split].firstNote;
+      arpChannel = noteTouchMapping[split].firstChannel;
+
+      while (arpNote != -1) {
+
+        NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+        for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+          midiSendNoteOn(getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+        }
+
+        arpNote = entry.getNextNote();
+        arpChannel = entry.getNextChannel();
+      }
+
+      lastArpNote[split] = noteTouchMapping[split].firstNote;
+      lastArpChannel[split] = noteTouchMapping[split].firstChannel;
+      lastArpStepOdd[split] = !lastArpStepOdd[split];
+    }
+    else {
+      lastArpNote[split] = -1;
+      lastArpChannel[split] = -1;
+    }
+  }
+  // handle single note sequences
+  else {
+    if (noteTouchMapping[split].noteCount > 0) {
+
+      switch (Global.arpDirection) {
+
+        // sequence steps upwards
+        case ArpUp:
+        {
+          if (lastArpNote[split] == -1) {
+            arpNote = noteTouchMapping[split].firstNote;
+            arpChannel = noteTouchMapping[split].firstChannel;
+          }
+          else {
+            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+
+            arpNote = lastEntry.getNextNote();
+            arpChannel = lastEntry.getNextChannel();
+
+            // start again from the beginning
+            if (arpNote == -1) {
+              arpNote = noteTouchMapping[split].firstNote;
+              arpChannel = noteTouchMapping[split].firstChannel;
+              if (++arpOctaveState[split] > Global.arpOctave) {
+                arpOctaveState[split] = 0;
+              }
+            }
+          }
+          break;
+        }
+
+        // sequence steps downwards
+        case ArpDown:
+        {
+          if (lastArpNote[split] == -1) {
+            arpNote = noteTouchMapping[split].lastNote;
+            arpChannel = noteTouchMapping[split].lastChannel;
+          }
+          else {
+            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+
+            arpNote = lastEntry.getPreviousNote();
+            arpChannel = lastEntry.getPreviousChannel();
+
+            // start again from the end
+            if (arpNote == -1) {
+              arpNote = noteTouchMapping[split].lastNote;
+              arpChannel = noteTouchMapping[split].lastChannel;
+              if (++arpOctaveState[split] > Global.arpOctave) {
+                arpOctaveState[split] = 0;
+              }
+            }
+          }
+          break;
+        }
+
+        // sequence steps alternativing upwards and downwards
+        case ArpUpDown:
+        {
+          if (lastArpNote[split] == -1) {
+            arpUpDownState[split] = ArpUp;
+            arpNote = noteTouchMapping[split].firstNote;
+            arpChannel = noteTouchMapping[split].firstChannel;
+          }
+          else {
+            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+
+            if (arpUpDownState[split] == ArpDown) {
+              arpNote = lastEntry.getPreviousNote();
+              arpChannel = lastEntry.getPreviousChannel();
+            }
+            else {
+              arpNote = lastEntry.getNextNote();
+              arpChannel = lastEntry.getNextChannel();
+            }
+
+            // change directions
+            if (arpNote == -1) {
+
+              // handle the state where there's only one note active
+              if (noteTouchMapping[split].firstNote == noteTouchMapping[split].lastNote &&
+                  noteTouchMapping[split].firstChannel == noteTouchMapping[split].lastChannel) {
+
+                arpNote = noteTouchMapping[split].firstNote;
+                arpChannel = noteTouchMapping[split].firstChannel;
+
+                if (Global.arpOctave != 0) {
+                  if (arpUpDownState[split] == ArpUp) {
+                    if (arpOctaveState[split] != Global.arpOctave) {
+                      arpOctaveState[split]++;
+                    }
+                    else {
+                      arpOctaveState[split]--;
+                      arpUpDownState[split] = ArpDown;
+                    }
+                  }
+                  else if (arpUpDownState[split] == ArpDown) {
+                    if (arpOctaveState[split] != 0) {
+                      arpOctaveState[split]--;
+                    }
+                    else {
+                      arpOctaveState[split]++;
+                      arpUpDownState[split] = ArpUp;
+                    }
+                  }
+                }
+              }
+              // when there's no octave switching, wrap around without repeated notes
+              // otherwise continue on the next octave if needed this follows the active direction and wrap around when reaching a boundary
+              else {
+
+                if (arpUpDownState[split] == ArpUp) {
+                  if (arpOctaveState[split] != Global.arpOctave) {
+                    arpNote = noteTouchMapping[split].firstNote;
+                    arpChannel = noteTouchMapping[split].firstChannel;
+                    arpOctaveState[split]++;
+                  }
+                  else {
+                    arpUpDownState[split] = ArpDown;
+                    
+                    NoteEntry &entry = noteTouchMapping[split].mapping[noteTouchMapping[split].lastNote][noteTouchMapping[split].lastChannel];
+                    arpNote = entry.getPreviousNote();
+                    arpChannel = entry.getPreviousChannel();
+                  }
+                }
+                else if (arpUpDownState[split] == ArpDown) {
+                  if (arpOctaveState[split] != 0) {
+                    arpNote = noteTouchMapping[split].lastNote;
+                    arpChannel = noteTouchMapping[split].lastChannel;
+                    arpOctaveState[split]--;
+                  }
+                  else {
+                    arpUpDownState[split] = ArpUp;
+
+                    NoteEntry &entry = noteTouchMapping[split].mapping[noteTouchMapping[split].firstNote][noteTouchMapping[split].firstChannel];
+                    arpNote = entry.getNextNote();
+                    arpChannel = entry.getNextChannel();
+                  }
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        // sequence steps randomly
+        case ArpRandom:
+        {
+          long pos = random(noteTouchMapping[split].noteCount);
+
+          arpNote = noteTouchMapping[split].firstNote;
+          arpChannel = noteTouchMapping[split].firstChannel;
+
+          while (arpNote != -1 && pos-- != 0) {
+            NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+
+            arpNote = entry.getNextNote();
+            arpChannel = entry.getNextChannel();
+          }
+
+          if (Global.arpOctave) {
+            arpOctaveState[split] = random(Global.arpOctave + 1);
+          }
+          break;
+        }
+      }
+
+      if (arpNote != -1) {
+        // if this is the first step in a new sequence, this will be an odd step (starting at one)
+        if (lastArpNote[split] == -1) {
+          lastArpStepOdd[split] = true;
+        } else {
+          lastArpStepOdd[split] = !lastArpStepOdd[split];
+        }
+
+        // send the MIDI note
+        NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+        midiSendNoteOn(getArpeggiatorNote(split, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+      }
+
+      lastArpNote[split] = arpNote;
+      lastArpChannel[split] = arpChannel;
+    }
+  }
+}
+
+inline boolean isArpeggiatorEnabled(byte split) {
+  return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split ) || isSwitchArpeggiatorPressed( split);
+}
+
+void tapTempoPress() {
+  unsigned long now = micros();
+  resetArpeggiatorAdvancement(now);
+
+  unsigned long tapDelta = calcTimeDelta(now, lastTapTempo);
+
+  if (tapDelta < 6000000) { // minimum 6 seconds between taps
+      fxd4CurrentTempo -= FXD4_DIV(fxd4CurrentTempo, FXD4_FROM_INT(4));
+      fxd4CurrentTempo += FXD4_DIV(FXD4_FROM_INT(60000000 / tapDelta), FXD4_FROM_INT(4));
+  }
+
+  lastTapTempo = now;
+}

@@ -1,0 +1,185 @@
+LinnStrument responds to the following MIDI input
+=================================================
+
+Status     Data       Message                 Used for
+-------------------------------------------------------------------------------------------------------------
+1001cccc   0nnnnnnn   Note On                 Highlight cells that correspond to the note
+           0vvvvvvv                           The split is determined by its active MIDI mode channels
+                                              c is the channel, n is the note number, v is the velocity
+1000cccc   0nnnnnnn   Note Off                Un-highlight cells that correspond to the note
+           0vvvvvvv                           The split is determined by its active MIDI mode channels
+                                              c is the channel, n is the note number, v is the velocity
+1011cccc   0nnnnnnn   Control Change          See table below
+           0vvvvvvv                           c is the channel, n is the cc number, v is the velocity
+11111010              Start                   Start listening to MIDI clock and reset ARP
+11111011              Continue                Same behavior as Start
+11111100              Stop                    Stop listening to MIDI clock and reset ARP
+11111000              Timing Clock            Tempo sync, sent 24 times per quarter note
+11110010   0lllllll   Song Position Pointer   Beats since song start, used for tempo sync alignment
+           0mmmmmmm                           l is the LSB, m the MSB
+1100cccc   0ppppppp   Program Change          Set the active preset for a split
+                                              The split is determined by its active MIDI mode channels
+                                              c is the channel, p is the preset number
+11111110              Active Sensing          During manufacturing test, show green led at col 25 row 2
+
+MIDI Control Change input
+=========================
+
+CC Number   Used for
+-------------------------------------------------------------------------------------------------------------
+1-8         Change the position of the CC faders, the split is determined by its active MIDI mode channels
+20          Column coordinate for cell color change with CC 22 (starts from 0)
+21          Row coordinate for cell color change with CC 22 (starts from 0)
+22          Change the color of the cell with the provided column and row coordinates
+            see color value table below, 7+: default color
+
+NRPN input
+==========
+
+NRPN messages are a series of MIDI CC messages that allow changing more parameters than are supported by
+the standard MIDI CC message list. LinnStrument always expects an exact series of 6 MIDI CC messages to be
+received for setting one NRPN to a different value. The first two select the NRPN parameter number, the
+next two set the NRPN parameter value (both MSB and LSB are used), and the last two reset the active NRPN
+parameter number. Failure to reset the NPRN parameter number can result in other MIDI input messages to
+behave unpredictably.
+
+This is an overview of the message chain:
+
+1011nnnn   01100011   0vvvvvvv   NRPN parameter number MSB CC
+1011nnnn   01100010   0vvvvvvv   NRPN parameter number LSB CC
+1011nnnn   00000110   0vvvvvvv   NRPN parameter value MSB CC
+1011nnnn   00100110   0vvvvvvv   NRPN parameter value LSB CC
+1011nnnn   00100101   01111111   RPN parameter number Reset MSB CC
+1011nnnn   00100100   01111111   RPN parameter number Reset LSB CC
+
+The following table lists all the NRPN input values that LinnStrument understands.
+
+NRPN   Value   Description
+-------------------------------------------------------------------------------------------------------------
+0      0-2     Split Left MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
+1      1-16    Split Left MIDI Main Channel
+2      0-1     Split Left MIDI Per Note Channel 1 (0: Off, 1: On)
+3      0-1     Split Left MIDI Per Note Channel 2 (0: Off, 1: On)
+4      0-1     Split Left MIDI Per Note Channel 3 (0: Off, 1: On)
+5      0-1     Split Left MIDI Per Note Channel 4 (0: Off, 1: On)
+6      0-1     Split Left MIDI Per Note Channel 5 (0: Off, 1: On)
+7      0-1     Split Left MIDI Per Note Channel 6 (0: Off, 1: On)
+8      0-1     Split Left MIDI Per Note Channel 7 (0: Off, 1: On)
+9      0-1     Split Left MIDI Per Note Channel 8 (0: Off, 1: On)
+10     0-1     Split Left MIDI Per Note Channel 9 (0: Off, 1: On)
+11     0-1     Split Left MIDI Per Note Channel 10 (0: Off, 1: On)
+12     0-1     Split Left MIDI Per Note Channel 11 (0: Off, 1: On)
+13     0-1     Split Left MIDI Per Note Channel 12 (0: Off, 1: On)
+14     0-1     Split Left MIDI Per Note Channel 13 (0: Off, 1: On)
+15     0-1     Split Left MIDI Per Note Channel 14 (0: Off, 1: On)
+16     0-1     Split Left MIDI Per Note Channel 15 (0: Off, 1: On)
+17     0-1     Split Left MIDI Per Note Channel 16 (0: Off, 1: On)
+18     1-16    Split Left MIDI Per Row Lowest Channel
+19     2-24    Split Left MIDI Bend Range (only supports 2, 3, 12 and 24)
+20     0-1     Split Left Send X (0: Off, 1: On)
+21     0-1     Split Left Pitch Quantize (0: Off, 1: On)
+22     0-1     Split Left Pitch Quantize Hold (0: Off, 1: On)
+23     0-1     Split Left Pitch Reset On Release (unprinted parameter, 0: Off, 1: On)
+24     0-1     Split Left Send Y (0: Off, 1: On)
+25     0-127   Split Left MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)
+26     0-1     Split Left Relative Y (0: Off, 1: On)
+27     0-1     Split Left Send Z (0: Off, 1: On)
+28     0-2     Split Left MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #29) 
+29     0-127   Split Left MIDI CC For Z (CC 11 is recommended, any CC is possible though)
+30     1-6     Split Left Color Main (see color value table below)
+31     1-6     Split Left Color Accent (see color value table below)
+32     0-6     Split Left Color Played (see color value table below)
+33     1-6     Split Left Color LowRow (see color value table below)
+34     0-7     Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
+35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum))
+36     0-10    Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
+37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
+38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
+100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
+101    1-16    Split Right MIDI Main Channel
+102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
+103    0-1     Split Right MIDI Per Note Channel 2 (0: Off, 1: On)
+104    0-1     Split Right MIDI Per Note Channel 3 (0: Off, 1: On)
+105    0-1     Split Right MIDI Per Note Channel 4 (0: Off, 1: On)
+106    0-1     Split Right MIDI Per Note Channel 5 (0: Off, 1: On)
+107    0-1     Split Right MIDI Per Note Channel 6 (0: Off, 1: On)
+108    0-1     Split Right MIDI Per Note Channel 7 (0: Off, 1: On)
+109    0-1     Split Right MIDI Per Note Channel 8 (0: Off, 1: On)
+110    0-1     Split Right MIDI Per Note Channel 9 (0: Off, 1: On)
+111    0-1     Split Right MIDI Per Note Channel 10 (0: Off, 1: On)
+112    0-1     Split Right MIDI Per Note Channel 11 (0: Off, 1: On)
+113    0-1     Split Right MIDI Per Note Channel 12 (0: Off, 1: On)
+114    0-1     Split Right MIDI Per Note Channel 13 (0: Off, 1: On)
+115    0-1     Split Right MIDI Per Note Channel 14 (0: Off, 1: On)
+116    0-1     Split Right MIDI Per Note Channel 15 (0: Off, 1: On)
+117    0-1     Split Right MIDI Per Note Channel 16 (0: Off, 1: On)
+118    1-16    Split Right MIDI Per Row Lowest Channel
+119    2-24    Split Right MIDI Bend Range (only supports 2, 3, 12 and 24)
+120    0-1     Split Right Send X (0: Off, 1: On)
+121    0-1     Split Right Pitch Correct Quantize (0: Off, 1: On)
+122    0-1     Split Right Pitch Correct Hold (0: Off, 1: On)
+123    0-1     Split Right Pitch Reset On Release (unprinted parameter, 0: Off, 1: On)
+124    0-1     Split Right Send Y (0: Off, 1: On)
+125    0-127   Split Right MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)
+126    0-1     Split Right Relative Y (0: Off, 1: On)
+127    0-1     Split Right Send Z (0: Off, 1: On)
+128    0-2     Split Right MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #29) 
+129    0-127   Split Right MIDI CC For Z (CC 11 is recommended, any CC is possible though)
+130    1-6     Split Right Color Main (see color value table below)
+131    1-6     Split Right Color Accent (see color value table below)
+132    0-6     Split Right Color Played (see color value table below)
+133    1-6     Split Right Color LowRow (see color value table below)
+134    0-7     Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
+135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum)
+136    0-10    Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
+137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
+138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
+200    0-1     Global Split Active (0: Inactive, 1: Active)
+201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
+202    2-25    Global Split Point Column
+203    0-1     Global Main Note Light C (0: Off, 1: On)
+204    0-1     Global Main Note Light C# (0: Off, 1: On)
+205    0-1     Global Main Note Light D (0: Off, 1: On)
+206    0-1     Global Main Note Light D# (0: Off, 1: On)
+207    0-1     Global Main Note Light E (0: Off, 1: On)
+208    0-1     Global Main Note Light F (0: Off, 1: On)
+209    0-1     Global Main Note Light F# (0: Off, 1: On)
+210    0-1     Global Main Note Light G (0: Off, 1: On)
+211    0-1     Global Main Note Light G# (0: Off, 1: On)
+212    0-1     Global Main Note Light A (0: Off, 1: On)
+213    0-1     Global Main Note Light A# (0: Off, 1: On)
+214    0-1     Global Main Note Light B (0: Off, 1: On)
+215    0-1     Global Accent Note Light C (0: Off, 1: On)
+216    0-1     Global Accent Note Light C# (0: Off, 1: On)
+217    0-1     Global Accent Note Light D (0: Off, 1: On)
+218    0-1     Global Accent Note Light D# (0: Off, 1: On)
+219    0-1     Global Accent Note Light E (0: Off, 1: On)
+220    0-1     Global Accent Note Light F (0: Off, 1: On)
+221    0-1     Global Accent Note Light F# (0: Off, 1: On)
+222    0-1     Global Accent Note Light G (0: Off, 1: On)
+223    0-1     Global Accent Note Light G# (0: Off, 1: On)
+224    0-1     Global Accent Note Light A (0: Off, 1: On)
+225    0-1     Global Accent Note Light A# (0: Off, 1: On)
+226    0-1     Global Accent Note Light B (0: Off, 1: On)
+227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar)
+228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
+229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
+230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
+231    0-5     Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
+232    0-3     Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
+233    0-2     Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
+234    0-1     Global MIDI I/O (0: MIDI Jacks, 1: USB)
+235    0-4     Global Arp Direction (0: Up, 1: Down, 2: Up Down, 3: Random, 4: Replay All)
+236    1-7     Global Arp Tempo Note Value (1: 8, 2: 8 Tri, 3: 16, 4: 16 Swing, 5: 16 Tri, 6: 32, 7: 32 Tri)
+237    0-2     Global Arp Octave Extension (0: None, 1: +1, 2: +2)
+238    1-360   Global Clock BPM (applies when receiving no MIDI clock)
+
+Color Values
+============
+0   Off
+1   Red
+2   Yellow
+3   Green
+4   Cyan
+5   Blue
+6   Magenta

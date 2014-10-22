@@ -1,0 +1,32 @@
+v1.0.3
+
+  * added low-power mode for iOS bus-power use that is selected by holding down Octave/Transpose at startup
+  * added support for independent per-split pitch and light transposition
+  * increased octave transposition range to -5 and +5
+  * made preset change slider less sensitive in the first three columns to make it easier to just go to previous/next
+  * fix for MIDI jacks selection not being persisted correctly across restarts
+  * dramatically improved detection of phantom touches, using a new algorithm that relies on calibration
+  * added advanced arbitrary CC support by using the 5th option down in the per-split Timbre/Y and Loudness/Z columns
+
+v1.0.2
+
+  * adding progressive smoothing to Y axis value for stability, low pressure has more smoothing
+  * relaxed restriction on left and right edge to allow full vibrato past the cell midpoints
+  * brought the main volume fader handling in-line with the CC faders, made sure that they're in sync for the sent value of MIDI CC 7
+  * added full control over the LinnStrument settings through MIDI NRPN messages, see midi.txt for details
+  * respond to CC 1-8 MIDI input to change the CC fader values for each split
+  * respond to Program Change MIDI input to change the preset values for each split
+  * added Windows driver for LinnStrument Programming Port, not signed though so there will be warning when installing this driver
+  * regression fix where low row wouldn't be smoothly continuous anymore
+
+v1.0.1
+
+  * 20% pressure sensitivity increase, by normalizing to the top instead of to the middle
+  * allow for easier pitch slides without triggering new notes
+  * improved phantom touch detection to also function during slides
+  * changed default low row colors to yellow
+  * changed default arpeggiator speed to 16th notes
+
+v1.0.0
+
+  * Initial release
