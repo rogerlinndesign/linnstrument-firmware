@@ -793,16 +793,27 @@ void handleTouchRelease() {
     // unregister the note <> cell mapping
     noteTouchMapping[sensorSplit].noteOff(cell().note, cell().channel);
 
-    // unhighlight the same notes if this is activated
-    if (Split[sensorSplit].colorNoteon) {
-      resetNoteCells(sensorSplit, cell().note);
-    }
-
     // send the Note Off
     if (isArpeggiatorEnabled(sensorSplit)) {
       handleArpeggiatorNoteOff(sensorSplit, cell().note, cell().channel);
     } else {
       midiSendNoteOff(cell().note, cell().channel);
+    }
+
+    // unhighlight the same notes if this is activated
+    if (Split[sensorSplit].colorNoteon) {
+      // ensure that no other notes of the same value are still active
+      boolean allNotesOff = true;
+      for (byte ch = 0; ch < 16; ++ch) {
+        if (lastValueMidiNotesOn[cell().note][ch] > 0) {
+          allNotesOff = false;
+          break;
+        }
+      }
+      // if no notes are active anymore, reset the highlighted cells
+      if (allNotesOff) {
+        resetNoteCells(sensorSplit, cell().note);
+      }
     }
 
     // reset the pitch bend when the note is released if that setting is active

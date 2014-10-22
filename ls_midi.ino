@@ -652,9 +652,6 @@ int  lastValueMidiPB[16];
 byte lastValueMidiAT[16];
 byte lastValueMidiPP[16*128];
 
-// keep track of MIDI note on to filter out note off messages that are not needed
-byte lastValueMidiNotesOn[128][16];
-
 // Arrays to keep track of the last moment of MIDI values to allow for MIDI output
 // decimation
 unsigned long lastMomentMidiCC[16*128];
