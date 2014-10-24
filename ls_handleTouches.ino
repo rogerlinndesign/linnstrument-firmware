@@ -83,6 +83,13 @@ boolean isReadyForSlideTransfer(int col) {
     cell().rawZ > cell(col, sensorRow).rawZ;             // the cell pressure is higher
 }
 
+boolean hasImpossibleX(byte col, byte row) {             // checks whether the calibrated X is outside of the possible bounds for this cell
+  return Global.calibrated &&
+    (FXD_FROM_INT(cell(col, row).calibratedX()) < (Global.calRows[col][0].fxdReferenceX - CALX_FULL_UNIT) ||
+     FXD_FROM_INT(cell(col, row).calibratedX()) > (Global.calRows[col][0].fxdReferenceX + CALX_FULL_UNIT));
+
+}
+
 void transferFromSameRowCell(byte col) {
   cell().initialX = cell(col, sensorRow).initialX;
   cell().initialReferenceX = cell(col, sensorRow).initialReferenceX;  
@@ -188,9 +195,7 @@ boolean isPhantomTouch() {
           // real presses and which ones are phantom presses, so we're looking for
           // the other corner that was scanned twice to determine which one has the
           // lowest pressure, this is the most likely to be the phantom press
-          if ((Global.calibrated &&
-               (FXD_FROM_INT(cell().calibratedX()) < (Global.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
-                FXD_FROM_INT(cell().calibratedX()) > (Global.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT))) ||
+          if (hasImpossibleX(sensorCol, sensorRow) ||
               (cell(touchedCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
                cell(sensorCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
                cell(touchedCol, sensorRow).isHigherPhantomPressure(cell().rawZ))) {
@@ -216,9 +221,7 @@ boolean isPhantomTouch() {
   }
 
   // this might be a lone touch outside of a square formation, we can detect this if calibration reference points are present
-  if (Global.calibrated &&
-      (FXD_FROM_INT(cell().calibratedX()) < (Global.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
-       FXD_FROM_INT(cell().calibratedX()) > (Global.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT))) {
+  if (hasImpossibleX(sensorCol, sensorRow)) {
     cell().setPhantoms(sensorCol, sensorCol, sensorRow, sensorRow);
     return true;
   }
