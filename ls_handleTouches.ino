@@ -693,6 +693,11 @@ void handleXExpression() {
   }
 }
 
+const int32_t MAX_VALUE_Y = FXD_FROM_INT(127);
+const int32_t SLEW_DIVIDER_Y = FXD_FROM_INT(26);
+const int32_t BASE_SLEW_Y = FXD_FROM_INT(2);
+const int32_t MIN_SLEW_Y = FXD_FROM_INT(3);
+
 void handleYExpression() {
   cell().refreshY();
 
@@ -704,8 +709,21 @@ void handleYExpression() {
     preferredTimbre = cell().currentCalibratedY;
   }
 
-  // average the Y movements in reverse relation to the pressure, the harder you press, the less averaged they are, with a minimum of 2
-  int32_t slewRate = FXD_FROM_INT(2) + FXD_DIV(FXD_FROM_INT(127) - cell().fxdPrevPressure, FXD_FROM_INT(26));
+  // base slew rate for Y is 2
+  int32_t slewRate = BASE_SLEW_Y;
+
+  // the faster we move horizontally, the slower the slew rate becomes,
+  // if we're holding still the timbre changes are almost instant, if we're moving faster they are averaged out
+  slewRate += cell().fxdRateX;
+
+  // average the Y movements in reverse relation to the pressure, the harder you press, the less averaged they are
+  slewRate += FXD_DIV(MAX_VALUE_Y - cell().fxdPrevPressure, SLEW_DIVIDER_Y);
+
+  // never use an Y slew rate below 3
+  if (slewRate < MIN_SLEW_Y) {
+    slewRate = MIN_SLEW_Y;
+  }
+
   int32_t fxdAveragedTimbre = cell().fxdPrevTimbre;
   fxdAveragedTimbre += FXD_DIV(FXD_FROM_INT(preferredTimbre), slewRate);
   fxdAveragedTimbre -= FXD_DIV(cell().fxdPrevTimbre, slewRate);
