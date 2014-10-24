@@ -1,4 +1,8 @@
 /******************************** ls_lowRow: LinnStrument Low Row *********************************
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
 These are the functions for the low row functionality of the LinnStrument
 
 The low row operations are designed to be driven by the main cell scanning loop. When actions

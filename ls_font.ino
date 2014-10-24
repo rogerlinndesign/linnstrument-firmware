@@ -1,4 +1,8 @@
 /********************************* ls_font: LinnStrument LED Font Drawing *************************
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
 These routines allow text to be drawn and scrolled using the LinnStrument LEDS.
 
 Several sized of fonts are defined to take up a different amount of space on the LinnStrument

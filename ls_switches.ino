@@ -1,4 +1,8 @@
 /********************************** ls_switches: LinnStrument Switches ****************************
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
 These routines handle LinnStrument's 2 button switches and 2 foot switch inputs.
 
 The 2 foot switch input lines are pulled up so a read of HIGH means foot switch is open or not

@@ -1,4 +1,8 @@
 /***************************** ls_debug: LinnStrument debug macros ********************************
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
 Macros used for debugging output.  Note that you need to use two parenthesis to enclose the
 argument - this allows debug code to be completely removed when the DEBUG_ENABLED is not defined.
 

@@ -1,5 +1,9 @@
 /****************************** ls_rtos: LinnStrument Real Time OS ********************************
-These funtionsc comprise a simple Real Time OS for LinnStrument.
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
+These functions comprise a simple Real Time OS for LinnStrument.
 It consists of a delay function, delayUsec, that updates LinnStrument's LEDs and scans its foot
 switches at specific time interals, all in the background. This should be used instead of
 Arduino's delayMicroseconds() function.

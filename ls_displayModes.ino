@@ -1,5 +1,9 @@
 /************************** ls_displayModes: LinnStrument display modes drawing *******************
-There are 10 different display modes.
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+***************************************************************************************************
+There are 13 different display modes.
 
 These are the possible values of the global variable displayMode:
 
@@ -14,6 +18,8 @@ displayGlobalWithTempo   : global settings with tempo
 displayOsVersion         : version number of the OS
 displayCalibration       : calibration process
 displayReset             : global reset confirmation and wait for touch release
+displayCCForY            : custom CC number selection for Y expression
+displayCCForZ            : custom CC number selection for Z expression
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
