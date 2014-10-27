@@ -1,3 +1,10 @@
+v1.0.4
+
+  * Slides transition smoother from one cell to another, based on the pressure contribute of each cell
+  * Timbre/Y data changes are stabilized when sliding rapidly over the X axis
+  * Active note lights now stay lit when the same note value in a different position is pressed and released
+  * Introduced easy-to-use one-click firmware updater tool
+
 v1.0.3
 
   * added low-power mode for iOS bus-power use that is selected by holding down Octave/Transpose at startup
