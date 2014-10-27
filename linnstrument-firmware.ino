@@ -139,7 +139,8 @@ boolean splitButtonDown = false;             // reflects state of Split button
 enum TouchState {
   untouchedCell = 0,
   ignoredCell = 1,
-  touchedCell = 2
+  transferCell = 2,
+  touchedCell = 3
 };
 
 struct TouchInfo {

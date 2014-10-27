@@ -109,6 +109,9 @@ void transferFromSameRowCell(byte col) {
   cell().vcount = cell(col, sensorRow).vcount;
   noteTouchMapping[sensorSplit].changeCell(cell().note, cell().channel, sensorCol, sensorRow);
 
+  if (cell(col, sensorRow).touched != untouchedCell) {
+    cell(col, sensorRow).touched = transferCell;
+  }
   cell(col, sensorRow).initialX = -1;
   cell(col, sensorRow).initialReferenceX = 0;
   cell(col, sensorRow).lastMovedX = 0;
@@ -145,6 +148,9 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).vcount = cell().vcount;
   noteTouchMapping[sensorSplit].changeCell(cell(col, sensorRow).note, cell(col, sensorRow).channel, col, sensorRow);
 
+  if (cell().touched != untouchedCell) {
+    cell().touched = transferCell;
+  }
   cell().initialX = -1;
   cell().initialReferenceX = 0;
   cell().lastMovedX = 0;
@@ -290,7 +296,7 @@ void handleNewTouch(byte z) {                             // the pressure value 
         }
         // otherwise act as if this new touch never happend
         else {
-          cellTouched(ignoredCell);
+          cellTouched(transferCell);
         }
       }
 
@@ -303,7 +309,7 @@ void handleNewTouch(byte z) {                             // the pressure value 
         }
         // otherwise act as if this new touch never happend
         else {
-          cellTouched(ignoredCell);
+          cellTouched(transferCell);
         }
       }
       // only allow a certain number of touches in a single column to prevent cross talk
@@ -638,15 +644,38 @@ void handleXExpression() {
   cell().refreshX();
 
   int movedX;
+  int calibratedX = cell().calibratedX();
+
+  // determine if a slide transfer is in progress and which column it is with
+  int transferCol = 0;
+  if (cell(sensorCol-1, sensorRow).touched == transferCell) {
+    transferCol = sensorCol-1;
+  }
+  else if (cell(sensorCol+1, sensorRow).touched == transferCell) {
+    transferCol = sensorCol+1;
+  }
+
+  // if there is a slide transfer column, interpolate the X position based on the relative pressure
+  // of the cells, this allows for a smoother transition as a finger slides over the groove between
+  // cells and distributes the pressure
+  if (transferCol != 0) {
+    int totalZ = cell(transferCol, sensorRow).rawZ + cell().rawZ;
+    int32_t fxdTransferRatio = FXD_DIV(FXD_FROM_INT(cell(transferCol, sensorRow).rawZ), FXD_FROM_INT(totalZ));
+    int32_t fxdCellRatio = FXD_FROM_INT(1) - fxdTransferRatio;
+
+    int32_t fxdTransferCalibratedX = FXD_MUL(FXD_FROM_INT(cell(transferCol, sensorRow).calibratedX()), fxdTransferRatio);
+    int32_t fxdCellCalibratedX = FXD_MUL(FXD_FROM_INT(cell().calibratedX()), fxdCellRatio);
+    calibratedX = FXD_TO_INT(fxdTransferCalibratedX + fxdCellCalibratedX);
+}
 
   // calculate the distance from the initial X position
   // if pitch quantize is on, the first X position becomes the center point and considered 0
   if (Split[sensorSplit].pitchCorrectQuantize) {
-    movedX = cell().currentCalibratedX - cell().initialX;
+    movedX = calibratedX - cell().initialX;
   }
   // otherwise we use the intended centerpoint based on the calibration
   else {
-    movedX = cell().currentCalibratedX - cell().initialReferenceX;
+    movedX = calibratedX - cell().initialReferenceX;
   }
 
   int deltaX = abs(movedX - cell().lastMovedX);                                   // calculate how much change there was since the last X update
