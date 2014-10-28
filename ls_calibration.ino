@@ -45,7 +45,7 @@ void initializeCalibrationSamples() {
       calSampleRows[col][row].pass = 0;
     }
   }
-  for (byte col = 0; col < 5; ++col) {
+  for (byte col = 0; col < 9; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
       calSampleCols[col][row].minValue = 4095;
       calSampleCols[col][row].maxValue = 0;
@@ -79,7 +79,7 @@ void initializeCalibrationData() {
   }
 
   // Initialize default Y calibration data
-  for (byte col = 0; col < 5; ++col) {
+  for (byte col = 0; col < 9; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
       Global.calCols[col][row].minY = CALY_DEFAULT_MIN[row];
       Global.calCols[col][row].maxY = CALY_DEFAULT_MAX[row];
@@ -114,18 +114,18 @@ int calculateCalibratedX(int rawX) {
 }
 
 int calculateCalibratedY(int rawY) {
-  int col = (sensorCol - 1) / 6;
+  int col = (sensorCol - 1) / 3;
   int row = sensorRow;
 
   int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Global.calCols[col][row].minY, Global.calCols[col][row].maxY) - Global.calCols[col][row].minY), Global.calCols[col][row].fxdRatio);
   int32_t fxdRightY = 0;
-  if (col < 4) {
+  if (col < 8) {
     fxdRightY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Global.calCols[col+1][row].minY, Global.calCols[col+1][row].maxY) - Global.calCols[col+1][row].minY), Global.calCols[col+1][row].fxdRatio);
   }
 
-  int bias = (sensorCol - 1) % 6;
-  int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(6 - bias), FXD_FROM_INT(6))) +
-                           FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(6))));
+  int bias = (sensorCol - 1) % 3;
+  int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
+                           FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);
@@ -144,8 +144,8 @@ bool handleCalibrationSample(byte z) {
         calSampleRows[sensorCol][row].minValue = min(cell().rawX(), calSampleRows[sensorCol][row].minValue);
         calSampleRows[sensorCol][row].maxValue = max(cell().rawX(), calSampleRows[sensorCol][row].maxValue);
       }
-      else if (calibrationPhase == calibrationCols && (sensorCol % 6 == 1)) {
-        int col = (sensorCol - 1) / 6;
+      else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+        int col = (sensorCol - 1) / 3;
         calSampleCols[col][sensorRow].minValue = min(cell().rawY(), calSampleCols[col][sensorRow].minValue);
         calSampleCols[col][sensorRow].maxValue = max(cell().rawY(), calSampleCols[col][sensorRow].maxValue);
       }
@@ -169,8 +169,8 @@ void handleCalibrationRelease() {
         cellPass = (calSampleRows[i1][i2].pass++);
       }
     }
-    else if (calibrationPhase == calibrationCols && (sensorCol % 6 == 1)) {
-      int i1 = (sensorCol - 1) / 6;
+    else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+      int i1 = (sensorCol - 1) / 3;
       int i2 = sensorRow;
 
       if (calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue > 180) {    // only proceed when at least a delta of 180 in Y values is measured
@@ -210,7 +210,7 @@ void handleCalibrationRelease() {
         bool colsOk = true;
 
         for (byte row = 0; row < NUMROWS && colsOk; ++row) {
-          for (byte col = 0; col < 5 && colsOk; ++col) {
+          for (byte col = 0; col < 9 && colsOk; ++col) {
             if (calSampleCols[col][row].pass < 2) {
               colsOk = false;
             }
@@ -246,7 +246,7 @@ void handleCalibrationRelease() {
 
           // Store and calculate the calibration Y data based on the collected samples
           for (byte row = 0; row < NUMROWS; ++row) {
-            for (byte col = 0; col < 5; ++col) {
+            for (byte col = 0; col < 9; ++col) {
               int sampledRange = calSampleCols[col][row].maxValue - calSampleCols[col][row].minValue;
               int cellMarginY = (sampledRange / CALY_MARGIN_FRACTION);
               Global.calCols[col][row].minY = calSampleCols[col][row].minValue + cellMarginY;
