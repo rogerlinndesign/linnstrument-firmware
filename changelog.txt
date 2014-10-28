@@ -5,6 +5,7 @@ v1.0.4
   * Active note lights now stay lit when the same note value in a different position is pressed and released
   * Added four additional Y calibration columns, these are needed to obtain precise and predictable timbre changes everywhere
   * Introduced easy-to-use one-click firmware updater tool
+  * Automatically activate calibration procedure after a firmware update
 
 v1.0.3
 

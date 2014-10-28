@@ -723,6 +723,11 @@ void setup()
   {
     operatingMode = modePerformance;
 
+    // set display to normal performance mode & refresh it
+    displayMode = displayNormal;
+    setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
+
+    // perform some initialization
     initializeCalibrationSamples();
 
     initializeStorage();
@@ -731,19 +736,14 @@ void setup()
       secretSwitch[ss] = false;
     }
 
-    // Scroll text
-    clearDisplay();
-
-    // set display to normal performance mode & refresh it
-    displayMode = displayNormal;
-    setLed(0, 1, globalColor, splitActive * 3);
-    updateDisplay();
-
     // Initialize serial/midi operations based on Global settings
     digitalWrite(35, Global.serialMode);
     
     // initialize midi communications
     applyMidiIoSetting();
+
+    // update the display for the last state
+    updateDisplay();
   }
 
 #ifdef DISPLAY_XFRAME_AT_LAUNCH

@@ -44,6 +44,9 @@ void initializeStorage() {
   if (firstTime) {
     storeSettings();                                 // Store the initial default settings
     dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
+    displayMode = displayCalibration;                // Automatically start calibration after firmware update.
+    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, 3);
+    controlButton = GLOBAL_SETTINGS_ROW;
   } else {
     loadSettings();                                  // On subsequent startups, load settings from Flash
   }
@@ -217,8 +220,8 @@ void initializeGlobalSettings() {
 // Called to handle press events of the 8 control buttons
 void handleControlButtonNewTouch() {
 
-  if ( sensorRow != SWITCH_1_ROW &&
-       sensorRow != SWITCH_2_ROW ) {                   // don't allow simultaneous control buttons except for the switches
+  if (sensorRow != SWITCH_1_ROW &&
+      sensorRow != SWITCH_2_ROW ) {                    // don't allow simultaneous control buttons except for the switches
 
     if (sensorRow == SPLIT_ROW) {                      // the split control has custom toggle / hold behavior
       if (controlButton != -1) {
@@ -239,7 +242,7 @@ void handleControlButtonNewTouch() {
  
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
-  switch(sensorRow)                                    // which control button is it?
+  switch (sensorRow)                                   // which control button is it?
   {
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
@@ -335,10 +338,8 @@ void handleControlButtonRelease() {
 
       setLed(0, sensorRow, globalColor, 0);
 
-      if (displayMode != displayCalibration) {
-          displayMode = displayNormal;
-          updateDisplay();
-      }
+      displayMode = displayNormal;
+      updateDisplay();
 
       storeSettings();
       break;
@@ -1120,8 +1121,8 @@ void handleGlobalSettingNewTouch() {
       displayMode = displayOsVersion;
     }
     // reset feature
-    else if (( sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
-              (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell )) {
+    else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
+              (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
       if (displayMode != displayReset) {
         reset();
         displayMode = displayReset;
