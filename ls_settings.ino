@@ -352,7 +352,7 @@ void handleControlButtonRelease() {
         splitActive = !splitActive;
         focusedSplit = Global.currentPerSplit;
       }
-      setLed(0, 1, globalColor, splitActive * 3);
+      setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
       displayMode = displayNormal;
       updateDisplay();
       break;

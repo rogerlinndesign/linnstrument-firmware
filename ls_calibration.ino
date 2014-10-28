@@ -266,7 +266,7 @@ void handleCalibrationRelease() {
           delayUsec(500000);
           displayMode = displayNormal;
           controlButton = -1;
-          setLed(0, 0, globalColor, 0);
+          clearLed(0, GLOBAL_SETTINGS_ROW);
           updateDisplay();
         }
       }

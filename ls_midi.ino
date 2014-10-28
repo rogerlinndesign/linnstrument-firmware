@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, 0, COLOR_GREEN, 3);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, 3);
             midiClockLedOn = now;
           }
 

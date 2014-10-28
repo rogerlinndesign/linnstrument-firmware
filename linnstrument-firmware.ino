@@ -694,11 +694,6 @@ void setup()
   if (switchPressAtStartup(7)) {
     operatingMode = modeManufacturingTest;
 
-    // Scroll text
-    clearDisplay();
-    big_scroll_text("   TEST MODE   ", Split[LEFT].colorMain);
-    clearDisplay();
-
     // Disable serial mode
     digitalWrite(35, LOW);
 
@@ -724,6 +719,7 @@ void setup()
     operatingMode = modePerformance;
 
     // set display to normal performance mode & refresh it
+    clearDisplay();
     displayMode = displayNormal;
     setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
 

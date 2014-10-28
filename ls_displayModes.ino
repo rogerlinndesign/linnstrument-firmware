@@ -113,18 +113,18 @@ void paintNormalDisplay() {
   if ((Split[LEFT].transposePitch < 0 && Split[RIGHT].transposePitch < 0) ||
       (Split[LEFT].transposePitch < 0 && Split[RIGHT].transposePitch == 0) ||
       (Split[LEFT].transposePitch == 0 && Split[RIGHT].transposePitch < 0)) {
-    setLed(0, 4, COLOR_RED, 3);
+    setLed(0, OCTAVE_ROW, COLOR_RED, 3);
   }
   else if ((Split[LEFT].transposePitch > 0 && Split[RIGHT].transposePitch > 0) ||
            (Split[LEFT].transposePitch > 0 && Split[RIGHT].transposePitch == 0) ||
            (Split[LEFT].transposePitch == 0 && Split[RIGHT].transposePitch > 0)) {
-    setLed(0, 4, COLOR_GREEN, 3);
+    setLed(0, OCTAVE_ROW, COLOR_GREEN, 3);
   }
   else if (Split[LEFT].transposePitch != 0 && Split[RIGHT].transposePitch != 0) {
-    setLed(0, 4, COLOR_YELLOW, 3);
+    setLed(0, OCTAVE_ROW, COLOR_YELLOW, 3);
   }
   else {
-    clearLed(0, 4);
+    clearLed(0, OCTAVE_ROW);
   }
 }
 
