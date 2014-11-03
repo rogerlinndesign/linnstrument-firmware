@@ -280,6 +280,8 @@ void debugCalibration() {
       DEBUGPRINT((0,"calRows"));
       DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)col));
       DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
+      DEBUGPRINT((0," sampleMin="));DEBUGPRINT((0,(int)calSampleRows[col][row].minValue));
+      DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleRows[col][row].maxValue));
       DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Global.calRows[col][row].fxdReferenceX)));
       DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Global.calRows[col][row].fxdMeasuredX)));
       DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Global.calRows[col][row].fxdRatio, FXD_FROM_INT(100)))));
@@ -291,6 +293,8 @@ void debugCalibration() {
       DEBUGPRINT((0,"calCols"));
       DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)col));
       DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
+      DEBUGPRINT((0," sampleMin="));DEBUGPRINT((0,(int)calSampleCols[col][row].minValue));
+      DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleCols[col][row].maxValue));
       DEBUGPRINT((0," minY="));DEBUGPRINT((0,(int)Global.calCols[col][row].minY));
       DEBUGPRINT((0," maxY="));DEBUGPRINT((0,(int)Global.calCols[col][row].maxY));
       DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Global.calCols[col][row].fxdRatio, FXD_FROM_INT(100)))));
