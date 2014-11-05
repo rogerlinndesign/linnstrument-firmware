@@ -560,12 +560,10 @@ void handleNewNote(int notenum) {
   cell().note = notenum;
   cell().channel = channel;
   
-  // change the focused cell if the note number is higher than the previously focused cell
+  // change the focused cell
   FocusCell &focused = focus(sensorSplit, channel);
-  if (cell().note > cell(focused.col, focused.row).note ) {
-    focused.col = sensorCol;
-    focused.row = sensorRow;
-  }
+  focused.col = sensorCol;
+  focused.row = sensorRow;
 
   // reset the pitch bend right before sending the note on
   if (isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
@@ -875,9 +873,9 @@ void handleTouchRelease() {
       preSendPitchBend(sensorSplit, 0, cell().channel);
     }
 
-    // If the released cell had focus, reassign focus to the touched cell with the highest note number
+    // If the released cell had focus, reassign focus to the latest touched cell
     if (isFocusedCell()) {
-      setFocusCellToHighestNote(sensorSplit, cell().channel);
+      setFocusCellToLatest(sensorSplit, cell().channel);
     }
 
     releaseChannel(cell().channel);
@@ -1008,25 +1006,21 @@ void getSplitBoundaries(byte sp, byte &lowCol, byte &highCol) {
   }
 }
 
-// setFocusCellToHighestNote:
-// Computes the touched cell with the high MIDI note number. This is used when a touched cell is released that had cell focus.
-// In that case, focus is reassigned to the touched cell with the highest MIDI note number.
-void setFocusCellToHighestNote(byte sp, byte channel) {
+void setFocusCellToLatest(byte sp, byte channel) {
 
   byte lowCol;                          // lowest column to be scanned
   byte highCol;                         // highest column to be scanned
   getSplitBoundaries(sp, lowCol, highCol);
 
-  int highestNote = -1;                 // temporarily holds the highest note number of all touched cells
+  unsigned long latestTouch = 0;                 // temporarily holds the latest touch of all touched cells
 
-  // Note: "col" should count up to column 25 in early 25-column prototypes and 26 in later 26-column prototypes
   for (byte col = lowCol; col < highCol; ++col) {            // count through the columns
     for (byte row = 0; row < NUMROWS; ++row) {               // count through the rows within each column
-      if ( cell(col, row).touched == touchedCell &&          // if the addressed cell is touched...
-           cell(col, row).channel == channel) {              // and uses the appropriate channel
-        int notenum = cell(col, row).note;
-        if (notenum > highestNote) {                         // if this cells' note number is higher than any found so far...
-          highestNote = notenum;                             // then save it...
+      if (cell(col, row).touched == touchedCell &&           // if the addressed cell is touched...
+          cell(col, row).channel == channel) {               // and uses the appropriate channel
+        unsigned long last = cell(col, row).lastTouch;
+        if (last > latestTouch) {                            // if this cell is touched later than any found so far...
+          latestTouch = last;                                // then save it...
           focus(sp, channel).col = col;                      // and reassign focus to this cell
           focus(sp, channel).row = row;
         }
@@ -1034,9 +1028,9 @@ void setFocusCellToHighestNote(byte sp, byte channel) {
     }
   }
 
-  // at this point, all touched cells have been scanned and focus has been reassigned to the touched cell with the highest note number
+  // at this point, all touched cells have been scanned and focus has been reassigned to the latest touched cell
   // if this was the last note to be released, reset the focused cell data
-  if (-1 == highestNote) {
+  if (latestTouch == 0) {
     focus(sp, channel).col = 0;   // column 0 are the control keys, so this combination can never be true for playing keys
     focus(sp, channel).row = 0;
   }
