@@ -894,7 +894,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = millis();
-  if (controlnum < 120) {  // always send channel mode messages
+  if (controlnum < 120 && controlnum != 64) {  // always send channel mode messages and sustain
     short index = controlnum + 128*channel;
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
