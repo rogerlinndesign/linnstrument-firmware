@@ -850,7 +850,42 @@ void midiSendPreset(byte p, byte channel) {
 }
 
 void midiSendAllNotesOff( byte split) {
+  preSendControlChange(split, 120, 0);
   preSendControlChange(split, 123, 0);
+
+  for (byte notenum = 0; notenum < 128; ++notenum)
+  {
+    switch (Split[split].midiMode)
+    {
+      case channelPerNote:
+      {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            midiSendNoteOffRaw(notenum, ch);
+          }
+        }
+        break;
+      }
+
+      case channelPerRow:
+      {
+        for ( byte row = 0; row < 8; ++row) {
+          byte ch = Split[split].midiChanMain + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          midiSendNoteOffRaw(notenum, ch-1);
+        }
+        break;
+      }
+
+      case oneChannel:
+      {
+        midiSendNoteOffRaw(notenum, Split[split].midiChanMain-1);
+        break;
+      }
+    }
+  }
 }
 
 void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
@@ -913,20 +948,23 @@ void midiSendNoteOff(byte notenum, byte channel) {
 
   if (lastValueMidiNotesOn[notenum][channel] > 0) {
       lastValueMidiNotesOn[notenum][channel]--;
+    midiSendNoteOffRaw(notenum, channel);
+  }
+}
 
-    if (Global.serialMode) {
+void midiSendNoteOffRaw(byte notenum, byte channel) {
+  if (Global.serialMode) {
 #ifdef DEBUG_ENABLED
-      if (SWITCH_DEBUGMIDI) {
-        Serial.print("MIDI.sendNoteOff notenum=");
-        Serial.print((int)notenum);
-        Serial.print(", channel=");
-        Serial.print((int)channel);
-        Serial.print("\n");
-      }
-#endif
-    } else {
-      queueMidiMessage(MIDINoteOff, notenum, 0x40, channel);
+    if (SWITCH_DEBUGMIDI) {
+      Serial.print("MIDI.sendNoteOff notenum=");
+      Serial.print((int)notenum);
+      Serial.print(", channel=");
+      Serial.print((int)channel);
+      Serial.print("\n");
     }
+#endif
+  } else {
+    queueMidiMessage(MIDINoteOff, notenum, 0x40, channel);
   }
 }
 
