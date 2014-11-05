@@ -849,10 +849,11 @@ void midiSendPreset(byte p, byte channel) {
   midiSendProgramChange(p, channel);
 }
 
-void midiSendAllNotesOff( byte split) {
+void midiSendAllNotesOff(byte split) {
   preSendControlChange(split, 120, 0);
   preSendControlChange(split, 123, 0);
 
+  preSendControlChange(split, 64, 0);
   for (byte notenum = 0; notenum < 128; ++notenum)
   {
     switch (Split[split].midiMode)
