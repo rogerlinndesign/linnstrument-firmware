@@ -319,10 +319,6 @@ void handleNewTouch(byte z) {                             // the pressure value 
       // this is really a new touch without any relationship to an ongoing slide
       // however, it could be the low row and in certain situations it doesn't allow new touches
       else if (!isLowRow() || allowNewTouchOnLowRow()) {
-        if (!isStrummingSplit(sensorSplit) && focusedSplit != sensorSplit) {
-          focusedSplit = sensorSplit;
-          updateSwitchLeds();
-        }
         initVelocity();
         calcVelocity(z);
       }

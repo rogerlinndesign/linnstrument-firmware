@@ -90,6 +90,12 @@ void updateDisplay() {
 void updateSwitchLeds() {
   setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] * 3);
   setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] * 3);
+  if (splitActive) {
+    setLed(0, SPLIT_ROW, Split[focusedSplit].colorMain, 3);
+  }
+  else {
+    setLed(0, SPLIT_ROW, globalColor, 0);
+  }
 }
 
 // paintNormalDisplay:
