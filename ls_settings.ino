@@ -186,8 +186,8 @@ void initializeGlobalSettings() {
   Global.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
 
   // initialize switch assignments
-  Global.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_SUSTAIN;
-  Global.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_ARPEGGIATOR;
+  Global.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
+  Global.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
   Global.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
   Global.switchAssignment[SWITCH_SWITCH_2] = ASSIGNED_ARPEGGIATOR;
 

@@ -106,8 +106,8 @@ const unsigned long LED_REFRESH_INTERVAL = 100;
 const unsigned long GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL = 30000;
 
 //------------ foot switchea -----------
-const byte FOOT_SW_LEFT = 34;            // Arduino pin for left foot switch input
-const byte FOOT_SW_RIGHT = 33;           // Arduino pin for right foot switch input
+const byte FOOT_SW_LEFT = 33;            // Arduino pin for left foot switch input
+const byte FOOT_SW_RIGHT = 34;           // Arduino pin for right foot switch input
 const unsigned long FOOT_SWITCH_REFRESH_INTERVAL = 20000;
 
 // ---------- MIDI -------------
@@ -682,8 +682,8 @@ void setup()
   //*************************************************************************************************************************************************
 
   // initialize input pins for 2 foot switches
-  pinMode (FOOT_SW_LEFT, INPUT_PULLUP);
-  pinMode (FOOT_SW_RIGHT, INPUT_PULLUP);
+  pinMode(FOOT_SW_LEFT, INPUT_PULLUP);
+  pinMode(FOOT_SW_RIGHT, INPUT_PULLUP);
 
   reset();
 
