@@ -81,29 +81,40 @@ void doSwitchPressed(byte whichSwitch) {
 }
 
 void doSwitchReleased(byte whichSwitch) {  
-  // the switch is already off, don't proceed
-  if (!switchState[whichSwitch][focusedSplit]) {
-    return;
-  }
-
   byte assignment = Global.switchAssignment[whichSwitch];
-
-  boolean turnSwitchOff = false;
 
   // check whether this is a hold operation by comparing the release time with
   // the last time the switch was pressed
   if (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY) {      
-    // if this is the last switch that has this assignment enabled
-    // perform the assignment off logic
-    if (switchTargetEnabled[assignment][focusedSplit] == 1) {
-      performSwitchAssignmentHoldOff(assignment, focusedSplit);
+    // perform the assignment off logic, but when a split is active, it's possible that the
+    // switch started being held on the other split, so we need to check which split is actually
+    // active before changing the state
+    if (splitActive) {
+      if (switchTargetEnabled[assignment][LEFT] == 1) {
+        performSwitchAssignmentHoldOff(assignment, LEFT);
+        changeSwitchState(whichSwitch, assignment, LEFT, false);
+      }
+      if (switchTargetEnabled[assignment][RIGHT] == 1) {
+        performSwitchAssignmentHoldOff(assignment, RIGHT);
+        changeSwitchState(whichSwitch, assignment, RIGHT, false);
+      }
     }
-
-    // indicate that the switch release should turn the switch off
-    turnSwitchOff = true;
+    else {
+      if (switchTargetEnabled[assignment][focusedSplit] == 1) {
+        performSwitchAssignmentHoldOff(assignment, focusedSplit);
+        changeSwitchState(whichSwitch, assignment, focusedSplit, false);
+      }
+    }
   }
   // this is a toggle action, however only some assignment have toggle behavior
   else {
+    // the switch is already off, don't proceed
+    if (!switchState[whichSwitch][focusedSplit]) {
+      return;
+    }
+
+    boolean turnSwitchOff = false;
+
     switch (assignment)
     {
       // these assignments don't have visible toggle behaviours, they're more
@@ -122,10 +133,10 @@ void doSwitchReleased(byte whichSwitch) {
         // preserve the current state if the switch is not held
         break;
     }
-  }
 
-  if (turnSwitchOff) {
-    changeSwitchState(whichSwitch, assignment, focusedSplit, false);
+    if (turnSwitchOff) {
+      changeSwitchState(whichSwitch, assignment, focusedSplit, false);
+    }
   }
 }
 
@@ -231,11 +242,13 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
 void handleFootSwitchState(byte whichSwitch, boolean state) {
   if (footSwitchOffState[whichSwitch] == HIGH) state = !state;       // If a normally-open switch (or no switch) is connected, invert state of switch read
 
-  if (switchState[whichSwitch][focusedSplit] != state) {             // if state if changed since last read...
+  if (footSwitchState[whichSwitch] != state) {                       // if state if changed since last read...
     DEBUGPRINT((2,"handleFootSwitchState"));
     DEBUGPRINT((2," pedal="));DEBUGPRINT((2,(int)whichSwitch));
     DEBUGPRINT((2," state="));DEBUGPRINT((2,(int)state));
     DEBUGPRINT((2,"\n"));
+
+    footSwitchState[whichSwitch] = state;
 
     // merely light leds in test mode
     if (operatingMode == modeManufacturingTest) {
