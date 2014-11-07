@@ -240,6 +240,9 @@ void handleControlButtonNewTouch() {
     controlButton = sensorRow;                         // keep track of which control button we're handling
   }
  
+  // determine whether a double-tap happened on the switch (ie. second tap within 500 ms)
+  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 500);
+
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
   switch (sensorRow)                                   // which control button is it?
@@ -257,6 +260,13 @@ void handleControlButtonNewTouch() {
       changedSplitPoint = false;
       setLed(0, SPLIT_ROW, globalColor, 3);
       displayMode = displaySplitPoint;
+
+      // handle double-tap
+      if (doubleTap) {
+        Global.currentPerSplit = !Global.currentPerSplit;
+        focusedSplit = Global.currentPerSplit;
+      }
+
       updateDisplay();
       break;
 
