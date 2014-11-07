@@ -385,7 +385,7 @@ struct CalibrationSample {
   int maxValue;
   int pass;
 };
-CalibrationSample calSampleRows[NUMCOLS][2]; // store two rows of calibration measurements
+CalibrationSample calSampleRows[NUMCOLS][4]; // store four rows of calibration measurements
 CalibrationSample calSampleCols[9][NUMROWS]; // store nine columns of calibration measurements
 
 struct CalibrationX {
@@ -522,7 +522,7 @@ struct GlobalSettings {
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
-  CalibrationX calRows[NUMCOLS+1][2];        // store two rows of calibration data
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence

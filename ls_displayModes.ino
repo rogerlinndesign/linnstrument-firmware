@@ -830,7 +830,9 @@ void paintCalibrationDisplay() {
     case calibrationRows:
       for (int c = 1; c < NUMCOLS; ++c) {
         setLed(c, 0, COLOR_BLUE, 3);
-        setLed(c, NUMROWS-1, COLOR_BLUE, 3);
+        setLed(c, 2, COLOR_BLUE, 3);
+        setLed(c, 5, COLOR_BLUE, 3);
+        setLed(c, 7, COLOR_BLUE, 3);
       }
       break;
     case calibrationCols:
