@@ -48,7 +48,17 @@ void initializeSwitches() {
 
 void doSwitchPressed(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
-  byte enabledCount = switchTargetEnabled[assignment][focusedSplit];
+  if (!splitActive || assignment == ASSIGNED_ALTSPLIT) {
+    doSwitchPressedForSplit(whichSwitch, assignment, focusedSplit);
+  }
+  else {
+    doSwitchPressedForSplit(whichSwitch, assignment, LEFT);
+    doSwitchPressedForSplit(whichSwitch, assignment, RIGHT);
+  }
+}
+
+void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
+  byte enabledCount = switchTargetEnabled[assignment][split];
 
   // keep track of when the last press happened to be able to differentiate
   // between toggle and hold
@@ -61,28 +71,37 @@ void doSwitchPressed(byte whichSwitch) {
   // perform the switch assignment on action if this hasn't been enabled
   // by another switch yet
   if (enabledCount == 0) {
-    performSwitchAssignmentOn(assignment, focusedSplit);
+    performSwitchAssignmentOn(assignment, split);
   }
-  // if the switch is enabled for the focused split, it's toggled on
+  // if the switch is enabled for the split, it's toggled on
   // go through the assignment off logic
-  else if (switchState[whichSwitch][focusedSplit]) {
+  else if (switchState[whichSwitch][split]) {
     // turn the switch state off
     resultingState = false;
 
     // if this is the last switch that has this assignment enabled
     // perform the assignment off logic
     if (enabledCount == 1) {
-      performSwitchAssignmentOff(assignment, focusedSplit);
+      performSwitchAssignmentOff(assignment, split);
     }
   }
 
   // change the state of the switch and the assignment based on the previous logic
-  changeSwitchState(whichSwitch, assignment, focusedSplit, resultingState);
+  changeSwitchState(whichSwitch, assignment, split, resultingState);
 }
 
-void doSwitchReleased(byte whichSwitch) {  
+void doSwitchReleased(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
+  if (!splitActive || assignment == ASSIGNED_ALTSPLIT) {
+    doSwitchReleasedForSplit(whichSwitch, assignment, focusedSplit);
+  }
+  else {
+    doSwitchReleasedForSplit(whichSwitch, assignment, LEFT);
+    doSwitchReleasedForSplit(whichSwitch, assignment, RIGHT);
+  }
+}
 
+void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
   // check whether this is a hold operation by comparing the release time with
   // the last time the switch was pressed
   if (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY) {      
@@ -100,16 +119,16 @@ void doSwitchReleased(byte whichSwitch) {
       }
     }
     else {
-      if (switchTargetEnabled[assignment][focusedSplit] == 1) {
-        performSwitchAssignmentHoldOff(assignment, focusedSplit);
-        changeSwitchState(whichSwitch, assignment, focusedSplit, false);
+      if (switchTargetEnabled[assignment][split] == 1) {
+        performSwitchAssignmentHoldOff(assignment, split);
+        changeSwitchState(whichSwitch, assignment, split, false);
       }
     }
   }
   // this is a toggle action, however only some assignment have toggle behavior
   else {
     // the switch is already off, don't proceed
-    if (!switchState[whichSwitch][focusedSplit]) {
+    if (assignment != ASSIGNED_ALTSPLIT && !switchState[whichSwitch][split]) {
       return;
     }
 
@@ -135,14 +154,14 @@ void doSwitchReleased(byte whichSwitch) {
     }
 
     if (turnSwitchOff) {
-      changeSwitchState(whichSwitch, assignment, focusedSplit, false);
+      changeSwitchState(whichSwitch, assignment, split, false);
     }
   }
 }
 
 void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean enabled) {
   if (enabled) {
-    // keep track of the assignment enabled count for the focused split
+    // keep track of the assignment enabled count for the split
     switchTargetEnabled[assignment][split]++;
     // use both splits to keep track of the alt split enabled count for the alt split assignment
     if (assignment == ASSIGNED_ALTSPLIT) {
@@ -152,7 +171,7 @@ void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean en
     switchState[whichSwitch][split] = true;
   }
   else {
-    // keep track of the assignment enabled count for the focused split
+    // keep track of the assignment enabled count for the split
     switchTargetEnabled[assignment][split]--;
     // use both splits to keep track of the alt split enabled count for the alt split assignment
     if (assignment == ASSIGNED_ALTSPLIT) {
