@@ -1146,7 +1146,7 @@ void handleGlobalSettingNewTouch() {
 
 #ifdef DEBUG_ENABLED
   // Column 17 is for controlling debug levels
-  if ( sensorCol == 17 && sensorRow < 4) {
+  if (sensorCol == 17 && sensorRow < 4) {
     debugLevel = sensorRow - 1;
     DEBUGPRINT((-1,"debugLevel = "));
     DEBUGPRINT((-1,debugLevel));
