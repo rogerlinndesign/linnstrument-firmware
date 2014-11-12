@@ -156,6 +156,7 @@ struct TouchInfo {
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(int);      // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  void clearSensorData();                    // clears the measured sensor data
 
   // touch data
   TouchState touched;                        // touch status of all sensor cells
@@ -230,9 +231,9 @@ struct NoteEntry {
 };
 struct NoteTouchMapping {
   void initialize();                         // initialize the mapping data
-  void noteOn(byte, byte, byte, byte);       // register the cell for which a note was turned on
-  void noteOff(byte, byte);                  // turn off a note
-  void changeCell(byte, byte, byte, byte);   // changes the cell of an active note
+  void noteOn(int, int, byte, byte);         // register the cell for which a note was turned on
+  void noteOff(int, int);                    // turn off a note
+  void changeCell(int, int, byte, byte);     // changes the cell of an active note
   void debugNoteChain();
 
   unsigned short noteCount;

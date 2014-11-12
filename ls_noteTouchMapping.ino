@@ -17,6 +17,14 @@ void resetAllTouches() {
   noteTouchMapping[RIGHT].initialize();
 }
 
+boolean validNoteNumAndChannel(int noteNum, int channel) {
+  if (noteNum < 0 || noteNum > 127 || channel < 0 || channel > 15) {
+    return false;
+  }
+
+  return true;
+}
+
 inline void NoteEntry::setColRow(byte column, byte row) {
   colRow = (column & B00011111) | (row & B00000111) << 5;
 }
@@ -69,7 +77,11 @@ void NoteTouchMapping::initialize() {
   }
 }
 
-void NoteTouchMapping::noteOn(byte noteNum, byte channel, byte col, byte row) {
+void NoteTouchMapping::noteOn(int noteNum, int channel, byte col, byte row) {
+  if (!validNoteNumAndChannel(noteNum, channel)) {
+    return;
+  }
+
   if (mapping[noteNum][channel].colRow == 0) {
     noteCount++;
 
@@ -143,7 +155,11 @@ void NoteTouchMapping::noteOn(byte noteNum, byte channel, byte col, byte row) {
   debugNoteChain();
 }
 
-void NoteTouchMapping::noteOff(byte noteNum, byte channel) {
+void NoteTouchMapping::noteOff(int noteNum, int channel) {
+  if (!validNoteNumAndChannel(noteNum, channel)) {
+    return;
+  }
+
   if (mapping[noteNum][channel].colRow != 0) {
     noteCount--;
 
@@ -191,7 +207,11 @@ void NoteTouchMapping::noteOff(byte noteNum, byte channel) {
   debugNoteChain();
 }
 
-void NoteTouchMapping::changeCell(byte noteNum, byte channel, byte col, byte row) {
+void NoteTouchMapping::changeCell(int noteNum, int channel, byte col, byte row) {
+  if (!validNoteNumAndChannel(noteNum, channel)) {
+    return;
+  }
+
   if (mapping[noteNum][channel].colRow != 0) {
     mapping[noteNum][channel].setColRow(col, row);
   }

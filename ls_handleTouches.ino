@@ -87,11 +87,10 @@ boolean isReadyForSlideTransfer(int col) {
     cell().rawZ > cell(col, sensorRow).rawZ;             // the cell pressure is higher
 }
 
-boolean hasImpossibleX(byte col, byte row) {             // checks whether the calibrated X is outside of the possible bounds for this cell
+boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
   return Global.calibrated &&
-    (FXD_FROM_INT(cell(col, row).calibratedX()) < (Global.calRows[col][0].fxdReferenceX - CALX_FULL_UNIT) ||
-     FXD_FROM_INT(cell(col, row).calibratedX()) > (Global.calRows[col][0].fxdReferenceX + CALX_FULL_UNIT));
-
+    (cell().calibratedX() < FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
+     cell().calibratedX() > FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
 }
 
 void transferFromSameRowCell(byte col) {
@@ -109,21 +108,13 @@ void transferFromSameRowCell(byte col) {
   cell().vcount = cell(col, sensorRow).vcount;
   noteTouchMapping[sensorSplit].changeCell(cell().note, cell().channel, sensorCol, sensorRow);
 
-  if (cell(col, sensorRow).touched != untouchedCell) {
-    cell(col, sensorRow).touched = transferCell;
-  }
-  cell(col, sensorRow).initialX = -1;
-  cell(col, sensorRow).initialReferenceX = 0;
-  cell(col, sensorRow).lastMovedX = 0;
-  cell(col, sensorRow).fxdRateX = 0;
-  cell(col, sensorRow).rateCountX = 0;
-  cell(col, sensorRow).initialY = -1;
+  cell(col, sensorRow).clearSensorData();
+
   cell(col, sensorRow).note = -1;
   cell(col, sensorRow).channel = -1;
   cell(col, sensorRow).fxdPrevPressure = 0;
   cell(col, sensorRow).fxdPrevTimbre = 0;
   cell(col, sensorRow).velocity = 0;
-  cell(col, sensorRow).pendingReleaseCount = 0;
   // do not reset vcount!
 
   byte channel = cell().channel;
@@ -148,21 +139,13 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).vcount = cell().vcount;
   noteTouchMapping[sensorSplit].changeCell(cell(col, sensorRow).note, cell(col, sensorRow).channel, col, sensorRow);
 
-  if (cell().touched != untouchedCell) {
-    cell().touched = transferCell;
-  }
-  cell().initialX = -1;
-  cell().initialReferenceX = 0;
-  cell().lastMovedX = 0;
-  cell().fxdRateX = 0;
-  cell().rateCountX = 0;
-  cell().initialY = -1;
+  cell().clearSensorData();
+
   cell().note = -1;
   cell().channel = -1;
   cell().fxdPrevPressure = 0;
   cell().fxdPrevTimbre = 0;
   cell().velocity = 0;
-  cell().pendingReleaseCount = 0;
   // do not reset vcount!
 
   byte channel = cell(col, sensorRow).channel;
@@ -205,7 +188,7 @@ boolean isPhantomTouch() {
           // real presses and which ones are phantom presses, so we're looking for
           // the other corner that was scanned twice to determine which one has the
           // lowest pressure, this is the most likely to be the phantom press
-          if (hasImpossibleX(sensorCol, sensorRow) ||
+          if (hasImpossibleX() ||
               (cell(touchedCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
                cell(sensorCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
                cell(touchedCol, sensorRow).isHigherPhantomPressure(cell().rawZ))) {
@@ -231,7 +214,7 @@ boolean isPhantomTouch() {
   }
 
   // this might be a lone touch outside of a square formation, we can detect this if calibration reference points are present
-  if (hasImpossibleX(sensorCol, sensorRow)) {
+  if (hasImpossibleX()) {
     cell().setPhantoms(sensorCol, sensorCol, sensorRow, sensorRow);
     return true;
   }
@@ -253,6 +236,21 @@ int countTouchesInColumn() {
   }
 
   return count;
+}
+
+void handleSlideTransferCandidate(byte siblingCol, byte z) {
+  // if the pressure gets higher than adjacent cell, the slide is transitioning over
+  if (isReadyForSlideTransfer(siblingCol)) {
+    transferFromSameRowCell(siblingCol);
+    if (cell(siblingCol, sensorRow).touched != untouchedCell) {
+      cell(siblingCol, sensorRow).touched = transferCell;
+    }
+    handleXYZupdate(z);
+  }
+  // otherwise act as if this new touch never happend
+  else {
+    cellTouched(transferCell);
+  }
 }
 
 void handleNewTouch(byte z) {                             // the pressure value of the new touch
@@ -289,28 +287,11 @@ void handleNewTouch(byte z) {                             // the pressure value 
 
       // check if the new touch could be an ongoing slide to the right
       if (potentialSlideTransferCandidate(sensorCol-1)) {
-        // if the pressure gets higher than adjacent cell, the slide is transitioning over
-        if (isReadyForSlideTransfer(sensorCol-1)) {
-          transferFromSameRowCell(sensorCol-1);
-          handleXYZupdate(z);
-        }
-        // otherwise act as if this new touch never happend
-        else {
-          cellTouched(transferCell);
-        }
+        handleSlideTransferCandidate(sensorCol-1, z);
       }
-
       // check if the new touch could be an ongoing slide to the left
       else if (potentialSlideTransferCandidate(sensorCol+1)) {
-        // if the pressure gets higher than adjacent cell, the slide is transitioning over
-        if (isReadyForSlideTransfer(sensorCol+1)) {
-          transferFromSameRowCell(sensorCol+1);
-          handleXYZupdate(z);
-        }
-        // otherwise act as if this new touch never happend
-        else {
-          cellTouched(transferCell);
-        }
+        handleSlideTransferCandidate(sensorCol+1, z);
       }
       // only allow a certain number of touches in a single column to prevent cross talk
       else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
@@ -574,7 +555,7 @@ void handleNewNote(int notenum) {
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
   // send the note on
-  if (!isArpeggiatorEnabled(sensorSplit ) && !isStrummedSplit( sensorSplit)) {
+  if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit( sensorSplit)) {
     midiSendNoteOn(cell().note, cell().velocity, cell().channel);
   }
 
@@ -657,10 +638,10 @@ void handleXExpression() {
     int32_t fxdTransferRatio = FXD_DIV(FXD_FROM_INT(cell(transferCol, sensorRow).rawZ), FXD_FROM_INT(totalZ));
     int32_t fxdCellRatio = FXD_FROM_INT(1) - fxdTransferRatio;
 
-    int32_t fxdTransferCalibratedX = FXD_MUL(FXD_FROM_INT(cell(transferCol, sensorRow).calibratedX()), fxdTransferRatio);
+    int32_t fxdTransferCalibratedX = FXD_MUL(FXD_FROM_INT(cell(transferCol, sensorRow).currentCalibratedX), fxdTransferRatio);
     int32_t fxdCellCalibratedX = FXD_MUL(FXD_FROM_INT(cell().calibratedX()), fxdCellRatio);
     calibratedX = FXD_TO_INT(fxdTransferCalibratedX + fxdCellCalibratedX);
-}
+  }
 
   // calculate the distance from the initial X position
   // if pitch quantize is on, the first X position becomes the center point and considered 0
@@ -889,14 +870,7 @@ void handleTouchRelease() {
   cell().velocity = 0;
   cell().vcount = 0;
 
-  cell().lastMovedX = 0;
-  cell().initialX = -1;
-  cell().initialReferenceX = 0;
-  cell().fxdRateX = 0;
-  cell().rateCountX = 0;
-  cell().initialY = -1;
-  cell().currentZ = 0;
-  cell().pendingReleaseCount = 0;
+  cell().clearSensorData();
 }
 
 

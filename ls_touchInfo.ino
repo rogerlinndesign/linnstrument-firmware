@@ -13,27 +13,13 @@ void initializeTouchInfo() {
     for (byte row = 0; row < NUMROWS; ++row) {
       cell(col, row).touched = untouchedCell;
       cell(col, row).lastTouch = 0;
-      cell(col, row).initialX = -1;
-      cell(col, row).initialReferenceX = 0;
-      cell(col, row).currentRawX = 0;
-      cell(col, row).currentCalibratedX = 0;
-      cell(col, row).lastMovedX = 0;
-      cell(col, row).fxdRateX = 0;
-      cell(col, row).rateCountX = 0;
-      cell(col, row).shouldRefreshX = true;
-      cell(col, row).initialY = -1;
-      cell(col, row).currentRawY = 0;
-      cell(col, row).currentCalibratedY = 0;
-      cell(col, row).shouldRefreshY = true;
-      cell(col, row).currentZ = 0;
-      cell(col, row).rawZ = 0;
+      cell(col, row).clearSensorData();
       cell(col, row).vcount = 0;
       cell(col, row).velocity = 0;
       cell(col, row).note = -1;
       cell(col, row).channel = -1;
       cell(col, row).fxdPrevPressure = 0;
       cell(col, row).fxdPrevTimbre = 0;
-      cell(col, row).pendingReleaseCount = 0;
       cell(col, row).clearPhantoms();
     }
   }
@@ -64,15 +50,15 @@ void TouchInfo::refreshX() {
     shouldRefreshX = false;
 
     // if this is the first X read for this touch...
-    if (cell().initialX == -1) {
+    if (initialX == -1) {
       // store the calibrated X reference that corresponds to the cell's note without any pitch bend
-      cell().initialReferenceX = FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX);
+      initialReferenceX = FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX);
 
       // store the initial X position
-      cell().initialX = cell().currentCalibratedX;
+      initialX = currentCalibratedX;
 
-      cell().fxdRateX = 0;
-      cell().lastMovedX = 0;
+      fxdRateX = 0;
+      lastMovedX = 0;
     }
   }
 }
@@ -89,9 +75,9 @@ void TouchInfo::refreshY() {
     shouldRefreshY = false;
 
     // if this is the first Y read for this touch...
-    if (cell().initialY == -1) {
+    if (initialY == -1) {
       // store the initial Y position
-      cell().initialY = cell().currentCalibratedY;
+      initialY = currentCalibratedY;
     }
   }
 }
@@ -134,4 +120,22 @@ void TouchInfo::setPhantoms(byte col1, byte col2, byte row1, byte row2) {
 
 boolean TouchInfo::isHigherPhantomPressure(int other) {
   return hasNote() || rawZ > other;
+}
+
+void TouchInfo::clearSensorData() {
+  initialX = -1;
+  initialReferenceX = 0;
+  currentRawX = 0;
+  currentCalibratedX = 0;
+  lastMovedX = 0;
+  fxdRateX = 0;
+  rateCountX = 0;
+  shouldRefreshX = true;
+  initialY = -1;
+  currentRawY = 0;
+  currentCalibratedY = 0;
+  shouldRefreshY = true;
+  currentZ = 0;
+  rawZ = 0;
+  pendingReleaseCount = 0;
 }

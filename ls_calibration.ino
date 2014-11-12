@@ -102,7 +102,7 @@ int calculateCalibratedX(int rawX) {
   int32_t fxdBottomX = Global.calRows[sensorCol][sector].fxdReferenceX + FXD_MUL(fxdRawX - Global.calRows[sensorCol][sector].fxdMeasuredX, Global.calRows[sensorCol][sector].fxdRatio);
 
   // We calculate the calibrated X position for the top sector row for the current sensor column
-  int32_t fxdTopX = Global.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX -Global.calRows[sensorCol][sectorTop].fxdMeasuredX, Global.calRows[sensorCol][sectorTop].fxdRatio);
+  int32_t fxdTopX = Global.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX - Global.calRows[sensorCol][sectorTop].fxdMeasuredX, Global.calRows[sensorCol][sectorTop].fxdRatio);
 
   // The final calibrated X position is the interpolation between the bottom and the top sector rows based on the current sensor row
   int result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
