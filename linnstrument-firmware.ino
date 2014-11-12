@@ -569,7 +569,7 @@ int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 
 int midiDecimateRate = 0;            // by default no decimation
 
-byte lastValueMidiNotesOn[128][16];  // keep track of MIDI note on to filter out note off messages that are not needed
+byte lastValueMidiNotesOn[2][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
 
 

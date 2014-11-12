@@ -516,8 +516,9 @@ void handleSplitStrum() {
       touchedCell.velocity = cell(sensorCol, sensorRow).velocity;
 
       // retrigger the MIDI note
-      midiSendNoteOff(touchedCell.note, touchedCell.channel);
-      midiSendNoteOn(touchedCell.note, touchedCell.velocity, touchedCell.channel);
+      byte split = getSplitOf(touchedCol);
+      midiSendNoteOff(split, touchedCell.note, touchedCell.channel);
+      midiSendNoteOn(split, touchedCell.note, touchedCell.velocity, touchedCell.channel);
     }
 
     colsInSensorRowTouched &= ~(1 << touchedCol);
@@ -555,8 +556,8 @@ void handleNewNote(int notenum) {
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
   // send the note on
-  if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit( sensorSplit)) {
-    midiSendNoteOn(cell().note, cell().velocity, cell().channel);
+  if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit(sensorSplit)) {
+    midiSendNoteOn(sensorSplit, cell().note, cell().velocity, cell().channel);
   }
 
   // highlight same notes of this is activated
@@ -826,7 +827,7 @@ void handleTouchRelease() {
     if (isArpeggiatorEnabled(sensorSplit)) {
       handleArpeggiatorNoteOff(sensorSplit, cell().note, cell().channel);
     } else {
-      midiSendNoteOff(cell().note, cell().channel);
+      midiSendNoteOff(sensorSplit, cell().note, cell().channel);
     }
 
     // unhighlight the same notes if this is activated
@@ -834,7 +835,7 @@ void handleTouchRelease() {
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
       for (byte ch = 0; ch < 16; ++ch) {
-        if (lastValueMidiNotesOn[cell().note][ch] > 0) {
+        if (lastValueMidiNotesOn[sensorSplit][cell().note][ch] > 0) {
           allNotesOff = false;
           break;
         }

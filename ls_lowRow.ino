@@ -164,8 +164,8 @@ void handleLowRowRestrike() {
     cell().velocity = cell(0, 0).velocity;
 
     // retrigger the MIDI note
-    midiSendNoteOff(cell().note, cell().channel);
-    midiSendNoteOn(cell().note, cell().velocity, cell().channel);
+    midiSendNoteOff(sensorSplit, cell().note, cell().channel);
+    midiSendNoteOn(sensorSplit, cell().note, cell().velocity, cell().channel);
   }
 }
 
@@ -177,8 +177,8 @@ void handleLowRowStrum() {
     cell().velocity = cell(sensorCol, 0).velocity;
 
     // retrigger the MIDI note
-    midiSendNoteOff(cell().note, cell().channel);
-    midiSendNoteOn(cell().note, cell().velocity, cell().channel);
+    midiSendNoteOff(sensorSplit, cell().note, cell().channel);
+    midiSendNoteOn(sensorSplit, cell().note, cell().velocity, cell().channel);
   }
 }
 

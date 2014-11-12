@@ -609,7 +609,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   if (displayMode != displayNormal) return;
 
   int row = 0;
-  if (Split[sensorSplit].lowRowMode != lowRowNormal) {
+  if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
@@ -623,7 +623,11 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
 void resetNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
   
-  for (int row = 0; row < NUMROWS; ++row) {
+  int row = 0;
+  if (Split[split].lowRowMode != lowRowNormal) {
+    row = 1;
+  }
+  for (; row < NUMROWS; ++row) {
     int col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       paintNormalDisplayCell(split, col, row);
@@ -765,9 +769,11 @@ void initializeLastMidiTracking() {
   }
 
   // Initialize the arrays that track which MIDI notes are on
-  for (int n = 0; n < 128; ++n) {
-    for (int c = 0; c < 16; ++c) {
-      lastValueMidiNotesOn[n][c] = 0;
+  for (int s = 0; s < 2; ++s) {
+    for (int n = 0; n < 128; ++n) {
+      for (int c = 0; c < 16; ++c) {
+        lastValueMidiNotesOn[s][n][c] = 0;
+      }
     }
   }
 }
@@ -919,12 +925,12 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   }
 }
 
-void midiSendNoteOn(byte notenum, byte velocity, byte channel) {
+void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
   notenum = constrain(notenum, 0, 127);
   velocity = constrain(velocity, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  lastValueMidiNotesOn[notenum][channel]++;
+  lastValueMidiNotesOn[split][notenum][channel]++;
 
   if (Global.serialMode) {
 #ifdef DEBUG_ENABLED
@@ -943,12 +949,12 @@ void midiSendNoteOn(byte notenum, byte velocity, byte channel) {
   }
 }
 
-void midiSendNoteOff(byte notenum, byte channel) {
+void midiSendNoteOff(byte split, byte notenum, byte channel) {
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  if (lastValueMidiNotesOn[notenum][channel] > 0) {
-      lastValueMidiNotesOn[notenum][channel]--;
+  if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
+      lastValueMidiNotesOn[split][notenum][channel]--;
     midiSendNoteOffRaw(notenum, channel);
   }
 }
@@ -974,7 +980,7 @@ void midiSendNoteOffForAllTouches(byte split) {
   signed char channel = noteTouchMapping[split].firstChannel;
 
   while (note != -1) {
-    midiSendNoteOff(note, channel);
+    midiSendNoteOff(split, note, channel);
     NoteEntry &entry = noteTouchMapping[split].mapping[note][channel];
     note = entry.getNextNote();
     channel = entry.getNextChannel();
