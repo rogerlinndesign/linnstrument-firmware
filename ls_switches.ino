@@ -48,7 +48,7 @@ void initializeSwitches() {
 
 void doSwitchPressed(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
-  if (!splitActive || assignment == ASSIGNED_ALTSPLIT) {
+  if (!splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits) {
     doSwitchPressedForSplit(whichSwitch, assignment, focusedSplit);
   }
   else {
@@ -92,7 +92,7 @@ void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
 
 void doSwitchReleased(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
-  if (!splitActive || assignment == ASSIGNED_ALTSPLIT) {
+  if (!splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits) {
     doSwitchReleasedForSplit(whichSwitch, assignment, focusedSplit);
   }
   else {

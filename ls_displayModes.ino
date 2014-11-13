@@ -712,6 +712,11 @@ void paintGlobalSettingsDisplay() {
   lightLed(7, switchSelect);
   paintSwitchAssignment(Global.switchAssignment[switchSelect]);
 
+  // Indicate whether switches operate on both splits or not
+  if (Global.switchBothSplits) {
+    lightLed(8, 3);
+  }
+
   // This code assumes the velocitySensitivity and pressureSensitivity
   // values are equal to the LED rows.
   lightLed(10, Global.velocitySensitivity);

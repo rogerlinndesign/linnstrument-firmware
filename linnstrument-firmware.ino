@@ -522,6 +522,7 @@ struct GlobalSettings {
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits;                  // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
