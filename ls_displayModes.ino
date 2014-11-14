@@ -713,7 +713,7 @@ void paintGlobalSettingsDisplay() {
   paintSwitchAssignment(Global.switchAssignment[switchSelect]);
 
   // Indicate whether switches operate on both splits or not
-  if (Global.switchBothSplits) {
+  if (Global.switchBothSplits[switchSelect]) {
     lightLed(8, 3);
   }
 

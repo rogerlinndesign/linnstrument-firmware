@@ -190,7 +190,10 @@ void initializeGlobalSettings() {
   Global.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
   Global.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
   Global.switchAssignment[SWITCH_SWITCH_2] = ASSIGNED_ARPEGGIATOR;
-  Global.switchBothSplits = false;
+  Global.switchBothSplits[SWITCH_FOOT_L] = false;
+  Global.switchBothSplits[SWITCH_FOOT_R] = false;
+  Global.switchBothSplits[SWITCH_SWITCH_1] = false;
+  Global.switchBothSplits[SWITCH_SWITCH_2] = false;
 
   // initialize accentNotes array. Starting with only C within each octave highlighted
   Global.accentNotes[0] = true;
@@ -969,7 +972,7 @@ void handleGlobalSettingNewTouch() {
 
   // toggle whether the switches operate on both splits or not
   if (sensorCol == 8 && sensorRow == 3) {
-    Global.switchBothSplits = !Global.switchBothSplits;
+    Global.switchBothSplits[switchSelect] = !Global.switchBothSplits[switchSelect];
   }
 
   // set the switch targets
