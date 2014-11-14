@@ -5,8 +5,10 @@ v1.0.5
   * Changed 'focused cell' logic in One Channel mode, instead of doing pitch-slides and expression on the highest note, it's now on the more recent one
   * The global active split color is now displayed in split mode with the LED of the 'Split' switch
   * Double-tapping the 'Split' switch now activates the other split, similar to selecting the split in 'Per-Split Settings'
-  * Pedal and switch operations apart from Alt Split, now act upon both splits when split mode is active
+  * Pedal and switch operations apart from Alt Split, can now act upon both splits when split mode is active by pressing the cell above the Octave Dn setting
   * Fix for foot switch assignments being reversed
+  * Fix for low-row bend not properly supporting multiple fingers for pitch-bend jumps anymore
+  * Fix for played cell lights sticking if identical notes are played on both splits
 
 v1.0.4
 
