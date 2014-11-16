@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.0.6 =========================================
+======================================== LinnStrument Operating System v1.0.5 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -75,7 +75,7 @@ char* audienceMessages[16] = {
   "HELLO (YOUR CITY HERE)"
 };
 
-char* OSVersion = "106.";
+char* OSVersion = "105.";
 
 // SPI addresses
 const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
@@ -142,6 +142,9 @@ enum TouchState {
   transferCell = 2,
   touchedCell = 3
 };
+
+#define PITCH_HOLD_DURATION 32               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
+#define ROGUE_PITCH_SWEEP_THRESHOLD 4        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 struct TouchInfo {
   int rawX();                                // ensure that X is updated to the latest scan and return its raw value

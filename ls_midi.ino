@@ -956,6 +956,7 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
   if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
       lastValueMidiNotesOn[split][notenum][channel]--;
     midiSendNoteOffRaw(notenum, channel);
+    lastValueMidiPB[channel] = 0x7FFF;
   }
 }
 

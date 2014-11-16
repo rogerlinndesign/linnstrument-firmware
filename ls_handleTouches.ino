@@ -108,7 +108,13 @@ void transferFromSameRowCell(byte col) {
   cell().vcount = cell(col, sensorRow).vcount;
   noteTouchMapping[sensorSplit].changeCell(cell().note, cell().channel, sensorCol, sensorRow);
 
-  cell(col, sensorRow).clearSensorData();
+  cell(col, sensorRow).initialX = -1;
+  cell(col, sensorRow).initialReferenceX = 0;
+  cell(col, sensorRow).lastMovedX = 0;
+  cell(col, sensorRow).fxdRateX = 0;
+  cell(col, sensorRow).rateCountX = PITCH_HOLD_DURATION;
+  cell(col, sensorRow).initialY = -1;
+  cell(col, sensorRow).pendingReleaseCount = 0;
 
   cell(col, sensorRow).note = -1;
   cell(col, sensorRow).channel = -1;
@@ -139,7 +145,13 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).vcount = cell().vcount;
   noteTouchMapping[sensorSplit].changeCell(cell(col, sensorRow).note, cell(col, sensorRow).channel, col, sensorRow);
 
-  cell().clearSensorData();
+  cell().initialX = -1;
+  cell().initialReferenceX = 0;
+  cell().lastMovedX = 0;
+  cell().fxdRateX = 0;
+  cell().rateCountX = PITCH_HOLD_DURATION;
+  cell().initialY = -1;
+  cell().pendingReleaseCount = 0;
 
   cell().note = -1;
   cell().channel = -1;
@@ -400,9 +412,6 @@ byte takeChannel() {
     }
   }
 }
-
-#define PITCH_HOLD_DURATION 32             // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
-#define ROGUE_PITCH_SWEEP_THRESHOLD 4      // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over which the average rate of change of X is calculated
 const int32_t fxdRateXThreshold = FXD_MAKE(1.6);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
