@@ -144,7 +144,7 @@ enum TouchState {
 };
 
 #define PITCH_HOLD_DURATION 32               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
-#define ROGUE_PITCH_SWEEP_THRESHOLD 4        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
+#define ROGUE_PITCH_SWEEP_THRESHOLD 6        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 struct TouchInfo {
   int rawX();                                // ensure that X is updated to the latest scan and return its raw value
@@ -269,7 +269,10 @@ enum DisplayMode {
   displayCalibration,
   displayReset,
   displayCCForY,
-  displayCCForZ
+  displayCCForZ,
+  displaySensorLoZ,
+  displaySensorFeatherZ,
+  displaySensorRangeZ
 };
 
 byte displayMode = displayNormal;
@@ -321,10 +324,11 @@ enum PressureSensitivity {
 #define COLOR_WHITE 7
 
 // Values related to the Z sensor, continuous pressure
-#define SENSOR_LO_Z 0xcf                              // lowest acceptable raw Z value
-#define SENSOR_FEATHER_Z 0x6f                         // lowest acceptable raw Z feather value
-#define SENSOR_PITCH_Z 0x1e0                          // lowest acceptable raw Z value for which pitchbend is sent
-#define SENSOR_RANGE_Z 508                            // upper value of the pressure                          
+#define DEFAULT_SENSOR_LO_Z 0xcf                      // lowest acceptable raw Z value to start a touch
+#define DEFAULT_SENSOR_FEATHER_Z 0x6f                 // lowest acceptable raw Z value to continue a touch
+#define DEFAULT_SENSOR_RANGE_Z 508                    // default range of the pressure
+#define SENSOR_PITCH_Z 0x111                          // lowest acceptable raw Z value for which pitchbend is sent
+#define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
 #define Z_VAL_NONE 0                                  // no touch, ie. no pressure at all
 #define Z_VAL_FEATHER 0xff                            // feather touch, ie. pressure but below the lower threshold
 
@@ -432,16 +436,16 @@ struct SplitSettings {
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
-  byte ccForY;                         // 0-127
+  unsigned short ccForY;               // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
-  byte ccForZ;                         // 0-127
+  unsigned short ccForZ;               // 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
-  byte preset;                         // preset number 0-127
+  unsigned short preset;               // preset number 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
@@ -533,6 +537,9 @@ struct GlobalSettings {
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
 };
 
 GlobalSettings Global;

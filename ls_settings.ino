@@ -8,17 +8,11 @@ These funtions handle the changing of any of LinnStrument's panel settings.
 
 #include <DueFlashStorage.h>
 
-int presetChangeCol = -1;               // if -1, preset button has been pressed, but a starting column hasn't been set
-unsigned long presetChangeTime = 0;     // time of last touch for preset change
+int numericDataChangeCol = -1;               // if -1, button has been pressed, but a starting column hasn't been set
+unsigned long numericDataChangeTime = 0;     // time of last touch for value change
 
-int ccForYChangeCol = -1;               // if -1, preset button has been pressed, but a starting column hasn't been set
-unsigned long ccForYChangeTime = 0;     // time of last touch for CC for Y change
-
-int ccForZChangeCol = -1;               // if -1, preset button has been pressed, but a starting column hasn't been set
-unsigned long ccForZChangeTime = 0;     // time of last touch for CC for Z change
-
-int tempoChangeCol = -1;                // if -1, tempo starting column hasn't been set
-unsigned long tempoChangeTime = 0;      // time of last touch for tempo change
+int tempoChangeCol = -1;                     // if -1, tempo starting column hasn't been set
+unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
 
 void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
   if (Global.switchAssignment[whichSwitch] != assignment) {
@@ -217,6 +211,10 @@ void initializeGlobalSettings() {
   Global.arpTempo = ArpSixteenth;
   Global.arpOctave = 0;
 
+  Global.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  Global.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  Global.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
+
   // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
   initializeCalibrationData();
 }
@@ -255,6 +253,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
       displayMode = displayGlobal;                     // change to global settings display mode
+      numericDataChangeCol = -1;
       updateDisplay();
       break;
 
@@ -302,7 +301,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PRESET_ROW, globalColor, 3);
       displayMode = displayPreset;
-      presetChangeCol = -1;
+      numericDataChangeCol = -1;
       activeDown = 0;
       updateDisplay();
       break;
@@ -311,8 +310,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PER_SPLIT_ROW, globalColor, 3);
       displayMode = displayPerSplit;
-      ccForYChangeCol = -1;
-      ccForZChangeCol = -1;
+      numericDataChangeCol = -1;
       activeDown = 0;
       updateDisplay();
       break;
@@ -643,64 +641,88 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
-  if (handleMidiDataNewTouch(presetChangeCol, presetChangeTime, Split[Global.currentPerSplit].preset)) {
+  if (handleNumericDataNewTouch(Split[Global.currentPerSplit].preset, 0, 127, true)) {
     byte chan = Split[Global.currentPerSplit].midiChanMain;
     midiSendPreset(Split[Global.currentPerSplit].preset, chan);         // Send the MIDI program change message
   }
 }
 
 void handlePresetRelease() {
-  handleMidiDataRelease(presetChangeCol);
+  handleNumericDataRelease(true);
 }
 
 void handleCCForYNewTouch() {
-  handleMidiDataNewTouch(ccForYChangeCol, ccForYChangeTime, Split[Global.currentPerSplit].ccForY);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 127, true);
 }
 
 void handleCCForYRelease() {
-  handleMidiDataRelease(ccForYChangeCol);
+  handleNumericDataRelease(true);
 }
 
 void handleCCForZNewTouch() {
-  handleMidiDataNewTouch(ccForZChangeCol, ccForZChangeTime, Split[Global.currentPerSplit].ccForZ);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForZ, 0, 127, true);
 }
 
 void handleCCForZRelease() {
-  handleMidiDataRelease(ccForZChangeCol);
+  handleNumericDataRelease(true);
 }
 
-boolean handleMidiDataNewTouch(int &changeCol, unsigned long &changeTime, byte &currentData) {
+void handleSensorLoZNewTouch() {
+  handleNumericDataNewTouch(Global.sensorLoZ, max(0, Global.sensorFeatherZ), 1024, false);
+}
+
+void handleSensorLoZRelease() {
+  handleNumericDataRelease(false);
+}
+
+void handleSensorFeatherZNewTouch() {
+  handleNumericDataNewTouch(Global.sensorFeatherZ, 0, min(1024, Global.sensorLoZ), false);
+}
+
+void handleSensorFeatherZRelease() {
+  handleNumericDataRelease(false);
+}
+
+void handleSensorRangeZNewTouch() {
+  handleNumericDataNewTouch(Global.sensorRangeZ, 127, MAX_SENSOR_RANGE_Z, false);
+}
+
+void handleSensorRangeZRelease() {
+  handleNumericDataRelease(false);
+}
+
+boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   // keep track of how many cells are currently down
   activeDown++;
   unsigned long now = micros();
   int increment = 1;
 
   // If the swipe is fast, increment by a larger amount.
-  if (calcTimeDelta(now, changeTime) < 70000) {
+  if (calcTimeDelta(now, numericDataChangeTime) < 70000) {
     increment = 10;
   }
-  else if (calcTimeDelta(now, changeTime) < 120000) {
+  else if (calcTimeDelta(now, numericDataChangeTime) < 120000) {
     increment = 5;
   }
 
   int newData = currentData;
-  if (changeCol < 0) {
+  if (numericDataChangeCol < 0) {
     // First cell hit after starting a data change,
     // don't change data yet.
   }
   else {
-    if (abs(changeCol - sensorCol) <= 3) {
+    if (useFineChanges && abs(numericDataChangeCol - sensorCol) <= 3) {
       increment = 1;
     }
-    if (sensorCol > changeCol) {
-      newData = constrain(currentData + increment, 0, 127);
-    } else if (sensorCol < changeCol) {
-      newData = constrain(currentData - increment, 0, 127);
+    if (sensorCol > numericDataChangeCol) {
+      newData = constrain(currentData + increment, minimum, maximum);
+    } else if (sensorCol < numericDataChangeCol) {
+      newData = constrain(currentData - increment, minimum, maximum);
     }
   }
 
-  changeCol = sensorCol;
-  changeTime = now;
+  numericDataChangeCol = sensorCol;
+  numericDataChangeTime = now;
 
   if (newData != currentData) {
     currentData = newData;
@@ -711,9 +733,9 @@ boolean handleMidiDataNewTouch(int &changeCol, unsigned long &changeTime, byte &
   return false;
 }
 
-void handleMidiDataRelease(int &changeCol) {
+void handleNumericDataRelease(boolean handleSplitSelection) {
   // The top row doesn't change the data, it only lets you change which side you're controlling
-  if (handleShowSplit()) {  // see if one of the "Show Split" cells have been hit
+  if (handleSplitSelection && handleShowSplit()) {  // see if one of the "Show Split" cells have been hit
     return;
   }
 
@@ -722,7 +744,7 @@ void handleMidiDataRelease(int &changeCol) {
   // relative to the next NewTouch
   if (activeDown <= 0) {
     activeDown = 0;
-    changeCol = -1;
+    numericDataChangeCol = -1;
   }
 }
 
@@ -1016,6 +1038,7 @@ void handleGlobalSettingNewTouch() {
       case pressureMedium:
       case pressureHigh:
         Global.pressureSensitivity = PressureSensitivity(sensorRow);
+        break;
     }
   }
 
@@ -1174,6 +1197,18 @@ void handleGlobalSettingNewTouch() {
     DEBUGPRINT((-1,"\n"));
   }
 #endif
+
+  if (sensorCol == 25) {
+    if      (sensorRow == 0) {
+      displayMode = displaySensorLoZ;
+    }
+    else if (sensorRow == 1) {
+      displayMode = displaySensorFeatherZ;
+    }
+    else if (sensorRow == 2) {
+      displayMode = displaySensorRangeZ;
+    }
+  }
 
   updateDisplay();
 }

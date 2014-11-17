@@ -332,6 +332,15 @@ void handleNewTouch(byte z) {                             // the pressure value 
     case displayCCForZ:                                            // it's a CC for Z change
       handleCCForZNewTouch();
       break;
+    case displaySensorLoZ:                                         // it's a sensor low Z change
+      handleSensorLoZNewTouch();
+      break;
+    case displaySensorFeatherZ:                                    // it's a sensor feather Z change
+      handleSensorFeatherZNewTouch();
+      break;
+    case displaySensorRangeZ:                                      // it's a sensor Z range change
+      handleSensorRangeZNewTouch();
+      break;
     case displayOctaveTranspose:                                   // it's a transpose change
       handleOctaveTransposeNewTouch();
       break;
@@ -414,7 +423,7 @@ byte takeChannel() {
 }
 
 const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over which the average rate of change of X is calculated
-const int32_t fxdRateXThreshold = FXD_MAKE(1.6);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
+const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
 // handleXYZupdate:
@@ -695,7 +704,7 @@ void handleXExpression() {
     if (isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit) &&
         // when there are multiple touches in the same column, reduce the pitch bend Z sensititivity to
         // prevent unwanted pitch slides
-        (countTouchesInColumn() < 2 || cell().rawZ > SENSOR_PITCH_Z)) {
+        (countTouchesInColumn() < 2 || cell().rawZ > (Global.sensorLoZ + SENSOR_PITCH_Z))) {
       preSendPitchBend(sensorSplit, pitchBend, cell().channel);
     }
   }
@@ -761,7 +770,7 @@ void releaseChannel(byte channel) {
   }
 }
 
-#define PENDING_RELEASE_START 2
+#define PENDING_RELEASE_START 3
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -807,6 +816,15 @@ void handleTouchRelease() {
       return;
     case displayCCForZ:
       handleCCForZRelease();
+      return;
+    case displaySensorLoZ:
+      handleSensorLoZRelease();
+      return;
+    case displaySensorFeatherZ:
+      handleSensorFeatherZRelease();
+      return;
+    case displaySensorRangeZ:
+      handleSensorRangeZRelease();
       return;
     case displayVolume:
       handleVolumeRelease();

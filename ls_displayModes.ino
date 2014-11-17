@@ -20,6 +20,9 @@ displayCalibration       : calibration process
 displayReset             : global reset confirmation and wait for touch release
 displayCCForY            : custom CC number selection for Y expression
 displayCCForZ            : custom CC number selection for Z expression
+displaySensorLoZ         : sensor low Z sensitivity selection
+displaySensorFeatherZ    : sensor feather Z sensitivity selection
+displaySensorRangeZ      : max Z sensor range selection
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -81,6 +84,15 @@ void updateDisplay() {
     break;
   case displayCCForZ:            // Display this split's Z CC number
     paintCCForZDisplay(Global.currentPerSplit);
+    break;
+  case displaySensorLoZ:         // Display the low Z sensitivity
+    paintSensorLoZDisplay();
+    break;
+  case displaySensorFeatherZ:    // Display the feather Z sensitivity
+    paintSensorFeatherZDisplay();
+    break;
+  case displaySensorRangeZ:      // Display the max Z range
+    paintSensorRangeZDisplay();
     break;
   }
 
@@ -429,11 +441,11 @@ void paintOSVersionDisplay() {
 
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(int side) {
-  paintMidiDataDisplay(side, Split[side].preset+1);
+  paintSplitNumericDataDisplay(side, Split[side].preset+1);
 }
 
 void paintCCForYDisplay(int side) {
-  paintMidiDataDisplay(side, Split[side].ccForY);
+  paintSplitNumericDataDisplay(side, Split[side].ccForY);
 }
 
 void paintCCForZDisplay(int side) {
@@ -442,31 +454,57 @@ void paintCCForZDisplay(int side) {
     updateDisplay();
   }
   else {
-    paintMidiDataDisplay(side, Split[side].ccForZ);
+    paintSplitNumericDataDisplay(side, Split[side].ccForZ);
   }
 }
 
-void paintMidiDataDisplay(int side, byte value) {
+void paintSensorLoZDisplay() {
+  paintNumericDataDisplay(globalColor, Global.sensorLoZ);
+}
+
+void paintSensorFeatherZDisplay() {
+  paintNumericDataDisplay(globalColor, Global.sensorFeatherZ);
+}
+
+void paintSensorRangeZDisplay() {
+  paintNumericDataDisplay(globalColor, Global.sensorRangeZ);
+}
+
+void paintSplitNumericDataDisplay(int side, byte value) {
+
+  paintNumericDataDisplay(Split[side].colorMain, value);
+
+  paintShowSplitSelection(side);
+}
+
+void paintNumericDataDisplay(byte color, unsigned short value) {
 
   clearDisplay();
   
   doublePerSplit = false;  
 
-  char str[4];
-  byte color = Split[side].colorMain;
-  char *format = "%2d";
+  char str[10];
+  char *format;
+  byte offset;
 
-  if (value >= 100) {
+  if (value < 100) {
+    format = "%2d";
+    offset = 5;
+  }
+  else if (value >= 100 && value < 200) {
     // Handle the "1" character specially, to get the spacing right
     smallfont_draw_string(0, 0, "1", color);
     value -= 100;
     format = "%02d";     // to make sure a leading zero is included
+    offset = 5;
+  }
+  else {
+    format = "%-d";
+    offset = 0;
   }
 
   snprintf(str, sizeof(str), format, value);
-  smallfont_draw_string(5, 0, str, color);
-
-  paintShowSplitSelection(side);
+  smallfont_draw_string(offset, 0, str, color);
 }
 
 // draw a horizontal line to indicate volume for a particular side
