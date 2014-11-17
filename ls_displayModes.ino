@@ -225,6 +225,13 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       colour = Split[split].colorAccent;
       brightness = 3;
     }
+    
+    // paint middle C special - jas 2014/11/14
+    // 
+    if (actualnote == 60) {
+      colour = Split[split].colorLowRow;
+      brightness = byte(random(3) + 1);
+    }
 
     // if the low row is anything but normal, set it to the appropriate color
     if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
