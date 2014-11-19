@@ -211,12 +211,16 @@ void initializeGlobalSettings() {
   Global.arpTempo = ArpSixteenth;
   Global.arpOctave = 0;
 
-  Global.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  Global.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  Global.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
+  initializeGlobalSensorSettings();
 
   // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
   initializeCalibrationData();
+}
+
+void initializeGlobalSensorSettings() {
+  Global.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  Global.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  Global.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
 // Called to handle press events of the 8 control buttons

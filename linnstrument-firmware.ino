@@ -643,6 +643,8 @@ void setup()
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************
   /*!!*/
+  /*!!*/  initializeGlobalSensorSettings();
+  /*!!*/
   /*!!*/  // Initialize output pin 35 (midi/SERIAL) and set it HIGH for serial operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO SERIAL MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!
   /*!!*/  pinMode(35, OUTPUT);
