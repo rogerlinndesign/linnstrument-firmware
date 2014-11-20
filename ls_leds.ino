@@ -57,15 +57,13 @@ void setLed(byte col,                // Column of LED to be changed
 
 // light up a single LED with the default color and brightness
 void lightLed(byte col,              // Column of LED to be changed
-              byte row )             // Row of LED to be changed
-{
+              byte row) {            // Row of LED to be changed
   setLed(col, row, globalColor, 3);
 }
 
 // clear a single LED
 void clearLed(byte col,              // Column of LED to be changed
-              byte row )             // Row of LED to be changed
-{
+              byte row) {            // Row of LED to be changed
   setLed(col, row, COLOR_BLACK, 0);
 }
 
@@ -73,7 +71,7 @@ void clearLed(byte col,              // Column of LED to be changed
 
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.
-void refreshLedColumn()  {                                // output: none
+void refreshLedColumn() {                                 // output: none
   static byte ledCol = 0;                                 // current led column counter for refresh
   static byte actualCol;                                  // actual column being refreshed, permitting columns to be lit non-sequentially by using colIndex[] array
   static byte brightnessInterval = 0;                     // brightness setting. Always 0 but reserved for future expansion
@@ -94,7 +92,7 @@ void refreshLedColumn()  {                                // output: none
   for (byte rowCount = 0; rowCount < NUMROWS; ++rowCount) {       // step through the 8 rows
     byte color = leds[actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
 
-    byte brightness = leds[actualCol][rowCount] & B00001111 ;     // set 'brightness' value to 0 - 3
+    byte brightness = leds[actualCol][rowCount] & B00001111;      // set 'brightness' value to 0 - 3
     if (operatingLowPower && brightness) brightness = 1;          // only use only level 1 of brightness in low power mode
 
     if (brightness > brightnessInterval) {                        // if this LED is not off, process it

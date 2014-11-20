@@ -1084,7 +1084,7 @@ static Character big_blank = { 5,
 struct Font {
   int height;
   char* chars;
-  Character **data;
+  Character** data;
 };
 
 Character* tinyChars[] = {

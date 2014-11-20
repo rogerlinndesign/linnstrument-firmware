@@ -16,8 +16,7 @@ int main(int argc, const char* argv[]) {
   printf("\n");
 }
 **************************************************************************************************/
-const short Z_CURVE[1017] =
-  {
+const short Z_CURVE[1017] = {
     0, 15, 24, 30, 36, 41, 46, 51, 55, 59, 63, 67, 70, 74, 77, 80, 84, 87, 90, 93, 96, 99, 101, 104, 107, 110, 112, 115, 117, 120, 122, 125, 127, 129, 132, 134,
     136, 139, 141, 143, 145, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 187, 189, 191, 193, 195, 197,
     198, 200, 202, 204, 205, 207, 209, 211, 212, 214, 216, 217, 219, 221, 222, 224, 226, 227, 229, 230, 232, 234, 235, 237, 238, 240, 242, 243, 245, 246, 248,
@@ -56,8 +55,7 @@ const short Z_CURVE[1017] =
 // These are the rectified pressure sensititivies for each column
 // CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
 // actual values in a spreadsheet
-const int Z_BIAS[NUMROWS][NUMCOLS] = 
-  {
+const int Z_BIAS[NUMROWS][NUMCOLS] =  {
     {850, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1506},
     {850, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1506},
     {850, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1443},
@@ -70,8 +68,7 @@ const int Z_BIAS[NUMROWS][NUMCOLS] =
 
 // readX:
 // Reads raw X value at the currently addressed column and row
-inline int readX()                                    // returns the raw X value at the addressed cell
-{
+inline int readX() {                                  // returns the raw X value at the addressed cell
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
@@ -86,8 +83,7 @@ inline int readX()                                    // returns the raw X value
 
 // readY:
 // Reads Y value for current cell and returns a value of 0-127 within cell's y axis
-inline int readY()                                    // returns a value of 0-127 within cell's y axis
-{
+inline int readY() {                                  // returns a value of 0-127 within cell's y axis
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
@@ -104,8 +100,7 @@ inline int readY()                                    // returns a value of 0-12
 // Reads Z value at current cell, return either 0 for non-touch (no pressure at),
 // 255 for feather-touch (below touch threshold, but existing pressure),
 // or 1 to 127
-inline byte readZ()                                          // returns either 0 for non-touch (below touch threshold) or 1 to 127
-{
+inline byte readZ() {                                        // returns either 0 for non-touch (below touch threshold) or 1 to 127
   selectSensorCell(sensorCol, sensorRow, READ_Z);            // set analog switches to current cell in touch sensor and read Z
   delayUsec(7);                                              // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
 
@@ -133,7 +128,6 @@ inline byte readZ()                                          // returns either 0
 // spiAnalogRead:
 // returns raw ADC output at current cell
 inline int spiAnalogRead() {
-
   byte msb = SPI.transfer(SPI_ADC, 0, SPI_CONTINUE);         // read byte MSB
   byte lsb = SPI.transfer(SPI_ADC, 0);                       // read byte LSB
 
@@ -176,8 +170,7 @@ inline int spiAnalogRead() {
 
 inline void selectSensorCell(byte col,             // column to be addressed by analog switches
                              byte row,             // row to be addressed by analog switches
-                             byte switchCode)      // set analog switches to read X (0), Y (1) or Z (2)
-{
+                             byte switchCode) {    // set analog switches to read X (0), Y (1) or Z (2)
   #ifdef APRIL_2014_PROTOTYPE
   col = (NUMCOLS-1) - col;                         // debug: for Apr 2014 prototypes, this corrects for reverse column layout
   row = (NUMROWS-1) - row;                         // debug: for Apr 2014 prototypes, this corrects for reverse row layout

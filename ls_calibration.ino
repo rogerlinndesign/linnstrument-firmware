@@ -122,7 +122,7 @@ int calculateCalibratedY(int rawY) {
 
   int bias = (sensorCol - 1) % 3;
   int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
-                           FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
+                          FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);

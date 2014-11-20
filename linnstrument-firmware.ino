@@ -201,14 +201,14 @@ int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each
 int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
 
 // convenience functions to easily access the cells with touch information
-inline TouchInfo &cell();
-inline TouchInfo &cell(byte col, byte row);
+inline TouchInfo& cell();
+inline TouchInfo& cell(byte col, byte row);
 
-inline TouchInfo &cell() {
+inline TouchInfo& cell() {
   return cell(sensorCol, sensorRow);
 }
 
-inline TouchInfo &cell(byte col, byte row) {
+inline TouchInfo& cell(byte col, byte row) {
   return touchInfo[col][row];
 }
 
@@ -250,8 +250,8 @@ struct NoteTouchMapping {
 NoteTouchMapping noteTouchMapping[2];
 
 // convenience functions to access the focused cell
-inline FocusCell &focus(byte split, byte channel);
-inline FocusCell &focus(byte split, byte channel) {
+inline FocusCell& focus(byte split, byte channel);
+inline FocusCell& focus(byte split, byte channel) {
   return focusCell[split][channel - 1];
 }
 
@@ -285,8 +285,6 @@ unsigned long lastControlPress[NUMROWS];
 unsigned long prevLedTimerCount;        // timer for refreshing leds every 200 uS
 
 unsigned long prevGlobalSettingsDisplayTimerCount; // timer for refreshing the global settings display
-
-int activeDown = 0;                     // Number of cells currently held down, during Preset and Volume changing
 
 enum LowRowMode {
   lowRowNormal,
@@ -637,8 +635,7 @@ boolean switchPressAtStartup(byte switchRow) {
   return false;
 }
 
-void setup()
-{
+void setup() {
   //*************************************************************************************************************************************************
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************

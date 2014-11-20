@@ -39,7 +39,7 @@ void handleFaderTouch(byte z, boolean newVelocity) {
   }
 }
 
-void determineFaderBoundaries(byte split, byte &faderLeft, byte &faderLength) {
+void determineFaderBoundaries(byte split, byte& faderLeft, byte& faderLength) {
   faderLeft = 1;
   faderLength = NUMCOLS - 2;
   if (splitActive || displayMode == displaySplitPoint) {

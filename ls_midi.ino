@@ -689,7 +689,6 @@ int scalePitch(byte split, int pitchValue) {
 
 // Send pitch bend data to all the active channels of the split without changing the bend range
 void preSendPitchBend(byte split, int pitchValue) {
-
   pitchValue = scalePitch(split, pitchValue);
 
   switch (Split[split].midiMode)
@@ -860,8 +859,7 @@ void midiSendAllNotesOff(byte split) {
   preSendControlChange(split, 123, 0);
 
   preSendControlChange(split, 64, 0);
-  for (byte notenum = 0; notenum < 128; ++notenum)
-  {
+  for (byte notenum = 0; notenum < 128; ++notenum) {
     switch (Split[split].midiMode)
     {
       case channelPerNote:
@@ -982,7 +980,7 @@ void midiSendNoteOffForAllTouches(byte split) {
 
   while (note != -1) {
     midiSendNoteOff(split, note, channel);
-    NoteEntry &entry = noteTouchMapping[split].mapping[note][channel];
+    NoteEntry& entry = noteTouchMapping[split].mapping[note][channel];
     note = entry.getNextNote();
     channel = entry.getNextChannel();
   }

@@ -3,15 +3,16 @@ This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unpo
 To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
-These funtions handle the changing of any of LinnStrument's panel settings.
+These functions handle the changing of any of LinnStrument's panel settings.
 **************************************************************************************************/
 
 #include <DueFlashStorage.h>
 
-int numericDataChangeCol = -1;               // if -1, button has been pressed, but a starting column hasn't been set
+int numericActiveDown = 0;                   // Number of cells currently held down, during numeric data changes
+
+int numericDataChangeCol = -1;               // If -1, button has been pressed, but a starting column hasn't been set
 unsigned long numericDataChangeTime = 0;     // time of last touch for value change
 
-int tempoChangeCol = -1;                     // if -1, tempo starting column hasn't been set
 unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
 
 void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
@@ -32,7 +33,6 @@ struct Configuration {
 struct Configuration config;
 
 void initializeStorage() {
-
   uint8_t firstTime = dueFlashStorage.read(0);       // See if this is the first time we've executed.
                                                      // When new code is loaded into the Due, this will be non-zero.
   if (firstTime) {
@@ -68,7 +68,7 @@ void storeSettings() {
     delayUsec(200*NUMCOLS);
 
     byte batchsize = 64;
-    byte *source = (byte*)&config;
+    byte* source = (byte*)&config;
     int total = sizeof(struct Configuration);
     int i = 0;
     while (i+batchsize < total) {
@@ -102,7 +102,6 @@ void loadSettings() {
 }
 
 void initializeSplitSettings() {
-
   // initialize all identical values in the keyboard split data
   for (int s = 0; s < 2; ++s) {
       Split[s].midiMode = oneChannel;
@@ -166,7 +165,6 @@ void initializeSplitSettings() {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all Global settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeGlobalSettings() {
-
   Global.version = 1;
   Global.serialMode = false;
 
@@ -225,9 +223,8 @@ void initializeGlobalSensorSettings() {
 
 // Called to handle press events of the 8 control buttons
 void handleControlButtonNewTouch() {
-
   if (sensorRow != SWITCH_1_ROW &&
-      sensorRow != SWITCH_2_ROW ) {                    // don't allow simultaneous control buttons except for the switches
+      sensorRow != SWITCH_2_ROW) {                     // don't allow simultaneous control buttons except for the switches
 
     if (sensorRow == SPLIT_ROW) {                      // the split control has custom toggle / hold behavior
       if (controlButton != -1) {
@@ -257,7 +254,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
       displayMode = displayGlobal;                     // change to global settings display mode
-      numericDataChangeCol = -1;
+      resetNumericDataChange();
       updateDisplay();
       break;
 
@@ -305,8 +302,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PRESET_ROW, globalColor, 3);
       displayMode = displayPreset;
-      numericDataChangeCol = -1;
-      activeDown = 0;
+      resetNumericDataChange();
       updateDisplay();
       break;
 
@@ -314,8 +310,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PER_SPLIT_ROW, globalColor, 3);
       displayMode = displayPerSplit;
-      numericDataChangeCol = -1;
-      activeDown = 0;
+      resetNumericDataChange();
       updateDisplay();
       break;
   }
@@ -323,7 +318,6 @@ void handleControlButtonNewTouch() {
 
 // Called to handle release events of the 8 control buttons
 void handleControlButtonRelease() {
-
   if (sensorRow != SWITCH_1_ROW &&
       sensorRow != SWITCH_2_ROW) {                                          // don't allow simultaneous control buttons except for the switches
 
@@ -336,7 +330,7 @@ void handleControlButtonRelease() {
     controlButton = -1;                                                     // keep track of which control button we're handling
   }
 
-  switch(sensorRow)
+  switch (sensorRow)
   {
     // Most of the buttons, when released, revert the display to normal
     // and save the global settings which may have been changed.
@@ -385,7 +379,6 @@ void handleControlButtonRelease() {
   }
 }
 
-
 void toggleChannel(int chan) {                          // chan value is 1-16
   switch (midiChannelSettings)
   {
@@ -429,7 +422,6 @@ void updateSplitMidiChannels(byte sp) {
 
 // Return the next color in the color cycle (1 through 6)
 byte colorCycle(int color, boolean includeBlack) {
-
   if (++color > 6) {
     if (includeBlack) {
       color = 0;
@@ -450,8 +442,10 @@ void handlePerSplitSettingNewTouch() {
     }
 
     updateSplitMidiChannels(Global.currentPerSplit);
+
   }
   else if (sensorCol == 2) {
+
     switch (sensorRow)
     {
       case MIDICHANNEL_MAIN:
@@ -460,6 +454,7 @@ void handlePerSplitSettingNewTouch() {
         midiChannelSettings = sensorRow;
         break;
     }
+
   } else if (sensorCol >= 3 && sensorCol <= 6 && sensorRow >=4 && sensorRow <= 7) {
 
     // Channels in column 3 are 1,5,9,13, column 4 are 2,6,10,14, column 5 are 3,7,11,15, and column 6 are 4,8,12,16
@@ -695,9 +690,14 @@ void handleSensorRangeZRelease() {
   handleNumericDataRelease(false);
 }
 
-boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+void resetNumericDataChange() {
+  numericDataChangeCol = -1;
+  numericActiveDown = 0;
+}
+
+boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   // keep track of how many cells are currently down
-  activeDown++;
+  numericActiveDown++;
   unsigned long now = micros();
   int increment = 1;
 
@@ -743,12 +743,11 @@ void handleNumericDataRelease(boolean handleSplitSelection) {
     return;
   }
 
-  activeDown--;
+  numericActiveDown--;
   // If there are no cells down, reset so that things are
   // relative to the next NewTouch
-  if (activeDown <= 0) {
-    activeDown = 0;
-    numericDataChangeCol = -1;
+  if (numericActiveDown <= 0) {
+    resetNumericDataChange();
   }
 }
 
@@ -825,43 +824,12 @@ void handleSplitPointNewTouch() {
 
 // This manages the toggling of the note light cells (columns 2-4 and rows 0-3)
 void toggleNoteLights(boolean* notelights) {
+  if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
+    return;
+  }
 
-    if      (sensorCol == 2 && sensorRow == 0) {
-      notelights[0] = !notelights[0];
-    }
-    else if (sensorCol == 3 && sensorRow == 0) {
-      notelights[1] = !notelights[1];
-    }
-    else if (sensorCol == 4 && sensorRow == 0) {
-      notelights[2] = !notelights[2];
-    }
-    else if (sensorCol == 2 && sensorRow == 1) {
-      notelights[3] = !notelights[3];
-    }
-    else if (sensorCol == 3 && sensorRow == 1) {
-      notelights[4] = !notelights[4];
-    }
-    else if (sensorCol == 4 && sensorRow == 1) {
-      notelights[5] = !notelights[5];
-    }
-    else if (sensorCol == 2 && sensorRow == 2) {
-      notelights[6] = !notelights[6];
-    }
-    else if (sensorCol == 3 && sensorRow == 2) {
-      notelights[7] = !notelights[7];
-    }
-    else if (sensorCol == 4 && sensorRow == 2) {
-      notelights[8] = !notelights[8];
-    }
-    else if (sensorCol == 2 && sensorRow == 3) {
-      notelights[9] = !notelights[9];
-    }
-    else if (sensorCol == 3 && sensorRow == 3) {
-      notelights[10] = !notelights[10];
-    }
-    else if (sensorCol == 4 && sensorRow == 3) {
-      notelights[11] = !notelights[11];
-    }
+  byte light = sensorCol-2 + (sensorRow*3);
+  notelights[light] = !notelights[light];
 }
 
 boolean isArpeggiatorTempoTriplet() {
@@ -869,16 +837,10 @@ boolean isArpeggiatorTempoTriplet() {
 }
 
 void handleTempoNewTouch() {
-
-  // only use the top four rows
-  if (sensorRow < 4) {
-    return;
-  }
+  // keep track of how many cells are currently down
+  numericActiveDown++;
 
   if (!isMidiClockRunning()) {
-    // keep track of how many cells are currently down
-    activeDown++;
-
     unsigned long now = micros();
     int increment = 1;
 
@@ -890,18 +852,18 @@ void handleTempoNewTouch() {
       increment = 5;
     }
 
-    if (tempoChangeCol < 0) {
+    if (numericDataChangeCol < 0) {
       // First cell hit after starting a tempo change,
       // don't change tempo yet.
     }
-    else if (sensorCol > tempoChangeCol) {
+    else if (sensorCol > numericDataChangeCol) {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo + FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
     }
-    else if (sensorCol < tempoChangeCol) {
+    else if (sensorCol < numericDataChangeCol) {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo - FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
     }
 
-    tempoChangeCol = sensorCol;
+    numericDataChangeCol = sensorCol;
     tempoChangeTime = now;
   }
 
@@ -909,28 +871,9 @@ void handleTempoNewTouch() {
   updateDisplay();
 }
 
-void handleTempoRelease() {
-
-  // only use the top four rows
-  if (sensorRow < 4) {
-    return;
-  }
-
-  if (!isMidiClockRunning()) {
-    activeDown--;
-    // If there are no cells down, reset so that things are
-    // relative to the next NewTouch
-    if (activeDown <= 0) {
-      activeDown = 0;
-      tempoChangeCol = -1;
-    }
-  }
-}
-
 // Called to handle a change in one of the Global Settings,
 // meaning that user is holding global settings and touching one of global settings cells
 void handleGlobalSettingNewTouch() {
-
   if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (sensorCol <= 16) {
       clearDisplay();
@@ -1204,12 +1147,15 @@ void handleGlobalSettingNewTouch() {
 
   if (sensorCol == 25) {
     if      (sensorRow == 0) {
+      resetNumericDataChange();
       displayMode = displaySensorLoZ;
     }
     else if (sensorRow == 1) {
+      resetNumericDataChange();
       displayMode = displaySensorFeatherZ;
     }
     else if (sensorRow == 2) {
+      resetNumericDataChange();
       displayMode = displaySensorRangeZ;
     }
   }
@@ -1228,9 +1174,8 @@ void changeMidiIO(byte where) {
 }
 
 void handleGlobalSettingRelease() {
-
   if (sensorRow >= 4) {
-    handleTempoRelease();
+    handleNumericDataRelease(false);
   }
 
   if (sensorCol == 16) {

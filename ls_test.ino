@@ -33,10 +33,8 @@ void debugPrintln(int level, int val) {
 
 // displayXFrame:
 // For debug, displays an entire frame of raw X values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
-void displayXFrame()
-{
-  if (cell().touched == touchedCell)
-  {
+void displayXFrame() {
+  if (cell().touched == touchedCell) {
     cell().refreshX();
   }
 
@@ -46,16 +44,13 @@ void displayXFrame()
     lastFrame = now;
 
     Serial.println();
-    for (byte x = 0; x < NUMCOLS; ++x)
-    {
+    for (byte x = 0; x < NUMCOLS; ++x) {
       Serial.print(x);
       Serial.print("\t");
     }
     Serial.println();
-    for (byte y = NUMROWS; y > 0; --y)
-    {
-      for (byte x = 0; x < NUMCOLS; ++x)
-      {
+    for (byte y = NUMROWS; y > 0; --y) {
+      for (byte x = 0; x < NUMCOLS; ++x) {
         if (cell(x, y-1).touched == touchedCell) {
           Serial.print(cell(x, y-1).currentRawX);
         }
@@ -71,10 +66,8 @@ void displayXFrame()
 
 // displayYFrame:
 // For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
-void displayYFrame()
-{
-  if (cell().touched == touchedCell)
-  {
+void displayYFrame() {
+  if (cell().touched == touchedCell) {
     cell().refreshY();
   }
 
@@ -84,16 +77,13 @@ void displayYFrame()
     lastFrame = now;
     
     Serial.println();
-    for (byte x = 0; x < NUMCOLS; ++x)
-    {
+    for (byte x = 0; x < NUMCOLS; ++x) {
       Serial.print(x);
       Serial.print("\t");
     }
     Serial.println();
-    for (byte y = NUMROWS; y > 0; --y)
-    {
-      for (byte x = 0; x < NUMCOLS; ++x)
-      {
+    for (byte y = NUMROWS; y > 0; --y) {
+      for (byte x = 0; x < NUMCOLS; ++x) {
         if (cell(x, y-1).touched == touchedCell) {
           Serial.print(cell(x, y-1).currentRawY);
         }
@@ -109,24 +99,20 @@ void displayYFrame()
 
 // displayZFrame:
 // For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
-void displayZFrame()
-{
+void displayZFrame() {
   static unsigned long lastFrame = 0;
   unsigned long now = micros();
   if (sensorCol == 0 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
     lastFrame = now;
     
     Serial.println();
-    for (byte x = 0; x < NUMCOLS; ++x)
-    {
+    for (byte x = 0; x < NUMCOLS; ++x) {
       Serial.print(x);
       Serial.print("\t");
     }
     Serial.println();
-    for (byte y = NUMROWS; y > 0; --y)
-    {
-      for (byte x = 0; x < NUMCOLS; ++x)
-      {
+    for (byte y = NUMROWS; y > 0; --y) {
+      for (byte x = 0; x < NUMCOLS; ++x) {
         Serial.print(cell(x, y-1).rawZ);
         Serial.print("\t");
       }
@@ -136,13 +122,11 @@ void displayZFrame()
 }
 
 // For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
-void displaySurfaceScanTime()
-{ 
+void displaySurfaceScanTime() { 
   if (sensorCol == 0 && sensorRow == 0) {
     static int scanCount; 
     static unsigned long scanPeriod; 
-    if (++scanCount > 255)
-    { 
+    if (++scanCount > 255) { 
       Serial.print("Total surface scan time in microseconds: ");
       Serial.println((micros() - scanPeriod) / 256); 
       scanPeriod = micros(); 
@@ -153,19 +137,15 @@ void displaySurfaceScanTime()
 
 // displayCellTouchedFrame:
 // For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
-void displayCellTouchedFrame()
-{
+void displayCellTouchedFrame() {
   Serial.println();
-  for (byte x = 0; x < NUMCOLS; ++x)
-  {
+  for (byte x = 0; x < NUMCOLS; ++x) {
     Serial.print(x);
     Serial.print("\t");
   }
   Serial.println();
-  for (byte y = NUMROWS; y > 0; --y)
-  {
-    for (byte x = 0; x < NUMCOLS; ++x)
-    {
+  for (byte y = NUMROWS; y > 0; --y) {
+    for (byte x = 0; x < NUMCOLS; ++x) {
       Serial.print(cell(x, y-1).touched);
       Serial.print("\t");
     }
@@ -174,7 +154,6 @@ void displayCellTouchedFrame()
 }
 
 void modeLoopManufacturingTest() {
-
   TouchState previousTouch = cell().touched;
 
   byte z = readZ();
@@ -227,4 +206,3 @@ void modeLoopManufacturingTest() {
   checkRefreshLedColumn(now);
   nextSensorCell();
 }
-

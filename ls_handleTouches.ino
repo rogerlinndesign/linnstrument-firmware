@@ -266,7 +266,6 @@ void handleSlideTransferCandidate(byte siblingCol, byte z) {
 }
 
 void handleNewTouch(byte z) {                             // the pressure value of the new touch
-
   DEBUGPRINT((1,"handleNewTouch"));
   DEBUGPRINT((1," col="));DEBUGPRINT((1,(int)sensorCol));
   DEBUGPRINT((1," row="));DEBUGPRINT((1,(int)sensorRow));
@@ -372,7 +371,7 @@ boolean isFocusedCell(byte col, byte row) {
     return false;
   }
 
-  FocusCell &focused = focus(getSplitOf(col), cell(col, row).channel);
+  FocusCell& focused = focus(getSplitOf(col), cell(col, row).channel);
   return col == focused.col && row == focused.row;
 }
 
@@ -429,7 +428,6 @@ const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate(byte z) {                          // input: the current Z value of the cell
-
   // if the touch is in the control buttons column, ignore it
   if (sensorCol == 0) return;
 
@@ -528,7 +526,7 @@ void handleSplitStrum() {
     // count from the bitdepth of a 32-bit int
 
     byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
-    TouchInfo &touchedCell = cell(touchedCol, sensorRow);
+    TouchInfo& touchedCell = cell(touchedCol, sensorRow);
     if (touchedCell.hasNote()) {
       // use the velocity of the strum touch
       touchedCell.velocity = cell(sensorCol, sensorRow).velocity;
@@ -557,7 +555,7 @@ void handleNewNote(int notenum) {
   cell().channel = channel;
   
   // change the focused cell
-  FocusCell &focused = focus(sensorSplit, channel);
+  FocusCell& focused = focus(sensorSplit, channel);
   focused.col = sensorCol;
   focused.row = sensorRow;
 
@@ -677,7 +675,7 @@ void handleXExpression() {
   cell().fxdRateX += FXD_DIV(FXD_FROM_INT(deltaX), fxdRateXSamples);
 
   if (!cell().hasPhantoms() ||                                                    // if no phantom presses are active, send the pitch bend change
-      deltaX < ROGUE_PITCH_SWEEP_THRESHOLD ) {                                    // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
+      deltaX < ROGUE_PITCH_SWEEP_THRESHOLD) {                                     // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
 
     cell().lastMovedX = movedX;
     int pitchBend = 0;
@@ -774,7 +772,6 @@ void releaseChannel(byte channel) {
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
-
   DEBUGPRINT((1,"handleTouchRelease"));
   DEBUGPRINT((1," col="));DEBUGPRINT((1,(int)sensorCol));
   DEBUGPRINT((1," row="));DEBUGPRINT((1,(int)sensorRow));
@@ -901,7 +898,6 @@ void handleTouchRelease() {
   cell().clearSensorData();
 }
 
-
 // nextSensorCell:
 // Moves on to the next cell witin the total surface scan of all 208 cells.
 
@@ -921,12 +917,10 @@ byte scannedCells[208][2] = {
   {0, 7}, {3, 3}, {7, 0}, {10, 4}, {13, 1}, {17, 5}, {20, 2}, {24, 6}, {1, 3}, {4, 7}, {8, 4}, {11, 0}, {14, 5}, {18, 1}, {21, 6}, {25, 2}, {2, 7}, {5, 3}, {9, 0}, {12, 4}, {15, 1}, {19, 5}, {22, 2}, {6, 6}, {16, 3}, {23, 7}
 };
 
-void nextSensorCell()
-{
+void nextSensorCell() {
   static byte cellCount;
 
-  if (++cellCount >= 208)
-  {
+  if (++cellCount >= 208) {
     cellCount = 0;
     checkTimeToReadFootSwitches(micros());
   }
@@ -943,9 +937,7 @@ void nextSensorCell()
 
 // getNoteNumber:
 // computes MIDI note number from current row, column, row offset, octave button and transposition amount
-int getNoteNumber(byte col,                               // column number to be computed
-                  byte row ) {                            // row number to be computed
-
+int getNoteNumber(byte col, byte row) {
   int notenum = 0;
   byte sp = getSplitOf(col);
 
@@ -953,12 +945,12 @@ int getNoteNumber(byte col,                               // column number to be
   determineNoteOffsetAndLowest(sp, row, offset, lowest);
 
   // return the computed note based on the selected rowOffset
-  notenum = lowest + (row * offset ) + (col - 1) + Split[sp].transposeOctave;
+  notenum = lowest + (row * offset) + (col - 1) + Split[sp].transposeOctave;
 
   return notenum;
 }
 
-void determineNoteOffsetAndLowest(byte split, byte row, int &offset, int &lowest) {
+void determineNoteOffsetAndLowest(byte split, byte row, int& offset, int& lowest) {
   offset = Global.rowOffset;
   lowest = LOWEST_NOTE;
 
@@ -986,7 +978,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, int &offset, int &lowest
   }
 }
 
-void getSplitBoundaries(byte sp, byte &lowCol, byte &highCol) {
+void getSplitBoundaries(byte sp, byte& lowCol, byte& highCol) {
   // Set ranges of columns to be scanned (all of one split only)
   if (splitActive) {                    // if Split mode is on
     if (sp == LEFT) {                   // and it's the left split
@@ -1005,7 +997,6 @@ void getSplitBoundaries(byte sp, byte &lowCol, byte &highCol) {
 }
 
 void setFocusCellToLatest(byte sp, byte channel) {
-
   byte lowCol;                          // lowest column to be scanned
   byte highCol;                         // highest column to be scanned
   getSplitBoundaries(sp, lowCol, highCol);
@@ -1036,7 +1027,6 @@ void setFocusCellToLatest(byte sp, byte channel) {
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
 byte getSplitOf(byte col) {
-
   if (splitActive)
   {
     if (col < Global.splitPoint) {

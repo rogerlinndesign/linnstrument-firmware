@@ -113,7 +113,6 @@ void updateSwitchLeds() {
 // paintNormalDisplay:
 // Paints columns 1-26 of the display with the normal performance colors
 void paintNormalDisplay() {
-
   // determine the splits and divider
   int split = Global.currentPerSplit;
   int divider = NUMCOLS;
@@ -253,7 +252,6 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 // paintPerSplitDisplay:
 // paints all cells with per-split settings for a given split
 void paintPerSplitDisplay(int side) {
-
   clearDisplay();
 
   doublePerSplit = false;  
@@ -432,7 +430,6 @@ void paintShowSplitSelection(int side) {
 }
 
 void paintOSVersionDisplay() {
-
   clearDisplay();
 
   byte color = Split[LEFT].colorMain;
@@ -471,20 +468,18 @@ void paintSensorRangeZDisplay() {
 }
 
 void paintSplitNumericDataDisplay(int side, byte value) {
-
   paintNumericDataDisplay(Split[side].colorMain, value);
 
   paintShowSplitSelection(side);
 }
 
 void paintNumericDataDisplay(byte color, unsigned short value) {
-
   clearDisplay();
   
   doublePerSplit = false;  
 
   char str[10];
-  char *format;
+  char* format;
   byte offset;
 
   if (value < 100) {
@@ -509,14 +504,13 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
 
 // draw a horizontal line to indicate volume for a particular side
 void paintVolumeDisplay(int side) {
-
   clearDisplay();
   
   doublePerSplit = false;  
 
   int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[side][6], 1, 24);
 
-  for (byte col = 25; col >= 1; --col ) {
+  for (byte col = 25; col >= 1; --col) {
     if (Global.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT <= fxdFaderPosition) {
       setLed(col, 5, Split[side].colorMain, 3);
     }
@@ -526,7 +520,6 @@ void paintVolumeDisplay(int side) {
 }
 
 void paintOctaveTransposeDisplay(int side) {
-
   clearDisplay();
 
   // Paint the octave shift value
@@ -578,7 +571,6 @@ void paintOctaveTransposeDisplay(int side) {
 }
 
 void paintOctave(byte color, byte midcol, byte row, int octave) {
-
   setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, 3);
   if (0 == color) color = octave > 0 ? COLOR_GREEN : COLOR_RED ;
 
@@ -618,7 +610,6 @@ void paintOctave(byte color, byte midcol, byte row, int octave) {
 }
 
 void paintTranspose(byte color, byte row, int transpose) {
-
   byte midcol = 8;
   setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, 3);    // paint the center cell of the transpose range
 
@@ -632,43 +623,14 @@ void paintTranspose(byte color, byte row, int transpose) {
   }
 }
 
-
 void setNoteLights(boolean* notelights) {
-  if (notelights[0]) {
-    lightLed(2, 0);
-  }
-  if (notelights[1]) {
-    lightLed(3, 0);
-  }
-  if (notelights[2]) {
-    lightLed(4, 0);
-  }
-  if (notelights[3]) {
-    lightLed(2, 1);
-  }
-  if (notelights[4]) {
-    lightLed(3, 1);
-  }
-  if (notelights[5]) {
-    lightLed(4, 1);
-  }
-  if (notelights[6]) {
-    lightLed(2, 2);
-  }
-  if (notelights[7]) {
-    lightLed(3, 2);
-  }
-  if (notelights[8]) {
-    lightLed(4, 2);
-  }
-  if (notelights[9]) {
-    lightLed(2, 3);
-  }
-  if (notelights[10]) {
-    lightLed(3, 3);
-  }
-  if (notelights[11]) {
-    lightLed(4, 3);
+  for (byte row = 0; row < 4; ++row) {
+    for (byte col = 0; col < 3; ++col) {
+      byte light = col + (row * 3);
+      if (notelights[light]) {
+        lightLed(2+col, row);
+      }
+    }
   }
 }
 
@@ -704,7 +666,6 @@ void updateGlobalDisplay() {
 // paintGlobalSettingsDisplay:
 // Paints LEDs with state of all global settings
 void paintGlobalSettingsDisplay() {
-
   clearDisplay();
 
   switch (lightSettings) {
@@ -820,7 +781,7 @@ void paintGlobalSettingsDisplay() {
 
   // flash the tap tempo cell at the beginning of the beat
   if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
-      (!isMidiClockRunning() && getInternalClockCount() == 0 )) {
+      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
     lightLed(14, 3);
     tapTempoLedOn = now;
   }
@@ -859,14 +820,13 @@ void paintGlobalSettingsDisplay() {
   if (displayMode == displayGlobalWithTempo) {
     byte color = Split[LEFT].colorMain;
     char str[4];
-    char *format = "%3d";
+    char* format = "%3d";
     snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
     tinyfont_draw_string(0, 4, str, color);
   }
 }
 
 void paintCalibrationDisplay() {
-
   clearDisplay();
 
   switch (calibrationPhase) {
@@ -895,7 +855,6 @@ void paintCalibrationDisplay() {
 }
 
 void paintResetDisplay() {
-
   clearDisplay();
 
   smallfont_draw_string(0, 0, "RESET", globalColor, true);
@@ -927,7 +886,6 @@ void showPerRowMidiChannel(int side) {
 
 // light per-split midi mode and multi midi channel lights
 void showPerNoteMidiChannels(int side) {
-
   for (int chan = 1; chan <= 16; ++chan) {
     if (Split[side].midiChanSet[chan-1]) {
       setMidiChannelLed(chan, Split[side].colorMain);
