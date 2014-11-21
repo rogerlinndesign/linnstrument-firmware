@@ -9,6 +9,7 @@ v1.0.5
   * Fix for foot switch assignments being reversed
   * Fix for low-row bend not properly supporting multiple fingers for pitch-bend jumps anymore
   * Fix for played cell lights sticking if identical notes are played on both splits
+  * Fix to reset operation so that calibration data is not lost
 
 v1.0.4
 

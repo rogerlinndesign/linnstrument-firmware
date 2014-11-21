@@ -592,6 +592,30 @@ void receivedNrpn(int parameter, int value) {
         fxd4CurrentTempo = FXD4_FROM_INT(value);
       }
       break;
+    // Global Switch 1 Both Splits
+    case 239:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[3] = value;
+      }
+      break;
+    // Global Switch 2 Both Splits
+    case 240:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[2] = value;
+      }
+      break;
+    // Global Foot Left Both Splits
+    case 241:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[0] = value;
+      }
+      break;
+    // Global Foot Right Both Splits
+    case 242:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[1] = value;
+      }
+      break;
   }
 
   updateDisplay();

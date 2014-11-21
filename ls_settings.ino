@@ -210,9 +210,6 @@ void initializeGlobalSettings() {
   Global.arpOctave = 0;
 
   initializeGlobalSensorSettings();
-
-  // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
-  initializeCalibrationData();
 }
 
 void initializeGlobalSensorSettings() {

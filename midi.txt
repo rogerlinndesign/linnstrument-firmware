@@ -173,6 +173,10 @@ NRPN   Value   Description
 236    1-7     Global Arp Tempo Note Value (1: 8, 2: 8 Tri, 3: 16, 4: 16 Swing, 5: 16 Tri, 6: 32, 7: 32 Tri)
 237    0-2     Global Arp Octave Extension (0: None, 1: +1, 2: +2)
 238    1-360   Global Clock BPM (applies when receiving no MIDI clock)
+239    0-1     Global Switch 1 Both Splits (0: Off, 1: On)
+240    0-1     Global Switch 2 Both Splits (0: Off, 1: On)
+241    0-1     Global Foot Left Both Splits (0: Off, 1: On)
+242    0-1     Global Foot Right Both Splits (0: Off, 1: On)
 
 Color Values
 ============

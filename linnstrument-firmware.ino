@@ -698,6 +698,9 @@ void setup() {
 
   reset();
 
+  // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
+  initializeCalibrationData();
+
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
 
