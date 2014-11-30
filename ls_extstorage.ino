@@ -14,7 +14,7 @@ boolean waitingForCommands = false;
 
 enum linnCommands {
   SendSettings = 's',
-  ReadSettings = 'r',
+  RestoreSettings = 'r',
   Done = 'd'
 };
 
@@ -34,6 +34,11 @@ void handleExtStorage() {
     switch (d) {
       case SendSettings:
       {
+        Serial.write(ackCode);
+
+        clearDisplay();
+        delayUsec(1000);
+
         config.global = Global;
         config.left = Split[LEFT];
         config.right = Split[RIGHT];
@@ -49,13 +54,90 @@ void handleExtStorage() {
         byte buff2[confSize];
         memcpy(buff2, &config, confSize);
         Serial.write(buff2, confSize);
+
+        Serial.write(ackCode);
+
         break;
       }
-      case ReadSettings:
+
+      case RestoreSettings:
+      {
+        Serial.write(ackCode);
+
+        clearDisplay();
+        delayUsec(1000);
+
+        // retrieve the size of the settings
+        uint32_t lastMoment = millis();
+
+        byte buff1[sizeof(int32_t)];
+        for (int i = 0; i < 4; ++i) {
+          // retry if there's no data available
+          while (Serial.available() <= 0) {
+            // timeout after 2s if no data is coming in anymore
+            if (calcTimeDelta(millis(), lastMoment) > 2000) {
+              waitingForCommands = false;
+              return;
+            }
+          }
+
+          // read the next byte of the configuration size
+          buff1[i] = Serial.read();
+          lastMoment = millis();
+        }
+
+        int32_t confSize;
+        memcpy(&confSize, buff1, sizeof(int32_t));
+
+        // retrieve the actual settings
+        lastMoment = millis();
+        byte buff2[confSize];
+        for (int j = 0; j < confSize; ++j) {
+          if (j % 32 == 0) {
+            Serial.write(ackCode);
+          }
+          
+          // retry if there's no data available
+          while (Serial.available() <= 0) {
+            // timeout after 2s if no data is coming in anymore
+            if (calcTimeDelta(millis(), lastMoment) > 2000) {
+              waitingForCommands = false;
+              return;
+            }
+          }
+
+          // read the next byte of the configuration data
+          buff2[j] = Serial.read();
+          lastMoment = millis();
+        }
+        memcpy(&config, buff2, confSize);
+
+        // activate the retrieved settings
+        applyConfiguration();
+
+        Serial.write(ackCode);
+
         break;
+      }
+
       case Done:
-      default:
+      {
+        // Turn off OS upgrade mode
+        Global.serialMode = false;
+        digitalWrite(35, LOW);
+        storeSettings();
+
+        updateDisplay();
         waitingForCommands = false;
+
+        break;
+      }
+
+      default:
+      {
+        waitingForCommands = false;
+        break;
+      }
     }
   }
   // handle readyness countdown state

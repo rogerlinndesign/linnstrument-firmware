@@ -28,17 +28,17 @@ void initializeStorage() {
   uint8_t firstTime = dueFlashStorage.read(0);       // See if this is the first time we've executed.
                                                      // When new code is loaded into the Due, this will be non-zero.
   if (firstTime) {
+    Global.serialMode = true;                        // Start in serial mode after OS upgrade to be able to receive the settings
+    digitalWrite(35, HIGH);
+
     storeSettings();                                 // Store the initial default settings
+
     dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
-    displayMode = displayCalibration;                // Automatically start calibration after firmware update.
-    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, 3);
-    controlButton = GLOBAL_SETTINGS_ROW;
   } else {
     loadSettings();                                  // On subsequent startups, load settings from Flash
   }
 
-  updateSplitMidiChannels(LEFT);
-  updateSplitMidiChannels(RIGHT);
+  applyConfiguration();
 }
 
 void storeSettings() {
@@ -84,11 +84,17 @@ void storeSettings() {
 void loadSettings() {
   byte* b = dueFlashStorage.readAddress(4);  // byte array which is read from flash at address 4
   memcpy(&config, b, sizeof(struct Configuration));
+}
+
+void applyConfiguration() {
   Global = config.global;
   Split[LEFT] = config.left;
   Split[RIGHT] = config.right;
 
   focusedSplit = Global.currentPerSplit;
+
+  updateSplitMidiChannels(LEFT);
+  updateSplitMidiChannels(RIGHT);
 }
 
 void initializeSplitSettings() {
