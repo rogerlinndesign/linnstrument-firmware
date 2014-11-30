@@ -24,14 +24,6 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
 
 DueFlashStorage dueFlashStorage;
 
-struct Configuration {
-  SplitSettings left;
-  SplitSettings right;
-  GlobalSettings global;
-};
-
-struct Configuration config;
-
 void initializeStorage() {
   uint8_t firstTime = dueFlashStorage.read(0);       // See if this is the first time we've executed.
                                                      // When new code is loaded into the Due, this will be non-zero.
@@ -55,11 +47,9 @@ void storeSettings() {
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
-  config.left = Split[LEFT];
-  config.left.arpTempoDelta = 0;
-  config.right = Split[RIGHT];
-  config.right.arpTempoDelta = 0;
   config.global = Global;
+  config.left = Split[LEFT];
+  config.right = Split[RIGHT];
 
   // batch and slow down the flash storage in low power mode
   if (operatingLowPower) {
@@ -94,9 +84,9 @@ void storeSettings() {
 void loadSettings() {
   byte* b = dueFlashStorage.readAddress(4);  // byte array which is read from flash at address 4
   memcpy(&config, b, sizeof(struct Configuration));
+  Global = config.global;
   Split[LEFT] = config.left;
   Split[RIGHT] = config.right;
-  Global = config.global;
 
   focusedSplit = Global.currentPerSplit;
 }
@@ -127,13 +117,13 @@ void initializeSplitSettings() {
       Split[s].transposePitch = 0;
       Split[s].transposeLights = 0;
       Split[s].arpeggiator = false;
-      Split[s].arpTempoDelta = 0;
       Split[s].ccFaders = false;
       Split[s].strum = false;
       for (int f = 0; f < 8; ++f) {
         ccFaderValues[s][f] = 0;
       }
       ccFaderValues[s][6] = 63;
+      arpTempoDelta[s] = 0;
 
       splitChannels[s].clear();
   }

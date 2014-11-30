@@ -449,12 +449,12 @@ struct SplitSettings {
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
   boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
-  signed char arpTempoDelta;           // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
   boolean strum;                       // true when this split strums the touches of the other split
 };
 SplitSettings Split[2];
 ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
 byte ccFaderValues[2][8];              // the current values of the CC faders
+signed char arpTempoDelta[2];           // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
 #define SWITCH_HOLD_DELAY 200
@@ -517,7 +517,7 @@ enum ArpeggiatorDirection {
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
-  int version;                               // to prepare for versioning
+  byte version;                              // to prepare for versioning
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
@@ -541,6 +541,14 @@ struct GlobalSettings {
 };
 
 GlobalSettings Global;
+
+struct Configuration {
+  GlobalSettings global;
+  SplitSettings left;
+  SplitSettings right;
+};
+
+struct Configuration config;
 
 byte switchSelect = SWITCH_FOOT_L;
 

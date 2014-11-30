@@ -36,8 +36,13 @@ inline void performContinuousTasks(unsigned long now) {
   checkTimeToReadFootSwitches(now);
   checkRefreshGlobalSettingsDisplay(now);
   checkAdvanceArpeggiator(now);
-  handleMidiInput();
-  handlePendingMidi(now);
+  if (Global.serialMode) {
+    handleExtStorage();
+  }
+  else {
+    handleMidiInput();
+    handlePendingMidi(now);
+  }
 }
 
 // checkTimeToReadFootSwitches:

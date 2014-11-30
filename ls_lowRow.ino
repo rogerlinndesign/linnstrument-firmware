@@ -98,7 +98,7 @@ void handleLowRowState(byte z) {
           {
             case lowRowArpeggiator:
             {
-              Split[sensorSplit].arpTempoDelta = sensorCol - lowRowInitialColumn[sensorSplit];
+              arpTempoDelta[sensorSplit] = sensorCol - lowRowInitialColumn[sensorSplit];
               break;
             }
             case lowRowBend:
@@ -273,7 +273,7 @@ void lowRowStop() {
           switch (Split[sensorSplit].lowRowMode)
           {
             case lowRowArpeggiator:
-              Split[sensorSplit].arpTempoDelta = 0;
+              arpTempoDelta[sensorSplit] = 0;
               disableTemporaryArpeggiator();
               lowRowInitialColumn[sensorSplit] = -1;
               break;

@@ -68,7 +68,7 @@ byte getOctaveNote(byte octave, byte notenum) {
 }
 
 void temporarilyEnableArpeggiator() {
-  Split[sensorSplit].arpTempoDelta = 0;
+  arpTempoDelta[sensorSplit] = 0;
   if (!Split[sensorSplit].arpeggiator) {
     midiSendNoteOffForAllTouches(sensorSplit);
     resetArpeggiatorState(sensorSplit);
@@ -185,7 +185,7 @@ byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
 inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
   if (isArpeggiatorEnabled(split)) {
 
-    int combinedTempoIndex = constrain(Global.arpTempo + Split[split].arpTempoDelta, 0, 8);
+    int combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
     int combinedTempo = tempoChoices[combinedTempoIndex];
 
     if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clockCount % 12 == 0) || (clockCount % 12 == 7))) ||  // we need to handle swing differently since it's irregular
