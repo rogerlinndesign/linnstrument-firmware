@@ -129,7 +129,7 @@ void TouchInfo::clearSensorData() {
   currentCalibratedX = 0;
   lastMovedX = 0;
   fxdRateX = 0;
-  rateCountX = PITCH_HOLD_DURATION;
+  rateCountX = 0;
   shouldRefreshX = true;
   initialY = -1;
   currentRawY = 0;

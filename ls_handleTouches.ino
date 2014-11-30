@@ -112,7 +112,7 @@ void transferFromSameRowCell(byte col) {
   cell(col, sensorRow).initialReferenceX = 0;
   cell(col, sensorRow).lastMovedX = 0;
   cell(col, sensorRow).fxdRateX = 0;
-  cell(col, sensorRow).rateCountX = PITCH_HOLD_DURATION;
+  cell(col, sensorRow).rateCountX = 0;
   cell(col, sensorRow).initialY = -1;
   cell(col, sensorRow).pendingReleaseCount = 0;
 
@@ -149,7 +149,7 @@ void transferToSameRowCell(byte col) {
   cell().initialReferenceX = 0;
   cell().lastMovedX = 0;
   cell().fxdRateX = 0;
-  cell().rateCountX = PITCH_HOLD_DURATION;
+  cell().rateCountX = 0;
   cell().initialY = -1;
   cell().pendingReleaseCount = 0;
 
