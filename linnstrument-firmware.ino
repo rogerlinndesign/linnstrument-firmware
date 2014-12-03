@@ -514,6 +514,8 @@ enum ArpeggiatorDirection {
   ArpReplayAll
 };
 
+boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 

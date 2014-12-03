@@ -250,6 +250,14 @@ void handleCalibrationRelease() {
 
           debugCalibration();
 
+          // automatically turn off serial mode when the calibration has been performed
+          // immediately after the first boot since a firmware upgrade, this is to compensate
+          // for older firmware versions that couldn't export their settings and still provide
+          // a smooth user experience
+          if (firstTimeBoot) {
+            switchSerialMode(false);
+          }
+
           // Draw the text OK and go back to normal display after a short delay
           calibrationPhase = calibrationInactive;
           clearDisplay();

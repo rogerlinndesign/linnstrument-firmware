@@ -24,16 +24,28 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
 
 DueFlashStorage dueFlashStorage;
 
+void switchSerialMode(boolean flag) {
+    Global.serialMode = flag;
+    if (flag) {
+      digitalWrite(35, HIGH);
+    }
+    else {
+      digitalWrite(35, LOW);
+    }
+}
+
 void initializeStorage() {
-  uint8_t firstTime = dueFlashStorage.read(0);       // See if this is the first time we've executed.
+  firstTimeBoot = (dueFlashStorage.read(0) != 0);    // See if this is the first time we've executed.
                                                      // When new code is loaded into the Due, this will be non-zero.
-  if (firstTime) {
-    Global.serialMode = true;                        // Start in serial mode after OS upgrade to be able to receive the settings
-    digitalWrite(35, HIGH);
+  if (firstTimeBoot) {
+    switchSerialMode(true);                          // Start in serial mode after OS upgrade to be able to receive the settings
 
     storeSettings();                                 // Store the initial default settings
 
     dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
+    displayMode = displayCalibration;                // Automatically start calibration after firmware update.
+    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, 3);
+    controlButton = GLOBAL_SETTINGS_ROW;
   } else {
     loadSettings();                                  // On subsequent startups, load settings from Flash
   }
@@ -1174,12 +1186,7 @@ void handleGlobalSettingRelease() {
   if (sensorCol == 16) {
     // Toggle UPDATE OS value
     if (sensorRow == 2) {
-      Global.serialMode = !Global.serialMode;
-      if (Global.serialMode) {
-        digitalWrite(35, HIGH);
-      } else {
-        digitalWrite(35, LOW);
-      }
+      switchSerialMode(!Global.serialMode);
       storeSettings();
     }
     // Send AllNotesOff

@@ -14,8 +14,7 @@ boolean waitingForCommands = false;
 
 enum linnCommands {
   SendSettings = 's',
-  RestoreSettings = 'r',
-  Done = 'd'
+  RestoreSettings = 'r'
 };
 
 byte codePos = 0;
@@ -115,16 +114,18 @@ void handleExtStorage() {
         // activate the retrieved settings
         applyConfiguration();
 
+        // send the acknowledgement of success
         Serial.write(ackCode);
+        delayUsec(1000000);
 
-        break;
-      }
-
-      case Done:
-      {
         // Turn off OS upgrade mode
-        Global.serialMode = false;
-        digitalWrite(35, LOW);
+        switchSerialMode(false);
+
+        // Enable normal playing mode and ensure calibration is fully turned off
+        displayMode = displayNormal;
+        controlButton = -1;
+        clearLed(0, GLOBAL_SETTINGS_ROW);
+
         storeSettings();
 
         updateDisplay();
