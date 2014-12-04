@@ -2,6 +2,8 @@ v1.0.6
 
   * Tweaks to initial touch quantization so that immediate slides feel more natural
   * Tweaks for sensor differences in November models
+  * Added indicator in global settings that lights red when the LinnStrument is not calibrated and green when the
+    calibration has been performed
   * Added support for sending and retrieving the LinnStrument calibration and settings over serial so that the firmware
     upgrade tool can restore everything after a firmware upgrade
 

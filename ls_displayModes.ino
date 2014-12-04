@@ -804,6 +804,14 @@ void paintGlobalSettingsDisplay() {
     lightLed(16, 2);
   }
 
+  // clearly indicate the calibration status
+  if (Global.calibrated) {
+    setLed(16, 3, COLOR_GREEN, 3);
+  }
+  else {
+    setLed(16, 3, COLOR_RED, 3);
+  }
+
 #ifdef DEBUG_ENABLED
   // Colum 17 is for setting/showing the debug level
   // The value of debugLevel is from -1 up.
