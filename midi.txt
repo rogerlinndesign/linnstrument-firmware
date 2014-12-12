@@ -45,12 +45,12 @@ behave unpredictably.
 
 This is an overview of the message chain:
 
-1011nnnn   01100011   0vvvvvvv   NRPN parameter number MSB CC
-1011nnnn   01100010   0vvvvvvv   NRPN parameter number LSB CC
-1011nnnn   00000110   0vvvvvvv   NRPN parameter value MSB CC
-1011nnnn   00100110   0vvvvvvv   NRPN parameter value LSB CC
-1011nnnn   00100101   01111111   RPN parameter number Reset MSB CC
-1011nnnn   00100100   01111111   RPN parameter number Reset LSB CC
+1011nnnn   01100011 (99)  0vvvvvvv   NRPN parameter number MSB CC
+1011nnnn   01100010 (98)  0vvvvvvv   NRPN parameter number LSB CC
+1011nnnn   00000110 ( 6)  0vvvvvvv   NRPN parameter value MSB CC
+1011nnnn   00100110 (38)  0vvvvvvv   NRPN parameter value LSB CC
+1011nnnn   01100011 (99)  01111111   NRPN parameter number Reset MSB CC
+1011nnnn   01100010 (98)  01111111   NRPN parameter number Reset LSB CC
 
 The following table lists all the NRPN input values that LinnStrument understands.
 
