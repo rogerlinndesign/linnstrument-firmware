@@ -12,7 +12,7 @@ void cellTouched(TouchState state) {
   // turn on the bit that correspond to the column and row of this cell,
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
-  if ( state != untouchedCell) {
+  if (state != untouchedCell) {
     rowsInColsTouched[sensorCol] |= (1 << sensorRow);
     colsInRowsTouched[sensorRow] |= (1 << sensorCol);
   }
