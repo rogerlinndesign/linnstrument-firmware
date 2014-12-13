@@ -153,6 +153,10 @@ struct TouchInfo {
   int rawY();                                // ensure that Y is updated to the latest scan and return its raw value
   int calibratedY();                         // ensure that Y is updated to the latest scan and return its calibrated value
   void refreshY();                           // ensure that Y is updated to the latest scan
+  int rawZ();                                // ensure that Z is updated to the latest scan and return its raw value
+  boolean isMeaningfulTouch();               // ensure that Z is updated to the latest scan and check if it was a meaningful touch
+  boolean isActiveTouch();                   // ensure that Z is updated to the latest scan and check if it was an active touch
+  void refreshZ();                           // ensure that Z is updated to the latest scan
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
@@ -178,8 +182,11 @@ struct TouchInfo {
   int currentCalibratedY;                    // last calibrated Y value of each cell
   boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
 
-  byte currentZ;                             // last Z value of each cell
-  int rawZ;                                  // the raw Z value
+  int currentRawZ;                           // the raw Z value
+  boolean featherTouch;                      // indicates whether this is a feather touch
+  byte velocityZ;                            // the Z value with velocity sensitivity
+  byte pressureZ;                            // the Z value with pressure sensitivity
+  boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
 
   int pendingReleaseCount;                   // counter before which the note release will be effective
 
@@ -327,8 +334,6 @@ enum PressureSensitivity {
 #define DEFAULT_SENSOR_RANGE_Z 508                    // default range of the pressure
 #define SENSOR_PITCH_Z 0x111                          // lowest acceptable raw Z value for which pitchbend is sent
 #define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
-#define Z_VAL_NONE 0                                  // no touch, ie. no pressure at all
-#define Z_VAL_FEATHER 0xff                            // feather touch, ie. pressure but below the lower threshold
 
 #define VELOCITY_SAMPLES 2
 #define MAX_TOUCHES_IN_COLUMN 3
@@ -639,7 +644,7 @@ boolean switchPressAtStartup(byte switchRow) {
   sensorCol = 0;
   sensorRow = switchRow;
   readZ(); readZ(); byte switchZ = readZ(); // initially we need read Z a few times for the readings to stabilize
-  if (switchZ != Z_VAL_NONE && switchZ != Z_VAL_FEATHER && switchZ >= 16) {
+  if (switchZ > Global.sensorFeatherZ && switchZ >= 16) {
     return true;
   }
   return false;
@@ -820,20 +825,14 @@ void modeLoopPerformance() {
   else {
     TouchState previousTouch = cell().touched;                   // get previous touch status of this cell
 
-    byte z = readZ();                                            // read the Z value of this cell
-    boolean activeTouch = (z != Z_VAL_NONE);                     // determine if the cell actually has an active touch now, disregarding pressure limits
-    if (Z_VAL_FEATHER == z) {                                    // if a feather touch was detected,
-      z = 0;                                                     // set the actual value to zero so that it wont start a new touch but only continue existing ones
+    if (cell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
+      handleNewTouch();
     }
-
-    if (z && previousTouch != touchedCell) {                     // if touched now but not before, it's a new touch
-      handleNewTouch(z);
+    else if (cell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
+      handleXYZupdate();                                                    // handle any X, Y or Z movements
     }
-    else if (activeTouch && previousTouch == touchedCell) {      // if touched now and touched before
-      handleXYZupdate(z);                                        // handle any X, Y or Z movements
-    }
-    else if (!activeTouch && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - cell().lastTouch > 50 ) {                // only release if it's later than 50ms after the touch to debounce some note starts
+    else if (!cell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
+             millis() - cell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
   }

@@ -65,7 +65,7 @@ void displayXFrame() {
 }
 
 // displayYFrame:
-// For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
+// For debug, displays an entire frame of raw Y values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayYFrame() {
   if (cell().touched == touchedCell) {
     cell().refreshY();
@@ -113,7 +113,7 @@ void displayZFrame() {
     Serial.println();
     for (byte y = NUMROWS; y > 0; --y) {
       for (byte x = 0; x < NUMCOLS; ++x) {
-        Serial.print(cell(x, y-1).rawZ);
+        Serial.print(cell(x, y-1).currentRawZ);
         Serial.print("\t");
       }
       Serial.println();
@@ -156,11 +156,8 @@ void displayCellTouchedFrame() {
 void modeLoopManufacturingTest() {
   TouchState previousTouch = cell().touched;
 
-  byte z = readZ();
-  boolean activeTouch = (z != Z_VAL_NONE && z != Z_VAL_FEATHER);
-
   // highlight the touches
-  if (activeTouch) {
+  if (cell().isMeaningfulTouch()) {
     cell().touched = touchedCell;
 
     byte color = COLOR_WHITE;
@@ -188,7 +185,7 @@ void modeLoopManufacturingTest() {
       setLed(sensorCol, row, color, 3);
     }
   }
-  else if (!activeTouch && previousTouch != untouchedCell) {
+  else if (!cell().isMeaningfulTouch() && previousTouch != untouchedCell) {
     cell().touched = untouchedCell;
 
     for (int row = sensorRow % 2; row < NUMROWS; row += 2) {

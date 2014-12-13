@@ -75,7 +75,7 @@ boolean allowNewTouchOnLowRow() {
 #define LOWROW_X_LEFT_LIMIT   0
 #define LOWROW_X_RIGHT_LIMIT  4095
 
-void handleLowRowState(byte z) {
+void handleLowRowState() {
   // if we're processing a low-row sensor, mark the appropriate column as continuous
   // if it was previously presssed
   if (isLowRow()) {
@@ -115,7 +115,7 @@ void handleLowRowState(byte z) {
             {
               midiSendControlChange(16, constrain(xDelta >> 4, 0, 127), Split[sensorSplit].midiChanMain);
               midiSendControlChange(17, cell().calibratedY(), Split[sensorSplit].midiChanMain);
-              midiSendControlChange(18, calcPreferredPressure(z), Split[sensorSplit].midiChanMain);
+              midiSendControlChange(18, cell().pressureZ, Split[sensorSplit].midiChanMain);
               break;
             }
           }

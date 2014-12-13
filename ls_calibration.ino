@@ -130,23 +130,22 @@ int calculateCalibratedY(int rawY) {
   return result;
 }
 
-bool handleCalibrationSample(byte z) {
+bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
-  if ( displayMode == displayCalibration) {
-    if (z > 0) {                                           // only measure when a deliberate pressure is used
-      cell().refreshX();
-      cell().refreshY();
-      if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
-        int row = (sensorRow / 2);
-        calSampleRows[sensorCol][row].minValue = min(cell().rawX(), calSampleRows[sensorCol][row].minValue);
-        calSampleRows[sensorCol][row].maxValue = max(cell().rawX(), calSampleRows[sensorCol][row].maxValue);
-      }
-      else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
-        int col = (sensorCol - 1) / 3;
-        calSampleCols[col][sensorRow].minValue = min(cell().rawY(), calSampleCols[col][sensorRow].minValue);
-        calSampleCols[col][sensorRow].maxValue = max(cell().rawY(), calSampleCols[col][sensorRow].maxValue);
-      }
+  if (displayMode == displayCalibration) {
+    cell().refreshX();
+    cell().refreshY();
+    if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
+      int row = (sensorRow / 2);
+      calSampleRows[sensorCol][row].minValue = min(cell().rawX(), calSampleRows[sensorCol][row].minValue);
+      calSampleRows[sensorCol][row].maxValue = max(cell().rawX(), calSampleRows[sensorCol][row].maxValue);
     }
+    else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+      int col = (sensorCol - 1) / 3;
+      calSampleCols[col][sensorRow].minValue = min(cell().rawY(), calSampleCols[col][sensorRow].minValue);
+      calSampleCols[col][sensorRow].maxValue = max(cell().rawY(), calSampleCols[col][sensorRow].maxValue);
+    }
+
     return true;
   }
 
