@@ -692,7 +692,7 @@ void handleSensorFeatherZRelease() {
 }
 
 void handleSensorRangeZNewTouch() {
-  handleNumericDataNewTouch(Global.sensorRangeZ, 2 * 127, MAX_SENSOR_RANGE_Z - 127, false);
+  handleNumericDataNewTouch(Global.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
 }
 
 void handleSensorRangeZRelease() {

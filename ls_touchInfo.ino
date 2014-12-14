@@ -171,8 +171,30 @@ void TouchInfo::refreshZ() {
 
     unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z);
 
-    unsigned short sensorRangeVelocity = sensorRange - ((Global.velocitySensitivity - 1) * 127);
-    unsigned short sensorRangePressure = sensorRange - ((Global.pressureSensitivity - 1) * 127);
+    unsigned short sensorRangeVelocity = sensorRange;
+    unsigned short sensorRangePressure = sensorRange;
+    switch (Global.velocitySensitivity) {
+      case velocityHigh:
+        sensorRangeVelocity -= 254;
+        break;
+      case velocityMedium:
+        sensorRangeVelocity -= 63;
+        break;
+      case velocityLow:
+        sensorRangeVelocity += 127;
+        break;
+    }
+    switch (Global.pressureSensitivity) {
+      case pressureHigh:
+        sensorRangePressure -= 254;
+        break;
+      case pressureMedium:
+        sensorRangePressure -= 63;
+        break;
+      case pressureLow:
+        sensorRangePressure += 127;
+        break;
+    }
 
     int usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
     int usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
