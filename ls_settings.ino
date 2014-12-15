@@ -226,11 +226,12 @@ void initializeGlobalSensorSettings() {
 
 // Called to handle press events of the 8 control buttons
 void handleControlButtonNewTouch() {
-    if (controlButton != -1 ||                         // only allow one control button to be pressed at the same time
-        switchState[SWITCH_SWITCH_1][sensorSplit] ||   // this prevents phantom presses to occur for the control buttons
-        switchState[SWITCH_SWITCH_2][sensorSplit]) {   // this is not detectable with the regular phantom press algorithm
-      return;
-    }
+  // only allow one control button to be pressed at the same time
+  // this prevents phantom presses to occur for the control buttons
+  // this is not detectable with the regular phantom press algorithm
+  if ((rowsInColsTouched[0] & ~(1 << sensorRow)) != 0) {
+    return;
+  }
 
   if (sensorRow != SWITCH_1_ROW &&
       sensorRow != SWITCH_2_ROW) {                     // handle non-switch control buttons
