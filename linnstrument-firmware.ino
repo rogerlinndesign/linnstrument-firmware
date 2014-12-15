@@ -643,8 +643,9 @@ void reset() {
 boolean switchPressAtStartup(byte switchRow) {
   sensorCol = 0;
   sensorRow = switchRow;
-  readZ(); readZ(); byte switchZ = readZ(); // initially we need read Z a few times for the readings to stabilize
-  if (switchZ > Global.sensorFeatherZ && switchZ >= 16) {
+  // initially we need read Z a few times for the readings to stabilize
+  readZ(); readZ(); unsigned short switchZ = readZ();
+  if (switchZ > Global.sensorLoZ + 128) {
     return true;
   }
   return false;
