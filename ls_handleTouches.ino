@@ -12,7 +12,7 @@ void cellTouched(TouchState state) {
   // turn on the bit that correspond to the column and row of this cell,
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
-  if ( state != untouchedCell) {
+  if (state != untouchedCell) {
     rowsInColsTouched[sensorCol] |= (1 << sensorRow);
     colsInRowsTouched[sensorRow] |= (1 << sensorCol);
   }
@@ -42,12 +42,8 @@ byte calcPreferredVelocity(byte velocity) {
     return 96;
   }
   else {
-    return constrain(unsigned(velocity) + 16 * Global.velocitySensitivity, 0, 127);
+    return constrain(velocity, 1, 127);
   }
-}
-
-byte calcPreferredPressure(byte z) {
-    return constrain(unsigned(z) + 16 * Global.pressureSensitivity, 0, 127);
 }
 
 // Calculate the velocity value by providing pressure (z) data.
@@ -83,8 +79,8 @@ boolean potentialSlideTransferCandidate(int col) {
 }
 
 boolean isReadyForSlideTransfer(int col) {
-  return cell(col, sensorRow).pendingReleaseCount ||     // there's a pending release waiting
-    cell().rawZ > cell(col, sensorRow).rawZ;             // the cell pressure is higher
+  return cell(col, sensorRow).pendingReleaseCount ||         // there's a pending release waiting
+    cell().currentRawZ > cell(col, sensorRow).currentRawZ;   // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
@@ -201,9 +197,9 @@ boolean isPhantomTouch() {
           // the other corner that was scanned twice to determine which one has the
           // lowest pressure, this is the most likely to be the phantom press
           if (hasImpossibleX() ||
-              (cell(touchedCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
-               cell(sensorCol, touchedRow).isHigherPhantomPressure(cell().rawZ) &&
-               cell(touchedCol, sensorRow).isHigherPhantomPressure(cell().rawZ))) {
+              (cell(touchedCol, touchedRow).isHigherPhantomPressure(cell().currentRawZ) &&
+               cell(sensorCol, touchedRow).isHigherPhantomPressure(cell().currentRawZ) &&
+               cell(touchedCol, sensorRow).isHigherPhantomPressure(cell().currentRawZ))) {
 
             // store coordinates of the rectangle, which also serves as an indicator that we
             // should stop looking for a phantom press
@@ -250,14 +246,14 @@ int countTouchesInColumn() {
   return count;
 }
 
-void handleSlideTransferCandidate(byte siblingCol, byte z) {
+void handleSlideTransferCandidate(byte siblingCol) {
   // if the pressure gets higher than adjacent cell, the slide is transitioning over
   if (isReadyForSlideTransfer(siblingCol)) {
     transferFromSameRowCell(siblingCol);
     if (cell(siblingCol, sensorRow).touched != untouchedCell) {
       cell(siblingCol, sensorRow).touched = transferCell;
     }
-    handleXYZupdate(z);
+    handleXYZupdate();
   }
   // otherwise act as if this new touch never happend
   else {
@@ -265,11 +261,12 @@ void handleSlideTransferCandidate(byte siblingCol, byte z) {
   }
 }
 
-void handleNewTouch(byte z) {                             // the pressure value of the new touch
+void handleNewTouch() {
   DEBUGPRINT((1,"handleNewTouch"));
   DEBUGPRINT((1," col="));DEBUGPRINT((1,(int)sensorCol));
   DEBUGPRINT((1," row="));DEBUGPRINT((1,(int)sensorRow));
-  DEBUGPRINT((1," z="));DEBUGPRINT((1,(int)z));
+  DEBUGPRINT((1," velocityZ="));DEBUGPRINT((1,(int)cell().velocityZ));
+  DEBUGPRINT((1," pressureZ="));DEBUGPRINT((1,(int)cell().pressureZ));
   DEBUGPRINT((1,"\n"));
 
   cellTouched(touchedCell);                                 // mark this cell as touched
@@ -298,11 +295,11 @@ void handleNewTouch(byte z) {                             // the pressure value 
 
       // check if the new touch could be an ongoing slide to the right
       if (potentialSlideTransferCandidate(sensorCol-1)) {
-        handleSlideTransferCandidate(sensorCol-1, z);
+        handleSlideTransferCandidate(sensorCol-1);
       }
       // check if the new touch could be an ongoing slide to the left
       else if (potentialSlideTransferCandidate(sensorCol+1)) {
-        handleSlideTransferCandidate(sensorCol+1, z);
+        handleSlideTransferCandidate(sensorCol+1);
       }
       // only allow a certain number of touches in a single column to prevent cross talk
       else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
@@ -312,7 +309,7 @@ void handleNewTouch(byte z) {                             // the pressure value 
       // however, it could be the low row and in certain situations it doesn't allow new touches
       else if (!isLowRow() || allowNewTouchOnLowRow()) {
         initVelocity();
-        calcVelocity(z);
+        calcVelocity(cell().velocityZ);
       }
       else {
         cellTouched(untouchedCell);
@@ -427,12 +424,12 @@ const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
-void handleXYZupdate(byte z) {                          // input: the current Z value of the cell
+void handleXYZupdate() {
   // if the touch is in the control buttons column, ignore it
   if (sensorCol == 0) return;
 
   // if this data point serves as a calibration sample, return immediately
-  if (handleCalibrationSample(z)) return;
+  if (cell().isMeaningfulTouch() && handleCalibrationSample()) return;
 
   // only continue if the active display modes require finger tracking
   if (displayMode != displayNormal &&
@@ -442,10 +439,11 @@ void handleXYZupdate(byte z) {                          // input: the current Z 
   DEBUGPRINT((2,"handleXYZupdate"));
   DEBUGPRINT((2," col="));DEBUGPRINT((2,(int)sensorCol));
   DEBUGPRINT((2," row="));DEBUGPRINT((2,(int)sensorRow));
-  DEBUGPRINT((2," z="));DEBUGPRINT((2,(int)z));
+  DEBUGPRINT((1," velocityZ="));DEBUGPRINT((2,(int)cell().velocityZ));
+  DEBUGPRINT((1," pressureZ="));DEBUGPRINT((2,(int)cell().pressureZ));
   DEBUGPRINT((2,"\n"));
 
-  boolean newVelocity = calcVelocity(z);
+  boolean newVelocity = calcVelocity(cell().velocityZ);
 
   // check if after a new velocity calculation, this cell is not a phantom touch
   // we piggy-back off of the velocity calculation delay to ensure that we have at
@@ -456,7 +454,7 @@ void handleXYZupdate(byte z) {                          // input: the current Z 
   }
 
   // update the low row state
-  handleLowRowState(z);
+  handleLowRowState();
 
   // is this cell used for low row functionality
   if (isLowRow()) {
@@ -474,7 +472,7 @@ void handleXYZupdate(byte z) {                          // input: the current Z 
 
   // CC faders have their own operation mode
   if (Split[sensorSplit].ccFaders) {
-    handleFaderTouch(z, newVelocity);
+    handleFaderTouch(newVelocity);
     return;
   }
 
@@ -500,13 +498,13 @@ void handleXYZupdate(byte z) {                          // input: the current Z 
     return;
   }
   else {    
-    cell().velocity = calcPreferredVelocity(z);
+    cell().velocity = calcPreferredVelocity(cell().velocityZ);
   }
 
-  handleZExpression(z);
+  handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
-  if (z) {
+  if (cell().isMeaningfulTouch()) {
     handleXExpression();
     handleYExpression();
   }
@@ -584,16 +582,16 @@ void handleNewNote(int notenum) {
 
 const int32_t FXD_MIN_SLEW = FXD_FROM_INT(1);
 
-void handleZExpression(byte z) {
-  unsigned preferredPressure = calcPreferredPressure(z);
+void handleZExpression() {
+  unsigned preferredPressure = cell().pressureZ;
 
   // handle pressure transition between adjacent cells if they are not playing their own note
   int adjacentZ = 0;
-  if (cell(sensorCol-1, sensorRow).rawZ && !cell(sensorCol-1, sensorRow).hasNote()) {
-    adjacentZ = cell(sensorCol-1, sensorRow).rawZ;
+  if (cell(sensorCol-1, sensorRow).currentRawZ && !cell(sensorCol-1, sensorRow).hasNote()) {
+    adjacentZ = cell(sensorCol-1, sensorRow).currentRawZ;
   }
-  else if (cell(sensorCol+1, sensorRow).rawZ && !cell(sensorCol+1, sensorRow).hasNote()) {
-    adjacentZ = cell(sensorCol+1, sensorRow).rawZ;
+  else if (cell(sensorCol+1, sensorRow).currentRawZ && !cell(sensorCol+1, sensorRow).hasNote()) {
+    adjacentZ = cell(sensorCol+1, sensorRow).currentRawZ;
   }
   // the adjacent Z value is adapted so that it can be added the active cell's pressure to make
   // up for the pressure differential while moving across cells
@@ -627,9 +625,6 @@ void handleZExpression(byte z) {
   if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
     preSendPressure(cell().note, preferredPressure, cell().channel);
   }
-
-  // save this cell's Z value
-  cell().currentZ = z;
 }
 
 void handleXExpression() {
@@ -651,8 +646,8 @@ void handleXExpression() {
   // of the cells, this allows for a smoother transition as a finger slides over the groove between
   // cells and distributes the pressure
   if (transferCol != 0) {
-    int totalZ = cell(transferCol, sensorRow).rawZ + cell().rawZ;
-    int32_t fxdTransferRatio = FXD_DIV(FXD_FROM_INT(cell(transferCol, sensorRow).rawZ), FXD_FROM_INT(totalZ));
+    int totalZ = cell(transferCol, sensorRow).currentRawZ + cell().currentRawZ;
+    int32_t fxdTransferRatio = FXD_DIV(FXD_FROM_INT(cell(transferCol, sensorRow).currentRawZ), FXD_FROM_INT(totalZ));
     int32_t fxdCellRatio = FXD_FROM_INT(1) - fxdTransferRatio;
 
     int32_t fxdTransferCalibratedX = FXD_MUL(FXD_FROM_INT(cell(transferCol, sensorRow).currentCalibratedX), fxdTransferRatio);
@@ -702,7 +697,7 @@ void handleXExpression() {
     if (isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit) &&
         // when there are multiple touches in the same column, reduce the pitch bend Z sensititivity to
         // prevent unwanted pitch slides
-        (countTouchesInColumn() < 2 || cell().rawZ > (Global.sensorLoZ + SENSOR_PITCH_Z))) {
+        (countTouchesInColumn() < 2 || cell().currentRawZ > (Global.sensorLoZ + SENSOR_PITCH_Z))) {
       preSendPitchBend(sensorSplit, pitchBend, cell().channel);
     }
   }
@@ -928,6 +923,7 @@ void nextSensorCell() {
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
   cell().shouldRefreshX = true;
   cell().shouldRefreshY = true;
+  cell().shouldRefreshZ = true;
 
   sensorCol = scannedCells[cellCount][0];
   sensorRow = scannedCells[cellCount][1];

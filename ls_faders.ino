@@ -8,8 +8,8 @@ These functions handle the CC faders for each split
 
 #define CC_FADER_NUMBER_OFFSET 1
 
-void handleFaderTouch(byte z, boolean newVelocity) {
-  if (z && cell().velocity) {
+void handleFaderTouch(boolean newVelocity) {
+  if (cell().isMeaningfulTouch() && cell().velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
