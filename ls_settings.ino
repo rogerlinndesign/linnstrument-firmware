@@ -44,7 +44,7 @@ void initializeStorage() {
 
     dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
     displayMode = displayCalibration;                // Automatically start calibration after firmware update.
-    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, 3);
+    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, true);
     controlButton = GLOBAL_SETTINGS_ROW;
   } else {
     loadSettings();                                  // On subsequent startups, load settings from Flash
@@ -246,7 +246,7 @@ void handleControlButtonNewTouch() {
       return;
     }
     else if (controlButton != -1) {                    // automatically turn off the led of another previously pressed control button
-      setLed(0, controlButton, globalColor, 0);
+      clearLed(0, controlButton);
     }
 
     controlButton = sensorRow;                         // keep track of which control button we're handling
@@ -271,7 +271,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       splitButtonDown = true;
       changedSplitPoint = false;
-      setLed(0, SPLIT_ROW, globalColor, 3);
+      setLed(0, SPLIT_ROW, globalColor, true);
       displayMode = displaySplitPoint;
 
       // handle double-tap
@@ -285,31 +285,31 @@ void handleControlButtonNewTouch() {
 
     case SWITCH_2_ROW:                                 // SWITCH 2 pressed
       doSwitchPressed(SWITCH_SWITCH_2);
-      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] * 3);
+      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit]);
       break;
 
     case SWITCH_1_ROW:                                 // SWITCH 1 pressed
       doSwitchPressed(SWITCH_SWITCH_1);
-      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] * 3);
+      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit]);
       break;
   
     case OCTAVE_ROW:                                   // OCTAVE button pressed
       resetAllTouches();
-      setLed(0, OCTAVE_ROW, globalColor, 3);
+      setLed(0, OCTAVE_ROW, globalColor, true);
       displayMode = displayOctaveTranspose;
       updateDisplay();
       break;
 
     case VOLUME_ROW:                                   // displayVolume button pressed
       resetAllTouches();
-      setLed(0, VOLUME_ROW, globalColor, 3);
+      setLed(0, VOLUME_ROW, globalColor, true);
       displayMode = displayVolume;
       updateDisplay();
       break;
 
     case PRESET_ROW:                                   // displayPreset button pressed
       resetAllTouches();
-      setLed(0, PRESET_ROW, globalColor, 3);
+      setLed(0, PRESET_ROW, globalColor, true);
       displayMode = displayPreset;
       resetNumericDataChange();
       updateDisplay();
@@ -317,7 +317,7 @@ void handleControlButtonNewTouch() {
 
     case PER_SPLIT_ROW:                                // PER SPLIT SETTINGs buttons pressed
       resetAllTouches();
-      setLed(0, PER_SPLIT_ROW, globalColor, 3);
+      setLed(0, PER_SPLIT_ROW, globalColor, true);
       displayMode = displayPerSplit;
       resetNumericDataChange();
       updateDisplay();
@@ -355,7 +355,7 @@ void handleControlButtonRelease() {
     case VOLUME_ROW:                                         // volume button released
     case PRESET_ROW:                                         // preset button released
 
-      setLed(0, sensorRow, globalColor, 0);
+      clearLed(0, sensorRow);
 
       displayMode = displayNormal;
       updateDisplay();
@@ -371,19 +371,19 @@ void handleControlButtonRelease() {
         splitActive = !splitActive;
         focusedSplit = Global.currentPerSplit;
       }
-      setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
+      setLed(0, SPLIT_ROW, globalColor, splitActive);
       displayMode = displayNormal;
       updateDisplay();
       break;
 
     case SWITCH_2_ROW:                                       // SWITCH 2 released
       doSwitchReleased(SWITCH_SWITCH_2);
-      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] * 3);
+      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit]);
       break;
 
     case SWITCH_1_ROW:                                       // SWITCH 1 released
       doSwitchReleased(SWITCH_SWITCH_1);
-      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] * 3);
+      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit]);
       break;
   }
 }

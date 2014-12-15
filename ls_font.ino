@@ -1210,7 +1210,7 @@ static void font_draw_char(int col, int row, char* fontdata, byte color, int wid
         continue;
       }
       if (erase || thechar != ' ') {
-        setLed(destcol, destrow, (thechar != ' ' ? color : 0), 3);
+        setLed(destcol, destrow, (thechar != ' ' ? color : 0), true);
       }
     }
   }
@@ -1221,7 +1221,7 @@ static void font_draw_blank_column(int col, int row, int height)
 {
   if (col >= 0 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
-      setLed(col, r, 0, 3);
+      setLed(col, r, 0, true);
     }
   }
 }
@@ -1246,7 +1246,7 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
     if (i < 0) {
       for (byte col = 0; col <= -i; ++col) {
         for (byte row = 0; row < font->height; ++row) {
-          setLed(col, row, 0, 0);
+          clearLed(col, row);
         }
       }
     }

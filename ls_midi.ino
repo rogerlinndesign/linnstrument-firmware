@@ -52,7 +52,7 @@ void handleMidiInput() {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
-    setLed( 0, 0, COLOR_BLACK, 0);
+    clearLed( 0, 0);
   }
 
   // if no serial data is available, return
@@ -73,7 +73,7 @@ void handleMidiInput() {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, 3);
+          setLed(25, 2, COLOR_GREEN, true);
         }
         break;
       case MIDIStart:
@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, 3);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, true);
             midiClockLedOn = now;
           }
 
@@ -248,7 +248,7 @@ void handleMidiInput() {
             case 22:
               if (displayMode == displayNormal) {
                 if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, 3);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, true);
                 }
                 else {
                   paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
@@ -639,7 +639,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     int col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, 3);
+      setLed(col, row, color, true);
     }
   }
 }
@@ -812,25 +812,33 @@ void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
 }
 
 void handlePendingMidi(unsigned long now) {
-  static unsigned long lastEnvoy = 0;
-
   // when in low power mode only send one MIDI byte every 150 microseconds
-  if (operatingLowPower && calcTimeDelta(now, lastEnvoy) < 150) {
-    return;
-  }
-
-  if (!midiOutQueue.empty()) {
-#ifdef PATCHED_ARDUINO_SERIAL_WRITE
-    if (Serial.write(midiOutQueue.peek(), false) > 0) {
-      midiOutQueue.pop();
+  if (operatingLowPower) {
+    static unsigned long lastEnvoy = 0;
+  if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
+      sendNextMidiOutputByte();
       lastEnvoy = now;
     }
-#else
-    Serial.write(midiOutQueue.pop());
-    lastEnvoy = now;
-#endif
-
   }
+  else {
+    while (!midiOutQueue.empty() && sendNextMidiOutputByte()) {
+      // loop until the MIDI queue is empty or the serial buffer is full
+    }
+  }
+}
+
+// send a MIDI message byte using the most appropriate method, the return value
+// indicates whether a next message can be sent immediately afterwards
+boolean sendNextMidiOutputByte() {
+#ifdef PATCHED_ARDUINO_SERIAL_WRITE
+  if (Serial.write(midiOutQueue.peek(), false) > 0) {
+    midiOutQueue.pop();
+    return true;
+  }
+#else
+  Serial.write(midiOutQueue.pop());
+#endif
+  return false;
 }
 
 void midiSendVolume(byte v, byte channel) {
