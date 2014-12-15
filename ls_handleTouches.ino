@@ -912,12 +912,11 @@ byte scannedCells[208][2] = {
   {0, 7}, {3, 3}, {7, 0}, {10, 4}, {13, 1}, {17, 5}, {20, 2}, {24, 6}, {1, 3}, {4, 7}, {8, 4}, {11, 0}, {14, 5}, {18, 1}, {21, 6}, {25, 2}, {2, 7}, {5, 3}, {9, 0}, {12, 4}, {15, 1}, {19, 5}, {22, 2}, {6, 6}, {16, 3}, {23, 7}
 };
 
-void nextSensorCell() {
+inline void nextSensorCell() {
   static byte cellCount;
 
   if (++cellCount >= 208) {
     cellCount = 0;
-    checkTimeToReadFootSwitches(micros());
   }
 
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
@@ -1022,7 +1021,7 @@ void setFocusCellToLatest(byte sp, byte channel) {
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
-byte getSplitOf(byte col) {
+inline byte getSplitOf(byte col) {
   if (splitActive)
   {
     if (col < Global.splitPoint) {

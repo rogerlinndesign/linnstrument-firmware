@@ -149,14 +149,14 @@ enum TouchState {
 struct TouchInfo {
   int rawX();                                // ensure that X is updated to the latest scan and return its raw value
   int calibratedX();                         // ensure that X is updated to the latest scan and return its calibrated value
-  void refreshX();                           // ensure that X is updated to the latest scan
+  inline void refreshX();                    // ensure that X is updated to the latest scan
   int rawY();                                // ensure that Y is updated to the latest scan and return its raw value
   int calibratedY();                         // ensure that Y is updated to the latest scan and return its calibrated value
-  void refreshY();                           // ensure that Y is updated to the latest scan
+  inline void refreshY();                    // ensure that Y is updated to the latest scan
   int rawZ();                                // ensure that Z is updated to the latest scan and return its raw value
-  boolean isMeaningfulTouch();               // ensure that Z is updated to the latest scan and check if it was a meaningful touch
-  boolean isActiveTouch();                   // ensure that Z is updated to the latest scan and check if it was an active touch
-  void refreshZ();                           // ensure that Z is updated to the latest scan
+  inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
+  inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
+  inline void refreshZ();                    // ensure that Z is updated to the latest scan
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
@@ -569,7 +569,7 @@ byte switchSelect = SWITCH_FOOT_L;
 #define PER_SPLIT_ROW 7
 
 byte globalColor = COLOR_BLUE;     // color for global, split point and transpose settings
-int debugLevel = -1;               // level of debug messages that should be printed
+int debugLevel = 0;               // level of debug messages that should be printed
 
 #define SECRET_SWITCHES 5
 #define SWITCH_DEBUGMIDI secretSwitch[0]
@@ -817,7 +817,7 @@ void loop() {
   }
 }
 
-void modeLoopPerformance() {
+inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
       displayMode = displayNormal;                               // this should make the reset operation feel more predictable
