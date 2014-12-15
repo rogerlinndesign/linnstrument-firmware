@@ -34,8 +34,8 @@ void debugPrintln(int level, int val) {
 // displayXFrame:
 // For debug, displays an entire frame of raw X values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayXFrame() {
-  if (cell().touched == touchedCell) {
-    cell().refreshX();
+  if (sensorCell().touched == touchedCell) {
+    sensorCell().refreshX();
   }
 
   static unsigned long lastFrame = 0;
@@ -67,8 +67,8 @@ void displayXFrame() {
 // displayYFrame:
 // For debug, displays an entire frame of raw Y values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayYFrame() {
-  if (cell().touched == touchedCell) {
-    cell().refreshY();
+  if (sensorCell().touched == touchedCell) {
+    sensorCell().refreshY();
   }
 
   static unsigned long lastFrame = 0;
@@ -154,11 +154,11 @@ void displayCellTouchedFrame() {
 }
 
 void modeLoopManufacturingTest() {
-  TouchState previousTouch = cell().touched;
+  TouchState previousTouch = sensorCell().touched;
 
   // highlight the touches
-  if (cell().isMeaningfulTouch()) {
-    cell().touched = touchedCell;
+  if (sensorCell().isMeaningfulTouch()) {
+    sensorCell().touched = touchedCell;
 
     byte color = COLOR_WHITE;
     switch (sensorRow)
@@ -185,8 +185,8 @@ void modeLoopManufacturingTest() {
       setLed(sensorCol, row, color, true);
     }
   }
-  else if (!cell().isMeaningfulTouch() && previousTouch != untouchedCell) {
-    cell().touched = untouchedCell;
+  else if (!sensorCell().isMeaningfulTouch() && previousTouch != untouchedCell) {
+    sensorCell().touched = untouchedCell;
 
     for (int row = sensorRow % 2; row < NUMROWS; row += 2) {
       clearLed(sensorCol, row);

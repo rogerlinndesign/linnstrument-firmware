@@ -762,7 +762,7 @@ void handleNumericDataRelease(boolean handleSplitSelection) {
 }
 
 void handleVolumeNewTouch() {
-  byte v = calculateFaderValue(cell().calibratedX(), 1, 24);
+  byte v = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
   ccFaderValues[Global.currentPerSplit][6] = v;
 
   byte chan = Split[Global.currentPerSplit].midiChanMain;

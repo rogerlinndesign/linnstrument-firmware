@@ -9,7 +9,7 @@ These functions handle the CC faders for each split
 #define CC_FADER_NUMBER_OFFSET 1
 
 void handleFaderTouch(boolean newVelocity) {
-  if (cell().isMeaningfulTouch() && cell().velocity) {
+  if (sensorCell().isMeaningfulTouch() && sensorCell().velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
@@ -28,7 +28,7 @@ void handleFaderTouch(boolean newVelocity) {
     }
     // otherwise it's a real fader and we calculate the value based on its position
     else {
-      value = calculateFaderValue(cell().calibratedX(), faderLeft, faderLength);
+      value = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
     }
 
     if (value >= 0) {
