@@ -57,7 +57,7 @@ inline void checkTimeToReadFootSwitches(unsigned long now) {
 // checkRefreshLedColumn:
 // checks to see if it's time to refresh the next LED column, and if so, does it
 inline void checkRefreshLedColumn(unsigned long now) {
-  if (calcTimeDelta(now, prevLedTimerCount) > LED_REFRESH_INTERVAL) {      // is it time to refresh the next LED column?
+  if (calcTimeDelta(now, prevLedTimerCount) > ledRefreshInterval) {        // is it time to refresh the next LED column?
     refreshLedColumn();                                                    // yes-- refresh the next LED column...
     prevLedTimerCount = now;                                               // and reset the LED timer count to current time
   }

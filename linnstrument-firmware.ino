@@ -101,7 +101,7 @@ const byte NUMCOLS = 26;                 // number of touch sensor columns
 const byte NUMROWS = 8;                  // number of touch sensor rows
 
 // LED timing
-const unsigned long LED_REFRESH_INTERVAL = 100;
+unsigned long ledRefreshInterval = 500;
 
 const unsigned long GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL = 30000;
 
@@ -737,6 +737,7 @@ void setup() {
   // detect if low power mode is active by holding down the octave/transpose button at startup
   if (switchPressAtStartup(4)) {
     operatingLowPower = true;
+    ledRefreshInterval = 200;                          // accelerate led refresh so that they can be lit only 1/3rd of the time
     midiDecimateRate = 12;                             // set decimation rate to 12 ms
     cell().touched = touchedCell;
   }
@@ -750,7 +751,7 @@ void setup() {
     // set display to normal performance mode & refresh it
     clearDisplay();
     displayMode = displayNormal;
-    setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
+    setLed(0, SPLIT_ROW, globalColor, splitActive);
 
     // perform some initialization
     initializeCalibrationSamples();

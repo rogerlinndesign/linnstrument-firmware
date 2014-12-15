@@ -47,24 +47,24 @@ byte leds[NUMCOLS][NUMROWS];             // array holding contents of display
 void setLed(byte col,                // Column of LED to be changed
             byte row,                // Row of LED to be changed
             byte color,              // Color of LED to be changed
-            byte brightness) {       // Brightness of LED to be changed (0, 1, 2 or 3)
-  if (brightness == 0) {
+            boolean on) {            // Should the LED be turned on or off
+  if (!on) {
     color = COLOR_BLACK;
   }
-  leds[col][row] = (color << 4) | brightness;      // packs color and brightness into this cell within array
+  leds[col][row] = (color << 4) | on;      // packs color and brightness into this cell within array
 }
 
 
 // light up a single LED with the default color and brightness
 void lightLed(byte col,              // Column of LED to be changed
               byte row) {            // Row of LED to be changed
-  setLed(col, row, globalColor, 3);
+  setLed(col, row, globalColor, true);
 }
 
 // clear a single LED
 void clearLed(byte col,              // Column of LED to be changed
               byte row) {            // Row of LED to be changed
-  setLed(col, row, COLOR_BLACK, 0);
+  setLed(col, row, COLOR_BLACK, false);
 }
 
 
@@ -81,7 +81,7 @@ void refreshLedColumn() {                                 // output: none
   byte blue = 0;                                          // blue value to be sent
   byte ledColShifted = 0;                                 // LED column address, which is shifted 2 bits to left within byte
 
-  if (++brightnessInterval >= 3) {                        // use 2 levels of brightness by modulating LED's ON time
+  if (++brightnessInterval >= 3) {                        // allow the user of several levels of brightness by modulating LED's ON time
     brightnessInterval = 0;
   }
   if (++ledCol >= NUMCOLS) ledCol = 0;
@@ -92,10 +92,10 @@ void refreshLedColumn() {                                 // output: none
   for (byte rowCount = 0; rowCount < NUMROWS; ++rowCount) {       // step through the 8 rows
     byte color = leds[actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
 
-    byte brightness = leds[actualCol][rowCount] & B00001111;      // set 'brightness' value to 0 - 3
-    if (operatingLowPower && brightness) brightness = 1;          // only use only level 1 of brightness in low power mode
+    byte brightness = leds[actualCol][rowCount] & B00001111;      // get 'brightness' value
 
-    if (brightness > brightnessInterval) {                        // if this LED is not off, process it
+    if (!operatingLowPower && brightness ||
+        operatingLowPower && brightness > brightnessInterval) {   // if this LED is not off, process it
       switch (color)                                              // set the color bytes to the correct color
       {
         case 0:  // off-- do nothing
