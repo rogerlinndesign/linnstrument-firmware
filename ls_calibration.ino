@@ -133,17 +133,17 @@ int calculateCalibratedY(int rawY) {
 bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
-    cell().refreshX();
-    cell().refreshY();
+    sensorCell().refreshX();
+    sensorCell().refreshY();
     if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
       int row = (sensorRow / 2);
-      calSampleRows[sensorCol][row].minValue = min(cell().rawX(), calSampleRows[sensorCol][row].minValue);
-      calSampleRows[sensorCol][row].maxValue = max(cell().rawX(), calSampleRows[sensorCol][row].maxValue);
+      calSampleRows[sensorCol][row].minValue = min(sensorCell().rawX(), calSampleRows[sensorCol][row].minValue);
+      calSampleRows[sensorCol][row].maxValue = max(sensorCell().rawX(), calSampleRows[sensorCol][row].maxValue);
     }
     else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
       int col = (sensorCol - 1) / 3;
-      calSampleCols[col][sensorRow].minValue = min(cell().rawY(), calSampleCols[col][sensorRow].minValue);
-      calSampleCols[col][sensorRow].maxValue = max(cell().rawY(), calSampleCols[col][sensorRow].maxValue);
+      calSampleCols[col][sensorRow].minValue = min(sensorCell().rawY(), calSampleCols[col][sensorRow].minValue);
+      calSampleCols[col][sensorRow].maxValue = max(sensorCell().rawY(), calSampleCols[col][sensorRow].maxValue);
     }
 
     return true;

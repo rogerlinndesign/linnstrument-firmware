@@ -88,7 +88,7 @@ int TouchInfo::calibratedX() {
   return currentCalibratedX;
 }
 
-void TouchInfo::refreshX() {
+inline void TouchInfo::refreshX() {
   if (shouldRefreshX) {
     currentRawX = readX();
     currentCalibratedX = calculateCalibratedX(currentRawX);
@@ -113,7 +113,7 @@ int TouchInfo::rawY() {
   return currentRawY;
 }
 
-void TouchInfo::refreshY() {
+inline void TouchInfo::refreshY() {
   if (shouldRefreshY) {
     currentRawY = readY();
     currentCalibratedY = calculateCalibratedY(currentRawY);
@@ -137,17 +137,17 @@ int TouchInfo::rawZ() {
   return currentRawZ;
 }
 
-boolean TouchInfo::isMeaningfulTouch() {
+inline boolean TouchInfo::isMeaningfulTouch() {
   refreshZ();
   return velocityZ > 0 || pressureZ > 0;
 }
 
-boolean TouchInfo::isActiveTouch() {
+inline boolean TouchInfo::isActiveTouch() {
   refreshZ();
   return featherTouch || velocityZ > 0 || pressureZ > 0;
 }
 
-void TouchInfo::refreshZ() {
+inline void TouchInfo::refreshZ() {
   if (shouldRefreshZ) {
     currentRawZ = readZ();                            // store the raw Z data for later comparisons and calculations
     featherTouch = false;

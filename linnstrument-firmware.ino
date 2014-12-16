@@ -149,14 +149,14 @@ enum TouchState {
 struct TouchInfo {
   int rawX();                                // ensure that X is updated to the latest scan and return its raw value
   int calibratedX();                         // ensure that X is updated to the latest scan and return its calibrated value
-  void refreshX();                           // ensure that X is updated to the latest scan
+  inline void refreshX();                    // ensure that X is updated to the latest scan
   int rawY();                                // ensure that Y is updated to the latest scan and return its raw value
   int calibratedY();                         // ensure that Y is updated to the latest scan and return its calibrated value
-  void refreshY();                           // ensure that Y is updated to the latest scan
+  inline void refreshY();                    // ensure that Y is updated to the latest scan
   int rawZ();                                // ensure that Z is updated to the latest scan and return its raw value
-  boolean isMeaningfulTouch();               // ensure that Z is updated to the latest scan and check if it was a meaningful touch
-  boolean isActiveTouch();                   // ensure that Z is updated to the latest scan and check if it was an active touch
-  void refreshZ();                           // ensure that Z is updated to the latest scan
+  inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
+  inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
+  inline void refreshZ();                    // ensure that Z is updated to the latest scan
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
@@ -207,17 +207,9 @@ TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations ins
 int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
 
-// convenience functions to easily access the cells with touch information
-inline TouchInfo& cell();
-inline TouchInfo& cell(byte col, byte row);
-
-inline TouchInfo& cell() {
-  return cell(sensorCol, sensorRow);
-}
-
-inline TouchInfo& cell(byte col, byte row) {
-  return touchInfo[col][row];
-}
+// convenience macros to easily access the cells with touch information
+#define sensorCell() touchInfo[sensorCol][sensorRow]
+#define cell(col, row) touchInfo[col][row]
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -740,7 +732,7 @@ void setup() {
     operatingLowPower = true;
     ledRefreshInterval = 200;                          // accelerate led refresh so that they can be lit only 1/3rd of the time
     midiDecimateRate = 12;                             // set decimation rate to 12 ms
-    cell().touched = touchedCell;
+    sensorCell().touched = touchedCell;
   }
 
   // default to performance mode
@@ -817,7 +809,7 @@ void loop() {
   }
 }
 
-void modeLoopPerformance() {
+inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
       displayMode = displayNormal;                               // this should make the reset operation feel more predictable
@@ -825,16 +817,16 @@ void modeLoopPerformance() {
     }
   }
   else {
-    TouchState previousTouch = cell().touched;                   // get previous touch status of this cell
+    TouchState previousTouch = sensorCell().touched;                               // get previous touch status of this cell
 
-    if (cell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
+    if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
       handleNewTouch();
     }
-    else if (cell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
-      handleXYZupdate();                                                    // handle any X, Y or Z movements
+    else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
+      handleXYZupdate();                                                          // handle any X, Y or Z movements
     }
-    else if (!cell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - cell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
+    else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
+             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
   }
