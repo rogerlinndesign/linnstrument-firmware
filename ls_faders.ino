@@ -9,7 +9,7 @@ These functions handle the CC faders for each split
 #define CC_FADER_NUMBER_OFFSET 1
 
 void handleFaderTouch(boolean newVelocity) {
-  if (sensorCell().isMeaningfulTouch() && sensorCell().velocity) {
+  if (sensorCell().velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
@@ -28,6 +28,16 @@ void handleFaderTouch(boolean newVelocity) {
     }
     // otherwise it's a real fader and we calculate the value based on its position
     else {
+      if (newVelocity) {
+        for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+          if (col != sensorCol && cell(col, sensorRow).velocity) {
+            transferFromSameRowCell(col);
+            return;
+          }
+        }
+      }
+
+      // initialize the initial fader touch
       value = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
     }
 
@@ -35,6 +45,21 @@ void handleFaderTouch(boolean newVelocity) {
       ccFaderValues[sensorSplit][sensorRow] = value;
       preSendControlChange(sensorSplit, sensorRow + CC_FADER_NUMBER_OFFSET, value);
       paintCCFaderDisplayRow(sensorSplit, sensorRow);
+    }
+  }
+}
+
+void handleFaderRelease() {
+  if (sensorCell().velocity) {
+    byte faderLeft, faderLength;
+    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
+    if (faderLength > 0) {
+      for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+        if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
+          transferToSameRowCell(col);
+          break;
+        }
+      }
     }
   }
 }

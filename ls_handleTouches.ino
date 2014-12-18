@@ -439,8 +439,8 @@ void handleXYZupdate() {
   DEBUGPRINT((2,"handleXYZupdate"));
   DEBUGPRINT((2," col="));DEBUGPRINT((2,(int)sensorCol));
   DEBUGPRINT((2," row="));DEBUGPRINT((2,(int)sensorRow));
-  DEBUGPRINT((1," velocityZ="));DEBUGPRINT((2,(int)sensorCell().velocityZ));
-  DEBUGPRINT((1," pressureZ="));DEBUGPRINT((2,(int)sensorCell().pressureZ));
+  DEBUGPRINT((2," velocityZ="));DEBUGPRINT((2,(int)sensorCell().velocityZ));
+  DEBUGPRINT((2," pressureZ="));DEBUGPRINT((2,(int)sensorCell().pressureZ));
   DEBUGPRINT((2,"\n"));
 
   boolean newVelocity = calcVelocity(sensorCell().velocityZ);
@@ -833,8 +833,12 @@ void handleTouchRelease() {
   // check if calibration is active and its cell release logic needs to be executed
   handleCalibrationRelease();
 
+  // CC faders have their own operation mode
+  if (Split[sensorSplit].ccFaders) {
+    handleFaderRelease();
+  }
   // is this cell used for low row functionality
-  if (isLowRow()) {
+  else if (isLowRow()) {
     lowRowStop();
   }
   else if (sensorCell().hasNote()) {
