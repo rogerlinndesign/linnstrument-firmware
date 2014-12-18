@@ -437,6 +437,7 @@ struct SplitSettings {
   byte colorAccent;                    // color for accented cells
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
+  byte colorMiddleC;                   // color for middle C - jas 2014/12/11
   byte lowRowMode;                     // see LowRowMode values
   byte preset;                         // preset number 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
@@ -519,6 +520,7 @@ struct GlobalSettings {
   boolean mainNotes[12];                     // determines which notes receive "main" lights
   boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  byte colOffset;                            // interval between columns. semitone intervals (1, 2, 3, 4, 5) - jas 2014/12/11
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.

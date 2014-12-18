@@ -349,7 +349,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI Bend Range
     case 19:
-      if (value == 2 || value == 3 || value == 12 || value == 24) {
+      if (value == 2 || value == 3 || value == 12 || value == 24 || value == 48 || value == 96) { //-- added 48, 96 jas 2014/12/11
         Split[split].bendRange = value;
       }
       break;
@@ -437,6 +437,9 @@ void receivedNrpn(int parameter, int value) {
         Split[split].colorLowRow = value;
       }
       break;
+    //-- where to put setting for Color Middle C? - jas 2014/12/11 --
+    // it logically seems to fit here, but no room so case 40
+
     // Split LowRow Mode
     case 34:
       if (inRange(value, 0, 7)) {
@@ -488,6 +491,16 @@ void receivedNrpn(int parameter, int value) {
         Split[split].transposeLights = value-7;
       }
       break;
+
+    //-- where to put setting for Color Middle C? - jas 2014/12/11 --
+    // following colorLowRow or here?
+    // Split Color Middle C
+    case 40:
+      if (inRange(value, 1, 6)) {
+        Split[split].colorMiddleC = value;
+      }
+      break;
+
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -526,6 +539,14 @@ void receivedNrpn(int parameter, int value) {
         Global.rowOffset = value;
       }
       break;
+    // Global Column Offset - jas 2014/12/11
+    case 240:
+      if (value == 1 || value == 2 || value == 3 || value == 4) {
+        Global.colOffset = value;
+      }
+      break;
+    //-------------------------------------------------------
+
     // Global Switch 1 Assignment
     case 228:
       if (inRange(value, 0, 5)) {
@@ -592,6 +613,7 @@ void receivedNrpn(int parameter, int value) {
         fxd4CurrentTempo = FXD4_FROM_INT(value);
       }
       break;
+    // case 240 - Global Column Offset Global.colOffset - above following Global.rowOffset - jas 2014/12/11
   }
 
   updateDisplay();
@@ -635,8 +657,16 @@ int getNoteNumColumn(byte split, byte notenum, byte row) {
   int offset, lowest;
   determineNoteOffsetAndLowest(split, row, offset, lowest);
 
-  int col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
+  //-- base column unscaled by colOffset - jas 2014/12/11 --
+  int baseCol = notenum - (lowest + (row * offset) + Split[split].transposeOctave)  // calculate the base column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;           // adapt for transposition settings
+            
+  //-- for colOffset>1 notes may appear only on every 2nd, 3rd, or 4th row, etc - jas 2014/12/11 --
+  if ((baseCol< 0) || (baseCol % Global.colOffset != 0)) {
+    return -1;
+  }
+  
+  int col = baseCol / Global.colOffset + 1; // jas 2014/12/11 --
 
   byte lowColSplit, highColSplit;
   getSplitBoundaries(split, lowColSplit, highColSplit);
@@ -677,6 +707,12 @@ int scalePitch(byte split, int pitchValue) {
     break;
   case 24:
     pitchValue = pitchValue << 1;              // If 24, multiply by 2
+    break;
+  case 48:
+    pitchValue = pitchValue;                  // If 48, multiply by 1 ;) - jas 2014/12/11 --
+    break;
+  case 96:
+    pitchValue = pitchValue / 2;              // If 96, divide by 2 - jas 2014/12/11 --
     break;
   }
 

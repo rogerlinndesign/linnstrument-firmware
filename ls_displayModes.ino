@@ -226,10 +226,19 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       brightness = 3;
     }
     
+<<<<<<< HEAD
     // paint middle C special - jas 2014/11/14
     // 
     if (actualnote == 60) {
       colour = Split[split].colorLowRow;
+=======
+    // distinguish middle C (MIDI note number 60) - jas 2014/11/14
+    // Random brightness could give some twinkle effect, but color settings
+    // for LEDs in untouched cells normally do not get frequent updates,
+    // so you can see the brightness differences only after touching middle C.
+    if (actualnote == 60) {
+      colour = Split[split].colorMiddleC;
+>>>>>>> jas
       brightness = byte(random(3) + 1);
     }
 
@@ -295,6 +304,12 @@ void paintPerSplitDisplay(int side) {
       break;
     case 24:
       setLed(7, 4, Split[side].colorMain, 3);
+      break;
+    case 48: //-- added range for better compatibility with Haaken Continuum and colOffset>1 - jas 2014/12/11
+      setLed(7, 3, Split[side].colorMain, 3);
+      break;
+    case 96: //-- added range for better compatibility with Haaken Continuum and colOffset>1 - jas 2014/12/11
+      setLed(7, 2, Split[side].colorMain, 3);
       break;
   }
 
@@ -366,6 +381,7 @@ void paintPerSplitDisplay(int side) {
   setLed(11, 6, Split[side].colorAccent, 3);
   setLed(11, 5, Split[side].colorNoteon, 3);
   setLed(11, 4, Split[side].colorLowRow, 3);
+  setLed(11, 3, Split[side].colorMiddleC, 3);
 
   // Set "Low row" lights
   switch (Split[side].lowRowMode)
@@ -715,6 +731,22 @@ void paintGlobalSettingsDisplay() {
       break;
   }
 
+  switch (Global.colOffset) //-- add this new setting to unused column 19 - jas 2014/12/11 --
+  {
+    case 1:        // 1 semitone (default)
+      lightLed(19, 0);
+      break;
+    case 2:        // 2 semitone
+      lightLed(19, 1);
+      break;
+    case 3:        // 3 semitone
+      lightLed(19, 2);
+      break;
+    case 4:        // 4 semitone
+      lightLed(19, 3);
+      break;
+  }
+
   // This code assumes that switchSelect values are the same as the row numbers
   lightLed(7, switchSelect);
   paintSwitchAssignment(Global.switchAssignment[switchSelect]);
@@ -808,17 +840,20 @@ void paintGlobalSettingsDisplay() {
   }
 
 #ifdef DEBUG_ENABLED
-  // Colum 17 is for setting/showing the debug level
+  // Column 17 is for setting/showing the debug level
   // The value of debugLevel is from -1 up.
   lightLed(17, debugLevel + 1);
 
-  // The columns in column 18 are secret switches.
+  // The rows in column 18 are secret switches.
   for (int ss = 0; ss < SECRET_SWITCHES; ++ss) {
     if (secretSwitch[ss]) {
       lightLed(18, ss);
     }
   }
 #endif
+
+
+  // Column 19 is set above, for Global.colOffset, following Global.rowOffset - jas 2014/12/11
 
   if (displayMode == displayGlobalWithTempo) {
     byte color = Split[LEFT].colorMain;

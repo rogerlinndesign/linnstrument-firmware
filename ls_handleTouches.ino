@@ -951,7 +951,7 @@ int getNoteNumber(byte col,                               // column number to be
   determineNoteOffsetAndLowest(sp, row, offset, lowest);
 
   // return the computed note based on the selected rowOffset
-  notenum = lowest + (row * offset ) + (col - 1) + Split[sp].transposeOctave;
+  notenum = lowest + (row * offset ) + (col - 1) * Global.colOffset + Split[sp].transposeOctave; //-- whole tone etc per column - jas 2014/12/11
 
   return notenum;
 }

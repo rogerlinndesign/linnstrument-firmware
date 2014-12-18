@@ -153,6 +153,7 @@ void initializeSplitSettings() {
   Split[LEFT].midiChanPerRow = 1;
   Split[LEFT].colorMain = COLOR_GREEN;
   Split[LEFT].colorNoteon = COLOR_RED;
+  Split[LEFT].colorMiddleC = COLOR_BLUE; //-- new property to distinguish middle C - jas 2014/12/11
   Split[LEFT].lowRowMode = lowRowNormal;
 
   splitChannels[LEFT].add(1);
@@ -164,6 +165,7 @@ void initializeSplitSettings() {
   Split[RIGHT].midiChanPerRow = 9;
   Split[RIGHT].colorMain = COLOR_BLUE;
   Split[RIGHT].colorNoteon = COLOR_MAGENTA;
+  Split[RIGHT].colorMiddleC = COLOR_GREEN; //-- new property to distinguish middle C - jas 2014/12/11
   Split[RIGHT].lowRowMode = lowRowNormal;
 
   splitChannels[RIGHT].add(2);
@@ -181,6 +183,7 @@ void initializeGlobalSettings() {
   Global.currentPerSplit = LEFT;
 
   Global.rowOffset = 5;
+  Global.colOffset = 1; //-- new property to allow intervals other than 1 - jas 2014/12/11 --
   Global.velocitySensitivity = velocityMedium;
   Global.pressureSensitivity = pressureMedium;
   Global.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
@@ -474,6 +477,12 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].bendRange = 24;
     }
+    else if (sensorRow == 3) {
+      Split[Global.currentPerSplit].bendRange = 48; // new value - jas 2014/12/11
+    }
+    else if (sensorRow == 2) {
+      Split[Global.currentPerSplit].bendRange = 96; // new value - jas 2014/12/11
+    }
 
   } else if (sensorCol == 8) {
 
@@ -545,6 +554,9 @@ void handlePerSplitSettingNewTouch() {
     }
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
+    }
+    else if (sensorRow == 3) {  //-- distinguish Middle C - jas 2014/12/11
+      Split[Global.currentPerSplit].colorMiddleC = colorCycle(Split[Global.currentPerSplit].colorMiddleC, false);
     }
 
   } else if (sensorCol == 12) {
@@ -1164,6 +1176,21 @@ void handleGlobalSettingNewTouch() {
     DEBUGPRINT((-1,"\n"));
   }
 #endif
+
+  if (sensorCol == 19) {  //-- set Column Offset colOffset - jas 2014/12/11
+    if (sensorRow == 0) {
+    Global.colOffset = 1;
+    }
+    else if (sensorRow == 1) {
+    Global.colOffset = 2;
+    }
+    else if (sensorRow == 2) {
+    Global.colOffset = 3;
+    }
+    else if (sensorRow == 3) {
+    Global.colOffset = 4;
+    }
+  }
 
   updateDisplay();
 }
