@@ -57,14 +57,14 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 // FEEL FREE TO EDIT them, but note that not all characters might have a font representation.
 // Also, DO NOT CHANGE the number 16 nor remove or add any messages, you might crash the LinnStrument.
 char* audienceMessages[16] = {
-  "THIS LINNSTRUMENT BELONGS TO JIM SELF",
-  "JAZELF@GMAIL.COM",
+  "LINNSTRUMENT",
+  "APPLAUSE",
   "HA HA HA",
-  "ASHES ASHES ALL FALL DOWN",
-  "RING AROUND THE ROSES",
+  "SINGER SUCKS",
+  "WRONG NOTE",
   "SMELLY NIGHTCLUB",
   "HELLO",
-  "HELLO DAVIS CALIFORNIA",
+  "HELLO NEW YORK",
   "HELLO LOS ANGELES",
   "HELLO SAN FRANCISCO",
   "HELLO LONDON",
@@ -72,8 +72,7 @@ char* audienceMessages[16] = {
   "HELLO BRUSSELS",
   "HELLO PARIS",
   "HELLO TOKYO",
-  "HELLO FINLEY AND RILO"
-  
+  "HELLO (YOUR CITY HERE)"
 };
 
 char* OSVersion = "105.";
