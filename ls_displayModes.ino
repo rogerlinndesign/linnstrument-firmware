@@ -226,19 +226,12 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       brightness = 3;
     }
     
-<<<<<<< HEAD
-    // paint middle C special - jas 2014/11/14
-    // 
-    if (actualnote == 60) {
-      colour = Split[split].colorLowRow;
-=======
     // distinguish middle C (MIDI note number 60) - jas 2014/11/14
     // Random brightness could give some twinkle effect, but color settings
     // for LEDs in untouched cells normally do not get frequent updates,
     // so you can see the brightness differences only after touching middle C.
     if (actualnote == 60) {
       colour = Split[split].colorMiddleC;
->>>>>>> jas
       brightness = byte(random(3) + 1);
     }
 
