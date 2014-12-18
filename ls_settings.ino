@@ -6,8 +6,6 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the changing of any of LinnStrument's panel settings.
 **************************************************************************************************/
 
-#include <DueFlashStorage.h>
-
 short numericActiveDown = 0;                 // Number of cells currently held down, during numeric data changes
 
 signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
@@ -21,8 +19,6 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
     Global.switchAssignment[whichSwitch] = assignment;
   }
 }
-
-DueFlashStorage dueFlashStorage;
 
 void switchSerialMode(boolean flag) {
     Global.serialMode = flag;

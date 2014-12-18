@@ -45,6 +45,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 /*************************************** Included Libraries **************************************/
 #include <SPI.h>
 #include <limits.h>
+#include <DueFlashStorage.h>
 
 #include "ls_debug.h"
 #include "ls_channelbucket.h"
@@ -119,6 +120,9 @@ const byte READ_Z = 2;                   // input option for setSwitches
 
 
 /******************************************* Global Variables ************************************/
+
+// Access to the persistent flash storage
+DueFlashStorage dueFlashStorage;
 
 // The most-recently touched cell within each channel of each split is said to have "focus",
 // saved as the specific column and row for the focus cell.
@@ -683,22 +687,28 @@ void setup() {
   /*!!*/  pinMode(37, OUTPUT);
   /*!!*/  digitalWrite(37, HIGH);
   /*!!*/
-  /*!!*/  // detect if firmware upgrade mode is active by holding down the global settings button at startup
   /*!!*/  if (switchPressAtStartup(0)) {
-  /*!!*/    operatingMode = modeFirmware;
-  /*!!*/
-  /*!!*/    // use serial and not MIDI
-  /*!!*/    pinMode(35, OUTPUT);
-  /*!!*/    digitalWrite(35, HIGH);
-  /*!!*/
-  /*!!*/    // use USB connection and not DIN
-  /*!!*/    pinMode(36, OUTPUT);
-  /*!!*/    digitalWrite(36, HIGH);
-  /*!!*/
-  /*!!*/    clearDisplay();
-  /*!!*/
-  /*!!*/    bigfont_draw_string(0, 0, "FWUP", COLOR_RED);
-  /*!!*/    return;
+  /*!!*/    // if the global settings and switch 2 buttons are pressed at startup, the LinnStrument will do a global reset
+  /*!!*/    if (switchPressAtStartup(2)) {
+  /*!!*/      dueFlashStorage.write(0, 1);
+  /*!!*/    }
+  /*!!*/    // if only the global settings button is pressed at startup, activatate firmware upgrade mode
+  /*!!*/    else {
+  /*!!*/      operatingMode = modeFirmware;
+  /*!!*/  
+  /*!!*/      // use serial and not MIDI
+  /*!!*/      pinMode(35, OUTPUT);
+  /*!!*/      digitalWrite(35, HIGH);
+  /*!!*/  
+  /*!!*/      // use USB connection and not DIN
+  /*!!*/      pinMode(36, OUTPUT);
+  /*!!*/      digitalWrite(36, HIGH);
+  /*!!*/  
+  /*!!*/      clearDisplay();
+  /*!!*/  
+  /*!!*/      bigfont_draw_string(0, 0, "FWUP", COLOR_RED);
+  /*!!*/      return;
+  /*!!*/    }
   /*!!*/  }
   /*!!*/
   //*************************************************************************************************************************************************
