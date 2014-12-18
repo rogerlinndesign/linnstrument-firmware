@@ -8,9 +8,9 @@ These functions handle the changing of any of LinnStrument's panel settings.
 
 #include <DueFlashStorage.h>
 
-int numericActiveDown = 0;                   // Number of cells currently held down, during numeric data changes
+short numericActiveDown = 0;                 // Number of cells currently held down, during numeric data changes
 
-int numericDataChangeCol = -1;               // If -1, button has been pressed, but a starting column hasn't been set
+signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
 unsigned long numericDataChangeTime = 0;     // time of last touch for value change
 
 unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
@@ -111,9 +111,9 @@ void applyConfiguration() {
 
 void initializeSplitSettings() {
   // initialize all identical values in the keyboard split data
-  for (int s = 0; s < 2; ++s) {
+  for (byte s = 0; s < 2; ++s) {
       Split[s].midiMode = oneChannel;
-      for (int chan = 0; chan < 16; ++chan) {
+      for (byte chan = 0; chan < 16; ++chan) {
         focusCell[s][chan].col = 0;
         focusCell[s][chan].row = 0;
       }
@@ -137,7 +137,7 @@ void initializeSplitSettings() {
       Split[s].arpeggiator = false;
       Split[s].ccFaders = false;
       Split[s].strum = false;
-      for (int f = 0; f < 8; ++f) {
+      for (byte f = 0; f < 8; ++f) {
         ccFaderValues[s][f] = 0;
       }
       ccFaderValues[s][6] = 63;
@@ -148,7 +148,7 @@ void initializeSplitSettings() {
 
   // initialize values that differ between the keyboard splits
   Split[LEFT].midiChanMain = 1;
-  for (int chan= 0; chan < 8; ++chan) {
+  for (byte chan= 0; chan < 8; ++chan) {
     Split[LEFT].midiChanSet[chan] = true;
   }
   Split[LEFT].midiChanPerRow = 1;
@@ -159,7 +159,7 @@ void initializeSplitSettings() {
   splitChannels[LEFT].add(1);
 
   Split[RIGHT].midiChanMain = 2;
-  for (int chan = 8; chan < 16; ++chan) {
+  for (byte chan = 8; chan < 16; ++chan) {
     Split[RIGHT].midiChanSet[chan] = true;
   }
   Split[RIGHT].midiChanPerRow = 9;
@@ -389,7 +389,7 @@ void handleControlButtonRelease() {
   }
 }
 
-void toggleChannel(int chan) {                          // chan value is 1-16
+void toggleChannel(byte chan) {                          // chan value is 1-16
   switch (midiChannelSettings)
   {
     case MIDICHANNEL_MAIN:
@@ -431,7 +431,7 @@ void updateSplitMidiChannels(byte sp) {
 }
 
 // Return the next color in the color cycle (1 through 6)
-byte colorCycle(int color, boolean includeBlack) {
+byte colorCycle(byte color, boolean includeBlack) {
   if (++color > 6) {
     if (includeBlack) {
       color = 0;
@@ -468,7 +468,7 @@ void handlePerSplitSettingNewTouch() {
   } else if (sensorCol >= 3 && sensorCol <= 6 && sensorRow >=4 && sensorRow <= 7) {
 
     // Channels in column 3 are 1,5,9,13, column 4 are 2,6,10,14, column 5 are 3,7,11,15, and column 6 are 4,8,12,16
-    int chan = (7 - sensorRow) * 4 + sensorCol - 2;    // this value should be from 1 to 16
+    byte chan = (7 - sensorRow) * 4 + sensorCol - 2;    // this value should be from 1 to 16
     toggleChannel(chan);
 
   } else if (sensorCol == 7) {
@@ -709,7 +709,7 @@ boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short mi
   // keep track of how many cells are currently down
   numericActiveDown++;
   unsigned long now = micros();
-  int increment = 1;
+  byte increment = 1;
 
   // If the swipe is fast, increment by a larger amount.
   if (calcTimeDelta(now, numericDataChangeTime) < 70000) {
@@ -719,7 +719,7 @@ boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short mi
     increment = 5;
   }
 
-  int newData = currentData;
+  unsigned short newData = currentData;
   if (numericDataChangeCol < 0) {
     // First cell hit after starting a data change,
     // don't change data yet.
@@ -852,7 +852,7 @@ void handleTempoNewTouch() {
 
   if (!isMidiClockRunning()) {
     unsigned long now = micros();
-    int increment = 1;
+    byte increment = 1;
 
     // if the swipe is fast, increment by a larger amount.
     if (calcTimeDelta(now, tempoChangeTime) < 70000) {
@@ -1145,7 +1145,7 @@ void handleGlobalSettingNewTouch() {
 
   if (sensorCol == 18 && sensorRow < 4) {
     // This is a hidden feature, to make it easy to toggle debug printing of MIDI messages.
-    int ss = sensorRow;
+    byte ss = sensorRow;
     secretSwitch[ss] = !secretSwitch[ss];
     DEBUGPRINT((-1,"secretSwitch["));
     DEBUGPRINT((-1,ss));

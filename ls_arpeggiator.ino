@@ -36,7 +36,7 @@ void initializeArpeggiator() {
   lastArpMidiClock = 0;
   lastInternalClockCount = 0;
 
-  for (int split = 0; split < 2; ++split) {
+  for (byte split = 0; split < 2; ++split) {
     noteTouchMapping[split].initialize();
     resetArpeggiatorState(split);
   }
@@ -85,14 +85,14 @@ void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
   // handle replay all differently since it plays multiple notes simultaneously
   if (Global.arpDirection == ArpReplayAll) {
     if (lastArpNote[split] != -1) {
-      for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+      for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
         midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
       }
     }
   }
   // if this is a strummed note, always turn all octave notes off
   else if (isStrummedSplit(split)) {
-    for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+    for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
       midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
     }
   }
@@ -121,7 +121,7 @@ void sendArpeggiatorStepMidiOff(byte split) {
         signed char arpChannel = noteTouchMapping[split].firstChannel;
 
         while (arpNote != -1) {
-          for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+          for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
             midiSendNoteOff(split, getOctaveNote(octave, arpNote), arpChannel);
           }
 
@@ -185,8 +185,8 @@ byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
 inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
   if (isArpeggiatorEnabled(split)) {
 
-    int combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
-    int combinedTempo = tempoChoices[combinedTempoIndex];
+    byte combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
+    byte combinedTempo = tempoChoices[combinedTempoIndex];
 
     if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clockCount % 12 == 0) || (clockCount % 12 == 7))) ||  // we need to handle swing differently since it's irregular
         (combinedTempo != TEMPO_SIXTEENTH_SWING && (clockCount % combinedTempo == 0 ))) {
@@ -212,7 +212,7 @@ void advanceArpeggiatorForSplit(byte split) {
       while (arpNote != -1) {
 
         NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        for (int octave = 0; octave <= Global.arpOctave; ++octave) {
+        for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
           midiSendNoteOn(split, getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
         }
 

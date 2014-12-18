@@ -37,7 +37,7 @@ void initializeSwitches() {
   switchState[SWITCH_SWITCH_2][RIGHT] = false;
   switchState[SWITCH_SWITCH_1][RIGHT] = false;
 
-  for (int i = 0; i < 6; ++i) {
+  for (byte i = 0; i < 6; ++i) {
     switchTargetEnabled[i][LEFT] = false;
     switchTargetEnabled[i][RIGHT] = false;
   }
@@ -292,7 +292,7 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
 }
 
 void resetSwitchStates(byte whichSwitch) {
-  for (int sp = 0; sp < 2; ++ sp) {
+  for (byte sp = 0; sp < 2; ++ sp) {
     if (switchState[whichSwitch][sp]) {
       byte assignment = Global.switchAssignment[whichSwitch];
       changeSwitchState(whichSwitch, assignment, sp, false);

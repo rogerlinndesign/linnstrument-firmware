@@ -78,12 +78,12 @@ void initializeTouchInfo() {
   }
 }
 
-int TouchInfo::rawX() {
+short TouchInfo::rawX() {
   refreshX();
   return currentRawX;
 }
 
-int TouchInfo::calibratedX() {
+short TouchInfo::calibratedX() {
   refreshX();
   return currentCalibratedX;
 }
@@ -101,14 +101,15 @@ inline void TouchInfo::refreshX() {
 
       // store the initial X position
       initialX = currentCalibratedX;
-
+      
+      quantizationOffsetX = 0;
       fxdRateX = 0;
       lastMovedX = 0;
     }
   }
 }
 
-int TouchInfo::rawY() {
+short TouchInfo::rawY() {
   refreshY();
   return currentRawY;
 }
@@ -127,12 +128,12 @@ inline void TouchInfo::refreshY() {
   }
 }
 
-int TouchInfo::calibratedY() {
+signed char TouchInfo::calibratedY() {
   refreshY();
   return currentCalibratedY;
 }
 
-int TouchInfo::rawZ() {
+short TouchInfo::rawZ() {
   refreshZ();
   return currentRawZ;
 }
@@ -160,7 +161,7 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-    int usableZ = currentRawZ - Global.sensorLoZ;     // subtract minimum from value
+    short usableZ = currentRawZ - Global.sensorLoZ;   // subtract minimum from value
 
     if (usableZ <= 0) {                               // if it's below the acceptable minimum, store it as a feather touch
       featherTouch = true;
@@ -194,8 +195,8 @@ inline void TouchInfo::refreshZ() {
         break;
     }
 
-    int usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
-    int usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
+    short usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
+    short usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -247,13 +248,14 @@ void TouchInfo::setPhantoms(byte col1, byte col2, byte row1, byte row2) {
   phantomCoords[3] = row2;
 }
 
-boolean TouchInfo::isHigherPhantomPressure(int other) {
+boolean TouchInfo::isHigherPhantomPressure(short other) {
   return hasNote() || currentRawZ > other;
 }
 
 void TouchInfo::clearSensorData() {
   initialX = -1;
   initialReferenceX = 0;
+  quantizationOffsetX = 0;
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;

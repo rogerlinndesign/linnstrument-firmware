@@ -281,12 +281,12 @@ void handleMidiInput() {
   }
 }
 
-int determineSplitForChannel(byte channel) {
+signed char determineSplitForChannel(byte channel) {
   if (channel > 15) {
     return -1;
   }
 
-  for (int split = LEFT; split <= RIGHT; ++split) {
+  for (byte split = LEFT; split <= RIGHT; ++split) {
     switch (Split[split].midiMode) {
       case oneChannel:
         if (Split[split].midiChanMain-1 == channel) {
@@ -632,12 +632,12 @@ short getMidiClockCount() {
 void highlightNoteCells(byte color, byte split, byte notenum) {
   if (displayMode != displayNormal) return;
 
-  int row = 0;
+  byte row = 0;
   if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
-    int col = getNoteNumColumn(split, notenum, row);
+    short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       setLed(col, row, color, true);
     }
@@ -647,28 +647,28 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
 void resetNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
   
-  int row = 0;
+  byte row = 0;
   if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
-    int col = getNoteNumColumn(split, notenum, row);
+    short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       paintNormalDisplayCell(split, col, row);
     }
   }
 }
 
-int getNoteNumColumn(byte split, byte notenum, byte row) {
-  int offset, lowest;
+short getNoteNumColumn(byte split, byte notenum, byte row) {
+  short offset, lowest;
   determineNoteOffsetAndLowest(split, row, offset, lowest);
 
-  int col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
-            + Split[split].transposeLights - Split[split].transposePitch;;           // adapt for transposition settings
+  short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
+            + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
 
   byte lowColSplit, highColSplit;
   getSplitBoundaries(split, lowColSplit, highColSplit);
-  if (col < lowColSplit || col >= highColSplit) {                                    // only return columns that are valid for the split
+  if (col < lowColSplit || col >= highColSplit) {                                      // only return columns that are valid for the split
     col = -1;
   }
 
@@ -778,12 +778,12 @@ void preSendPressure(byte note, byte pressureValue, byte channel) {
 void initializeLastMidiTracking() {
   // Initialize the arrays that track the latest MIDI values by setting all entries
   // to invalid MIDI values. This ensures that the first messages will always be sent.
-  for (int ch = 0; ch < 16; ++ch) {
+  for (byte ch = 0; ch < 16; ++ch) {
     lastValueMidiPB[ch] = 0x7FFF;
     lastValueMidiAT[ch] = 0xFF;
     lastMomentMidiPB[ch] = 0;
     lastMomentMidiAT[ch] = 0;
-    for (int msg = 0; msg < 128; ++msg) {
+    for (byte msg = 0; msg < 128; ++msg) {
       lastValueMidiCC[ch*msg] = 0xFF;
       lastValueMidiPP[ch*msg] = 0xFF;
       lastMomentMidiCC[ch*msg] = 0;
@@ -792,9 +792,9 @@ void initializeLastMidiTracking() {
   }
 
   // Initialize the arrays that track which MIDI notes are on
-  for (int s = 0; s < 2; ++s) {
-    for (int n = 0; n < 128; ++n) {
-      for (int c = 0; c < 16; ++c) {
+  for (byte s = 0; s < 2; ++s) {
+    for (byte n = 0; n < 128; ++n) {
+      for (byte c = 0; c < 16; ++c) {
         lastValueMidiNotesOn[s][n][c] = 0;
       }
     }

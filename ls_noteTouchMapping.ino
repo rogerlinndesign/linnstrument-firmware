@@ -17,7 +17,7 @@ void resetAllTouches() {
   noteTouchMapping[RIGHT].initialize();
 }
 
-boolean validNoteNumAndChannel(int noteNum, int channel) {
+boolean validNoteNumAndChannel(signed char noteNum, signed char channel) {
   if (noteNum < 0 || noteNum > 127 || channel < 0 || channel > 15) {
     return false;
   }
@@ -77,7 +77,7 @@ void NoteTouchMapping::initialize() {
   }
 }
 
-void NoteTouchMapping::noteOn(int noteNum, int channel, byte col, byte row) {
+void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col, byte row) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
   }
@@ -155,7 +155,7 @@ void NoteTouchMapping::noteOn(int noteNum, int channel, byte col, byte row) {
   debugNoteChain();
 }
 
-void NoteTouchMapping::noteOff(int noteNum, int channel) {
+void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
   }
@@ -207,7 +207,7 @@ void NoteTouchMapping::noteOff(int noteNum, int channel) {
   debugNoteChain();
 }
 
-void NoteTouchMapping::changeCell(int noteNum, int channel, byte col, byte row) {
+void NoteTouchMapping::changeCell(signed char noteNum, signed char channel, byte col, byte row) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
   }
