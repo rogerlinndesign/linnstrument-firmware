@@ -45,12 +45,12 @@ behave unpredictably.
 
 This is an overview of the message chain:
 
-1011nnnn   01100011   0vvvvvvv   NRPN parameter number MSB CC
-1011nnnn   01100010   0vvvvvvv   NRPN parameter number LSB CC
-1011nnnn   00000110   0vvvvvvv   NRPN parameter value MSB CC
-1011nnnn   00100110   0vvvvvvv   NRPN parameter value LSB CC
-1011nnnn   00100101   01111111   RPN parameter number Reset MSB CC
-1011nnnn   00100100   01111111   RPN parameter number Reset LSB CC
+1011nnnn   01100011 ( 99)  0vvvvvvv         NRPN parameter number MSB CC
+1011nnnn   01100010 ( 98)  0vvvvvvv         NRPN parameter number LSB CC
+1011nnnn   00000110 (  6)  0vvvvvvv         NRPN parameter value MSB CC
+1011nnnn   00100110 ( 38)  0vvvvvvv         NRPN parameter value LSB CC
+1011nnnn   01100101 (101)  01111111 (127)   RPN parameter number Reset MSB CC
+1011nnnn   01100100 (100)  01111111 (127)   RPN parameter number Reset LSB CC
 
 The following table lists all the NRPN input values that LinnStrument understands.
 
@@ -170,7 +170,7 @@ NRPN   Value   Description
 225    0-1     Global Accent Note Light A# (0: Off, 1: On)
 226    0-1     Global Accent Note Light B (0: Off, 1: On)
 227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar)
-240    1-4     Global Column Offset  //-- colOffset - jas 2014/12/11 --
+250    1-4     Global Column Offset  //-- colOffset - jas 2014/12/11 --
 228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
 229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
 230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
@@ -182,7 +182,11 @@ NRPN   Value   Description
 236    1-7     Global Arp Tempo Note Value (1: 8, 2: 8 Tri, 3: 16, 4: 16 Swing, 5: 16 Tri, 6: 32, 7: 32 Tri)
 237    0-2     Global Arp Octave Extension (0: None, 1: +1, 2: +2)
 238    1-360   Global Clock BPM (applies when receiving no MIDI clock)
-240    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11 --
+239    0-1     Global Switch 1 Both Splits (0: Off, 1: On)
+240    0-1     Global Switch 2 Both Splits (0: Off, 1: On)
+241    0-1     Global Foot Left Both Splits (0: Off, 1: On)
+242    0-1     Global Foot Right Both Splits (0: Off, 1: On)
+250    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11 --
 
 Color Values
 ============

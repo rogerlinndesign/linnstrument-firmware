@@ -32,12 +32,32 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 }
 
 inline void performContinuousTasks(unsigned long now) {
-  checkRefreshLedColumn(now);
-  checkTimeToReadFootSwitches(now);
-  checkRefreshGlobalSettingsDisplay(now);
-  checkAdvanceArpeggiator(now);
-  handleMidiInput();
-  handlePendingMidi(now);
+  if (checkRefreshLedColumn(now)) {
+    checkTimeToReadFootSwitches(now);
+    checkRefreshGlobalSettingsDisplay(now);
+  }
+
+  checkAdvanceArpeggiator(now);  
+  if (Global.serialMode) {
+    handleExtStorage();
+  }
+  else {
+    handleMidiInput();
+    handlePendingMidi(now);
+  }
+}
+
+// checkRefreshLedColumn:
+// checks to see if it's time to refresh the next LED column, and if so, does it
+// the return value indicate whether the LEDs were updated, so that we can use it
+// as a coarse trigger to piggy-back other continuous tasks off of
+inline boolean checkRefreshLedColumn(unsigned long now) {
+  if (calcTimeDelta(now, prevLedTimerCount) > ledRefreshInterval) {        // is it time to refresh the next LED column?
+    refreshLedColumn();                                                    // yes-- refresh the next LED column...
+    prevLedTimerCount = now;                                               // and reset the LED timer count to current time
+    return true;
+  }
+  return false;
 }
 
 // checkTimeToReadFootSwitches:
@@ -46,15 +66,6 @@ inline void checkTimeToReadFootSwitches(unsigned long now) {
   if (calcTimeDelta(now, prevFootSwitchTimerCount) > FOOT_SWITCH_REFRESH_INTERVAL) {    // is it time to check the foot switches?
     checkFootSwitches();                                                                // yes-- check the foot switches and if state has changed, handle the event, then...
     prevFootSwitchTimerCount = now;                                                     // reset the foot switch timer to current time
-  }
-}
-
-// checkRefreshLedColumn:
-// checks to see if it's time to refresh the next LED column, and if so, does it
-inline void checkRefreshLedColumn(unsigned long now) {
-  if (calcTimeDelta(now, prevLedTimerCount) > LED_REFRESH_INTERVAL) {      // is it time to refresh the next LED column?
-    refreshLedColumn();                                                    // yes-- refresh the next LED column...
-    prevLedTimerCount = now;                                               // and reset the LED timer count to current time
   }
 }
 

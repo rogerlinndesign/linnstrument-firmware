@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.0.5 =========================================
+======================================== LinnStrument Operating System v1.0.7 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -75,7 +75,7 @@ char* audienceMessages[16] = {
   "HELLO (YOUR CITY HERE)"
 };
 
-char* OSVersion = "105.";
+char* OSVersion = "107.";
 
 // SPI addresses
 const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
@@ -101,7 +101,7 @@ const byte NUMCOLS = 26;                 // number of touch sensor columns
 const byte NUMROWS = 8;                  // number of touch sensor rows
 
 // LED timing
-const unsigned long LED_REFRESH_INTERVAL = 100;
+unsigned long ledRefreshInterval = 500;
 
 const unsigned long GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL = 30000;
 
@@ -143,19 +143,27 @@ enum TouchState {
   touchedCell = 3
 };
 
+#define PITCH_HOLD_DURATION 32               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
+#define ROGUE_PITCH_SWEEP_THRESHOLD 6        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
+
 struct TouchInfo {
   int rawX();                                // ensure that X is updated to the latest scan and return its raw value
   int calibratedX();                         // ensure that X is updated to the latest scan and return its calibrated value
-  void refreshX();                           // ensure that X is updated to the latest scan
+  inline void refreshX();                    // ensure that X is updated to the latest scan
   int rawY();                                // ensure that Y is updated to the latest scan and return its raw value
   int calibratedY();                         // ensure that Y is updated to the latest scan and return its calibrated value
-  void refreshY();                           // ensure that Y is updated to the latest scan
+  inline void refreshY();                    // ensure that Y is updated to the latest scan
+  int rawZ();                                // ensure that Z is updated to the latest scan and return its raw value
+  inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
+  inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
+  inline void refreshZ();                    // ensure that Z is updated to the latest scan
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(int);      // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  void clearSensorData();                    // clears the measured sensor data
 
   // touch data
   TouchState touched;                        // touch status of all sensor cells
@@ -174,8 +182,11 @@ struct TouchInfo {
   int currentCalibratedY;                    // last calibrated Y value of each cell
   boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
 
-  byte currentZ;                             // last Z value of each cell
-  int rawZ;                                  // the raw Z value
+  int currentRawZ;                           // the raw Z value
+  boolean featherTouch;                      // indicates whether this is a feather touch
+  byte velocityZ;                            // the Z value with velocity sensitivity
+  byte pressureZ;                            // the Z value with pressure sensitivity
+  boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
 
   int pendingReleaseCount;                   // counter before which the note release will be effective
 
@@ -196,17 +207,9 @@ TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations ins
 int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
 
-// convenience functions to easily access the cells with touch information
-inline TouchInfo &cell();
-inline TouchInfo &cell(byte col, byte row);
-
-inline TouchInfo &cell() {
-  return cell(sensorCol, sensorRow);
-}
-
-inline TouchInfo &cell(byte col, byte row) {
-  return touchInfo[col][row];
-}
+// convenience macros to easily access the cells with touch information
+#define sensorCell() touchInfo[sensorCol][sensorRow]
+#define cell(col, row) touchInfo[col][row]
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -230,9 +233,9 @@ struct NoteEntry {
 };
 struct NoteTouchMapping {
   void initialize();                         // initialize the mapping data
-  void noteOn(byte, byte, byte, byte);       // register the cell for which a note was turned on
-  void noteOff(byte, byte);                  // turn off a note
-  void changeCell(byte, byte, byte, byte);   // changes the cell of an active note
+  void noteOn(int, int, byte, byte);         // register the cell for which a note was turned on
+  void noteOff(int, int);                    // turn off a note
+  void changeCell(int, int, byte, byte);     // changes the cell of an active note
   void debugNoteChain();
 
   unsigned short noteCount;
@@ -246,8 +249,8 @@ struct NoteTouchMapping {
 NoteTouchMapping noteTouchMapping[2];
 
 // convenience functions to access the focused cell
-inline FocusCell &focus(byte split, byte channel);
-inline FocusCell &focus(byte split, byte channel) {
+inline FocusCell& focus(byte split, byte channel);
+inline FocusCell& focus(byte split, byte channel) {
   return focusCell[split][channel - 1];
 }
 
@@ -265,7 +268,10 @@ enum DisplayMode {
   displayCalibration,
   displayReset,
   displayCCForY,
-  displayCCForZ
+  displayCCForZ,
+  displaySensorLoZ,
+  displaySensorFeatherZ,
+  displaySensorRangeZ
 };
 
 byte displayMode = displayNormal;
@@ -278,8 +284,6 @@ unsigned long lastControlPress[NUMROWS];
 unsigned long prevLedTimerCount;        // timer for refreshing leds every 200 uS
 
 unsigned long prevGlobalSettingsDisplayTimerCount; // timer for refreshing the global settings display
-
-int activeDown = 0;                     // Number of cells currently held down, during Preset and Volume changing
 
 enum LowRowMode {
   lowRowNormal,
@@ -317,12 +321,11 @@ enum PressureSensitivity {
 #define COLOR_WHITE 7
 
 // Values related to the Z sensor, continuous pressure
-#define SENSOR_LO_Z 0xcf                              // lowest acceptable raw Z value
-#define SENSOR_FEATHER_Z 0x6f                         // lowest acceptable raw Z feather value
-#define SENSOR_PITCH_Z 0x1e0                          // lowest acceptable raw Z value for which pitchbend is sent
-#define SENSOR_RANGE_Z 508                            // upper value of the pressure                          
-#define Z_VAL_NONE 0                                  // no touch, ie. no pressure at all
-#define Z_VAL_FEATHER 0xff                            // feather touch, ie. pressure but below the lower threshold
+#define DEFAULT_SENSOR_LO_Z 0xcf                      // lowest acceptable raw Z value to start a touch
+#define DEFAULT_SENSOR_FEATHER_Z 0x6f                 // lowest acceptable raw Z value to continue a touch
+#define DEFAULT_SENSOR_RANGE_Z 508                    // default range of the pressure
+#define SENSOR_PITCH_Z 0x111                          // lowest acceptable raw Z value for which pitchbend is sent
+#define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
 
 #define VELOCITY_SAMPLES 2
 #define MAX_TOUCHES_IN_COLUMN 3
@@ -428,28 +431,28 @@ struct SplitSettings {
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
-  byte ccForY;                         // 0-127
+  unsigned short ccForY;               // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
-  byte ccForZ;                         // 0-127
+  unsigned short ccForZ;               // 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte colorMiddleC;                   // color for middle C - jas 2014/12/11
   byte lowRowMode;                     // see LowRowMode values
-  byte preset;                         // preset number 0-127
+  unsigned short preset;               // preset number 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
   boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
-  signed char arpTempoDelta;           // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
   boolean strum;                       // true when this split strums the touches of the other split
 };
 SplitSettings Split[2];
 ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
 byte ccFaderValues[2][8];              // the current values of the CC faders
+signed char arpTempoDelta[2];           // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
 #define SWITCH_HOLD_DELAY 200
@@ -509,10 +512,12 @@ enum ArpeggiatorDirection {
   ArpReplayAll
 };
 
+boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
-  int version;                               // to prepare for versioning
+  byte version;                              // to prepare for versioning
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
@@ -523,6 +528,7 @@ struct GlobalSettings {
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
@@ -530,9 +536,20 @@ struct GlobalSettings {
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
 };
 
 GlobalSettings Global;
+
+struct Configuration {
+  GlobalSettings global;
+  SplitSettings left;
+  SplitSettings right;
+};
+
+struct Configuration config;
 
 byte switchSelect = SWITCH_FOOT_L;
 
@@ -570,7 +587,7 @@ int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 
 int midiDecimateRate = 0;            // by default no decimation
 
-byte lastValueMidiNotesOn[128][16];  // keep track of MIDI note on to filter out note off messages that are not needed
+byte lastValueMidiNotesOn[2][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
 
 
@@ -620,18 +637,20 @@ void reset() {
 boolean switchPressAtStartup(byte switchRow) {
   sensorCol = 0;
   sensorRow = switchRow;
-  readZ(); readZ(); byte switchZ = readZ(); // initially we need read Z a few times for the readings to stabilize
-  if (switchZ != Z_VAL_NONE && switchZ != Z_VAL_FEATHER && switchZ >= 16) {
+  // initially we need read Z a few times for the readings to stabilize
+  readZ(); readZ(); unsigned short switchZ = readZ();
+  if (switchZ > Global.sensorLoZ + 128) {
     return true;
   }
   return false;
 }
 
-void setup()
-{
+void setup() {
   //*************************************************************************************************************************************************
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************
+  /*!!*/
+  /*!!*/  initializeGlobalSensorSettings();
   /*!!*/
   /*!!*/  // Initialize output pin 35 (midi/SERIAL) and set it HIGH for serial operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO SERIAL MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!
@@ -645,18 +664,18 @@ void setup()
   /*!!*/
   /*!!*/  // initialize the SPI port for setting one column of LEDs
   /*!!*/  SPI.begin(SPI_LEDS);
-  /*!!*/  SPI.setDataMode(SPI_LEDS, SPI_MODE0 );
+  /*!!*/  SPI.setDataMode(SPI_LEDS, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_LEDS, 4);                   // max clock is about 20 mHz. 4 = 21 mHz. Transferring all 4 bytes takes 1.9 uS.
   /*!!*/
   /*!!*/  // initialize the SPI port for setting analog switches in touch sensor
   /*!!*/  SPI.begin(SPI_SENSOR);
-  /*!!*/  SPI.setDataMode(SPI_SENSOR, SPI_MODE0 );
+  /*!!*/  SPI.setDataMode(SPI_SENSOR, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_SENSOR, 4);                 // set clock speed to 84/4 = 21 mHz. Max clock is 25mHz @ 4.5v
   /*!!*/  selectSensorCell(0, 0, READ_Z);                     // set it analog switches to read column 0, row 0 and to read pressure
   /*!!*/
   /*!!*/  // initialize the SPI input port for reading the TI ADS7883 ADC
   /*!!*/  SPI.begin(SPI_ADC);
-  /*!!*/  SPI.setDataMode(SPI_ADC, SPI_MODE0 );
+  /*!!*/  SPI.setDataMode(SPI_ADC, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_ADC, 4);                    // set speed to 84/4 = 21 mHz. Max clock for ADC is 32 mHz @ 2.7-4.5v, 48mHz @ 4.5-5.5v
   /*!!*/
   /*!!*/  // Initialize the output enable line for the 2 LED display chips
@@ -689,6 +708,9 @@ void setup()
 
   reset();
 
+  // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
+  initializeCalibrationData();
+
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
 
@@ -710,8 +732,9 @@ void setup()
   // detect if low power mode is active by holding down the octave/transpose button at startup
   if (switchPressAtStartup(4)) {
     operatingLowPower = true;
+    ledRefreshInterval = 200;                          // accelerate led refresh so that they can be lit only 1/3rd of the time
     midiDecimateRate = 12;                             // set decimation rate to 12 ms
-    cell().touched = touchedCell;
+    sensorCell().touched = touchedCell;
   }
 
   // default to performance mode
@@ -723,7 +746,7 @@ void setup()
     // set display to normal performance mode & refresh it
     clearDisplay();
     displayMode = displayNormal;
-    setLed(0, SPLIT_ROW, globalColor, splitActive * 3);
+    setLed(0, SPLIT_ROW, globalColor, splitActive);
 
     // perform some initialization
     initializeCalibrationSamples();
@@ -788,7 +811,7 @@ void loop() {
   }
 }
 
-void modeLoopPerformance() {
+inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
       displayMode = displayNormal;                               // this should make the reset operation feel more predictable
@@ -796,22 +819,16 @@ void modeLoopPerformance() {
     }
   }
   else {
-    TouchState previousTouch = cell().touched;                   // get previous touch status of this cell
+    TouchState previousTouch = sensorCell().touched;                               // get previous touch status of this cell
 
-    byte z = readZ();                                            // read the Z value of this cell
-    boolean activeTouch = (z != Z_VAL_NONE);                     // determine if the cell actually has an active touch now, disregarding pressure limits
-    if (Z_VAL_FEATHER == z) {                                    // if a feather touch was detected,
-      z = 0;                                                     // set the actual value to zero so that it wont start a new touch but only continue existing ones
+    if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
+      handleNewTouch();
     }
-
-    if (z && previousTouch != touchedCell) {                     // if touched now but not before, it's a new touch
-      handleNewTouch(z);
+    else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
+      handleXYZupdate();                                                          // handle any X, Y or Z movements
     }
-    else if (activeTouch && previousTouch == touchedCell) {      // if touched now and touched before
-      handleXYZupdate(z);                                        // handle any X, Y or Z movements
-    }
-    else if (!activeTouch && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - cell().lastTouch > 50 ) {                // only release if it's later than 50ms after the touch to debounce some note starts
+    else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
+             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
   }

@@ -8,8 +8,8 @@ These functions handle the CC faders for each split
 
 #define CC_FADER_NUMBER_OFFSET 1
 
-void handleFaderTouch(byte z, boolean newVelocity) {
-  if (z && cell().velocity) {
+void handleFaderTouch(boolean newVelocity) {
+  if (sensorCell().velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
@@ -28,7 +28,17 @@ void handleFaderTouch(byte z, boolean newVelocity) {
     }
     // otherwise it's a real fader and we calculate the value based on its position
     else {
-      value = calculateFaderValue(cell().calibratedX(), faderLeft, faderLength);
+      if (newVelocity) {
+        for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+          if (col != sensorCol && cell(col, sensorRow).velocity) {
+            transferFromSameRowCell(col);
+            return;
+          }
+        }
+      }
+
+      // initialize the initial fader touch
+      value = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
     }
 
     if (value >= 0) {
@@ -39,7 +49,22 @@ void handleFaderTouch(byte z, boolean newVelocity) {
   }
 }
 
-void determineFaderBoundaries(byte split, byte &faderLeft, byte &faderLength) {
+void handleFaderRelease() {
+  if (sensorCell().velocity) {
+    byte faderLeft, faderLength;
+    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
+    if (faderLength > 0) {
+      for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+        if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
+          transferToSameRowCell(col);
+          break;
+        }
+      }
+    }
+  }
+}
+
+void determineFaderBoundaries(byte split, byte& faderLeft, byte& faderLength) {
   faderLeft = 1;
   faderLength = NUMCOLS - 2;
   if (splitActive || displayMode == displaySplitPoint) {

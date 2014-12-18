@@ -43,9 +43,9 @@ public:
 
 private:
   byte buffer_[Size];
-  byte *write_;
-  byte *read_;
-  byte *tail_;
+  byte* write_;
+  byte* read_;
+  byte* tail_;
 };
 
 #endif

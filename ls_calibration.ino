@@ -102,7 +102,7 @@ int calculateCalibratedX(int rawX) {
   int32_t fxdBottomX = Global.calRows[sensorCol][sector].fxdReferenceX + FXD_MUL(fxdRawX - Global.calRows[sensorCol][sector].fxdMeasuredX, Global.calRows[sensorCol][sector].fxdRatio);
 
   // We calculate the calibrated X position for the top sector row for the current sensor column
-  int32_t fxdTopX = Global.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX -Global.calRows[sensorCol][sectorTop].fxdMeasuredX, Global.calRows[sensorCol][sectorTop].fxdRatio);
+  int32_t fxdTopX = Global.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX - Global.calRows[sensorCol][sectorTop].fxdMeasuredX, Global.calRows[sensorCol][sectorTop].fxdRatio);
 
   // The final calibrated X position is the interpolation between the bottom and the top sector rows based on the current sensor row
   int result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
@@ -122,7 +122,7 @@ int calculateCalibratedY(int rawY) {
 
   int bias = (sensorCol - 1) % 3;
   int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
-                           FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
+                          FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);
@@ -130,23 +130,22 @@ int calculateCalibratedY(int rawY) {
   return result;
 }
 
-bool handleCalibrationSample(byte z) {
+bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
-  if ( displayMode == displayCalibration) {
-    if (z > 0) {                                           // only measure when a deliberate pressure is used
-      cell().refreshX();
-      cell().refreshY();
-      if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
-        int row = (sensorRow / 2);
-        calSampleRows[sensorCol][row].minValue = min(cell().rawX(), calSampleRows[sensorCol][row].minValue);
-        calSampleRows[sensorCol][row].maxValue = max(cell().rawX(), calSampleRows[sensorCol][row].maxValue);
-      }
-      else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
-        int col = (sensorCol - 1) / 3;
-        calSampleCols[col][sensorRow].minValue = min(cell().rawY(), calSampleCols[col][sensorRow].minValue);
-        calSampleCols[col][sensorRow].maxValue = max(cell().rawY(), calSampleCols[col][sensorRow].maxValue);
-      }
+  if (displayMode == displayCalibration) {
+    sensorCell().refreshX();
+    sensorCell().refreshY();
+    if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
+      int row = (sensorRow / 2);
+      calSampleRows[sensorCol][row].minValue = min(sensorCell().rawX(), calSampleRows[sensorCol][row].minValue);
+      calSampleRows[sensorCol][row].maxValue = max(sensorCell().rawX(), calSampleRows[sensorCol][row].maxValue);
     }
+    else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+      int col = (sensorCol - 1) / 3;
+      calSampleCols[col][sensorRow].minValue = min(sensorCell().rawY(), calSampleCols[col][sensorRow].minValue);
+      calSampleCols[col][sensorRow].maxValue = max(sensorCell().rawY(), calSampleCols[col][sensorRow].maxValue);
+    }
+
     return true;
   }
 
@@ -177,12 +176,12 @@ void handleCalibrationRelease() {
 
     // This is the first pass for a sensor, switch the led to cyan
     if (cellPass == 0) {
-      setLed(sensorCol, sensorRow, COLOR_CYAN, 3);
+      setLed(sensorCol, sensorRow, COLOR_CYAN, true);
     }
     // This is the second or more pass for a sensor, switch the led to green
     // We need at least two passes to consider the calibration viable
     else if (cellPass > 0) {
-      setLed(sensorCol, sensorRow, COLOR_GREEN, 3);
+      setLed(sensorCol, sensorRow, COLOR_GREEN, true);
 
       // Scan all the calibration samples to see if at least two passes were made
       // for each cell of the rows
@@ -249,6 +248,14 @@ void handleCalibrationRelease() {
           Global.calibrated = true;
 
           debugCalibration();
+
+          // automatically turn off serial mode when the calibration has been performed
+          // immediately after the first boot since a firmware upgrade, this is to compensate
+          // for older firmware versions that couldn't export their settings and still provide
+          // a smooth user experience
+          if (firstTimeBoot) {
+            switchSerialMode(false);
+          }
 
           // Draw the text OK and go back to normal display after a short delay
           calibrationPhase = calibrationInactive;

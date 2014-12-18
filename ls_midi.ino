@@ -52,7 +52,7 @@ void handleMidiInput() {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
-    setLed( 0, 0, COLOR_BLACK, 0);
+    clearLed( 0, 0);
   }
 
   // if no serial data is available, return
@@ -73,7 +73,7 @@ void handleMidiInput() {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, 3);
+          setLed(25, 2, COLOR_GREEN, true);
         }
         break;
       case MIDIStart:
@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, 3);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, true);
             midiClockLedOn = now;
           }
 
@@ -248,7 +248,7 @@ void handleMidiInput() {
             case 22:
               if (displayMode == displayNormal) {
                 if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, 3);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, true);
                 }
                 else {
                   paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
@@ -539,13 +539,7 @@ void receivedNrpn(int parameter, int value) {
         Global.rowOffset = value;
       }
       break;
-    // Global Column Offset - jas 2014/12/11
-    case 240:
-      if (value == 1 || value == 2 || value == 3 || value == 4) {
-        Global.colOffset = value;
-      }
-      break;
-    //-------------------------------------------------------
+    // Global Column Offset - case 250 - jas 2014/12/11 --
 
     // Global Switch 1 Assignment
     case 228:
@@ -613,7 +607,37 @@ void receivedNrpn(int parameter, int value) {
         fxd4CurrentTempo = FXD4_FROM_INT(value);
       }
       break;
-    // case 240 - Global Column Offset Global.colOffset - above following Global.rowOffset - jas 2014/12/11
+    // Global Switch 1 Both Splits
+    case 239:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[3] = value;
+      }
+      break;
+    // Global Switch 2 Both Splits
+    case 240:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[2] = value;
+      }
+      break;
+    // Global Foot Left Both Splits
+    case 241:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[0] = value;
+      }
+      break;
+    // Global Foot Right Both Splits
+    case 242:
+      if (inRange(value, 0, 1)) {
+        Global.switchBothSplits[1] = value;
+      }
+      break;
+
+    // case 250 - Global Column Offset Global.colOffset - like Global.rowOffset - jas 2014/12/11
+    case 250:
+      if (value == 1 || value == 2 || value == 3 || value == 4) {
+        Global.colOffset = value;
+      }
+      break;
   }
 
   updateDisplay();
@@ -631,13 +655,13 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   if (displayMode != displayNormal) return;
 
   int row = 0;
-  if (Split[sensorSplit].lowRowMode != lowRowNormal) {
+  if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
     int col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, 3);
+      setLed(col, row, color, true);
     }
   }
 }
@@ -645,7 +669,11 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
 void resetNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
   
-  for (int row = 0; row < NUMROWS; ++row) {
+  int row = 0;
+  if (Split[split].lowRowMode != lowRowNormal) {
+    row = 1;
+  }
+  for (; row < NUMROWS; ++row) {
     int col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       paintNormalDisplayCell(split, col, row);
@@ -721,7 +749,6 @@ int scalePitch(byte split, int pitchValue) {
 
 // Send pitch bend data to all the active channels of the split without changing the bend range
 void preSendPitchBend(byte split, int pitchValue) {
-
   pitchValue = scalePitch(split, pitchValue);
 
   switch (Split[split].midiMode)
@@ -801,9 +828,11 @@ void initializeLastMidiTracking() {
   }
 
   // Initialize the arrays that track which MIDI notes are on
-  for (int n = 0; n < 128; ++n) {
-    for (int c = 0; c < 16; ++c) {
-      lastValueMidiNotesOn[n][c] = 0;
+  for (int s = 0; s < 2; ++s) {
+    for (int n = 0; n < 128; ++n) {
+      for (int c = 0; c < 16; ++c) {
+        lastValueMidiNotesOn[s][n][c] = 0;
+      }
     }
   }
 }
@@ -819,25 +848,33 @@ void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
 }
 
 void handlePendingMidi(unsigned long now) {
-  static unsigned long lastEnvoy = 0;
-
   // when in low power mode only send one MIDI byte every 150 microseconds
-  if (operatingLowPower && calcTimeDelta(now, lastEnvoy) < 150) {
-    return;
-  }
-
-  if (!midiOutQueue.empty()) {
-#ifdef PATCHED_ARDUINO_SERIAL_WRITE
-    if (Serial.write(midiOutQueue.peek(), false) > 0) {
-      midiOutQueue.pop();
+  if (operatingLowPower) {
+    static unsigned long lastEnvoy = 0;
+  if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
+      sendNextMidiOutputByte();
       lastEnvoy = now;
     }
-#else
-    Serial.write(midiOutQueue.pop());
-    lastEnvoy = now;
-#endif
-
   }
+  else {
+    while (!midiOutQueue.empty() && sendNextMidiOutputByte()) {
+      // loop until the MIDI queue is empty or the serial buffer is full
+    }
+  }
+}
+
+// send a MIDI message byte using the most appropriate method, the return value
+// indicates whether a next message can be sent immediately afterwards
+boolean sendNextMidiOutputByte() {
+#ifdef PATCHED_ARDUINO_SERIAL_WRITE
+  if (Serial.write(midiOutQueue.peek(), false) > 0) {
+    midiOutQueue.pop();
+    return true;
+  }
+#else
+  Serial.write(midiOutQueue.pop());
+#endif
+  return false;
 }
 
 void midiSendVolume(byte v, byte channel) {
@@ -890,8 +927,7 @@ void midiSendAllNotesOff(byte split) {
   preSendControlChange(split, 123, 0);
 
   preSendControlChange(split, 64, 0);
-  for (byte notenum = 0; notenum < 128; ++notenum)
-  {
+  for (byte notenum = 0; notenum < 128; ++notenum) {
     switch (Split[split].midiMode)
     {
       case channelPerNote:
@@ -955,12 +991,12 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   }
 }
 
-void midiSendNoteOn(byte notenum, byte velocity, byte channel) {
+void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
   notenum = constrain(notenum, 0, 127);
   velocity = constrain(velocity, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  lastValueMidiNotesOn[notenum][channel]++;
+  lastValueMidiNotesOn[split][notenum][channel]++;
 
   if (Global.serialMode) {
 #ifdef DEBUG_ENABLED
@@ -979,13 +1015,14 @@ void midiSendNoteOn(byte notenum, byte velocity, byte channel) {
   }
 }
 
-void midiSendNoteOff(byte notenum, byte channel) {
+void midiSendNoteOff(byte split, byte notenum, byte channel) {
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  if (lastValueMidiNotesOn[notenum][channel] > 0) {
-      lastValueMidiNotesOn[notenum][channel]--;
+  if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
+      lastValueMidiNotesOn[split][notenum][channel]--;
     midiSendNoteOffRaw(notenum, channel);
+    lastValueMidiPB[channel] = 0x7FFF;
   }
 }
 
@@ -1010,8 +1047,8 @@ void midiSendNoteOffForAllTouches(byte split) {
   signed char channel = noteTouchMapping[split].firstChannel;
 
   while (note != -1) {
-    midiSendNoteOff(note, channel);
-    NoteEntry &entry = noteTouchMapping[split].mapping[note][channel];
+    midiSendNoteOff(split, note, channel);
+    NoteEntry& entry = noteTouchMapping[split].mapping[note][channel];
     note = entry.getNextNote();
     channel = entry.getNextChannel();
   }

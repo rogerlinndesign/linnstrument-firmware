@@ -68,7 +68,7 @@ byte getOctaveNote(byte octave, byte notenum) {
 }
 
 void temporarilyEnableArpeggiator() {
-  Split[sensorSplit].arpTempoDelta = 0;
+  arpTempoDelta[sensorSplit] = 0;
   if (!Split[sensorSplit].arpeggiator) {
     midiSendNoteOffForAllTouches(sensorSplit);
     resetArpeggiatorState(sensorSplit);
@@ -86,19 +86,19 @@ void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
   if (Global.arpDirection == ArpReplayAll) {
     if (lastArpNote[split] != -1) {
       for (int octave = 0; octave <= Global.arpOctave; ++octave) {
-        midiSendNoteOff(getOctaveNote(octave, notenum), channel);
+        midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
       }
     }
   }
   // if this is a strummed note, always turn all octave notes off
   else if (isStrummedSplit(split)) {
     for (int octave = 0; octave <= Global.arpOctave; ++octave) {
-      midiSendNoteOff(getOctaveNote(octave, notenum), channel);
+      midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
     }
   }
   // handle single note sequences, send the note off and reset the arpeggiator state if the note off was the last played
   else  if (lastArpNote[split] == notenum && lastArpChannel[split] == channel) {
-    midiSendNoteOff(getArpeggiatorNote(split, notenum), channel);
+    midiSendNoteOff(split, getArpeggiatorNote(split, notenum), channel);
     resetArpeggiatorState(split);
   }
 
@@ -122,17 +122,17 @@ void sendArpeggiatorStepMidiOff(byte split) {
 
         while (arpNote != -1) {
           for (int octave = 0; octave <= Global.arpOctave; ++octave) {
-            midiSendNoteOff(getOctaveNote(octave, arpNote), arpChannel);
+            midiSendNoteOff(split, getOctaveNote(octave, arpNote), arpChannel);
           }
 
-          NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+          NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
           arpNote = entry.getNextNote();
           arpChannel = entry.getNextChannel();
         }
       }
     }
     else {
-      midiSendNoteOff(getArpeggiatorNote(split, lastArpNote[split]), lastArpChannel[split]);
+      midiSendNoteOff(split, getArpeggiatorNote(split, lastArpNote[split]), lastArpChannel[split]);
     }
   }
 }
@@ -185,7 +185,7 @@ byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
 inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
   if (isArpeggiatorEnabled(split)) {
 
-    int combinedTempoIndex = constrain(Global.arpTempo + Split[split].arpTempoDelta, 0, 8);
+    int combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
     int combinedTempo = tempoChoices[combinedTempoIndex];
 
     if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clockCount % 12 == 0) || (clockCount % 12 == 7))) ||  // we need to handle swing differently since it's irregular
@@ -196,7 +196,6 @@ inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
 }
 
 void advanceArpeggiatorForSplit(byte split) {
-
   signed char arpNote = -1;
   signed char arpChannel = -1;
 
@@ -212,9 +211,9 @@ void advanceArpeggiatorForSplit(byte split) {
 
       while (arpNote != -1) {
 
-        NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+        NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
         for (int octave = 0; octave <= Global.arpOctave; ++octave) {
-          midiSendNoteOn(getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+          midiSendNoteOn(split, getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
         }
 
         arpNote = entry.getNextNote();
@@ -244,7 +243,7 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
 
             arpNote = lastEntry.getNextNote();
             arpChannel = lastEntry.getNextChannel();
@@ -269,7 +268,7 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].lastChannel;
           }
           else {
-            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
 
             arpNote = lastEntry.getPreviousNote();
             arpChannel = lastEntry.getPreviousChannel();
@@ -295,7 +294,7 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry &lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
+            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
 
             if (arpUpDownState[split] == ArpDown) {
               arpNote = lastEntry.getPreviousNote();
@@ -350,7 +349,7 @@ void advanceArpeggiatorForSplit(byte split) {
                   else {
                     arpUpDownState[split] = ArpDown;
                     
-                    NoteEntry &entry = noteTouchMapping[split].mapping[noteTouchMapping[split].lastNote][noteTouchMapping[split].lastChannel];
+                    NoteEntry& entry = noteTouchMapping[split].mapping[noteTouchMapping[split].lastNote][noteTouchMapping[split].lastChannel];
                     arpNote = entry.getPreviousNote();
                     arpChannel = entry.getPreviousChannel();
                   }
@@ -364,7 +363,7 @@ void advanceArpeggiatorForSplit(byte split) {
                   else {
                     arpUpDownState[split] = ArpUp;
 
-                    NoteEntry &entry = noteTouchMapping[split].mapping[noteTouchMapping[split].firstNote][noteTouchMapping[split].firstChannel];
+                    NoteEntry& entry = noteTouchMapping[split].mapping[noteTouchMapping[split].firstNote][noteTouchMapping[split].firstChannel];
                     arpNote = entry.getNextNote();
                     arpChannel = entry.getNextChannel();
                   }
@@ -384,7 +383,7 @@ void advanceArpeggiatorForSplit(byte split) {
           arpChannel = noteTouchMapping[split].firstChannel;
 
           while (arpNote != -1 && pos-- != 0) {
-            NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+            NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
 
             arpNote = entry.getNextNote();
             arpChannel = entry.getNextChannel();
@@ -406,8 +405,8 @@ void advanceArpeggiatorForSplit(byte split) {
         }
 
         // send the MIDI note
-        NoteEntry &entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        midiSendNoteOn(getArpeggiatorNote(split, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+        NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
+        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
       }
 
       lastArpNote[split] = arpNote;

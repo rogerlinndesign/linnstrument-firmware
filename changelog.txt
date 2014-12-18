@@ -1,19 +1,36 @@
+v1.0.6
+
+  * Tweaks to initial touch quantization so that immediate slides feel more natural
+  * Tweaks for sensor differences in November models
+  * Added indicator in global settings that lights red when the LinnStrument is not calibrated and green when the
+    calibration has been performed
+  * Added support for sending and retrieving the LinnStrument calibration and settings over serial so that the firmware
+    upgrade tool can restore everything after a firmware upgrade
+
 v1.0.5
 
   * Slow pitch slides now don't have any jumps anymore that were due to the 1mm groove between the cells
-  * Improved the Notes Off feature, it now sends CC 120, as well as NoteOff for each note number and each channel, and Sustain Off for each channel
-  * Changed 'focused cell' logic in One Channel mode, instead of doing pitch-slides and expression on the highest note, it's now on the more recent one
+  * Improved the Notes Off feature, it now sends CC 120, as well as NoteOff for each note number and each channel, and
+    Sustain Off for each channel
+  * Changed 'focused cell' logic in One Channel mode, instead of doing pitch-slides and expression on the highest note,
+    it's now on the more recent one
   * The global active split color is now displayed in split mode with the LED of the 'Split' switch
-  * Double-tapping the 'Split' switch now activates the other split, similar to selecting the split in 'Per-Split Settings'
-  * Pedal and switch operations apart from Alt Split, now act upon both splits when split mode is active
+  * Double-tapping the 'Split' switch now activates the other split, similar to selecting the split in
+    'Per-Split Settings'
+  * Pedal and switch operations apart from Alt Split, can now act upon both splits when split mode is active by
+    pressing the cell above the Octave Dn setting
   * Fix for foot switch assignments being reversed
+  * Fix for low-row bend not properly supporting multiple fingers for pitch-bend jumps anymore
+  * Fix for played cell lights sticking if identical notes are played on both splits
+  * Fix to reset operation so that calibration data is not lost
 
 v1.0.4
 
   * Slides transition smoother from one cell to another, based on the pressure contribute of each cell
   * Timbre/Y data changes are stabilized when sliding rapidly over the X axis
   * Active note lights now stay lit when the same note value in a different position is pressed and released
-  * Added four additional Y calibration columns, these are needed to obtain precise and predictable timbre changes everywhere
+  * Added four additional Y calibration columns, these are needed to obtain precise and predictable timbre changes
+    everywhere
   * Introduced easy-to-use one-click firmware updater tool
   * Automatically activate calibration procedure after a firmware update
 
@@ -31,11 +48,13 @@ v1.0.2
 
   * adding progressive smoothing to Y axis value for stability, low pressure has more smoothing
   * relaxed restriction on left and right edge to allow full vibrato past the cell midpoints
-  * brought the main volume fader handling in-line with the CC faders, made sure that they're in sync for the sent value of MIDI CC 7
+  * brought the main volume fader handling in-line with the CC faders, made sure that they're in sync for the sent
+    value of MIDI CC 7
   * added full control over the LinnStrument settings through MIDI NRPN messages, see midi.txt for details
   * respond to CC 1-8 MIDI input to change the CC fader values for each split
   * respond to Program Change MIDI input to change the preset values for each split
-  * added Windows driver for LinnStrument Programming Port, not signed though so there will be warning when installing this driver
+  * added Windows driver for LinnStrument Programming Port, not signed though so there will be warning when installing
+    this driver
   * regression fix where low row wouldn't be smoothly continuous anymore
 
 v1.0.1
