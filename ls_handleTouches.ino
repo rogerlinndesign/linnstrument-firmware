@@ -457,20 +457,6 @@ void handleXYZupdate() {
     return;
   }
 
-  // get the processed expression data
-  short pitchBend = SHRT_MAX;
-  short preferredTimbre = SHRT_MAX;
-  byte preferredPressure = handleZExpression();
-
-  // Only process x and y data when there's meaningful pressure on the cell
-  if (sensorCell().isMeaningfulTouch()) {
-    pitchBend = handleXExpression();
-    preferredTimbre = handleYExpression();
-  }
-
-  // update the low row state
-  handleLowRowState(pitchBend, preferredTimbre, preferredPressure);
-
   // turn off note handling and note expression features for low row, volume, cc faders and strumming
   boolean handleNotes = true;
   if (isLowRow() ||
@@ -502,6 +488,22 @@ void handleXYZupdate() {
         handleNewNote(notenum);
       }
     }
+  }
+
+  // get the processed expression data
+  short pitchBend = SHRT_MAX;
+  short preferredTimbre = SHRT_MAX;
+  byte preferredPressure = handleZExpression();
+
+  // Only process x and y data when there's meaningful pressure on the cell
+  if (sensorCell().isMeaningfulTouch()) {
+    pitchBend = handleXExpression();
+    preferredTimbre = handleYExpression();
+  }
+
+  // update the low row state unless this was a new low row touch, which is handled by lowRowStart()
+  if (!newVelocity || !isLowRow()) {
+    handleLowRowState(pitchBend, preferredTimbre, preferredPressure);
   }
 
   // the volume fader has its own operation mode
