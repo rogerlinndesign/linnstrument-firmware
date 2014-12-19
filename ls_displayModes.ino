@@ -114,8 +114,8 @@ void updateSwitchLeds() {
 // Paints columns 1-26 of the display with the normal performance colors
 void paintNormalDisplay() {
   // determine the splits and divider
-  int split = Global.currentPerSplit;
-  int divider = NUMCOLS;
+  byte split = Global.currentPerSplit;
+  byte divider = NUMCOLS;
   if (splitActive || displayMode == displaySplitPoint) {
     split = LEFT;
     divider = Global.splitPoint;
@@ -215,7 +215,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   byte colour = COLOR_BLACK;
   boolean on = false;
 
-  int actualnote = transposedNote(split, col, row);
+  short actualnote = transposedNote(split, col, row);
 
   // the note is out of MIDI note range, disable it
   if (actualnote < 0 || actualnote > 127) {
@@ -223,7 +223,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     on = false;
   }
   else {
-    int octaveNote = (getNoteNumber(col,row) - Split[split].transposeLights) % 12;
+    byte octaveNote = abs((getNoteNumber(col,row) - Split[split].transposeLights) % 12);
 
     // first paint all cells in split to its background color
     if (Global.mainNotes[octaveNote]) {
@@ -251,7 +251,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
 // paintPerSplitDisplay:
 // paints all cells with per-split settings for a given split
-void paintPerSplitDisplay(int side) {
+void paintPerSplitDisplay(byte side) {
   clearDisplay();
 
   doublePerSplit = false;  
@@ -420,7 +420,7 @@ void paintPerSplitDisplay(int side) {
 
 // paint one of the two leds that indicate which split is being controlled
 // (e.g. when you're changing per-split settings, or changing the preset or volume)
-void paintShowSplitSelection(int side) {
+void paintShowSplitSelection(byte side) {
   if (side == LEFT || doublePerSplit) {
     setLed(15, 7, Split[LEFT].colorMain, true);
   }
@@ -437,15 +437,15 @@ void paintOSVersionDisplay() {
 }
 
 // paint the current preset number for a particular side, in large block characters
-void paintPresetDisplay(int side) {
+void paintPresetDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].preset+1);
 }
 
-void paintCCForYDisplay(int side) {
+void paintCCForYDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].ccForY);
 }
 
-void paintCCForZDisplay(int side) {
+void paintCCForZDisplay(byte side) {
   if (Split[side].expressionForZ != loudnessCC) {
     displayMode = displayPerSplit;
     updateDisplay();
@@ -467,7 +467,7 @@ void paintSensorRangeZDisplay() {
   paintNumericDataDisplay(globalColor, Global.sensorRangeZ);
 }
 
-void paintSplitNumericDataDisplay(int side, byte value) {
+void paintSplitNumericDataDisplay(byte side, byte value) {
   paintNumericDataDisplay(Split[side].colorMain, value);
 
   paintShowSplitSelection(side);
@@ -503,7 +503,7 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
 }
 
 // draw a horizontal line to indicate volume for a particular side
-void paintVolumeDisplay(int side) {
+void paintVolumeDisplay(byte side) {
   clearDisplay();
   
   doublePerSplit = false;  
@@ -519,7 +519,7 @@ void paintVolumeDisplay(int side) {
   paintShowSplitSelection(side);
 }
 
-void paintOctaveTransposeDisplay(int side) {
+void paintOctaveTransposeDisplay(byte side) {
   clearDisplay();
 
   // Paint the octave shift value
@@ -570,7 +570,7 @@ void paintOctaveTransposeDisplay(int side) {
   paintShowSplitSelection(side);
 }
 
-void paintOctave(byte color, byte midcol, byte row, int octave) {
+void paintOctave(byte color, byte midcol, byte row, short octave) {
   setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, true);
   if (0 == color) color = octave > 0 ? COLOR_GREEN : COLOR_RED ;
 
@@ -609,7 +609,7 @@ void paintOctave(byte color, byte midcol, byte row, int octave) {
   }
 }
 
-void paintTranspose(byte color, byte row, int transpose) {
+void paintTranspose(byte color, byte row, short transpose) {
   byte midcol = 8;
   setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, true);    // paint the center cell of the transpose range
 
@@ -818,7 +818,7 @@ void paintGlobalSettingsDisplay() {
   lightLed(17, debugLevel + 1);
 
   // The columns in column 18 are secret switches.
-  for (int ss = 0; ss < SECRET_SWITCHES; ++ss) {
+  for (byte ss = 0; ss < SECRET_SWITCHES; ++ss) {
     if (secretSwitch[ss]) {
       lightLed(18, ss);
     }
@@ -839,7 +839,7 @@ void paintCalibrationDisplay() {
 
   switch (calibrationPhase) {
     case calibrationRows:
-      for (int c = 1; c < NUMCOLS; ++c) {
+      for (byte c = 1; c < NUMCOLS; ++c) {
         setLed(c, 0, COLOR_BLUE, true);
         setLed(c, 2, COLOR_BLUE, true);
         setLed(c, 5, COLOR_BLUE, true);
@@ -847,7 +847,7 @@ void paintCalibrationDisplay() {
       }
       break;
     case calibrationCols:
-      for (int r = 0; r < NUMROWS; ++r) {
+      for (byte r = 0; r < NUMROWS; ++r) {
         setLed(1, r, COLOR_BLUE, true);
         setLed(4, r, COLOR_BLUE, true);
         setLed(7, r, COLOR_BLUE, true);
@@ -871,30 +871,30 @@ void paintResetDisplay() {
   }
 }
 
-void setMidiChannelLed(int chan, byte color) {                       // chan value is 1-16
+void setMidiChannelLed(byte chan, byte color) {                       // chan value is 1-16
     if (chan > 16) {
       chan -= 16;
     }
-    int row = 7 - (chan - 1) / 4;
-    int col = 3 + (chan - 1) % 4;
+    byte row = 7 - (chan - 1) / 4;
+    byte col = 3 + (chan - 1) % 4;
     setLed(col, row, color, true);
 }
 
 // light per-split midi mode and single midi channel lights
-void showMainMidiChannel(int side) {
+void showMainMidiChannel(byte side) {
   setMidiChannelLed(Split[side].midiChanMain, Split[side].colorMain);
 }
 
-void showPerRowMidiChannel(int side) {
+void showPerRowMidiChannel(byte side) {
   setMidiChannelLed(Split[side].midiChanPerRow, Split[side].colorMain);
-  for (int i = 1; i < 8; ++i) {
+  for (byte i = 1; i < 8; ++i) {
     setMidiChannelLed(Split[side].midiChanPerRow + i, Split[side].colorMain);
   }
 }
 
 // light per-split midi mode and multi midi channel lights
-void showPerNoteMidiChannels(int side) {
-  for (int chan = 1; chan <= 16; ++chan) {
+void showPerNoteMidiChannels(byte side) {
+  for (byte chan = 1; chan <= 16; ++chan) {
     if (Split[side].midiChanSet[chan-1]) {
       setMidiChannelLed(chan, Split[side].colorMain);
     }

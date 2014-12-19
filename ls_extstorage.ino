@@ -70,7 +70,7 @@ void handleExtStorage() {
         uint32_t lastMoment = millis();
 
         byte buff1[sizeof(int32_t)];
-        for (int i = 0; i < 4; ++i) {
+        for (byte i = 0; i < 4; ++i) {
           // retry if there's no data available
           while (Serial.available() <= 0) {
             // timeout after 2s if no data is coming in anymore
@@ -91,7 +91,7 @@ void handleExtStorage() {
         // retrieve the actual settings
         lastMoment = millis();
         byte buff2[confSize];
-        for (int j = 0; j < confSize; ++j) {
+        for (unsigned j = 0; j < confSize; ++j) {
           if (j % 32 == 0) {
             Serial.write(ackCode);
           }

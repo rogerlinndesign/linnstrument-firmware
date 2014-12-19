@@ -13,7 +13,7 @@ void handleFaderTouch(boolean newVelocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
-    int value = -1;
+    short value = -1;
 
     // when the fader only spans one cell, it acts as a toggle
     if (faderLength == 0) {
@@ -78,7 +78,7 @@ void determineFaderBoundaries(byte split, byte& faderLeft, byte& faderLength) {
   }
 }
 
-byte calculateFaderValue(int x, byte faderLeft, byte faderLength) {
+byte calculateFaderValue(short x, byte faderLeft, byte faderLength) {
   int32_t fxdFaderRange = FXD_MUL(FXD_FROM_INT(faderLength), CALX_FULL_UNIT);
   int32_t fxdFaderPosition = FXD_FROM_INT(x) - Global.calRows[faderLeft][0].fxdReferenceX;
   int32_t fxdFaderRatio = FXD_DIV(fxdFaderPosition, fxdFaderRange);

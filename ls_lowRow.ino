@@ -20,7 +20,7 @@ enum ColumnState {
 ColumnState lowRowState[NUMCOLS];
 boolean lowRowBendActive[2];
 boolean lowRowCC1Active[2];
-int lowRowInitialColumn[2];
+short lowRowInitialColumn[2];
 
 inline boolean isLowRow() {
   if (sensorRow != 0) return false;
@@ -75,7 +75,7 @@ boolean allowNewTouchOnLowRow() {
 #define LOWROW_X_LEFT_LIMIT   0
 #define LOWROW_X_RIGHT_LIMIT  4095
 
-void handleLowRowState() {
+void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
   // if we're processing a low-row sensor, mark the appropriate column as continuous
   // if it was previously presssed
   if (isLowRow()) {
@@ -92,7 +92,7 @@ void handleLowRowState() {
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          int xDelta = sensorCell().calibratedX() - sensorCell().initialX;
+          short xDelta = sensorCell().calibratedX() - sensorCell().initialX;
 
           switch (Split[sensorSplit].lowRowMode)
           {
@@ -103,7 +103,9 @@ void handleLowRowState() {
             }
             case lowRowBend:
             {
-              preSendPitchBend(sensorSplit, xDelta);
+              if (pitchBend != SHRT_MAX) {
+                preSendPitchBend(sensorSplit, pitchBend);
+              }
               break;
             }
             case lowRowCC1:
@@ -114,8 +116,10 @@ void handleLowRowState() {
             case lowRowCCXYZ:
             {
               midiSendControlChange(16, constrain(xDelta >> 4, 0, 127), Split[sensorSplit].midiChanMain);
-              midiSendControlChange(17, sensorCell().calibratedY(), Split[sensorSplit].midiChanMain);
-              midiSendControlChange(18, sensorCell().pressureZ, Split[sensorSplit].midiChanMain);
+              if (timbre != SHRT_MAX) {
+                midiSendControlChange(17, timbre, Split[sensorSplit].midiChanMain);
+              }
+              midiSendControlChange(18, pressure, Split[sensorSplit].midiChanMain);
               break;
             }
           }
@@ -186,7 +190,7 @@ void lowRowStart() {
   switch (Split[sensorSplit].lowRowMode)
   {
     case lowRowRestrike:
-      // no need to keep track of the colums, we want to restrike every note
+      // no need to keep track of the columns, we want to restrike every note
       lowRowState[sensorSplit] = pressed;
       cell(0, 0).velocity = sensorCell().velocity;
       break;

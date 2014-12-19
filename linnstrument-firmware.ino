@@ -44,6 +44,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /*************************************** Included Libraries **************************************/
 #include <SPI.h>
+#include <limits.h>
+#include <DueFlashStorage.h>
 
 #include "ls_debug.h"
 #include "ls_channelbucket.h"
@@ -119,6 +121,9 @@ const byte READ_Z = 2;                   // input option for setSwitches
 
 /******************************************* Global Variables ************************************/
 
+// Access to the persistent flash storage
+DueFlashStorage dueFlashStorage;
+
 // The most-recently touched cell within each channel of each split is said to have "focus",
 // saved as the specific column and row for the focus cell.
 // If in 1Ch/Poly mode, continuous X and Y messages are sent only from movements within the focused cell.
@@ -146,14 +151,15 @@ enum TouchState {
 #define PITCH_HOLD_DURATION 32               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
 #define ROGUE_PITCH_SWEEP_THRESHOLD 6        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
+
 struct TouchInfo {
-  int rawX();                                // ensure that X is updated to the latest scan and return its raw value
-  int calibratedX();                         // ensure that X is updated to the latest scan and return its calibrated value
+  short rawX();                              // ensure that X is updated to the latest scan and return its raw value
+  short calibratedX();                       // ensure that X is updated to the latest scan and return its calibrated value
   inline void refreshX();                    // ensure that X is updated to the latest scan
-  int rawY();                                // ensure that Y is updated to the latest scan and return its raw value
-  int calibratedY();                         // ensure that Y is updated to the latest scan and return its calibrated value
+  short rawY();                              // ensure that Y is updated to the latest scan and return its raw value
+  signed char calibratedY();                 // ensure that Y is updated to the latest scan and return its calibrated value
   inline void refreshY();                    // ensure that Y is updated to the latest scan
-  int rawZ();                                // ensure that Z is updated to the latest scan and return its raw value
+  short rawZ();                              // ensure that Z is updated to the latest scan and return its raw value
   inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
   inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
   inline void refreshZ();                    // ensure that Z is updated to the latest scan
@@ -162,42 +168,43 @@ struct TouchInfo {
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
-  boolean isHigherPhantomPressure(int);      // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  boolean isHigherPhantomPressure(short);    // checks whether this is a possible phantom candidate and has higher pressure than the argument
   void clearSensorData();                    // clears the measured sensor data
 
   // touch data
   TouchState touched;                        // touch status of all sensor cells
   unsigned long lastTouch;
-  int initialX;                              // initial calibrated X value of each cell at the start of the touch
-  int initialReferenceX;                     // initial calibrated reference X value of each cell at the start of the touch
-  int currentRawX;                           // last raw X value of each cell
-  int currentCalibratedX;                    // last calibrated X value of each cell
-  int lastMovedX;                            // the last X movement, so that we can compare movement jumps
+  short initialX;                            // initial calibrated X value of each cell at the start of the touch
+  short initialReferenceX;                   // initial calibrated reference X value of each cell at the start of the touch
+  short quantizationOffsetX;                 // quantization offset to be applied to the X value
+  short currentRawX;                         // last raw X value of each cell
+  short currentCalibratedX;                  // last calibrated X value of each cell
+  short lastMovedX;                          // the last X movement, so that we can compare movement jumps
   int32_t fxdRateX;                          // the averaged rate of change of the X values
   byte rateCountX;                           // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
 
-  int initialY;                              // initial Y value of each cell
-  int currentRawY;                           // last raw Y value of each cell
-  int currentCalibratedY;                    // last calibrated Y value of each cell
+  signed char initialY;                      // initial Y value of each cell
+  short currentRawY;                         // last raw Y value of each cell
+  signed char currentCalibratedY;            // last calibrated Y value of each cell
   boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
 
-  int currentRawZ;                           // the raw Z value
+  short currentRawZ;                         // the raw Z value
   boolean featherTouch;                      // indicates whether this is a feather touch
   byte velocityZ;                            // the Z value with velocity sensitivity
   byte pressureZ;                            // the Z value with pressure sensitivity
   boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
 
-  int pendingReleaseCount;                   // counter before which the note release will be effective
+  signed char pendingReleaseCount;           // counter before which the note release will be effective
 
   // phantom touch tracking
   signed char phantomCoords[4];              // stores the coordinates of a rectangle that possibly has a phantom touch, stored as column 1, column 2, row 1, row 2
 
   // musical data
-  unsigned long vcount;                      // the number of times the pressure was measured to obtain a velocity
-  unsigned velocity;                         // velocity from 0 to 127
-  int note;                                  // note from 0 to 127
-  int channel;                               // channel from 1 to 16
+  byte vcount;                               // the number of times the pressure was measured to obtain a velocity
+  byte velocity;                             // velocity from 0 to 127
+  signed char note;                          // note from 0 to 127
+  signed char channel;                       // channel from 1 to 16
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
 };
@@ -232,10 +239,10 @@ struct NoteEntry {
   inline void setPreviousChannel(byte);
 };
 struct NoteTouchMapping {
-  void initialize();                         // initialize the mapping data
-  void noteOn(int, int, byte, byte);         // register the cell for which a note was turned on
-  void noteOff(int, int);                    // turn off a note
-  void changeCell(int, int, byte, byte);     // changes the cell of an active note
+  void initialize();                                         // initialize the mapping data
+  void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
+  void noteOff(signed char, signed char);                    // turn off a note
+  void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   void debugNoteChain();
 
   unsigned short noteCount;
@@ -275,13 +282,13 @@ enum DisplayMode {
 };
 
 byte displayMode = displayNormal;
-int controlButton = -1;                 // records the row of the current controlButton being held down
+signed char controlButton = -1;           // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
 
 #define LEFT 0
 #define RIGHT 1
 
-unsigned long prevLedTimerCount;        // timer for refreshing leds every 200 uS
+unsigned long prevLedTimerCount;          // timer for refreshing leds every 200 uS
 
 unsigned long prevGlobalSettingsDisplayTimerCount; // timer for refreshing the global settings display
 
@@ -384,9 +391,9 @@ enum CalibrationPhase {
 byte calibrationPhase = calibrationInactive;
 
 struct CalibrationSample {
-  int minValue;
-  int maxValue;
-  int pass;
+  short minValue;
+  short maxValue;
+  signed char pass;
 };
 CalibrationSample calSampleRows[NUMCOLS][4]; // store four rows of calibration measurements
 CalibrationSample calSampleCols[9][NUMROWS]; // store nine columns of calibration measurements
@@ -451,7 +458,7 @@ struct SplitSettings {
 SplitSettings Split[2];
 ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
 byte ccFaderValues[2][8];              // the current values of the CC faders
-signed char arpTempoDelta[2];           // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
+signed char arpTempoDelta[2];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
 #define SWITCH_HOLD_DELAY 200
@@ -561,7 +568,7 @@ byte switchSelect = SWITCH_FOOT_L;
 #define PER_SPLIT_ROW 7
 
 byte globalColor = COLOR_BLUE;     // color for global, split point and transpose settings
-int debugLevel = -1;               // level of debug messages that should be printed
+signed char debugLevel = -1;       // level of debug messages that should be printed
 
 #define SECRET_SWITCHES 5
 #define SWITCH_DEBUGMIDI secretSwitch[0]
@@ -583,7 +590,7 @@ boolean stopScrolling = false;       // indicates whether scrolling should be st
 
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 
-int midiDecimateRate = 0;            // by default no decimation
+byte midiDecimateRate = 0;           // by default no decimation
 
 byte lastValueMidiNotesOn[2][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
@@ -613,7 +620,7 @@ void reset() {
   splitActive = false;
 
   controlButton = -1;
-  for (int i = 0; i < NUMROWS; ++i) {
+  for (byte i = 0; i < NUMROWS; ++i) {
     lastControlPress[i] = 0;
   }
 
@@ -680,22 +687,28 @@ void setup() {
   /*!!*/  pinMode(37, OUTPUT);
   /*!!*/  digitalWrite(37, HIGH);
   /*!!*/
-  /*!!*/  // detect if firmware upgrade mode is active by holding down the global settings button at startup
   /*!!*/  if (switchPressAtStartup(0)) {
-  /*!!*/    operatingMode = modeFirmware;
-  /*!!*/
-  /*!!*/    // use serial and not MIDI
-  /*!!*/    pinMode(35, OUTPUT);
-  /*!!*/    digitalWrite(35, HIGH);
-  /*!!*/
-  /*!!*/    // use USB connection and not DIN
-  /*!!*/    pinMode(36, OUTPUT);
-  /*!!*/    digitalWrite(36, HIGH);
-  /*!!*/
-  /*!!*/    clearDisplay();
-  /*!!*/
-  /*!!*/    bigfont_draw_string(0, 0, "FWUP", COLOR_RED);
-  /*!!*/    return;
+  /*!!*/    // if the global settings and switch 2 buttons are pressed at startup, the LinnStrument will do a global reset
+  /*!!*/    if (switchPressAtStartup(2)) {
+  /*!!*/      dueFlashStorage.write(0, 1);
+  /*!!*/    }
+  /*!!*/    // if only the global settings button is pressed at startup, activatate firmware upgrade mode
+  /*!!*/    else {
+  /*!!*/      operatingMode = modeFirmware;
+  /*!!*/  
+  /*!!*/      // use serial and not MIDI
+  /*!!*/      pinMode(35, OUTPUT);
+  /*!!*/      digitalWrite(35, HIGH);
+  /*!!*/  
+  /*!!*/      // use USB connection and not DIN
+  /*!!*/      pinMode(36, OUTPUT);
+  /*!!*/      digitalWrite(36, HIGH);
+  /*!!*/  
+  /*!!*/      clearDisplay();
+  /*!!*/  
+  /*!!*/      bigfont_draw_string(0, 0, "FWUP", COLOR_RED);
+  /*!!*/      return;
+  /*!!*/    }
   /*!!*/  }
   /*!!*/
   //*************************************************************************************************************************************************
@@ -751,7 +764,7 @@ void setup() {
 
     initializeStorage();
 
-    for (int ss=0; ss<SECRET_SWITCHES; ++ss) {
+    for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
       secretSwitch[ss] = false;
     }
 
