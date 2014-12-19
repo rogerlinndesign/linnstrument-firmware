@@ -1,3 +1,14 @@
+v1.0.7
+
+  * Noticeable playability improvements
+  * Reimplemented velocity and pressure sensitivity modes so that the low settings have more range and all the settings
+    have a smooth curve from 0 to 127
+  * Low row now behaves exactly the same in slides as the main playing area, including quantization
+  * Allow CC faders to be 'played' with multiple fingers similar to the low row
+  * Performance optimizations and latency reduction
+  * Improved MIDI message output speed
+  * Fixed rare situation of switches being inadvertently pressed for a rectangular touch formations
+
 v1.0.6
 
   * Tweaks to initial touch quantization so that immediate slides feel more natural
