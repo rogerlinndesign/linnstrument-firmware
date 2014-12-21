@@ -1129,8 +1129,8 @@ unsigned font_width_string(char* str, struct Font* font) {
 
 
 // Draw a string of characters starting at a specific column/row
-void font_draw_string(byte col, byte row, char* str, byte color, struct Font* font, boolean erase, boolean reversed) {
-  unsigned i;
+void font_draw_string(int col, int row, char* str, byte color, struct Font* font, boolean erase, boolean reversed) {
+  int i;
   if (reversed) { i = strlen(str) - 1; }
   else          { i = 0; }
 
@@ -1138,7 +1138,7 @@ void font_draw_string(byte col, byte row, char* str, byte color, struct Font* fo
     char c = str[i];
     char* p = strchr(font->chars, c);
     if (p) {
-      byte i = p - font->chars;                        // offset into font_chars gives character index
+      int i = p - font->chars;                        // offset into font_chars gives character index
       font_draw_char(col, row, font->data[i]->data, color, font->data[i]->width, font->height, erase, reversed);
       col += (font->data[i]->width + 1);
       if (erase) {
@@ -1151,51 +1151,51 @@ void font_draw_string(byte col, byte row, char* str, byte color, struct Font* fo
   }
 }
 
-void tinyfont_draw_string(byte col, byte row, char* str, byte color) {
+void tinyfont_draw_string(int col, int row, char* str, byte color) {
   tinyfont_draw_string(col, row, str, color, true);
 }
 
-void tinyfont_draw_string(byte col, byte row, char* str, byte color, boolean erase) {
+void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase) {
   tinyfont_draw_string(col, row, str, color, erase, false);
 }
 
-void tinyfont_draw_string(byte col, byte row, char* str, byte color, boolean erase, boolean reversed) {
+void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
   font_draw_string(col, row, str, color, &tinyFont, erase, reversed);
 }
 
-void smallfont_draw_string(byte col, byte row, char* str, byte color) {
+void smallfont_draw_string(int col, int row, char* str, byte color) {
   smallfont_draw_string(col, row, str, color, true);
 }
 
-void smallfont_draw_string(byte col, byte row, char* str, byte color, boolean erase) {
+void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase) {
   smallfont_draw_string(col, row, str, color, erase, false);
 }
 
-void smallfont_draw_string(byte col, byte row, char* str, byte color, boolean erase, boolean reversed) {
+void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
   font_draw_string(col, row, str, color, &smallFont, erase, reversed);
 }
 
-void bigfont_draw_string(byte col, byte row, char* str, byte color) {
+void bigfont_draw_string(int col, int row, char* str, byte color) {
   bigfont_draw_string(col, row, str, color, true);
 }
 
-void bigfont_draw_string(byte col, byte row, char* str, byte color, boolean erase) {
+void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase) {
   bigfont_draw_string(col, row, str, color, erase, false);
 }
 
-void bigfont_draw_string(byte col, byte row, char* str, byte color, boolean erase, boolean reversed) {
+void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
   font_draw_string(col, row, str, color, &bigFont, erase, reversed);
 }
 
 // Draw a single character at col,row
-static void font_draw_char(byte col, byte row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
+static void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
 {
   for (byte r = 0; r < height; ++r) {
     for (byte c = 0; c < width; ++c) {
       char thechar = *fontdata++;
 
-      byte destcol;
-      byte destrow;
+      int destcol;
+      int destrow;
 
       if (reversed) {
         destcol = col + width - c;
@@ -1217,7 +1217,7 @@ static void font_draw_char(byte col, byte row, char* fontdata, byte color, byte 
 }
 
 // Draw a single-pixel-wide blank column
-static void font_draw_blank_column(byte col, byte row, byte height)
+static void font_draw_blank_column(int col, int row, byte height)
 {
   if (col >= 0 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
@@ -1238,8 +1238,8 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
   scrollingActive = true;
   stopScrolling = false;
 
-  unsigned totalwidth = font_width_string(str, font);
-  unsigned i;
+  int totalwidth = font_width_string(str, font);
+  int i;
   for (i = totalwidth; i >= -NUMCOLS && !stopScrolling; --i) {
     font_draw_string( -i, 0, str, color, font, true, true);
 
