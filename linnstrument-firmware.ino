@@ -77,7 +77,7 @@ char* audienceMessages[16] = {
   "HELLO (YOUR CITY HERE)"
 };
 
-char* OSVersion = "108.";
+char* OSVersion = "108";
 
 // SPI addresses
 const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
@@ -135,9 +135,9 @@ struct FocusCell {
 FocusCell focusCell[2][16];             // 2 splits and 16 MIDI channels for each split
 
 // Touch sensor
-byte  sensorCol = 0;                         // currently read column in touch sensor
-byte  sensorRow = 0;                         // currently read row in touch sensor
-byte  sensorSplit = 0;                       // the split of the currently read touch sensor
+byte sensorCol = 0;                         // currently read column in touch sensor
+byte sensorRow = 0;                         // currently read row in touch sensor
+byte sensorSplit = 0;                       // the split of the currently read touch sensor
 boolean changedSplitPoint = false;           // reflects whether the split point was changed
 boolean splitButtonDown = false;             // reflects state of Split button
 
