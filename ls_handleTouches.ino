@@ -553,15 +553,15 @@ void handleSplitStrum() {
     // count from the bitdepth of a 32-bit int
 
     byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
-    TouchInfo& touchedCell = cell(touchedCol, sensorRow);
-    if (touchedCell.hasNote()) {
+    TouchInfo& cell = cell(touchedCol, sensorRow);
+    if (cell.hasNote()) {
       // use the velocity of the strum touch
-      touchedCell.velocity = cell(sensorCol, sensorRow).velocity;
+      cell.velocity = cell(sensorCol, sensorRow).velocity;
 
       // retrigger the MIDI note
       byte split = getSplitOf(touchedCol);
-      midiSendNoteOff(split, touchedCell.note, touchedCell.channel);
-      midiSendNoteOn(split, touchedCell.note, touchedCell.velocity, touchedCell.channel);
+      midiSendNoteOff(split, cell.note, cell.channel);
+      midiSendNoteOn(split, cell.note, cell.velocity, cell.channel);
     }
 
     colsInSensorRowTouched &= ~(1 << touchedCol);
