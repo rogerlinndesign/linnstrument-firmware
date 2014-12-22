@@ -431,7 +431,7 @@ struct SplitSettings {
   byte midiChanMain;                   // main midi channel, 1 to 16
   byte midiChanPerRow;                 // per-row midi channel, 1 to 16
   boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
-  byte bendRange;                      // 0 - 24, though only 2, 3, 12, and 24 are permitted
+  byte bendRange;                      // 0 - 96, though only 2, 3, 12, 24, 48, and 96 are permitted (for now)
   boolean sendX;                       // true to send continuous X, false if not
   boolean sendY;                       // true to send continuous Y, false if not
   boolean sendZ;                       // true to send continuous Z, false if not

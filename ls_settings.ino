@@ -481,6 +481,12 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].bendRange = 24;
     }
+    else if (sensorRow == 3) {
+      Split[Global.currentPerSplit].bendRange = 48;
+    }
+    else if (sensorRow == 2) {
+      Split[Global.currentPerSplit].bendRange = 96;
+    }
 
   } else if (sensorCol == 8) {
 
