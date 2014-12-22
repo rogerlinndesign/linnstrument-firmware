@@ -1210,7 +1210,7 @@ static void font_draw_char(int col, int row, char* fontdata, byte color, byte wi
         continue;
       }
       if (erase || thechar != ' ') {
-        setLed(destcol, destrow, (thechar != ' ' ? color : 0), true);
+        setLed(destcol, destrow, (thechar != ' ' ? color : 0), cellOn);
       }
     }
   }
@@ -1221,7 +1221,7 @@ static void font_draw_blank_column(int col, int row, byte height)
 {
   if (col >= 0 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
-      setLed(col, r, 0, true);
+      setLed(col, r, 0, cellOn);
     }
   }
 }

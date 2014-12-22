@@ -84,6 +84,13 @@ const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
 const byte SPI_SENSOR = 4;               // Arduino pin for touch sensor control over SPI
 const byte SPI_ADC = 52;                 // Arduino pin for input from TI ADS7883 12-bit A/D converter
 
+enum CellDisplay {
+  cellOff = 0,
+  cellOn = 1,
+  cellPulse = 2
+};
+void setLed(byte col, byte row, byte color, CellDisplay disp);
+
 // Comment this define out to be able to compile against the standard Arduino API, but not
 // benefit from our no-delay serial write improvements
 #define PATCHED_ARDUINO_SERIAL_WRITE
@@ -255,12 +262,6 @@ struct NoteTouchMapping {
 
 NoteTouchMapping noteTouchMapping[2];
 
-// convenience functions to access the focused cell
-inline FocusCell& focus(byte split, byte channel);
-inline FocusCell& focus(byte split, byte channel) {
-  return focusCell[split][channel - 1];
-}
-
 // Display Modes
 enum DisplayMode {
   displayNormal,
@@ -280,13 +281,20 @@ enum DisplayMode {
   displaySensorFeatherZ,
   displaySensorRangeZ
 };
+void setDisplayMode(DisplayMode mode);
 
-byte displayMode = displayNormal;
+DisplayMode displayMode = displayNormal;
 signed char controlButton = -1;           // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
 
 #define LEFT 0
 #define RIGHT 1
+
+// convenience functions to access the focused cell
+inline FocusCell& focus(byte split, byte channel);
+inline FocusCell& focus(byte split, byte channel) {
+  return focusCell[split][channel - 1];
+}
 
 unsigned long prevLedTimerCount;          // timer for refreshing leds every 200 uS
 
@@ -756,8 +764,8 @@ void setup() {
 
     // set display to normal performance mode & refresh it
     clearDisplay();
-    displayMode = displayNormal;
-    setLed(0, SPLIT_ROW, globalColor, splitActive);
+    setDisplayMode(displayNormal);
+    setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
 
     // perform some initialization
     initializeCalibrationSamples();
@@ -825,7 +833,7 @@ void loop() {
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
-      displayMode = displayNormal;                               // this should make the reset operation feel more predictable
+      setDisplayMode(displayNormal);                               // this should make the reset operation feel more predictable
       updateDisplay();
     }
   }

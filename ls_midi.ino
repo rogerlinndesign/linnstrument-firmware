@@ -73,7 +73,7 @@ void handleMidiInput() {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, true);
+          setLed(25, 2, COLOR_GREEN, cellOn);
         }
         break;
       case MIDIStart:
@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, true);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
             midiClockLedOn = now;
           }
 
@@ -248,7 +248,7 @@ void handleMidiInput() {
             case 22:
               if (displayMode == displayNormal) {
                 if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, true);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn);
                 }
                 else {
                   paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
@@ -639,7 +639,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, true);
+      setLed(col, row, color, cellOn);
     }
   }
 }
