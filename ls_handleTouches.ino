@@ -339,6 +339,9 @@ void handleNewTouch() {
     case displayPreset:                                            // it's a preset change
       handlePresetNewTouch();
       break;
+    case displayBendRange:                                         // it's a bend range change
+      handleBendRangeNewTouch();
+      break;
     case displayCCForY:                                            // it's a CC for Y change
       handleCCForYNewTouch();
       break;
@@ -837,6 +840,9 @@ void handleTouchRelease() {
       return;
     case displayPreset:
       handlePresetRelease();
+      return;
+    case displayBendRange:
+      handleBendRangeRelease();
       return;
     case displayCCForY:
       handleCCForYRelease();

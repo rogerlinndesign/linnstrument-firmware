@@ -481,6 +481,9 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].bendRange = 24;
     }
+    else if (sensorRow == 3) {
+      setDisplayMode(displayBendRange);
+    }
 
   } else if (sensorCol == 8) {
 
@@ -656,6 +659,14 @@ void handlePresetRelease() {
   handleNumericDataRelease(true);
 }
 
+void handleBendRangeNewTouch() {
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].bendRange, 1, 96, true);
+}
+
+void handleBendRangeRelease() {
+  handleNumericDataRelease(true);
+}
+
 void handleCCForYNewTouch() {
   handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 127, true);
 }
@@ -701,7 +712,29 @@ void resetNumericDataChange() {
   numericActiveDown = 0;
 }
 
-boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+  unsigned short newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+boolean handleNumericDataNewTouch(byte &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+  byte newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   // keep track of how many cells are currently down
   numericActiveDown++;
   unsigned long now = micros();
@@ -734,13 +767,7 @@ boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short mi
   numericDataChangeCol = sensorCol;
   numericDataChangeTime = now;
 
-  if (newData != currentData) {
-    currentData = newData;
-    updateDisplay();
-    return true;
-  }
-
-  return false;
+  return newData;
 }
 
 void handleNumericDataRelease(boolean handleSplitSelection) {

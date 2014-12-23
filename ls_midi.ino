@@ -349,7 +349,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI Bend Range
     case 19:
-      if (value == 2 || value == 3 || value == 12 || value == 24) {
+      if (inRange(value, 1, 96)) {
         Split[split].bendRange = value;
       }
       break;
@@ -692,20 +692,26 @@ unsigned long lastMomentMidiAT[16];
 unsigned long lastMomentMidiPP[16*128];
 
 int scalePitch(byte split, int pitchValue) {
-  switch(Split[split].bendRange)               // Switch on bend range (+/- 2, 3, 12 or 24 semitones)
+  switch(Split[split].bendRange)                 // Adapt for bend range
   {
-  case 2:                                      // If 2, multiply by 24
-    pitchValue = pitchValue * 24;
-    break;
-  case 3:                                      // If 3, multiply by 16
-    pitchValue = pitchValue * 16;
-    break;
-  case 12:                                     // If 12, multiply by 4
-    pitchValue = pitchValue << 2;
-    break;
-  case 24:
-    pitchValue = pitchValue << 1;              // If 24, multiply by 2
-    break;
+    case 2:                                      // If 2, multiply by 24
+      pitchValue = pitchValue * 24;
+      break;
+    case 3:                                      // If 3, multiply by 16
+      pitchValue = pitchValue * 16;
+      break;
+    case 12:                                     // If 12, multiply by 4
+      pitchValue = pitchValue * 4;
+      break;
+    case 24:                                     // If 24, multiply by 2
+      pitchValue = pitchValue * 2;
+      break;
+    case 48:
+      // nothing to do
+      break;
+    default:
+      pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(Split[split].bendRange))));
+      break;
   }
 
   return pitchValue;

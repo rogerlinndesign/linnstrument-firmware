@@ -18,6 +18,7 @@ displayGlobalWithTempo   : global settings with tempo
 displayOsVersion         : version number of the OS
 displayCalibration       : calibration process
 displayReset             : global reset confirmation and wait for touch release
+displayBendRange         ; custom bend range selection for X expression
 displayCCForY            : custom CC number selection for Y expression
 displayCCForZ            : custom CC number selection for Z expression
 displaySensorLoZ         : sensor low Z sensitivity selection
@@ -88,6 +89,9 @@ void updateDisplay() {
     break;
   case displayReset:             // Display the reset information
     paintResetDisplay();
+    break;
+  case displayBendRange:         // Display this split's bend range
+    paintBendRangeDisplay(Global.currentPerSplit);
     break;
   case displayCCForY:            // Display this split's Y CC number
     paintCCForYDisplay(Global.currentPerSplit);
@@ -316,6 +320,9 @@ void paintPerSplitDisplay(byte side) {
     case 24:
       setLed(7, 4, Split[side].colorMain, cellOn);
       break;
+    default:
+      setLed(7, 3, Split[side].colorMain, cellOn);
+      break;
   }
 
   // set Pitch/X settings
@@ -456,6 +463,10 @@ void paintOSVersionDisplay() {
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].preset+1);
+}
+
+void paintBendRangeDisplay(byte side) {
+  paintSplitNumericDataDisplay(side, Split[side].bendRange);
 }
 
 void paintCCForYDisplay(byte side) {
