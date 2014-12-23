@@ -299,11 +299,8 @@ void paintPerSplitDisplay(byte side) {
     case 24:
       setLed(7, 4, Split[side].colorMain, true);
       break;
-    case 48:
+    default:
       setLed(7, 3, Split[side].colorMain, true);
-      break;
-    case 96:
-      setLed(7, 2, Split[side].colorMain, true);
       break;
   }
 
