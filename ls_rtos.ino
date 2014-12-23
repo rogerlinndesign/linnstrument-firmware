@@ -33,6 +33,7 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 
 inline void performContinuousTasks(unsigned long now) {
   if (checkRefreshLedColumn(now)) {
+    checkStopMiddleRootNoteBlink();
     checkTimeToReadFootSwitches(now);
     checkRefreshGlobalSettingsDisplay(now);
   }
@@ -47,7 +48,6 @@ inline void performContinuousTasks(unsigned long now) {
   }
 }
 
-// checkRefreshLedColumn:
 // checks to see if it's time to refresh the next LED column, and if so, does it
 // the return value indicate whether the LEDs were updated, so that we can use it
 // as a coarse trigger to piggy-back other continuous tasks off of
@@ -60,7 +60,6 @@ inline boolean checkRefreshLedColumn(unsigned long now) {
   return false;
 }
 
-// checkTimeToReadFootSwitches:
 // checks to see if it's time to refresh the next LED column, and if so, does it
 inline void checkTimeToReadFootSwitches(unsigned long now) {
   if (calcTimeDelta(now, prevFootSwitchTimerCount) > FOOT_SWITCH_REFRESH_INTERVAL) {    // is it time to check the foot switches?
@@ -69,13 +68,22 @@ inline void checkTimeToReadFootSwitches(unsigned long now) {
   }
 }
 
-// checkRefreshGlobalSettingsDisplay:
 // checks to see if it's time to refresh the global settings display, and if so, does it
 inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
   if (calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL &&   // is it time to refresh the global settings display
       (displayMode == displayGlobal || displayMode == displayGlobalWithTempo)) {
     updateDisplay();                                                                                          // yes-- refresh the disply...
     prevGlobalSettingsDisplayTimerCount = now;                                                                // and reset the timer count to current time
+  }
+}
+
+// checks whether it's time to stop blinking the middle root note
+inline void checkStopMiddleRootNoteBlink() {
+  if ((displayMode == displayNormal || displayMode == displaySplitPoint) && 
+      blinkMiddleRootNote &&
+      calcTimeDelta(millis(), displayModeStart) > 600) {
+    blinkMiddleRootNote = false;
+    updateDisplay();
   }
 }
 

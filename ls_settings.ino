@@ -39,8 +39,8 @@ void initializeStorage() {
     storeSettings();                                 // Store the initial default settings
 
     dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
-    displayMode = displayCalibration;                // Automatically start calibration after firmware update.
-    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, true);
+    setDisplayMode(displayCalibration);                // Automatically start calibration after firmware update.
+    setLed(0, GLOBAL_SETTINGS_ROW, globalColor, cellOn);
     controlButton = GLOBAL_SETTINGS_ROW;
   } else {
     loadSettings();                                  // On subsequent startups, load settings from Flash
@@ -259,7 +259,7 @@ void handleControlButtonNewTouch() {
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
-      displayMode = displayGlobal;                     // change to global settings display mode
+      setDisplayMode(displayGlobal);                     // change to global settings display mode
       resetNumericDataChange();
       updateDisplay();
       break;
@@ -268,8 +268,8 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       splitButtonDown = true;
       changedSplitPoint = false;
-      setLed(0, SPLIT_ROW, globalColor, true);
-      displayMode = displaySplitPoint;
+      setLed(0, SPLIT_ROW, globalColor, cellOn);
+      setDisplayMode(displaySplitPoint);
 
       // handle double-tap
       if (doubleTap) {
@@ -282,40 +282,40 @@ void handleControlButtonNewTouch() {
 
     case SWITCH_2_ROW:                                 // SWITCH 2 pressed
       doSwitchPressed(SWITCH_SWITCH_2);
-      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit]);
+      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] ? cellOn : cellOff);
       break;
 
     case SWITCH_1_ROW:                                 // SWITCH 1 pressed
       doSwitchPressed(SWITCH_SWITCH_1);
-      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit]);
+      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff);
       break;
   
     case OCTAVE_ROW:                                   // OCTAVE button pressed
       resetAllTouches();
-      setLed(0, OCTAVE_ROW, globalColor, true);
-      displayMode = displayOctaveTranspose;
+      setLed(0, OCTAVE_ROW, globalColor, cellOn);
+      setDisplayMode(displayOctaveTranspose);
       updateDisplay();
       break;
 
     case VOLUME_ROW:                                   // displayVolume button pressed
       resetAllTouches();
-      setLed(0, VOLUME_ROW, globalColor, true);
-      displayMode = displayVolume;
+      setLed(0, VOLUME_ROW, globalColor, cellOn);
+      setDisplayMode(displayVolume);
       updateDisplay();
       break;
 
     case PRESET_ROW:                                   // displayPreset button pressed
       resetAllTouches();
-      setLed(0, PRESET_ROW, globalColor, true);
-      displayMode = displayPreset;
+      setLed(0, PRESET_ROW, globalColor, cellOn);
+      setDisplayMode(displayPreset);
       resetNumericDataChange();
       updateDisplay();
       break;
 
     case PER_SPLIT_ROW:                                // PER SPLIT SETTINGs buttons pressed
       resetAllTouches();
-      setLed(0, PER_SPLIT_ROW, globalColor, true);
-      displayMode = displayPerSplit;
+      setLed(0, PER_SPLIT_ROW, globalColor, cellOn);
+      setDisplayMode(displayPerSplit);
       resetNumericDataChange();
       updateDisplay();
       break;
@@ -354,7 +354,7 @@ void handleControlButtonRelease() {
 
       clearLed(0, sensorRow);
 
-      displayMode = displayNormal;
+      setDisplayMode(displayNormal);
       updateDisplay();
 
       storeSettings();
@@ -368,19 +368,19 @@ void handleControlButtonRelease() {
         splitActive = !splitActive;
         focusedSplit = Global.currentPerSplit;
       }
-      setLed(0, SPLIT_ROW, globalColor, splitActive);
-      displayMode = displayNormal;
+      setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
+      setDisplayMode(displayNormal);
       updateDisplay();
       break;
 
     case SWITCH_2_ROW:                                       // SWITCH 2 released
       doSwitchReleased(SWITCH_SWITCH_2);
-      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit]);
+      setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] ? cellOn : cellOff);
       break;
 
     case SWITCH_1_ROW:                                       // SWITCH 1 released
       doSwitchReleased(SWITCH_SWITCH_1);
-      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit]);
+      setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff);
       break;
   }
 }
@@ -482,10 +482,7 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].bendRange = 24;
     }
     else if (sensorRow == 3) {
-      Split[Global.currentPerSplit].bendRange = 48;
-    }
-    else if (sensorRow == 2) {
-      Split[Global.currentPerSplit].bendRange = 96;
+      setDisplayMode(displayBendRange);
     }
 
   } else if (sensorCol == 8) {
@@ -520,7 +517,7 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
     }
     else if (sensorRow == 3) {
-      displayMode = displayCCForY;
+      setDisplayMode(displayCCForY);
     }
 
   } else if (sensorCol == 10) {
@@ -541,7 +538,7 @@ void handlePerSplitSettingNewTouch() {
     }
     else if (sensorRow == 3) {
       Split[Global.currentPerSplit].expressionForZ = loudnessCC;
-      displayMode = displayCCForZ;
+      setDisplayMode(displayCCForZ);
     }
 
   } else if (sensorCol == 11) {
@@ -662,6 +659,14 @@ void handlePresetRelease() {
   handleNumericDataRelease(true);
 }
 
+void handleBendRangeNewTouch() {
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].bendRange, 1, 96, true);
+}
+
+void handleBendRangeRelease() {
+  handleNumericDataRelease(true);
+}
+
 void handleCCForYNewTouch() {
   handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 127, true);
 }
@@ -707,7 +712,29 @@ void resetNumericDataChange() {
   numericActiveDown = 0;
 }
 
-boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+  unsigned short newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+boolean handleNumericDataNewTouch(byte &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+  byte newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   // keep track of how many cells are currently down
   numericActiveDown++;
   unsigned long now = micros();
@@ -740,13 +767,7 @@ boolean handleNumericDataNewTouch(unsigned short& currentData, unsigned short mi
   numericDataChangeCol = sensorCol;
   numericDataChangeTime = now;
 
-  if (newData != currentData) {
-    currentData = newData;
-    updateDisplay();
-    return true;
-  }
-
-  return false;
+  return newData;
 }
 
 void handleNumericDataRelease(boolean handleSplitSelection) {
@@ -879,7 +900,7 @@ void handleTempoNewTouch() {
     tempoChangeTime = now;
   }
 
-  displayMode = displayGlobalWithTempo;
+  setDisplayMode(displayGlobalWithTempo);
   updateDisplay();
 }
 
@@ -1099,7 +1120,7 @@ void handleGlobalSettingNewTouch() {
         lightLed(14, 3);
 
         tapTempoPress();
-        displayMode = displayGlobalWithTempo;
+        setDisplayMode(displayGlobalWithTempo);
 
         delayUsec(100000);
 
@@ -1120,18 +1141,18 @@ void handleGlobalSettingNewTouch() {
 
   if (sensorCol == 16) {
     if (sensorRow == 1) {
-      displayMode = displayOsVersion;
+      setDisplayMode(displayOsVersion);
     }
     // reset feature
     else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
               (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
       if (displayMode != displayReset) {
         reset();
-        displayMode = displayReset;
+        setDisplayMode(displayReset);
       }
     }
     else if (sensorRow == 3) {
-      displayMode = displayCalibration;
+      setDisplayMode(displayCalibration);
       initializeCalibrationSamples();
     }
  }
@@ -1160,15 +1181,15 @@ void handleGlobalSettingNewTouch() {
   if (sensorCol == 25) {
     if      (sensorRow == 0) {
       resetNumericDataChange();
-      displayMode = displaySensorLoZ;
+      setDisplayMode(displaySensorLoZ);
     }
     else if (sensorRow == 1) {
       resetNumericDataChange();
-      displayMode = displaySensorFeatherZ;
+      setDisplayMode(displaySensorFeatherZ);
     }
     else if (sensorRow == 2) {
       resetNumericDataChange();
-      displayMode = displaySensorRangeZ;
+      setDisplayMode(displaySensorRangeZ);
     }
   }
 

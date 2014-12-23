@@ -73,7 +73,7 @@ void handleMidiInput() {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, true);
+          setLed(25, 2, COLOR_GREEN, cellOn);
         }
         break;
       case MIDIStart:
@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, true);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
             midiClockLedOn = now;
           }
 
@@ -248,7 +248,7 @@ void handleMidiInput() {
             case 22:
               if (displayMode == displayNormal) {
                 if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, true);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn);
                 }
                 else {
                   paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
@@ -349,7 +349,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI Bend Range
     case 19:
-      if (value == 2 || value == 3 || value == 12 || value == 24 || value == 48 || value == 96) {
+      if (inRange(value, 1, 96)) {
         Split[split].bendRange = value;
       }
       break;
@@ -639,7 +639,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, true);
+      setLed(col, row, color, cellOn);
     }
   }
 }
@@ -692,26 +692,24 @@ unsigned long lastMomentMidiAT[16];
 unsigned long lastMomentMidiPP[16*128];
 
 int scalePitch(byte split, int pitchValue) {
-  switch(Split[split].bendRange)               // Switch on bend range (+/- 2, 3, 12, 24, 48, or 96 semitones)
+  // Adapt for bend range
+  switch(Split[split].bendRange)
   {
-  case 2:                                      // If 2, multiply by 24
-    pitchValue = pitchValue * 24;
-    break;
-  case 3:                                      // If 3, multiply by 16
-    pitchValue = pitchValue * 16;
-    break;
-  case 12:                                     // If 12, multiply by 4
-    pitchValue = pitchValue << 2;
-    break;
-  case 24:
-    pitchValue = pitchValue << 1;              // If 24, multiply by 2
-    break;
-  case 48:
-    // pitchValue = pitchValue;                // If 48, unity.
-    break;
-  case 96:
-    pitchValue = pitchValue >> 1;              // If 96, divide by 2
-    break;
+    // pure integer math cases
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 6:
+    case 8:
+    case 12:
+    case 24:
+    case 48:
+      break;
+    // others need fixed point decimal math
+    default:
+      pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(Split[split].bendRange))));
+      break;
   }
 
   return pitchValue;

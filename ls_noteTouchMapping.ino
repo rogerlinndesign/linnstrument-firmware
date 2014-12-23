@@ -75,12 +75,17 @@ void NoteTouchMapping::initialize() {
       mapping[n][c].nextPreviousChannel = 0;
     }
   }
+  for (byte c = 0; c < 16; ++c) {
+    musicalTouchCount[c] = 0;
+  }
 }
 
 void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col, byte row) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
   }
+
+  musicalTouchCount[channel] += 1;
 
   if (mapping[noteNum][channel].colRow == 0) {
     noteCount++;
@@ -159,6 +164,8 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
   }
+
+  musicalTouchCount[channel] -= 1;
 
   if (mapping[noteNum][channel].colRow != 0) {
     noteCount--;

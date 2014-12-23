@@ -176,12 +176,12 @@ void handleCalibrationRelease() {
 
     // This is the first pass for a sensor, switch the led to cyan
     if (cellPass == 0) {
-      setLed(sensorCol, sensorRow, COLOR_CYAN, true);
+      setLed(sensorCol, sensorRow, COLOR_CYAN, cellOn);
     }
     // This is the second or more pass for a sensor, switch the led to green
     // We need at least two passes to consider the calibration viable
     else if (cellPass > 0) {
-      setLed(sensorCol, sensorRow, COLOR_GREEN, true);
+      setLed(sensorCol, sensorRow, COLOR_GREEN, cellOn);
 
       // Scan all the calibration samples to see if at least two passes were made
       // for each cell of the rows
@@ -262,7 +262,7 @@ void handleCalibrationRelease() {
           clearDisplay();
           bigfont_draw_string(6, 0, "OK", globalColor, false);
           delayUsec(500000);
-          displayMode = displayNormal;
+          setDisplayMode(displayNormal);
           controlButton = -1;
           clearLed(0, GLOBAL_SETTINGS_ROW);
           updateDisplay();

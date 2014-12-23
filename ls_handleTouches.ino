@@ -66,10 +66,23 @@ boolean calcVelocity(byte z) {
 
 #define TRANSFER_SLIDE_PROXIMITY 100
 
+boolean preventPitchSlides(byte col, byte row) {
+  if (!cell(col, row).hasNote()) {
+    return false;
+  }
+
+  byte split = getSplitOf(col);
+  if (noteTouchMapping[split].musicalTouchCount[cell(col, row).channel] > 1) {
+    return true;
+  }
+
+  return false;
+}
+
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() && (!Split[sensorSplit].sendX || !isFocusedCell(col, sensorRow))) return false;
+  if (!isLowRow() && (!Split[sensorSplit].sendX || !isFocusedCell(col, sensorRow) || preventPitchSlides(col, sensorRow))) return false;
   if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
@@ -326,6 +339,9 @@ void handleNewTouch() {
     case displayPreset:                                            // it's a preset change
       handlePresetNewTouch();
       break;
+    case displayBendRange:                                         // it's a bend range change
+      handleBendRangeNewTouch();
+      break;
     case displayCCForY:                                            // it's a CC for Y change
       handleCCForYNewTouch();
       break;
@@ -526,7 +542,12 @@ void handleXYZupdate() {
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != SHRT_MAX &&
         isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      preSendPitchBend(sensorSplit, pitchBend, sensorCell().channel);
+      if (preventPitchSlides(sensorCol, sensorRow)) {
+        preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      }
+      else {
+        preSendPitchBend(sensorSplit, pitchBend, sensorCell().channel);
+      }
     }
 
     // if Y-axis movements are enabled and it's a candidate for
@@ -819,6 +840,9 @@ void handleTouchRelease() {
       return;
     case displayPreset:
       handlePresetRelease();
+      return;
+    case displayBendRange:
+      handleBendRangeRelease();
       return;
     case displayCCForY:
       handleCCForYRelease();

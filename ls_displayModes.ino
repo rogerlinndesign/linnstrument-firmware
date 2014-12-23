@@ -18,6 +18,7 @@ displayGlobalWithTempo   : global settings with tempo
 displayOsVersion         : version number of the OS
 displayCalibration       : calibration process
 displayReset             : global reset confirmation and wait for touch release
+displayBendRange         ; custom bend range selection for X expression
 displayCCForY            : custom CC number selection for Y expression
 displayCCForZ            : custom CC number selection for Z expression
 displaySensorLoZ         : sensor low Z sensitivity selection
@@ -29,6 +30,16 @@ These routines handle the painting of these display modes on LinnStument's 208 L
 
 
 unsigned long tapTempoLedOn = 0;       // indicates when the tap tempo clock led was turned on
+unsigned long displayModeStart = 0;    // indicates when the current display mode was activated
+bool blinkMiddleRootNote = false;      // indicates whether the middle root note should be blinking
+
+// changes the active display mode
+void setDisplayMode(DisplayMode mode) {
+  if (displayMode != mode || displayModeStart == 0) {
+    displayModeStart = millis();
+  }
+  displayMode = mode;
+}
 
 // clearDisplay:
 // Turns all LEDs off in columns 1 or higher
@@ -79,6 +90,9 @@ void updateDisplay() {
   case displayReset:             // Display the reset information
     paintResetDisplay();
     break;
+  case displayBendRange:         // Display this split's bend range
+    paintBendRangeDisplay(Global.currentPerSplit);
+    break;
   case displayCCForY:            // Display this split's Y CC number
     paintCCForYDisplay(Global.currentPerSplit);
     break;
@@ -100,10 +114,10 @@ void updateDisplay() {
 }
 
 void updateSwitchLeds() {
-  setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] * 3);
-  setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] * 3);
+  setLed(0, SWITCH_1_ROW, globalColor, switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff);
+  setLed(0, SWITCH_2_ROW, globalColor, switchState[SWITCH_SWITCH_2][focusedSplit] ? cellOn : cellOff);
   if (splitActive) {
-    setLed(0, SPLIT_ROW, Split[focusedSplit].colorMain, true);
+    setLed(0, SPLIT_ROW, Split[focusedSplit].colorMain, cellOn);
   }
   else {
     clearLed(0, SPLIT_ROW);
@@ -130,15 +144,15 @@ void paintNormalDisplay() {
   if ((Split[LEFT].transposePitch < 0 && Split[RIGHT].transposePitch < 0) ||
       (Split[LEFT].transposePitch < 0 && Split[RIGHT].transposePitch == 0) ||
       (Split[LEFT].transposePitch == 0 && Split[RIGHT].transposePitch < 0)) {
-    setLed(0, OCTAVE_ROW, COLOR_RED, true);
+    setLed(0, OCTAVE_ROW, COLOR_RED, cellOn);
   }
   else if ((Split[LEFT].transposePitch > 0 && Split[RIGHT].transposePitch > 0) ||
            (Split[LEFT].transposePitch > 0 && Split[RIGHT].transposePitch == 0) ||
            (Split[LEFT].transposePitch == 0 && Split[RIGHT].transposePitch > 0)) {
-    setLed(0, OCTAVE_ROW, COLOR_GREEN, true);
+    setLed(0, OCTAVE_ROW, COLOR_GREEN, cellOn);
   }
   else if (Split[LEFT].transposePitch != 0 && Split[RIGHT].transposePitch != 0) {
-    setLed(0, OCTAVE_ROW, COLOR_YELLOW, true);
+    setLed(0, OCTAVE_ROW, COLOR_YELLOW, cellOn);
   }
   else {
     clearLed(0, OCTAVE_ROW);
@@ -170,7 +184,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
       if (ccFaderValues[split][row] > 0) {
-        setLed(faderLeft, row, Split[split].colorMain, true);
+        setLed(faderLeft, row, Split[split].colorMain, cellOn);
       }
       else {
         clearLed(faderLeft, row);
@@ -185,7 +199,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
         clearLed(col, row);
       }
       else {
-        setLed(col, row, Split[split].colorMain, true);
+        setLed(col, row, Split[split].colorMain, cellOn);
       }
     }
   }
@@ -194,58 +208,64 @@ void paintCCFaderDisplayRow(byte split, byte row) {
 void paintStrumDisplayCell(byte split, byte col, byte row) {
   // by default clear the cell color
   byte colour = COLOR_BLACK;
-  boolean on = false;
+  CellDisplay cellDisplay = cellOff;
 
   if (row % 2 == 0) {
     colour = Split[split].colorAccent;
-    on = true;
+    cellDisplay = cellOn;
   }
   else {
     colour = Split[split].colorMain;
-    on = true;
+    cellDisplay = cellOn;
   }
 
   // actually set the cell's color
-  setLed(col, row, colour, on);
+  setLed(col, row, colour, cellDisplay);
   checkRefreshLedColumn(micros());
 }
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
   // by default clear the cell color
   byte colour = COLOR_BLACK;
-  boolean on = false;
+  CellDisplay cellDisplay = cellOff;
 
+  short displayedNote = getNoteNumber(col,row) - Split[split].transposeLights;
   short actualnote = transposedNote(split, col, row);
 
   // the note is out of MIDI note range, disable it
   if (actualnote < 0 || actualnote > 127) {
     colour = COLOR_BLACK;
-    on = false;
+    cellDisplay = cellOff;
   }
   else {
-    byte octaveNote = abs((getNoteNumber(col,row) - Split[split].transposeLights) % 12);
+    byte octaveNote = abs(displayedNote % 12);
 
     // first paint all cells in split to its background color
     if (Global.mainNotes[octaveNote]) {
       colour = Split[split].colorMain;
-      on = true;
+      cellDisplay = cellOn;
     }
 
     // then paint only notes marked as Accent notes with Accent color
     if (Global.accentNotes[octaveNote]) {
       colour = Split[split].colorAccent;
-      on = true;
+      cellDisplay = cellOn;
     }
 
     // if the low row is anything but normal, set it to the appropriate color
     if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
       colour = Split[split].colorLowRow;
-      on = true;
+      cellDisplay = cellOn;
     }
   }
 
+  // show pulsating middle root note
+  if (blinkMiddleRootNote && displayedNote == 60) {
+    cellDisplay = cellPulse;
+  }
+
   // actually set the cell's color
-  setLed(col, row, colour, on);
+  setLed(col, row, colour, cellDisplay);
   checkRefreshLedColumn(micros());
 }
 
@@ -260,27 +280,28 @@ void paintPerSplitDisplay(byte side) {
   switch (Split[side].midiMode)
   {
     case oneChannel:
-      setLed(1, 7, Split[side].colorMain, true);
+      setLed(1, 7, Split[side].colorMain, cellOn);
       break;
     case channelPerNote:
-      setLed(1, 6, Split[side].colorMain, true);
+      setLed(1, 6, Split[side].colorMain, cellOn);
       break;
     case channelPerRow:
-      setLed(1, 5, Split[side].colorMain, true);
+      setLed(1, 5, Split[side].colorMain, cellOn);
       break;
   }
 
-  switch (midiChannelSettings) {
+  switch (midiChannelSettings)
+  {
     case MIDICHANNEL_MAIN:
-      setLed(2, 7, Split[side].colorMain, true);
+      setLed(2, 7, Split[side].colorMain, cellOn);
       showMainMidiChannel(side);
       break;
     case MIDICHANNEL_PERNOTE:
-      setLed(2, 6, Split[side].colorMain, true);
+      setLed(2, 6, Split[side].colorMain, cellOn);
       showPerNoteMidiChannels(side);
       break;
     case MIDICHANNEL_PERROW:
-      setLed(2, 5, Split[side].colorMain, true);
+      setLed(2, 5, Split[side].colorMain, cellOn);
       showPerRowMidiChannel(side);
       break;
   }
@@ -288,16 +309,19 @@ void paintPerSplitDisplay(byte side) {
   switch (Split[side].bendRange)
   {
     case 2:
-      setLed(7, 7, Split[side].colorMain, true);
+      setLed(7, 7, Split[side].colorMain, cellOn);
       break;
     case 3:
-      setLed(7, 6, Split[side].colorMain, true);
+      setLed(7, 6, Split[side].colorMain, cellOn);
       break;
     case 12:
-      setLed(7, 5, Split[side].colorMain, true);
+      setLed(7, 5, Split[side].colorMain, cellOn);
       break;
     case 24:
-      setLed(7, 4, Split[side].colorMain, true);
+      setLed(7, 4, Split[side].colorMain, cellOn);
+      break;
+    default:
+      setLed(7, 3, Split[side].colorMain, cellOn);
       break;
     case 48:
       setLed(7, 3, Split[side].colorMain, true);
@@ -309,115 +333,115 @@ void paintPerSplitDisplay(byte side) {
 
   // set Pitch/X settings
   if (Split[side].sendX == true)  {
-    setLed(8, 7, Split[side].colorMain, true);
+    setLed(8, 7, Split[side].colorMain, cellOn);
   }
 
   if (Split[side].pitchCorrectQuantize == true) {
-    setLed(8, 6, Split[side].colorMain, true);
+    setLed(8, 6, Split[side].colorMain, cellOn);
   }
 
   if (Split[side].pitchCorrectHold == true) {
-    setLed(8, 5, Split[side].colorMain, true);
+    setLed(8, 5, Split[side].colorMain, cellOn);
   }
 
   if (Split[side].pitchResetOnRelease == true) {
-    setLed(8, 4, Split[side].colorMain, true);
+    setLed(8, 4, Split[side].colorMain, cellOn);
   }
 
   // set Timbre/Y settings
   if (Split[side].sendY == true)  {
-    setLed(9, 7, Split[side].colorMain, true);
+    setLed(9, 7, Split[side].colorMain, cellOn);
   }
 
   switch (Split[side].ccForY)
   {
     case 1:
-      setLed(9, 6, Split[side].colorMain, true);
+      setLed(9, 6, Split[side].colorMain, cellOn);
       break;
     case 74:
-      setLed(9, 5, Split[side].colorMain, true);
+      setLed(9, 5, Split[side].colorMain, cellOn);
       break;
     default:
-      setLed(9, 3, Split[side].colorMain, true);
+      setLed(9, 3, Split[side].colorMain, cellOn);
       break;
   }
 
   if (Split[side].relativeY == true)
   {
-      setLed(9, 4, Split[side].colorMain, true);
+      setLed(9, 4, Split[side].colorMain, cellOn);
   }
 
   // set Loudness/Z settings
   if (Split[side].sendZ == true)  {
-    setLed(10, 7, Split[side].colorMain, true);
+    setLed(10, 7, Split[side].colorMain, cellOn);
   }
 
   switch (Split[side].expressionForZ)
   {
     case loudnessPolyPressure:
-      setLed(10, 6, Split[side].colorMain, true);
+      setLed(10, 6, Split[side].colorMain, cellOn);
       break;
     case loudnessChannelPressure:
-      setLed(10, 5, Split[side].colorMain, true);
+      setLed(10, 5, Split[side].colorMain, cellOn);
       break;
     case loudnessCC:
       if (Split[side].ccForZ == 11) {
-        setLed(10, 4, Split[side].colorMain, true);
+        setLed(10, 4, Split[side].colorMain, cellOn);
       }
       else {
-        setLed(10, 3, Split[side].colorMain, true);
+        setLed(10, 3, Split[side].colorMain, cellOn);
       }
       break;
   }
 
   // Set "Color" lights
-  setLed(11, 7, Split[side].colorMain, true);
-  setLed(11, 6, Split[side].colorAccent, true);
-  setLed(11, 5, Split[side].colorNoteon, true);
-  setLed(11, 4, Split[side].colorLowRow, true);
+  setLed(11, 7, Split[side].colorMain, cellOn);
+  setLed(11, 6, Split[side].colorAccent, cellOn);
+  setLed(11, 5, Split[side].colorNoteon, cellOn);
+  setLed(11, 4, Split[side].colorLowRow, cellOn);
 
   // Set "Low row" lights
   switch (Split[side].lowRowMode)
   {
     case lowRowNormal:
-      setLed(12, 7, Split[side].colorMain, true);
+      setLed(12, 7, Split[side].colorMain, cellOn);
       break;
     case lowRowRestrike:
-      setLed(12, 6, Split[side].colorMain, true);
+      setLed(12, 6, Split[side].colorMain, cellOn);
       break;
     case lowRowStrum:
-      setLed(12, 5, Split[side].colorMain, true);
+      setLed(12, 5, Split[side].colorMain, cellOn);
       break;
     case lowRowArpeggiator:
-      setLed(12, 4, Split[side].colorMain, true);
+      setLed(12, 4, Split[side].colorMain, cellOn);
       break;
     case lowRowSustain:
-      setLed(13, 7, Split[side].colorMain, true);
+      setLed(13, 7, Split[side].colorMain, cellOn);
       break;
     case lowRowBend:
-      setLed(13, 6, Split[side].colorMain, true);
+      setLed(13, 6, Split[side].colorMain, cellOn);
       break;
     case lowRowCC1:
-      setLed(13, 5, Split[side].colorMain, true);
+      setLed(13, 5, Split[side].colorMain, cellOn);
       break;
     case lowRowCCXYZ:
-      setLed(13, 4, Split[side].colorMain, true);
+      setLed(13, 4, Split[side].colorMain, cellOn);
       break;
   }
 
   // set Arpeggiator
   if (Split[side].arpeggiator == true)  {
-    setLed(14, 7, Split[side].colorMain, true);
+    setLed(14, 7, Split[side].colorMain, cellOn);
   }
 
   // set CC faders
   if (Split[side].ccFaders == true)  {
-    setLed(14, 6, Split[side].colorMain, true);
+    setLed(14, 6, Split[side].colorMain, cellOn);
   }
 
   // set strum
   if (Split[side].strum == true)  {
-    setLed(14, 5, Split[side].colorMain, true);
+    setLed(14, 5, Split[side].colorMain, cellOn);
   }
 
   // set "show split" led
@@ -428,10 +452,10 @@ void paintPerSplitDisplay(byte side) {
 // (e.g. when you're changing per-split settings, or changing the preset or volume)
 void paintShowSplitSelection(byte side) {
   if (side == LEFT || doublePerSplit) {
-    setLed(15, 7, Split[LEFT].colorMain, true);
+    setLed(15, 7, Split[LEFT].colorMain, cellOn);
   }
   if (side == RIGHT || doublePerSplit) {
-    setLed(16, 7, Split[RIGHT].colorMain, true);
+    setLed(16, 7, Split[RIGHT].colorMain, cellOn);
   }
 }
 
@@ -447,13 +471,17 @@ void paintPresetDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].preset+1);
 }
 
+void paintBendRangeDisplay(byte side) {
+  paintSplitNumericDataDisplay(side, Split[side].bendRange);
+}
+
 void paintCCForYDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].ccForY);
 }
 
 void paintCCForZDisplay(byte side) {
   if (Split[side].expressionForZ != loudnessCC) {
-    displayMode = displayPerSplit;
+    setDisplayMode(displayPerSplit);
     updateDisplay();
   }
   else {
@@ -518,7 +546,7 @@ void paintVolumeDisplay(byte side) {
 
   for (byte col = 25; col >= 1; --col) {
     if (Global.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT <= fxdFaderPosition) {
-      setLed(col, 5, Split[side].colorMain, true);
+      setLed(col, 5, Split[side].colorMain, cellOn);
     }
   }
 
@@ -527,6 +555,7 @@ void paintVolumeDisplay(byte side) {
 
 void paintOctaveTransposeDisplay(byte side) {
   clearDisplay();
+  blinkMiddleRootNote = true;
 
   // Paint the octave shift value
   if (!doublePerSplit || Split[LEFT].transposeOctave == Split[RIGHT].transposeOctave) {
@@ -577,54 +606,54 @@ void paintOctaveTransposeDisplay(byte side) {
 }
 
 void paintOctave(byte color, byte midcol, byte row, short octave) {
-  setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, true);
+  setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, cellOn);
   if (0 == color) color = octave > 0 ? COLOR_GREEN : COLOR_RED ;
 
   switch (octave) {
   case -60:
-    setLed(midcol-5, row, color, true);
+    setLed(midcol-5, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case -48:
-    setLed(midcol-4, row, color, true);
+    setLed(midcol-4, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case -36:
-    setLed(midcol-3, row, color, true);
+    setLed(midcol-3, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case -24:
-    setLed(midcol-2, row, color, true);
+    setLed(midcol-2, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case -12:
-    setLed(midcol-1, row, color, true);
+    setLed(midcol-1, row, color, cellOn);
     break;
 
   case 60:
-    setLed(midcol+5, row, color, true);
+    setLed(midcol+5, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case 48:
-    setLed(midcol+4, row, color, true);
+    setLed(midcol+4, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case 36:
-    setLed(midcol+3, row, color, true);
+    setLed(midcol+3, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case 24:
-    setLed(midcol+2, row, color, true);
+    setLed(midcol+2, row, color, cellOn);
     // lack of break here is purposeful, we want to fall through...
   case 12:
-    setLed(midcol+1, row, color, true);
+    setLed(midcol+1, row, color, cellOn);
     break;
   }
 }
 
 void paintTranspose(byte color, byte row, short transpose) {
   byte midcol = 8;
-  setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, true);    // paint the center cell of the transpose range
+  setLed(midcol, row, Split[Global.currentPerSplit].colorAccent, cellOn);    // paint the center cell of the transpose range
 
   if (transpose != 0) {
     if (0 == color) color = transpose < 0 ? COLOR_RED : COLOR_GREEN;
     byte col_from = (transpose < 0) ? (midcol + transpose) : (midcol + 1);
     byte col_to = (transpose > 0) ? (midcol + transpose) : (midcol - 1);
     for (byte c = col_from; c <= col_to; ++c) {
-      setLed(c, row, color, true);
+      setLed(c, row, color, cellOn);
     }
   }
 }
@@ -812,10 +841,10 @@ void paintGlobalSettingsDisplay() {
 
   // clearly indicate the calibration status
   if (Global.calibrated) {
-    setLed(16, 3, COLOR_GREEN, true);
+    setLed(16, 3, COLOR_GREEN, cellOn);
   }
   else {
-    setLed(16, 3, COLOR_RED, true);
+    setLed(16, 3, COLOR_RED, cellOn);
   }
 
 #ifdef DEBUG_ENABLED
@@ -846,23 +875,23 @@ void paintCalibrationDisplay() {
   switch (calibrationPhase) {
     case calibrationRows:
       for (byte c = 1; c < NUMCOLS; ++c) {
-        setLed(c, 0, COLOR_BLUE, true);
-        setLed(c, 2, COLOR_BLUE, true);
-        setLed(c, 5, COLOR_BLUE, true);
-        setLed(c, 7, COLOR_BLUE, true);
+        setLed(c, 0, COLOR_BLUE, cellOn);
+        setLed(c, 2, COLOR_BLUE, cellOn);
+        setLed(c, 5, COLOR_BLUE, cellOn);
+        setLed(c, 7, COLOR_BLUE, cellOn);
       }
       break;
     case calibrationCols:
       for (byte r = 0; r < NUMROWS; ++r) {
-        setLed(1, r, COLOR_BLUE, true);
-        setLed(4, r, COLOR_BLUE, true);
-        setLed(7, r, COLOR_BLUE, true);
-        setLed(10, r, COLOR_BLUE, true);
-        setLed(13, r, COLOR_BLUE, true);
-        setLed(16, r, COLOR_BLUE, true);
-        setLed(19, r, COLOR_BLUE, true);
-        setLed(22, r, COLOR_BLUE, true);
-        setLed(25, r, COLOR_BLUE, true);
+        setLed(1, r, COLOR_BLUE, cellOn);
+        setLed(4, r, COLOR_BLUE, cellOn);
+        setLed(7, r, COLOR_BLUE, cellOn);
+        setLed(10, r, COLOR_BLUE, cellOn);
+        setLed(13, r, COLOR_BLUE, cellOn);
+        setLed(16, r, COLOR_BLUE, cellOn);
+        setLed(19, r, COLOR_BLUE, cellOn);
+        setLed(22, r, COLOR_BLUE, cellOn);
+        setLed(25, r, COLOR_BLUE, cellOn);
       }
       break;
   }
@@ -883,7 +912,7 @@ void setMidiChannelLed(byte chan, byte color) {                       // chan va
     }
     byte row = 7 - (chan - 1) / 4;
     byte col = 3 + (chan - 1) % 4;
-    setLed(col, row, color, true);
+    setLed(col, row, color, cellOn);
 }
 
 // light per-split midi mode and single midi channel lights
