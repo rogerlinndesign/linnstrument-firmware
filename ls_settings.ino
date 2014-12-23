@@ -468,7 +468,7 @@ void handlePerSplitSettingNewTouch() {
     toggleChannel(chan);
 
   } else if (sensorCol == 7) {
-    // BendRange setting;  Sensible preset values, or an NRPN-configured custom bendRange.
+    // BendRange setting
     if      (sensorRow == 7) {
       Split[Global.currentPerSplit].bendRange = 2;
     }
@@ -482,7 +482,10 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].bendRange = 24;
     }
     else if (sensorRow == 3) {
-      Split[Global.currentPerSplit].bendRange = Split[Global.currentPerSplit].customBendRange;
+      Split[Global.currentPerSplit].bendRange = 48;
+    }
+    else if (sensorRow == 2) {
+      Split[Global.currentPerSplit].bendRange = 96;
     }
 
   } else if (sensorCol == 8) {

@@ -431,7 +431,7 @@ struct SplitSettings {
   byte midiChanMain;                   // main midi channel, 1 to 16
   byte midiChanPerRow;                 // per-row midi channel, 1 to 16
   boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
-  byte bendRange;                      // 1 .. 127
+  byte bendRange;                      // 0 - 96, though only 2, 3, 12, 24, 48, and 96 are permitted (for now)
   boolean sendX;                       // true to send continuous X, false if not
   boolean sendY;                       // true to send continuous Y, false if not
   boolean sendZ;                       // true to send continuous Z, false if not
@@ -454,7 +454,6 @@ struct SplitSettings {
   boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
   boolean strum;                       // true when this split strums the touches of the other split
-  byte customBendRange;                // NRPN-sent custom bend range value
 };
 SplitSettings Split[2];
 ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
