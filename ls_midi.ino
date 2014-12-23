@@ -692,23 +692,22 @@ unsigned long lastMomentMidiAT[16];
 unsigned long lastMomentMidiPP[16*128];
 
 int scalePitch(byte split, int pitchValue) {
-  switch(Split[split].bendRange)                 // Adapt for bend range
+  // Adapt for bend range
+  switch(Split[split].bendRange)
   {
-    case 2:                                      // If 2, multiply by 24
-      pitchValue = pitchValue * 24;
-      break;
-    case 3:                                      // If 3, multiply by 16
-      pitchValue = pitchValue * 16;
-      break;
-    case 12:                                     // If 12, multiply by 4
-      pitchValue = pitchValue * 4;
-      break;
-    case 24:                                     // If 24, multiply by 2
-      pitchValue = pitchValue * 2;
-      break;
+    // pure integer math cases
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 6:
+    case 8:
+    case 12:
+    case 24:
     case 48:
-      // nothing to do
+      pitchValue = pitchValue * (48 / Split[split].bendRange);
       break;
+    // others need fixed point decimal math
     default:
       pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(Split[split].bendRange))));
       break;
