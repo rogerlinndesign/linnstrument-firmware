@@ -253,6 +253,7 @@ struct NoteTouchMapping {
   void debugNoteChain();
 
   unsigned short noteCount;
+  unsigned musicalTouchCount[16];
   signed char firstNote;
   signed char firstChannel;
   signed char lastNote;
