@@ -316,6 +316,9 @@ void paintPerSplitDisplay(byte side) {
     case 24:
       setLed(7, 4, Split[side].colorMain, cellOn);
       break;
+    default:
+      setLed(7, 3, Split[side].colorMain, true);
+      break;
   }
 
   // set Pitch/X settings
