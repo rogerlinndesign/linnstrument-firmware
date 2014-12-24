@@ -281,7 +281,8 @@ enum DisplayMode {
   displayCCForZ,
   displaySensorLoZ,
   displaySensorFeatherZ,
-  displaySensorRangeZ
+  displaySensorRangeZ,
+  displayPromo
 };
 void setDisplayMode(DisplayMode mode);
 
@@ -595,8 +596,8 @@ byte lightSettings = LIGHTS_MAIN;   // determines which Lights array is being di
 
 #define LED_FLASH_DELAY 50000        // the time before a led is turned of, in microseconds
 
-boolean scrollingActive = false;     // indicates whether is text is being scrolled, preventing any other display
-boolean stopScrolling = false;       // indicates whether scrolling should be stopped
+boolean animationActive = false;     // indicates whether animation is active, preventing any other display
+boolean stopAnimation = false;       // indicates whether animation should be stopped
 
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 

@@ -24,6 +24,7 @@ displayCCForZ            : custom CC number selection for Z expression
 displaySensorLoZ         : sensor low Z sensitivity selection
 displaySensorFeatherZ    : sensor feather Z sensitivity selection
 displaySensorRangeZ      : max Z sensor range selection
+displayPromo             : display promotion animation
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -55,7 +56,7 @@ void clearDisplay() {
 // updates columns 1=25 of the LED display based on the current displayMode setting:
 // 0:normal, 1:perSplit, 2:preset, 3:volume, 4:transpose, 5:split, 6:global
 void updateDisplay() {
-  if (scrollingActive) {
+  if (animationActive) {
     return;
   }
 

@@ -288,8 +288,8 @@ void handleNewTouch() {
 
   cellTouched(touchedCell);                                 // mark this cell as touched
 
-  if (scrollingActive) {                                    // allow any new touch to cancel scrolling
-    stopScrolling = true;
+  if (animationActive) {                                    // allow any new touch to cancel scrolling
+    stopAnimation = true;
     return;
   }
 

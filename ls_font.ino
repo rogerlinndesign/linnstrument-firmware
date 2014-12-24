@@ -1148,6 +1148,8 @@ void font_draw_string(int col, int row, char* str, byte color, struct Font* font
 
     if (reversed) { --i; }
     else          { ++i; }
+    
+    performContinuousTasks(micros());
   }
 }
 
@@ -1226,21 +1228,24 @@ static void font_draw_blank_column(int col, int row, byte height)
   }
 }
 
-void small_scroll_text(char* str, byte color) {
-  font_scroll_text(&smallFont, str, color);
+void small_scroll_text_flipped(char* str, byte color) {
+  font_scroll_text_flipped(&smallFont, str, color);
 }
 
-void big_scroll_text(char* str, byte color) {
-  font_scroll_text(&bigFont, str, color);
+void big_scroll_text_flipped(char* str, byte color) {
+  font_scroll_text_flipped(&bigFont, str, color);
 }
 
-void font_scroll_text(struct Font* font, char* str, byte color) {
-  scrollingActive = true;
-  stopScrolling = false;
+void font_scroll_text_flipped(struct Font* font, char* str, byte color) {
+  unsigned long origInterval = ledRefreshInterval;
+  ledRefreshInterval = 200;
+
+  animationActive = true;
+  stopAnimation = false;
 
   int totalwidth = font_width_string(str, font);
   int i;
-  for (i = totalwidth; i >= -NUMCOLS && !stopScrolling; --i) {
+  for (i = totalwidth; i >= -NUMCOLS && !stopAnimation; --i) {
     font_draw_string( -i, 0, str, color, font, true, true);
 
     if (i < 0) {
@@ -1256,5 +1261,35 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
 
   clearDisplay();
 
-  scrollingActive = false;
+  animationActive = false;
+
+  ledRefreshInterval = origInterval;
+}
+
+void small_scroll_text(char* str, byte color) {
+  font_scroll_text(&smallFont, str, color);
+}
+
+void big_scroll_text(char* str, byte color) {
+  font_scroll_text(&bigFont, str, color);
+}
+
+void font_scroll_text(struct Font* font, char* str, byte color) {
+  unsigned long origInterval = ledRefreshInterval;
+  ledRefreshInterval = 200;
+
+  animationActive = true;
+  stopAnimation = false;
+
+  int totalwidth = font_width_string(str, &smallFont);
+  for (int i = 0; i < totalwidth && !stopAnimation; ++i) {
+    font_draw_string( -i, 0, str, color, font, true, false);
+    delayUsecWithScanning(40000);
+  }
+
+  clearDisplay();
+
+  animationActive = false;
+
+  ledRefreshInterval = origInterval;
 }
