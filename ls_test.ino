@@ -182,7 +182,11 @@ void modeLoopManufacturingTest() {
     }
 
     for (int row = sensorRow % 2; row < NUMROWS; row += 2) {
+<<<<<<< HEAD
       setLed(sensorCol, row, color, true);
+=======
+      setLed(sensorCol, row, color, cellOn);
+>>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
     }
   }
   else if (!sensorCell().isMeaningfulTouch() && previousTouch != untouchedCell) {

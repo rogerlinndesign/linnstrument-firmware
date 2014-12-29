@@ -9,7 +9,11 @@ These functions handle the sensing of touches on the LinnStrument's touch surfac
 // These are the rectified pressure sensititivies for each column
 // CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
 // actual values in a spreadsheet
+<<<<<<< HEAD
 const int Z_BIAS[NUMROWS][NUMCOLS] =  {
+=======
+const short Z_BIAS[NUMROWS][NUMCOLS] =  {
+>>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
     {850, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1506},
     {850, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1506},
     {850, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1443},
@@ -22,12 +26,16 @@ const int Z_BIAS[NUMROWS][NUMCOLS] =  {
 
 // readX:
 // Reads raw X value at the currently addressed column and row
+<<<<<<< HEAD
 inline int readX() {                                  // returns the raw X value at the addressed cell
+=======
+inline short readX() {                                // returns the raw X value at the addressed cell
+>>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
   delayUsec(250);                                     // delay required after setting analog switches for stable X read. This needs further research
-  int raw = spiAnalogRead();
+  short raw = spiAnalogRead();
   #ifdef APRIL_2014_PROTOTYPE
   raw = 4095 - raw;
   #endif
@@ -37,12 +45,16 @@ inline int readX() {                                  // returns the raw X value
 
 // readY:
 // Reads Y value for current cell and returns a value of 0-127 within cell's y axis
+<<<<<<< HEAD
 inline int readY() {                                  // returns a value of 0-127 within cell's y axis
+=======
+inline short readY() {                                // returns a value of 0-127 within cell's y axis
+>>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
   delayUsec(25);                                      // delay required after setting analog switches for stable Y read. Requires further research
-  int raw = spiAnalogRead();
+  short raw = spiAnalogRead();
   #ifdef APRIL_2014_PROTOTYPE
   raw = 4095 - raw;
   #endif
@@ -56,7 +68,7 @@ inline unsigned short readZ() {                              // returns the raw 
   selectSensorCell(sensorCol, sensorRow, READ_Z);            // set analog switches to current cell in touch sensor and read Z
   delayUsec(7);                                              // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
 
-  int rawZ = 4095 - spiAnalogRead();                         // read raw Z value and invert it from (4095 - 0) to (0-4095)
+  short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
   rawZ = (rawZ * 1400) / Z_BIAS[sensorRow][sensorCol];       // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
 
   return rawZ;
@@ -64,11 +76,15 @@ inline unsigned short readZ() {                              // returns the raw 
 
 // spiAnalogRead:
 // returns raw ADC output at current cell
+<<<<<<< HEAD
 inline int spiAnalogRead() {
+=======
+inline short spiAnalogRead() {
+>>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   byte msb = SPI.transfer(SPI_ADC, 0, SPI_CONTINUE);         // read byte MSB
   byte lsb = SPI.transfer(SPI_ADC, 0);                       // read byte LSB
 
-  int raw = int(msb) << 8;                 // assemble the 2 transfered bytes into an int
+  short raw = short(msb) << 8;             // assemble the 2 transfered bytes into an int
   raw |= lsb;
   return raw >> 2;                         // shift the 14-bit value from bits 16-2 to bits 14-0
 }

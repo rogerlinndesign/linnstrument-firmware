@@ -75,7 +75,7 @@ NRPN   Value   Description
 16     0-1     Split Left MIDI Per Note Channel 15 (0: Off, 1: On)
 17     0-1     Split Left MIDI Per Note Channel 16 (0: Off, 1: On)
 18     1-16    Split Left MIDI Per Row Lowest Channel
-19     2-24    Split Left MIDI Bend Range (only supports 2, 3, 12 and 24)
+19     1-96    Split Left MIDI Bend Range
 20     0-1     Split Left Send X (0: Off, 1: On)
 21     0-1     Split Left Pitch Quantize (0: Off, 1: On)
 22     0-1     Split Left Pitch Quantize Hold (0: Off, 1: On)

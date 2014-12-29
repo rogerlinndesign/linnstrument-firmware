@@ -26,8 +26,8 @@ const int32_t CALX_DEFAULT_FIRST_CELL = FXD_FROM_INT(248);
 const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_FROM_INT(157);
 const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_FROM_INT(4064);
 
-const int CALY_DEFAULT_MIN[NUMROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
-const int CALY_DEFAULT_MAX[NUMROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
+const short CALY_DEFAULT_MIN[NUMROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
+const short CALY_DEFAULT_MAX[NUMROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
 
 // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
 const int32_t CALX_BORDER_OFFSET = FXD_FROM_INT(10);
@@ -84,7 +84,7 @@ void initializeCalibrationData() {
   }
 }
 
-int calculateCalibratedX(int rawX) {
+short calculateCalibratedX(short rawX) {
   int32_t fxdRawX = FXD_FROM_INT(rawX);
 
   byte sector = (sensorRow / 3);
@@ -105,14 +105,14 @@ int calculateCalibratedX(int rawX) {
   int32_t fxdTopX = Global.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX - Global.calRows[sensorCol][sectorTop].fxdMeasuredX, Global.calRows[sensorCol][sectorTop].fxdRatio);
 
   // The final calibrated X position is the interpolation between the bottom and the top sector rows based on the current sensor row
-  int result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
+  short result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
 
   return result;
 }
 
-int calculateCalibratedY(int rawY) {
-  int col = (sensorCol - 1) / 3;
-  int row = sensorRow;
+signed char calculateCalibratedY(short rawY) {
+  byte col = (sensorCol - 1) / 3;
+  byte row = sensorRow;
 
   int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Global.calCols[col][row].minY, Global.calCols[col][row].maxY) - Global.calCols[col][row].minY), Global.calCols[col][row].fxdRatio);
   int32_t fxdRightY = 0;
@@ -120,9 +120,9 @@ int calculateCalibratedY(int rawY) {
     fxdRightY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Global.calCols[col+1][row].minY, Global.calCols[col+1][row].maxY) - Global.calCols[col+1][row].minY), Global.calCols[col+1][row].fxdRatio);
   }
 
-  int bias = (sensorCol - 1) % 3;
-  int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
-                          FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
+  byte bias = (sensorCol - 1) % 3;
+  short result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
+                            FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);
@@ -136,12 +136,12 @@ bool handleCalibrationSample() {
     sensorCell().refreshX();
     sensorCell().refreshY();
     if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
-      int row = (sensorRow / 2);
+      byte row = (sensorRow / 2);
       calSampleRows[sensorCol][row].minValue = min(sensorCell().rawX(), calSampleRows[sensorCol][row].minValue);
       calSampleRows[sensorCol][row].maxValue = max(sensorCell().rawX(), calSampleRows[sensorCol][row].maxValue);
     }
     else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
-      int col = (sensorCol - 1) / 3;
+      byte col = (sensorCol - 1) / 3;
       calSampleCols[col][sensorRow].minValue = min(sensorCell().rawY(), calSampleCols[col][sensorRow].minValue);
       calSampleCols[col][sensorRow].maxValue = max(sensorCell().rawY(), calSampleCols[col][sensorRow].maxValue);
     }
@@ -155,19 +155,19 @@ bool handleCalibrationSample() {
 void handleCalibrationRelease() {
   // Handle calibration passes, at least two before indicating green
   if (displayMode == displayCalibration) {
-    int cellPass = -1;
+    signed char cellPass = -1;
 
     if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
-      int i1 = sensorCol;
-      int i2 = (sensorRow / 2);
+      byte i1 = sensorCol;
+      byte i2 = (sensorRow / 2);
 
       if (calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 80) {    // only proceed when at least a delta of 80 in X values is measured
         cellPass = (calSampleRows[i1][i2].pass++);
       }
     }
     else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
-      int i1 = (sensorCol - 1) / 3;
-      int i2 = sensorRow;
+      byte i1 = (sensorCol - 1) / 3;
+      byte i2 = sensorRow;
 
       if (calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue > 180) {    // only proceed when at least a delta of 180 in Y values is measured
         cellPass = (calSampleCols[i1][i2].pass++);
@@ -176,12 +176,12 @@ void handleCalibrationRelease() {
 
     // This is the first pass for a sensor, switch the led to cyan
     if (cellPass == 0) {
-      setLed(sensorCol, sensorRow, COLOR_CYAN, true);
+      setLed(sensorCol, sensorRow, COLOR_CYAN, cellOn);
     }
     // This is the second or more pass for a sensor, switch the led to green
     // We need at least two passes to consider the calibration viable
     else if (cellPass > 0) {
-      setLed(sensorCol, sensorRow, COLOR_GREEN, true);
+      setLed(sensorCol, sensorRow, COLOR_GREEN, cellOn);
 
       // Scan all the calibration samples to see if at least two passes were made
       // for each cell of the rows
@@ -262,7 +262,7 @@ void handleCalibrationRelease() {
           clearDisplay();
           bigfont_draw_string(6, 0, "OK", globalColor, false);
           delayUsec(500000);
-          displayMode = displayNormal;
+          setDisplayMode(displayNormal);
           controlButton = -1;
           clearLed(0, GLOBAL_SETTINGS_ROW);
           updateDisplay();

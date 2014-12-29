@@ -10,7 +10,7 @@ surface.
 **************************************************************************************************/
 
 struct Character {
-  int width;
+  byte width;
   char* data;
 };
 
@@ -1082,7 +1082,7 @@ static Character big_blank = { 5,
 
 
 struct Font {
-  int height;
+  byte height;
   char* chars;
   Character** data;
 };
@@ -1114,8 +1114,8 @@ Character* bigChars[] = {
 };
 struct Font bigFont = { 8, "!\"#$%&'()*+,-/.:;<=>?@[\\]^_`{|}~ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ", bigChars };
 
-int font_width_string(char* str, struct Font* font) {
-  int width = 0;
+unsigned font_width_string(char* str, struct Font* font) {
+  unsigned width = 0;
   char c;
   while ((c=*str++) != 0) {
     char* p = strchr(font->chars,c);
@@ -1148,6 +1148,8 @@ void font_draw_string(int col, int row, char* str, byte color, struct Font* font
 
     if (reversed) { --i; }
     else          { ++i; }
+    
+    performContinuousTasks(micros());
   }
 }
 
@@ -1188,7 +1190,7 @@ void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase,
 }
 
 // Draw a single character at col,row
-static void font_draw_char(int col, int row, char* fontdata, byte color, int width, int height, boolean erase, boolean reversed)
+static void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
 {
   for (byte r = 0; r < height; ++r) {
     for (byte c = 0; c < width; ++c) {
@@ -1210,37 +1212,40 @@ static void font_draw_char(int col, int row, char* fontdata, byte color, int wid
         continue;
       }
       if (erase || thechar != ' ') {
-        setLed(destcol, destrow, (thechar != ' ' ? color : 0), true);
+        setLed(destcol, destrow, (thechar != ' ' ? color : 0), cellOn);
       }
     }
   }
 }
 
 // Draw a single-pixel-wide blank column
-static void font_draw_blank_column(int col, int row, int height)
+static void font_draw_blank_column(int col, int row, byte height)
 {
   if (col >= 0 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
-      setLed(col, r, 0, true);
+      setLed(col, r, 0, cellOn);
     }
   }
 }
 
-void small_scroll_text(char* str, byte color) {
-  font_scroll_text(&smallFont, str, color);
+void small_scroll_text_flipped(char* str, byte color) {
+  font_scroll_text_flipped(&smallFont, str, color);
 }
 
-void big_scroll_text(char* str, byte color) {
-  font_scroll_text(&bigFont, str, color);
+void big_scroll_text_flipped(char* str, byte color) {
+  font_scroll_text_flipped(&bigFont, str, color);
 }
 
-void font_scroll_text(struct Font* font, char* str, byte color) {
-  scrollingActive = true;
-  stopScrolling = false;
+void font_scroll_text_flipped(struct Font* font, char* str, byte color) {
+  unsigned long origInterval = ledRefreshInterval;
+  ledRefreshInterval = 200;
+
+  animationActive = true;
+  stopAnimation = false;
 
   int totalwidth = font_width_string(str, font);
   int i;
-  for (i = totalwidth; i >= -NUMCOLS && !stopScrolling; --i) {
+  for (i = totalwidth; i >= -NUMCOLS && !stopAnimation; --i) {
     font_draw_string( -i, 0, str, color, font, true, true);
 
     if (i < 0) {
@@ -1256,5 +1261,35 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
 
   clearDisplay();
 
-  scrollingActive = false;
+  animationActive = false;
+
+  ledRefreshInterval = origInterval;
+}
+
+void small_scroll_text(char* str, byte color) {
+  font_scroll_text(&smallFont, str, color);
+}
+
+void big_scroll_text(char* str, byte color) {
+  font_scroll_text(&bigFont, str, color);
+}
+
+void font_scroll_text(struct Font* font, char* str, byte color) {
+  unsigned long origInterval = ledRefreshInterval;
+  ledRefreshInterval = 200;
+
+  animationActive = true;
+  stopAnimation = false;
+
+  int totalwidth = font_width_string(str, &smallFont);
+  for (int i = 0; i < totalwidth && !stopAnimation; ++i) {
+    font_draw_string( -i, 0, str, color, font, true, false);
+    delayUsecWithScanning(40000);
+  }
+
+  clearDisplay();
+
+  animationActive = false;
+
+  ledRefreshInterval = origInterval;
 }

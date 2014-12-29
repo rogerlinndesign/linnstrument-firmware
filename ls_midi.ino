@@ -73,7 +73,7 @@ void handleMidiInput() {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, true);
+          setLed(25, 2, COLOR_GREEN, cellOn);
         }
         break;
       case MIDIStart:
@@ -124,7 +124,7 @@ void handleMidiInput() {
 
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
-            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, true);
+            setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
             midiClockLedOn = now;
           }
 
@@ -248,7 +248,7 @@ void handleMidiInput() {
             case 22:
               if (displayMode == displayNormal) {
                 if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, true);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn);
                 }
                 else {
                   paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
@@ -281,12 +281,12 @@ void handleMidiInput() {
   }
 }
 
-int determineSplitForChannel(byte channel) {
+signed char determineSplitForChannel(byte channel) {
   if (channel > 15) {
     return -1;
   }
 
-  for (int split = LEFT; split <= RIGHT; ++split) {
+  for (byte split = LEFT; split <= RIGHT; ++split) {
     switch (Split[split].midiMode) {
       case oneChannel:
         if (Split[split].midiChanMain-1 == channel) {
@@ -349,7 +349,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI Bend Range
     case 19:
-      if (value == 2 || value == 3 || value == 12 || value == 24 || value == 48 || value == 96) { //-- added 48, 96 jas 2014/12/11
+      if (inRange(value, 1, 96)) {
         Split[split].bendRange = value;
       }
       break;
@@ -654,14 +654,14 @@ short getMidiClockCount() {
 void highlightNoteCells(byte color, byte split, byte notenum) {
   if (displayMode != displayNormal) return;
 
-  int row = 0;
+  byte row = 0;
   if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
-    int col = getNoteNumColumn(split, notenum, row);
+    short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, true);
+      setLed(col, row, color, cellOn);
     }
   }
 }
@@ -669,24 +669,24 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
 void resetNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
   
-  int row = 0;
+  byte row = 0;
   if (Split[split].lowRowMode != lowRowNormal) {
     row = 1;
   }
   for (; row < NUMROWS; ++row) {
-    int col = getNoteNumColumn(split, notenum, row);
+    short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       paintNormalDisplayCell(split, col, row);
     }
   }
 }
 
-int getNoteNumColumn(byte split, byte notenum, byte row) {
-  int offset, lowest;
+short getNoteNumColumn(byte split, byte notenum, byte row) {
+  short offset, lowest;
   determineNoteOffsetAndLowest(split, row, offset, lowest);
 
   //-- base column unscaled by colOffset - jas 2014/12/11 --
-  int baseCol = notenum - (lowest + (row * offset) + Split[split].transposeOctave)  // calculate the base column that this MIDI note can be played on
+  short baseCol = notenum - (lowest + (row * offset) + Split[split].transposeOctave)  // calculate the base column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;           // adapt for transposition settings
             
   //-- for colOffset>1 notes may appear only on every 2nd, 3rd, or 4th row, etc - jas 2014/12/11 --
@@ -694,11 +694,11 @@ int getNoteNumColumn(byte split, byte notenum, byte row) {
     return -1;
   }
   
-  int col = baseCol / Global.colOffset + 1; // jas 2014/12/11 --
+  short col = baseCol / Global.colOffset + 1; // jas 2014/12/11 --
 
   byte lowColSplit, highColSplit;
   getSplitBoundaries(split, lowColSplit, highColSplit);
-  if (col < lowColSplit || col >= highColSplit) {                                    // only return columns that are valid for the split
+  if (col < lowColSplit || col >= highColSplit) {                                      // only return columns that are valid for the split
     col = -1;
   }
 
@@ -722,26 +722,28 @@ unsigned long lastMomentMidiAT[16];
 unsigned long lastMomentMidiPP[16*128];
 
 int scalePitch(byte split, int pitchValue) {
-  switch(Split[split].bendRange)               // Switch on bend range (+/- 2, 3, 12 or 24 semitones)
+  // Adapt for bend range
+  switch(Split[split].bendRange)
   {
-  case 2:                                      // If 2, multiply by 24
-    pitchValue = pitchValue * 24;
-    break;
-  case 3:                                      // If 3, multiply by 16
-    pitchValue = pitchValue * 16;
-    break;
-  case 12:                                     // If 12, multiply by 4
-    pitchValue = pitchValue << 2;
-    break;
-  case 24:
-    pitchValue = pitchValue << 1;              // If 24, multiply by 2
-    break;
-  case 48:
-    pitchValue = pitchValue;                  // If 48, multiply by 1 ;) - jas 2014/12/11 --
-    break;
-  case 96:
-    pitchValue = pitchValue / 2;              // If 96, divide by 2 - jas 2014/12/11 --
-    break;
+    // pure integer math cases
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 6:
+    case 8:
+    case 12:
+    case 16:
+    case 24:
+      pitchValue = pitchValue * (48 / Split[split].bendRange);
+      break;
+    // no calculations needed
+    case 48:
+      break;
+    // others need fixed point decimal math
+    default:
+      pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(Split[split].bendRange))));
+      break;
   }
 
   return pitchValue;
@@ -814,12 +816,12 @@ void preSendPressure(byte note, byte pressureValue, byte channel) {
 void initializeLastMidiTracking() {
   // Initialize the arrays that track the latest MIDI values by setting all entries
   // to invalid MIDI values. This ensures that the first messages will always be sent.
-  for (int ch = 0; ch < 16; ++ch) {
+  for (byte ch = 0; ch < 16; ++ch) {
     lastValueMidiPB[ch] = 0x7FFF;
     lastValueMidiAT[ch] = 0xFF;
     lastMomentMidiPB[ch] = 0;
     lastMomentMidiAT[ch] = 0;
-    for (int msg = 0; msg < 128; ++msg) {
+    for (byte msg = 0; msg < 128; ++msg) {
       lastValueMidiCC[ch*msg] = 0xFF;
       lastValueMidiPP[ch*msg] = 0xFF;
       lastMomentMidiCC[ch*msg] = 0;
@@ -828,9 +830,9 @@ void initializeLastMidiTracking() {
   }
 
   // Initialize the arrays that track which MIDI notes are on
-  for (int s = 0; s < 2; ++s) {
-    for (int n = 0; n < 128; ++n) {
-      for (int c = 0; c < 16; ++c) {
+  for (byte s = 0; s < 2; ++s) {
+    for (byte n = 0; n < 128; ++n) {
+      for (byte c = 0; c < 16; ++c) {
         lastValueMidiNotesOn[s][n][c] = 0;
       }
     }
