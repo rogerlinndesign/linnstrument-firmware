@@ -273,11 +273,7 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
     if (operatingMode == modeManufacturingTest) {
       switchState[whichSwitch][focusedSplit] = state;
       if (state) {
-<<<<<<< HEAD
-        setLed(24 + whichSwitch, 6, COLOR_GREEN, true);
-=======
         setLed(24 + whichSwitch, 6, COLOR_GREEN, cellOn);
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
       }
       else {
         clearLed(24 + whichSwitch, 6);

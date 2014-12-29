@@ -101,12 +101,8 @@ inline void TouchInfo::refreshX() {
 
       // store the initial X position
       initialX = currentCalibratedX;
-<<<<<<< HEAD
-
-=======
       
       quantizationOffsetX = 0;
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
       fxdRateX = 0;
       lastMovedX = 0;
     }
@@ -137,11 +133,7 @@ signed char TouchInfo::calibratedY() {
   return currentCalibratedY;
 }
 
-<<<<<<< HEAD
-int TouchInfo::rawZ() {
-=======
 short TouchInfo::rawZ() {
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   refreshZ();
   return currentRawZ;
 }
@@ -169,11 +161,7 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-<<<<<<< HEAD
-    int usableZ = currentRawZ - Global.sensorLoZ;     // subtract minimum from value
-=======
     short usableZ = currentRawZ - Global.sensorLoZ;   // subtract minimum from value
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
 
     if (usableZ <= 0) {                               // if it's below the acceptable minimum, store it as a feather touch
       featherTouch = true;
@@ -207,13 +195,8 @@ inline void TouchInfo::refreshZ() {
         break;
     }
 
-<<<<<<< HEAD
-    int usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
-    int usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
-=======
     short usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
     short usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -265,21 +248,14 @@ void TouchInfo::setPhantoms(byte col1, byte col2, byte row1, byte row2) {
   phantomCoords[3] = row2;
 }
 
-<<<<<<< HEAD
-boolean TouchInfo::isHigherPhantomPressure(int other) {
-=======
 boolean TouchInfo::isHigherPhantomPressure(short other) {
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   return hasNote() || currentRawZ > other;
 }
 
 void TouchInfo::clearSensorData() {
   initialX = -1;
   initialReferenceX = 0;
-<<<<<<< HEAD
-=======
   quantizationOffsetX = 0;
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;

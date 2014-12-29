@@ -33,10 +33,7 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 
 inline void performContinuousTasks(unsigned long now) {
   if (checkRefreshLedColumn(now)) {
-<<<<<<< HEAD
-=======
     checkStopMiddleRootNoteBlink();
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
     checkTimeToReadFootSwitches(now);
     checkRefreshGlobalSettingsDisplay(now);
   }
@@ -63,10 +60,6 @@ inline boolean checkRefreshLedColumn(unsigned long now) {
   return false;
 }
 
-<<<<<<< HEAD
-// checkTimeToReadFootSwitches:
-=======
->>>>>>> 0dda30b709ba6be3f56aa6edacaba01cfdbaffe1
 // checks to see if it's time to refresh the next LED column, and if so, does it
 inline void checkTimeToReadFootSwitches(unsigned long now) {
   if (calcTimeDelta(now, prevFootSwitchTimerCount) > FOOT_SWITCH_REFRESH_INTERVAL) {    // is it time to check the foot switches?
