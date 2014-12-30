@@ -400,9 +400,14 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 
 /****************************************** Velocity *********************************************/
 
-#define VELOCITY_SAMPLES 3
+#define REAL_VELOCITY_CALCULATION 0
 
+#if REAL_VELOCITY_CALCULATION
+#define VELOCITY_SAMPLES 2
+#else
+#define VELOCITY_SAMPLES 3
 const int32_t VELOCITY_SCALE = FXD_FROM_INT(4);
+#endif
 
 /***************************************** Calibration *******************************************/
 
