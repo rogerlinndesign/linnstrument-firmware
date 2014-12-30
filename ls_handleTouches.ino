@@ -32,6 +32,12 @@ void cellTouched(TouchState state) {
 
 // Re-initialize the velocity detection
 void initVelocity() {
+  sensorCell().fxdVelSumX = FXD_FROM_INT(1);
+  sensorCell().fxdVelSumY = 0;
+  sensorCell().fxdVelSumXY = 0;
+  sensorCell().fxdVelSumXSQ = FXD_FROM_INT(1);
+  sensorCell().fxdVelX = FXD_FROM_INT(2);
+
   sensorCell().vcount = 0;
   sensorCell().velocity = 0;
 }
@@ -49,13 +55,33 @@ byte calcPreferredVelocity(byte velocity) {
 // Calculate the velocity value by providing pressure (z) data.
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
-boolean calcVelocity(byte z) {
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
+boolean calcVelocity(unsigned short z) {
+  if (sensorCell().vcount < VELOCITY_SAMPLES && z >= sensorCell().velocity) {
     sensorCell().vcount++;
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
 
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
+    // store the initial sample so that it can be used to prevent negative velocities
+    // this is only temporary and will be overwritten with the real velocity once the
+    // calculations are done
+    if (sensorCell().velocity == 0) {
+      sensorCell().velocity = z;
+    }
+
+    // normalize the velocity Z data
+    int32_t fxdVel = FXD_DIV(FXD_FROM_INT(z), FXD_FROM_INT(1016));
+
+    // calculate the velocity elements
+    sensorCell().fxdVelSumX += sensorCell().fxdVelX;
+    sensorCell().fxdVelSumY += fxdVel;
+    sensorCell().fxdVelSumXY += FXD_MUL(sensorCell().fxdVelX, fxdVel);
+    sensorCell().fxdVelSumXSQ += FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelX);
+    sensorCell().fxdVelX += FXD_FROM_INT(1);
+
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
+      int32_t fxdVelocityRaw = FXD_DIV(FXD_MUL(VELOCITY_SCALE, FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelSumXY) - FXD_MUL(sensorCell().fxdVelSumX, sensorCell().fxdVelSumY)),
+                                       FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelSumXSQ) - FXD_MUL(sensorCell().fxdVelSumX, sensorCell().fxdVelSumX));
+
+      sensorCell().velocity = calcPreferredVelocity(FXD_TO_INT(FXD_MUL(fxdVelocityRaw, FXD_FROM_INT(127))));
 
       return true;
     }
@@ -288,8 +314,8 @@ void handleNewTouch() {
 
   cellTouched(touchedCell);                                 // mark this cell as touched
 
-  if (scrollingActive) {                                    // allow any new touch to cancel scrolling
-    stopScrolling = true;
+  if (animationActive) {                                    // allow any new touch to cancel scrolling
+    stopAnimation = true;
     return;
   }
 
@@ -442,6 +468,8 @@ const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over
 const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
+#define INVALID_DATA SHRT_MAX
+
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate() {
@@ -507,8 +535,8 @@ void handleXYZupdate() {
   }
 
   // get the processed expression data
-  short pitchBend = SHRT_MAX;
-  short preferredTimbre = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
+  short preferredTimbre = INVALID_DATA;
   byte preferredPressure = handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
@@ -530,7 +558,9 @@ void handleXYZupdate() {
     handleFaderTouch(newVelocity);
   }
   else if (handleNotes) {
-    sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
+    // after the initial velocity, new velocity values are continuously being calculated simply based
+    // on the Z data so that velocity can change during the arpeggiation
+    sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ >> 3);
 
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
@@ -540,7 +570,7 @@ void handleXYZupdate() {
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (pitchBend != SHRT_MAX &&
+    if (pitchBend != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
       if (preventPitchSlides(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
@@ -552,7 +582,7 @@ void handleXYZupdate() {
 
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (preferredTimbre != SHRT_MAX &&
+    if (preferredTimbre != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
       preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
@@ -629,7 +659,7 @@ void handleNewNote(signed char notenum) {
 const int32_t FXD_MIN_SLEW = FXD_FROM_INT(1);
 
 byte handleZExpression() {
-  byte preferredPressure = sensorCell().pressureZ;
+  byte preferredPressure = sensorCell().pressureZ >> 3;
 
   // handle pressure transition between adjacent cells if they are not playing their own note
   byte adjacentZ = 0;
@@ -670,7 +700,7 @@ byte handleZExpression() {
 }
 
 short handleXExpression() {
-  short pitchBend = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
 
   sensorCell().refreshX();
 
@@ -764,7 +794,7 @@ const int32_t MIN_SLEW_Y = FXD_FROM_INT(3);
 short handleYExpression() {
   sensorCell().refreshY();
 
-  short preferredTimbre = SHRT_MAX;
+  short preferredTimbre = INVALID_DATA;
   if (Split[sensorSplit].relativeY) {
     preferredTimbre = constrain(64 + (sensorCell().currentCalibratedY - sensorCell().initialY ), 0, 127);
   }
@@ -899,7 +929,7 @@ void handleTouchRelease() {
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
       for (byte ch = 0; ch < 16; ++ch) {
-        if (lastValueMidiNotesOn[sensorSplit][sensorCell().note][ch] > 0) {
+        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
           allNotesOff = false;
           break;
         }

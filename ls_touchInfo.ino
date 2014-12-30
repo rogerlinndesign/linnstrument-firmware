@@ -202,19 +202,19 @@ inline void TouchInfo::refreshZ() {
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
 
     // apply the sensitivity curve
-    usableVelocityZ = FXD_TO_INT(fxd_usableVelocityZ);
-    usablePressureZ = FXD_TO_INT(fxd_usablePressureZ);
+    velocityZ = FXD_TO_INT(fxd_usableVelocityZ);
+    pressureZ = FXD_TO_INT(fxd_usablePressureZ);
     if (Global.velocitySensitivity != velocityLow) {
-      usableVelocityZ = Z_CURVE[usableVelocityZ];
+      velocityZ = Z_CURVE[velocityZ];
     }
-    if (Global.velocitySensitivity != velocityLow) {
-      usablePressureZ = Z_CURVE[usablePressureZ];
+    if (Global.pressureSensitivity != velocityLow) {
+      pressureZ = Z_CURVE[pressureZ];
     }
-
-    // scale the result and store it as a byte in the range 1-127
-    velocityZ = byte(FXD_TO_INT(FXD_DIV(FXD_FROM_INT(usableVelocityZ), FXD_FROM_INT(8))) & B01111111);
-    pressureZ = byte(FXD_TO_INT(FXD_DIV(FXD_FROM_INT(usablePressureZ), FXD_FROM_INT(8))) & B01111111);
   }
+}
+
+boolean TouchInfo::isCalculatingVelocity() {
+  return sensorCell().vcount > 0 && sensorCell().vcount != VELOCITY_SAMPLES;
 }
 
 boolean TouchInfo::hasNote() {
@@ -272,4 +272,9 @@ void TouchInfo::clearSensorData() {
   pressureZ = 0;
   shouldRefreshZ = true;
   pendingReleaseCount = 0;
+  fxdVelSumX = 0;
+  fxdVelSumY = 0;
+  fxdVelSumXY = 0;
+  fxdVelSumXSQ = 0;
+  fxdVelX = 0;
 }

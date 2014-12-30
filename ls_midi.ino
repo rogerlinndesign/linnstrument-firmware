@@ -707,6 +707,7 @@ int scalePitch(byte split, int pitchValue) {
     case 24:
       pitchValue = pitchValue * (48 / Split[split].bendRange);
       break;
+    // no calculations needed
     case 48:
       break;
     // others need fixed point decimal math
