@@ -442,6 +442,8 @@ const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over
 const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
+#define INVALID_DATA SHRT_MAX
+
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate() {
@@ -507,8 +509,8 @@ void handleXYZupdate() {
   }
 
   // get the processed expression data
-  short pitchBend = SHRT_MAX;
-  short preferredTimbre = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
+  short preferredTimbre = INVALID_DATA;
   byte preferredPressure = handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
@@ -540,7 +542,7 @@ void handleXYZupdate() {
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (pitchBend != SHRT_MAX &&
+    if (pitchBend != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
       if (preventPitchSlides(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
@@ -552,7 +554,7 @@ void handleXYZupdate() {
 
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (preferredTimbre != SHRT_MAX &&
+    if (preferredTimbre != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
       preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
@@ -670,7 +672,7 @@ byte handleZExpression() {
 }
 
 short handleXExpression() {
-  short pitchBend = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
 
   sensorCell().refreshX();
 
@@ -764,7 +766,7 @@ const int32_t MIN_SLEW_Y = FXD_FROM_INT(3);
 short handleYExpression() {
   sensorCell().refreshY();
 
-  short preferredTimbre = SHRT_MAX;
+  short preferredTimbre = INVALID_DATA;
   if (Split[sensorSplit].relativeY) {
     preferredTimbre = constrain(64 + (sensorCell().currentCalibratedY - sensorCell().initialY ), 0, 127);
   }
