@@ -250,6 +250,7 @@ struct NoteTouchMapping {
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
   void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
+  boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   void debugNoteChain();
 
   unsigned short noteCount;

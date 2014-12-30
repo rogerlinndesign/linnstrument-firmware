@@ -899,7 +899,7 @@ void handleTouchRelease() {
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
       for (byte ch = 0; ch < 16; ++ch) {
-        if (lastValueMidiNotesOn[sensorSplit][sensorCell().note][ch] > 0) {
+        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
           allNotesOff = false;
           break;
         }

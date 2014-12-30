@@ -80,6 +80,14 @@ void NoteTouchMapping::initialize() {
   }
 }
 
+boolean NoteTouchMapping::hasTouch(signed char noteNum, signed char channel) {
+  if (!validNoteNumAndChannel(noteNum, channel)) {
+    return false;
+  }
+
+  return mapping[noteNum][channel].colRow != 0;
+}
+
 void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col, byte row) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
     return;
@@ -167,7 +175,7 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
 
   musicalTouchCount[channel] -= 1;
 
-  if (mapping[noteNum][channel].colRow != 0) {
+  if (hasTouch(noteNum, channel)) {
     noteCount--;
 
     // if this is the first note that is active, point the first note/channel
