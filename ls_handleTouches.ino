@@ -56,6 +56,7 @@ byte calcPreferredVelocity(byte velocity) {
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
 boolean calcVelocity(unsigned short z) {
+  #if REAL_VELOCITY_CALCULATION  
   if (sensorCell().vcount < VELOCITY_SAMPLES && z >= sensorCell().velocity) {
     sensorCell().vcount++;
 
@@ -86,6 +87,19 @@ boolean calcVelocity(unsigned short z) {
       return true;
     }
   }
+  #else
+  if (sensorCell().vcount < VELOCITY_SAMPLES) {
+    sensorCell().velocity = max(sensorCell().velocity, z);
+    sensorCell().vcount++;
+
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
+      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity >> 3);
+
+      return true;
+    }
+  }
+  #endif
 
   return false;
 }
