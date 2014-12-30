@@ -177,6 +177,7 @@ struct TouchInfo {
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(short);    // checks whether this is a possible phantom candidate and has higher pressure than the argument
   void clearSensorData();                    // clears the measured sensor data
+  boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
 
   // touch data
   TouchState touched;                        // touch status of all sensor cells
@@ -198,8 +199,8 @@ struct TouchInfo {
 
   short currentRawZ;                         // the raw Z value
   boolean featherTouch;                      // indicates whether this is a feather touch
-  byte velocityZ;                            // the Z value with velocity sensitivity
-  byte pressureZ;                            // the Z value with pressure sensitivity
+  unsigned short velocityZ;                  // the Z value with velocity sensitivity
+  unsigned short pressureZ;                  // the Z value with pressure sensitivity
   boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
 
   signed char pendingReleaseCount;           // counter before which the note release will be effective
@@ -209,11 +210,16 @@ struct TouchInfo {
 
   // musical data
   byte vcount;                               // the number of times the pressure was measured to obtain a velocity
-  byte velocity;                             // velocity from 0 to 127
+  unsigned short velocity;                   // velocity from 0 to 127
   signed char note;                          // note from 0 to 127
   signed char channel;                       // channel from 1 to 16
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
+  int32_t fxdVelSumX;                        // these are used to calculate the intial velocity slope based on the first Z samples
+  int32_t fxdVelSumY;
+  int32_t fxdVelSumXY;
+  int32_t fxdVelSumXSQ;
+  int32_t fxdVelX;
 };
 
 TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations instances as there are cells
@@ -346,7 +352,6 @@ enum PressureSensitivity {
 #define SENSOR_PITCH_Z 0x111                          // lowest acceptable raw Z value for which pitchbend is sent
 #define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
 
-#define VELOCITY_SAMPLES 2
 #define MAX_TOUCHES_IN_COLUMN 3
 
 
@@ -392,6 +397,12 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
   return ((int32_t)a << FXD4_FBITS) / (int32_t)b;
 }
 
+
+/****************************************** Velocity *********************************************/
+
+#define VELOCITY_SAMPLES 3
+
+const int32_t VELOCITY_SCALE = FXD_FROM_INT(4);
 
 /***************************************** Calibration *******************************************/
 
@@ -842,13 +853,18 @@ inline void modeLoopPerformance() {
     }
   }
   else {
-    TouchState previousTouch = sensorCell().touched;                               // get previous touch status of this cell
+    TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
 
     if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
       handleNewTouch();
     }
     else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements
+
+      if (sensorCell().isCalculatingVelocity()) {                                 // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+        sensorCell().shouldRefreshZ = true;                                       // immediately process this cell again without going through a full surface scan
+        return;
+      }
     }
     else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
              millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts

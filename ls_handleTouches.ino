@@ -32,6 +32,12 @@ void cellTouched(TouchState state) {
 
 // Re-initialize the velocity detection
 void initVelocity() {
+  sensorCell().fxdVelSumX = FXD_FROM_INT(1);
+  sensorCell().fxdVelSumY = 0;
+  sensorCell().fxdVelSumXY = 0;
+  sensorCell().fxdVelSumXSQ = FXD_FROM_INT(1);
+  sensorCell().fxdVelX = FXD_FROM_INT(2);
+
   sensorCell().vcount = 0;
   sensorCell().velocity = 0;
 }
@@ -49,13 +55,33 @@ byte calcPreferredVelocity(byte velocity) {
 // Calculate the velocity value by providing pressure (z) data.
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
-boolean calcVelocity(byte z) {
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
+boolean calcVelocity(unsigned short z) {
+  if (sensorCell().vcount < VELOCITY_SAMPLES && z >= sensorCell().velocity) {
     sensorCell().vcount++;
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
 
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
+    // store the initial sample so that it can be used to prevent negative velocities
+    // this is only temporary and will be overwritten with the real velocity once the
+    // calculations are done
+    if (sensorCell().velocity == 0) {
+      sensorCell().velocity = z;
+    }
+
+    // normalize the velocity Z data
+    int32_t fxdVel = FXD_DIV(FXD_FROM_INT(z), FXD_FROM_INT(1016));
+
+    // calculate the velocity elements
+    sensorCell().fxdVelSumX += sensorCell().fxdVelX;
+    sensorCell().fxdVelSumY += fxdVel;
+    sensorCell().fxdVelSumXY += FXD_MUL(sensorCell().fxdVelX, fxdVel);
+    sensorCell().fxdVelSumXSQ += FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelX);
+    sensorCell().fxdVelX += FXD_FROM_INT(1);
+
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
+      int32_t fxdVelocityRaw = FXD_DIV(FXD_MUL(VELOCITY_SCALE, FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelSumXY) - FXD_MUL(sensorCell().fxdVelSumX, sensorCell().fxdVelSumY)),
+                                       FXD_MUL(sensorCell().fxdVelX, sensorCell().fxdVelSumXSQ) - FXD_MUL(sensorCell().fxdVelSumX, sensorCell().fxdVelSumX));
+
+      sensorCell().velocity = calcPreferredVelocity(FXD_TO_INT(FXD_MUL(fxdVelocityRaw, FXD_FROM_INT(127))));
 
       return true;
     }
@@ -532,7 +558,9 @@ void handleXYZupdate() {
     handleFaderTouch(newVelocity);
   }
   else if (handleNotes) {
-    sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
+    // after the initial velocity, new velocity values are continuously being calculated simply based
+    // on the Z data so that velocity can change during the arpeggiation
+    sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ >> 3);
 
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
@@ -631,7 +659,7 @@ void handleNewNote(signed char notenum) {
 const int32_t FXD_MIN_SLEW = FXD_FROM_INT(1);
 
 byte handleZExpression() {
-  byte preferredPressure = sensorCell().pressureZ;
+  byte preferredPressure = sensorCell().pressureZ >> 3;
 
   // handle pressure transition between adjacent cells if they are not playing their own note
   byte adjacentZ = 0;
