@@ -53,9 +53,11 @@ byte calcPreferredVelocity(byte velocity) {
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
 boolean calcVelocity(byte z) {
-  #if REAL_VELOCITY_CALCULATION  
+  #if NEW_VELOCITY_CALCULATION  
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    // ignore the first sample since it can be sometimes unreliable
+    sensorCell().velocity = max(sensorCell().velocity, z);
+
+    // ignore the first sample for linear regression since it can be sometimes unreliable
     if (sensorCell().vcount++ > 0) {
 
       // calculate the linear regression sums that are variable with the pressure
@@ -67,7 +69,8 @@ boolean calcVelocity(byte z) {
         int sxy = VELOCITY_SAMPLES * sensorCell().velSumXY - VELOCITY_SUMX * sensorCell().velSumY;
         int slope = (VELOCITY_SCALE * sxy) / (VELOCITY_DIVIDER * VELOCITY_SXX);
 
-        sensorCell().velocity = calcPreferredVelocity(slope);
+        // mix the maximum-based velocity approach with the linear regression slope, reminiscent of parallel compression to preserve the transients
+        sensorCell().velocity = calcPreferredVelocity((slope+sensorCell().velocity)/2);
 
         return true;
       }

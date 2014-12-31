@@ -397,9 +397,9 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 
 /****************************************** Velocity *********************************************/
 
-#define REAL_VELOCITY_CALCULATION 0
+#define NEW_VELOCITY_CALCULATION 1
 
-#if REAL_VELOCITY_CALCULATION
+#if NEW_VELOCITY_CALCULATION
   #define VELOCITY_SAMPLES 5
   #define VELOCITY_SUMX    15   // x1 + x2 + x3 + ... + xn
   #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
