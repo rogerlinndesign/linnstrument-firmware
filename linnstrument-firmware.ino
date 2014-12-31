@@ -160,6 +160,7 @@ enum TouchState {
 
 
 struct TouchInfo {
+  void shouldRefreshData();                  // indicate that the X, Y and Z data should be refreshed
   short rawX();                              // ensure that X is updated to the latest scan and return its raw value
   short calibratedX();                       // ensure that X is updated to the latest scan and return its calibrated value
   inline void refreshX();                    // ensure that X is updated to the latest scan
@@ -870,7 +871,7 @@ inline void modeLoopPerformance() {
       handleXYZupdate();                                                          // handle any X, Y or Z movements
 
       if (sensorCell().isCalculatingVelocity()) {                                 // if the initial velocity is being calculated, ensure that only Z data is being refresh and
-        sensorCell().shouldRefreshZ = true;                                       // immediately process this cell again without going through a full surface scan
+        sensorCell().shouldRefreshData();                                         // immediately process this cell again without going through a full surface scan
         return;
       }
     }

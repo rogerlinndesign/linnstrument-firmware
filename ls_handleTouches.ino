@@ -998,9 +998,7 @@ inline void nextSensorCell() {
   }
 
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
-  sensorCell().shouldRefreshX = true;
-  sensorCell().shouldRefreshY = true;
-  sensorCell().shouldRefreshZ = true;
+  sensorCell().shouldRefreshData();
 
   sensorCol = scannedCells[cellCount][0];
   sensorRow = scannedCells[cellCount][1];

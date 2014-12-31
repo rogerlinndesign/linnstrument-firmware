@@ -78,6 +78,12 @@ void initializeTouchInfo() {
   }
 }
 
+void TouchInfo::shouldRefreshData() {
+  shouldRefreshX = true;
+  shouldRefreshY = true;
+  shouldRefreshZ = true;
+}
+
 short TouchInfo::rawX() {
   refreshX();
   return currentRawX;
