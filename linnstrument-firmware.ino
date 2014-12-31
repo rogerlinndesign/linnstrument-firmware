@@ -237,6 +237,7 @@ struct NoteEntry {
   signed char previousNote;
   byte nextPreviousChannel;
 
+  inline boolean hasColRow(byte, byte);
   inline void setColRow(byte, byte);
   inline byte getCol();
   inline byte getRow();
@@ -251,7 +252,7 @@ struct NoteEntry {
 struct NoteTouchMapping {
   void initialize();                                         // initialize the mapping data
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
-  void noteOff(signed char, signed char);                    // turn off a note
+  boolean noteOff(signed char, signed char, byte, byte);     // turn off a note if it corresponds to the cell coordinates
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   void debugNoteChain();

@@ -25,8 +25,16 @@ boolean validNoteNumAndChannel(signed char noteNum, signed char channel) {
   return true;
 }
 
+inline byte combineColRow(byte column, byte row) {
+  return (column & B00011111) | (row & B00000111) << 5;
+}
+
+inline boolean NoteEntry::hasColRow(byte column, byte row) {
+  return colRow == combineColRow(column, row);
+}
+
 inline void NoteEntry::setColRow(byte column, byte row) {
-  colRow = (column & B00011111) | (row & B00000111) << 5;
+  colRow = combineColRow(column, row);
 }
 
 inline byte NoteEntry::getCol() {
@@ -168,14 +176,14 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col
   debugNoteChain();
 }
 
-void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
+boolean NoteTouchMapping::noteOff(signed char noteNum, signed char channel, byte col, byte row) {
   if (!validNoteNumAndChannel(noteNum, channel)) {
-    return;
+    return false;
   }
 
   musicalTouchCount[channel] -= 1;
 
-  if (hasTouch(noteNum, channel)) {
+  if (hasTouch(noteNum, channel) && mapping[noteNum][channel].hasColRow(col, row)) {
     noteCount--;
 
     // if this is the first note that is active, point the first note/channel
@@ -217,9 +225,13 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
     mapping[noteNum][channel].nextNote = -1;
     mapping[noteNum][channel].previousNote = -1;
     mapping[noteNum][channel].nextPreviousChannel = 0;
+
+    return true;
   }
 
   debugNoteChain();
+
+  return false;
 }
 
 void NoteTouchMapping::changeCell(signed char noteNum, signed char channel, byte col, byte row) {
