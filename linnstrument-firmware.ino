@@ -210,16 +210,13 @@ struct TouchInfo {
 
   // musical data
   byte vcount;                               // the number of times the pressure was measured to obtain a velocity
-  unsigned short velocity;                   // velocity from 0 to 127
+  byte velocity;                             // velocity from 0 to 127
   signed char note;                          // note from 0 to 127
   signed char channel;                       // channel from 1 to 16
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
-  int32_t fxdVelSumX;                        // these are used to calculate the intial velocity slope based on the first Z samples
-  int32_t fxdVelSumY;
-  int32_t fxdVelSumXY;
-  int32_t fxdVelSumXSQ;
-  int32_t fxdVelX;
+  unsigned velSumY;                          // these are used to calculate the intial velocity slope based on the first Z samples
+  unsigned velSumXY;
 };
 
 TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations instances as there are cells
@@ -240,6 +237,7 @@ struct NoteEntry {
   signed char previousNote;
   byte nextPreviousChannel;
 
+  inline boolean hasColRow(byte, byte);
   inline void setColRow(byte, byte);
   inline byte getCol();
   inline byte getRow();
@@ -254,7 +252,7 @@ struct NoteEntry {
 struct NoteTouchMapping {
   void initialize();                                         // initialize the mapping data
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
-  void noteOff(signed char, signed char);                    // turn off a note
+  boolean noteOff(signed char, signed char, byte, byte);     // turn off a note if it corresponds to the cell coordinates
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   void debugNoteChain();
@@ -400,13 +398,18 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 
 /****************************************** Velocity *********************************************/
 
-#define REAL_VELOCITY_CALCULATION 0
+#define NEW_VELOCITY_CALCULATION 1
 
-#if REAL_VELOCITY_CALCULATION
-#define VELOCITY_SAMPLES 2
+#if NEW_VELOCITY_CALCULATION
+  #define VELOCITY_SAMPLES 5
+  #define VELOCITY_SUMX    15   // x1 + x2 + x3 + ... + xn
+  #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
+  #define VELOCITY_SCALE   5
+  #define VELOCITY_DIVIDER 2
+  // this element of the linear regression algorithm is constant based on the number of velocity samples 
+  const int VELOCITY_SXX = VELOCITY_SAMPLES * VELOCITY_SUMXSQ - VELOCITY_SUMX * VELOCITY_SUMX;
 #else
-#define VELOCITY_SAMPLES 3
-const int32_t VELOCITY_SCALE = FXD_FROM_INT(4);
+  #define VELOCITY_SAMPLES 8
 #endif
 
 /***************************************** Calibration *******************************************/
