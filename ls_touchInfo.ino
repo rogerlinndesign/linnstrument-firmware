@@ -78,6 +78,12 @@ void initializeTouchInfo() {
   }
 }
 
+void TouchInfo::shouldRefreshData() {
+  shouldRefreshX = true;
+  shouldRefreshY = true;
+  shouldRefreshZ = true;
+}
+
 short TouchInfo::rawX() {
   refreshX();
   return currentRawX;
@@ -217,6 +223,10 @@ inline void TouchInfo::refreshZ() {
   }
 }
 
+boolean TouchInfo::isCalculatingVelocity() {
+  return sensorCell().vcount > 0 && sensorCell().vcount != VELOCITY_SAMPLES;
+}
+
 boolean TouchInfo::hasNote() {
   return note != -1 && channel != -1;
 }
@@ -272,4 +282,6 @@ void TouchInfo::clearSensorData() {
   pressureZ = 0;
   shouldRefreshZ = true;
   pendingReleaseCount = 0;
+  velSumY = 0;
+  velSumXY = 0;
 }

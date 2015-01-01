@@ -9,7 +9,7 @@ These functions handle the sensing of touches on the LinnStrument's touch surfac
 // These are the rectified pressure sensititivies for each column
 // CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
 // actual values in a spreadsheet
-const short Z_BIAS[NUMROWS][NUMCOLS] =  {
+const short Z_BIAS_SEPTEMBER[NUMROWS][NUMCOLS] =  {
     {850, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1506},
     {850, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1506},
     {850, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1443},
@@ -19,6 +19,19 @@ const short Z_BIAS[NUMROWS][NUMCOLS] =  {
     {850, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1506},
     {850, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1506}
   };
+const short Z_BIAS_MULTIPLIER_SEPTEMBER = 1400;
+
+const short Z_BIAS_NOVEMBER[NUMROWS][NUMCOLS] =  {
+    {516, 667, 686, 699, 704, 702, 692, 675, 654, 631, 609, 591, 578, 572, 575, 585, 601, 622, 645, 667, 686, 699, 704, 702, 692, 675},
+    {516, 893, 888, 872, 846, 813, 777, 740, 707, 680, 663, 657, 663, 680, 706, 739, 776, 813, 846, 871, 888, 893, 887, 869, 842, 809},
+    {516, 732, 744, 748, 744, 732, 714, 691, 665, 641, 619, 602, 592, 590, 596, 609, 629, 653, 678, 702, 723, 739, 747, 747, 739, 723},
+    {516, 811, 804, 785, 759, 726, 691, 656, 626, 602, 588, 585, 594, 612, 639, 672, 707, 742, 772, 795, 808, 811, 803, 784, 757, 724},
+    {516, 724, 738, 744, 739, 726, 704, 677, 647, 617, 591, 570, 557, 554, 560, 576, 599, 627, 657, 686, 712, 731, 742, 743, 734, 717},
+    {516, 751, 751, 745, 732, 716, 696, 674, 653, 635, 621, 612, 609, 613, 623, 638, 657, 679, 700, 719, 735, 746, 751, 750, 742, 728},
+    {516, 828, 849, 858, 853, 835, 807, 770, 731, 692, 659, 635, 624, 626, 641, 668, 703, 742, 782, 816, 842, 856, 857, 844, 820, 786},
+    {516, 766, 775, 780, 780, 775, 765, 750, 733, 713, 692, 671, 652, 635, 622, 613, 610, 611, 617, 628, 643, 661, 682, 703, 723, 742}
+  };
+const short Z_BIAS_MULTIPLIER_NOVEMBER = 850;
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -57,7 +70,10 @@ inline unsigned short readZ() {                              // returns the raw 
   delayUsec(7);                                              // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
 
   short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
-  rawZ = (rawZ * 1400) / Z_BIAS[sensorRow][sensorCol];       // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
+
+  // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
+  rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
+  // rawZ = (rawZ * Z_BIAS_MULTIPLIER_NOVEMBER) / Z_BIAS_NOVEMBER[sensorRow][sensorCol];
 
   return rawZ;
 }

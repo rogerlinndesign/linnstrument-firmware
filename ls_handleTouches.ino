@@ -32,6 +32,9 @@ void cellTouched(TouchState state) {
 
 // Re-initialize the velocity detection
 void initVelocity() {
+  sensorCell().velSumY = 0;
+  sensorCell().velSumXY = 0;
+
   sensorCell().vcount = 0;
   sensorCell().velocity = 0;
 }
@@ -50,16 +53,42 @@ byte calcPreferredVelocity(byte velocity) {
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
 boolean calcVelocity(byte z) {
+  #if NEW_VELOCITY_CALCULATION  
+  if (sensorCell().vcount < VELOCITY_SAMPLES) {
+    sensorCell().velocity = max(sensorCell().velocity, z);
+
+    // ignore the first sample for linear regression since it can be sometimes unreliable
+    if (sensorCell().vcount++ > 0) {
+
+      // calculate the linear regression sums that are variable with the pressure
+      sensorCell().velSumY += z;
+      sensorCell().velSumXY += (sensorCell().vcount+1) * z;
+
+      // when the number of samples are reached, calculate the final velocity
+      if (sensorCell().vcount == VELOCITY_SAMPLES) {
+        int sxy = VELOCITY_SAMPLES * sensorCell().velSumXY - VELOCITY_SUMX * sensorCell().velSumY;
+        int slope = (VELOCITY_SCALE * sxy) / (VELOCITY_DIVIDER * VELOCITY_SXX);
+
+        // mix the maximum-based velocity approach with the linear regression slope, reminiscent of parallel compression to preserve the transients
+        sensorCell().velocity = calcPreferredVelocity((slope+sensorCell().velocity)/2);
+
+        return true;
+      }
+    }
+  }
+  #else
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
     sensorCell().velocity = max(sensorCell().velocity, z);
     sensorCell().vcount++;
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
 
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
       sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
 
       return true;
     }
   }
+  #endif
 
   return false;
 }
@@ -442,6 +471,8 @@ const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over
 const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
+#define INVALID_DATA SHRT_MAX
+
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate() {
@@ -507,8 +538,8 @@ void handleXYZupdate() {
   }
 
   // get the processed expression data
-  short pitchBend = SHRT_MAX;
-  short preferredTimbre = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
+  short preferredTimbre = INVALID_DATA;
   byte preferredPressure = handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
@@ -530,6 +561,8 @@ void handleXYZupdate() {
     handleFaderTouch(newVelocity);
   }
   else if (handleNotes) {
+    // after the initial velocity, new velocity values are continuously being calculated simply based
+    // on the Z data so that velocity can change during the arpeggiation
     sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
 
     // if sensing Z is enabled...
@@ -540,7 +573,7 @@ void handleXYZupdate() {
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (pitchBend != SHRT_MAX &&
+    if (pitchBend != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
       if (preventPitchSlides(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
@@ -552,7 +585,7 @@ void handleXYZupdate() {
 
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (preferredTimbre != SHRT_MAX &&
+    if (preferredTimbre != INVALID_DATA &&
         isXYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
       preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
@@ -670,7 +703,7 @@ byte handleZExpression() {
 }
 
 short handleXExpression() {
-  short pitchBend = SHRT_MAX;
+  short pitchBend = INVALID_DATA;
 
   sensorCell().refreshX();
 
@@ -764,7 +797,7 @@ const int32_t MIN_SLEW_Y = FXD_FROM_INT(3);
 short handleYExpression() {
   sensorCell().refreshY();
 
-  short preferredTimbre = SHRT_MAX;
+  short preferredTimbre = INVALID_DATA;
   if (Split[sensorSplit].relativeY) {
     preferredTimbre = constrain(64 + (sensorCell().currentCalibratedY - sensorCell().initialY ), 0, 127);
   }
@@ -884,35 +917,35 @@ void handleTouchRelease() {
   }
   else if (sensorCell().hasNote()) {
 
-    // unregister the note <> cell mapping
-    noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel);
+    // unregister the note <> cell mapping if the sensor cell was the last one holding the note for the channel
+    if (noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel, sensorCol, sensorRow)) {
+      // send the Note Off
+      if (isArpeggiatorEnabled(sensorSplit)) {
+        handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+      } else {
+        midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+      }
 
-    // send the Note Off
-    if (isArpeggiatorEnabled(sensorSplit)) {
-      handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-    } else {
-      midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-    }
-
-    // unhighlight the same notes if this is activated
-    if (Split[sensorSplit].colorNoteon) {
-      // ensure that no other notes of the same value are still active
-      boolean allNotesOff = true;
-      for (byte ch = 0; ch < 16; ++ch) {
-        if (lastValueMidiNotesOn[sensorSplit][sensorCell().note][ch] > 0) {
-          allNotesOff = false;
-          break;
+      // unhighlight the same notes if this is activated
+      if (Split[sensorSplit].colorNoteon) {
+        // ensure that no other notes of the same value are still active
+        boolean allNotesOff = true;
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
+            allNotesOff = false;
+            break;
+          }
+        }
+        // if no notes are active anymore, reset the highlighted cells
+        if (allNotesOff) {
+          resetNoteCells(sensorSplit, sensorCell().note);
         }
       }
-      // if no notes are active anymore, reset the highlighted cells
-      if (allNotesOff) {
-        resetNoteCells(sensorSplit, sensorCell().note);
-      }
-    }
 
-    // reset the pitch bend when the note is released if that setting is active
-    if (Split[sensorSplit].pitchResetOnRelease && isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
-      preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      // reset the pitch bend when the note is released if that setting is active
+      if (Split[sensorSplit].pitchResetOnRelease && isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+        preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      }
     }
 
     // If the released cell had focus, reassign focus to the latest touched cell
@@ -965,9 +998,7 @@ inline void nextSensorCell() {
   }
 
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
-  sensorCell().shouldRefreshX = true;
-  sensorCell().shouldRefreshY = true;
-  sensorCell().shouldRefreshZ = true;
+  sensorCell().shouldRefreshData();
 
   sensorCol = scannedCells[cellCount][0];
   sensorRow = scannedCells[cellCount][1];
