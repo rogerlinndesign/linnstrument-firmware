@@ -1,3 +1,11 @@
+v1.0.9
+
+  * Added flashing the middle root note when exiting octave/transpose
+  * Prevent pitch bends where there are several touches for the same MIDI channel, this allows sliding over semi-tones in One Channel mode without changing the pitch of other notes
+  * Add support for any bend range between 1-96 through the 5th option down in the Bend Range setting
+  * Fix for keeping notes highlighted in the arpeggiator when NotePerChannel is active and the same note is played several times on different channels
+  * Regression fix for DIN MIDI output not working anymore
+
 v1.0.8
 
   * Regression fix for scrolling audience messages not working anymore
