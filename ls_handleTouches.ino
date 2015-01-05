@@ -421,25 +421,23 @@ boolean isFocusedCell(byte col, byte row) {
   return col == focused.col && row == focused.row;
 }
 
-// Check if X/Y expression should be sent for this cell
-boolean isXYExpressiveCell() {
+// Check if X expression should be sent for this cell
+boolean isXExpressiveCell() {
+  return isFocusedCell();
+}
+
+// Check if Y expression should be sent for this cell
+boolean isYExpressiveCell() {
   return isFocusedCell();
 }
 
 // Check if Z expression should be sent for this cell
 boolean isZExpressiveCell() {
-  switch (Split[sensorSplit].midiMode)
-  {
-    case oneChannel:
-      if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
-        return true;
-      }
-      else {
-        return isFocusedCell();
-      }
-    case channelPerNote:
-    case channelPerRow:
-      return isFocusedCell();
+  if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
   }
 }
 
@@ -574,7 +572,7 @@ void handleXYZupdate() {
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
+        isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
       if (preventPitchSlides(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
@@ -586,7 +584,7 @@ void handleXYZupdate() {
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (preferredTimbre != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendY &&
+        isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
       preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
     }
@@ -641,7 +639,7 @@ void handleNewNote(signed char notenum) {
   focused.row = sensorRow;
 
   // reset the pitch bend right before sending the note on
-  if (isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+  if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
     preSendPitchBend(sensorSplit, 0, sensorCell().channel);
   }
 
@@ -943,7 +941,7 @@ void handleTouchRelease() {
       }
 
       // reset the pitch bend when the note is released if that setting is active
-      if (Split[sensorSplit].pitchResetOnRelease && isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+      if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
     }
