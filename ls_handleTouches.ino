@@ -13,16 +13,16 @@ void cellTouched(TouchState state) {
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
   if (state != untouchedCell) {
-    rowsInColsTouched[sensorCol] |= (1 << sensorRow);
-    colsInRowsTouched[sensorRow] |= (1 << sensorCol);
+    rowsInColsTouched[sensorCol] |= (int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] |= (int32_t)(1 << sensorCol);
   }
   // if the state is untouched, turn off the appropriate bit in the
   // bitmasks that track the touched cells
   else {
-    rowsInColsTouched[sensorCol] &= ~(1 << sensorRow);
-    colsInRowsTouched[sensorRow] &= ~(1 << sensorCol);
+    rowsInColsTouched[sensorCol] &= ~(int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] &= ~(int32_t)(1 << sensorCol);
   }
-
+  
   // save the touched state for each cell
   cell(sensorCol, sensorRow).touched = state;
 }
@@ -212,8 +212,8 @@ void transferToSameRowCell(byte col) {
 boolean isPhantomTouch() {
   // check if this is a potential corner of a rectangle to filter out ghost notes, this first check matches
   // any cells that have other cells on the same row and column, so it's not sufficient by itself, but it's fast
-  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(1 << sensorRow);
-  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(1 << sensorCol);
+  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(int32_t)(1 << sensorRow);
+  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(int32_t)(1 << sensorCol);
   if (rowsInSensorColTouched && colsInSensorRowTouched) {
 
     // now we check each touched row in the column of the current sensor
@@ -236,7 +236,7 @@ boolean isPhantomTouch() {
 
         // if we find a cell that has both the touched row and touched column set,
         // then the current sensor completed a rectangle by being the fourth corner
-        if (rowsInColsTouched[touchedCol] & (1 << touchedRow)) {
+        if (rowsInColsTouched[touchedCol] & (int32_t)(1 << touchedRow)) {
 
           // since we found four corners, we now have to determine which ones are
           // real presses and which ones are phantom presses, so we're looking for
@@ -285,7 +285,7 @@ byte countTouchesInColumn() {
       count++;
 
       // turn the left-most active bit off, to continue the iteration over the touched rows
-      rowsInSensorColTouched &= ~(1 << touchedRow);
+      rowsInSensorColTouched &= ~(int32_t)(1 << touchedRow);
     }
   }
 
@@ -560,7 +560,7 @@ void handleXYZupdate() {
   else if (Split[sensorSplit].ccFaders) {
     handleFaderTouch(newVelocity);
   }
-  else if (handleNotes) {
+  else if (handleNotes && sensorCell().hasNote()) {
     // after the initial velocity, new velocity values are continuously being calculated simply based
     // on the Z data so that velocity can change during the arpeggiation
     sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);

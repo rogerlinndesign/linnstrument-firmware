@@ -216,11 +216,11 @@ struct TouchInfo {
   signed char channel;                       // channel from 1 to 16
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
-  unsigned velSumY;                          // these are used to calculate the intial velocity slope based on the first Z samples
-  unsigned velSumXY;
+  unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
+  unsigned long velSumXY;
 };
 
-TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations instances as there are cells
+TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch information instances as there are cells
 
 int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
@@ -857,7 +857,7 @@ void loop() {
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
-      setDisplayMode(displayNormal);                               // this should make the reset operation feel more predictable
+      setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
   }
