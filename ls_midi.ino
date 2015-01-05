@@ -33,13 +33,17 @@ byte lastNrpnLsb = 127;
 byte lastDataMsb = 0;
 byte lastDataLsb = 0;
 
+boolean isMidiUsingDIN() {
+  return Global.midiIO == 0;
+}
+
 void applyMidiIoSetting() {
-  if (Global.midiIO == 0) {
+  if (isMidiUsingDIN()) {
     digitalWrite(36, 0);     // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
     Serial.flush();          // clear the serial port
   }
-  else if (Global.midiIO == 1) {
+  else {
     digitalWrite(36, 1);     // Set HIGH for USB
     Serial.begin(115200);    // set serial port at fastest speed 115200
     Serial.flush();          // clear the serial port
@@ -823,7 +827,7 @@ void handlePendingMidi(unsigned long now) {
   // when in low power mode only send one MIDI byte every 150 microseconds
   if (operatingLowPower) {
     static unsigned long lastEnvoy = 0;
-  if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
+    if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
       sendNextMidiOutputByte();
       lastEnvoy = now;
     }
@@ -831,6 +835,11 @@ void handlePendingMidi(unsigned long now) {
   else {
     while (!midiOutQueue.empty() && sendNextMidiOutputByte()) {
       // loop until the MIDI queue is empty or the serial buffer is full
+      // unless we're using DIN MIDI, then we throttle the MIDI output so that
+      // the slower serial speed can keep up
+      if (isMidiUsingDIN()) {
+        break;
+      }
     }
   }
 }
