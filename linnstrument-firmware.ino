@@ -104,6 +104,7 @@ void setLed(byte col, byte row, byte color, CellDisplay disp);
 // #define DISPLAY_XFRAME_AT_LAUNCH
 // #define DISPLAY_YFRAME_AT_LAUNCH
 // #define DISPLAY_ZFRAME_AT_LAUNCH
+// #define DISPLAY_SURFACESCAN_AT_LAUNCH
 
 // Touch surface constants
 const byte NUMCOLS = 26;                 // number of touch sensor columns
@@ -826,6 +827,12 @@ void setup() {
   Global.serialMode = true;
   SWITCH_ZFRAME = true;
 #endif
+
+#ifdef DISPLAY_SURFACESCAN_AT_LAUNCH
+  #define DEBUG_ENABLED
+  Global.serialMode = true;
+  SWITCH_SURFACESCAN = true;
+#endif
 }
 
 
@@ -865,15 +872,15 @@ inline void modeLoopPerformance() {
 
     boolean canShortCircuit = false;
 
-    if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
+    if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {       // if touched now but not before, it's a new touch
       handleNewTouch();
       canShortCircuit = true;
     }
-    else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
+    else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements
       canShortCircuit = true;
     }
-    else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
+    else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
              millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
