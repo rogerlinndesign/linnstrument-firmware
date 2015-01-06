@@ -868,35 +868,35 @@ void handleTouchRelease() {
   }
   else if (sensorCell().hasNote()) {
 
-    // unregister the note <> cell mapping if the sensor cell was the last one holding the note for the channel
-    if (noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel, sensorCol, sensorRow)) {
-      // send the Note Off
-      if (isArpeggiatorEnabled(sensorSplit)) {
-        handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-      } else {
-        midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-      }
+    // unregister the note <> cell mapping
+    noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel);
 
-      // unhighlight the same notes if this is activated
-      if (Split[sensorSplit].colorNoteon) {
-        // ensure that no other notes of the same value are still active
-        boolean allNotesOff = true;
-        for (byte ch = 0; ch < 16; ++ch) {
-          if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
-            allNotesOff = false;
-            break;
-          }
-        }
-        // if no notes are active anymore, reset the highlighted cells
-        if (allNotesOff) {
-          resetNoteCells(sensorSplit, sensorCell().note);
+    // send the Note Off
+    if (isArpeggiatorEnabled(sensorSplit)) {
+      handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+    } else {
+      midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+    }
+
+    // unhighlight the same notes if this is activated
+    if (Split[sensorSplit].colorNoteon) {
+      // ensure that no other notes of the same value are still active
+      boolean allNotesOff = true;
+      for (byte ch = 0; ch < 16; ++ch) {
+        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
+          allNotesOff = false;
+          break;
         }
       }
-
-      // reset the pitch bend when the note is released if that setting is active
-      if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
-        preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      // if no notes are active anymore, reset the highlighted cells
+      if (allNotesOff) {
+        resetNoteCells(sensorSplit, sensorCell().note);
       }
+    }
+
+    // reset the pitch bend when the note is released if that setting is active
+    if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+      preSendPitchBend(sensorSplit, 0, sensorCell().channel);
     }
 
     // If the released cell had focus, reassign focus to the latest touched cell

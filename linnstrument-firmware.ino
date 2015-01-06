@@ -253,7 +253,7 @@ struct NoteEntry {
 struct NoteTouchMapping {
   void initialize();                                         // initialize the mapping data
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
-  boolean noteOff(signed char, signed char, byte, byte);     // turn off a note if it corresponds to the cell coordinates
+  void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   void debugNoteChain();
