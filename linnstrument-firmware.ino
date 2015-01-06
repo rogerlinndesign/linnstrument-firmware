@@ -862,7 +862,7 @@ void loop() {
 
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
-    if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
+    if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
@@ -881,7 +881,7 @@ inline void modeLoopPerformance() {
       canShortCircuit = true;
     }
     else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
-             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
+             calcTimeDelta(millis(), sensorCell().lastTouch) > 50 ) {             // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
