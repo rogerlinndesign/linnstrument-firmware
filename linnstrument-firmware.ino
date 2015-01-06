@@ -402,15 +402,16 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 #define NEW_VELOCITY_CALCULATION 1
 
 #if NEW_VELOCITY_CALCULATION
-  #define VELOCITY_SAMPLES 5
+  #define VELOCITY_SAMPLES 4
+  #define VELOCITY_N       VELOCITY_SAMPLES + 1
   #define VELOCITY_SUMX    15   // x1 + x2 + x3 + ... + xn
   #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
-  #define VELOCITY_SCALE   5
-  #define VELOCITY_DIVIDER 2
+  #define VELOCITY_SCALE   4
+  #define VELOCITY_DIVIDER 1
   // this element of the linear regression algorithm is constant based on the number of velocity samples 
-  const int VELOCITY_SXX = VELOCITY_SAMPLES * VELOCITY_SUMXSQ - VELOCITY_SUMX * VELOCITY_SUMX;
+  const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
 #else
-  #define VELOCITY_SAMPLES 8
+  #define VELOCITY_SAMPLES 4
 #endif
 
 /***************************************** Calibration *******************************************/
@@ -869,15 +870,15 @@ inline void modeLoopPerformance() {
     }
     else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements
-
-      if (sensorCell().isCalculatingVelocity()) {                                 // if the initial velocity is being calculated, ensure that only Z data is being refresh and
-        sensorCell().shouldRefreshData();                                         // immediately process this cell again without going through a full surface scan
-        return;
-      }
     }
     else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
              millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
+    }
+
+    if (sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+      sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
+      return;
     }
   }
 

@@ -27,9 +27,6 @@ void cellTouched(TouchState state) {
   cell(sensorCol, sensorRow).touched = state;
 }
 
-// Velocity calculation, it merely looks for the highest pressure value in the last
-// few samples (set in VELOCITY_SAMPLES define), and uses that as the velocity value
-
 // Re-initialize the velocity detection
 void initVelocity() {
   sensorCell().velSumY = 0;
@@ -47,50 +44,6 @@ byte calcPreferredVelocity(byte velocity) {
   else {
     return constrain(velocity, 1, 127);
   }
-}
-
-// Calculate the velocity value by providing pressure (z) data.
-// This function will return true when a new stable velocity value has been
-// calculated. This is the moment when a new note should be sent out.
-boolean calcVelocity(byte z) {
-  #if NEW_VELOCITY_CALCULATION  
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
-
-    // ignore the first sample for linear regression since it can be sometimes unreliable
-    if (sensorCell().vcount++ > 0) {
-
-      // calculate the linear regression sums that are variable with the pressure
-      sensorCell().velSumY += z;
-      sensorCell().velSumXY += (sensorCell().vcount+1) * z;
-
-      // when the number of samples are reached, calculate the final velocity
-      if (sensorCell().vcount == VELOCITY_SAMPLES) {
-        int sxy = VELOCITY_SAMPLES * sensorCell().velSumXY - VELOCITY_SUMX * sensorCell().velSumY;
-        int slope = (VELOCITY_SCALE * sxy) / (VELOCITY_DIVIDER * VELOCITY_SXX);
-
-        // mix the maximum-based velocity approach with the linear regression slope, reminiscent of parallel compression to preserve the transients
-        sensorCell().velocity = calcPreferredVelocity((slope+sensorCell().velocity)/2);
-
-        return true;
-      }
-    }
-  }
-  #else
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
-    sensorCell().vcount++;
-
-    // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
-
-      return true;
-    }
-  }
-  #endif
-
-  return false;
 }
 
 #define TRANSFER_SLIDE_PROXIMITY 100
