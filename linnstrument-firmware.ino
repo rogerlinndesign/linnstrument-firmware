@@ -870,7 +870,7 @@ inline void modeLoopPerformance() {
       handleXYZupdate();                                                          // handle any X, Y or Z movements
     }
     else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
+             millis() - sensorCell().lastTouch > 60 ) {                           // only release if it's later than 60ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
