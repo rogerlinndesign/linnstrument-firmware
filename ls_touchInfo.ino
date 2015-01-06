@@ -82,7 +82,7 @@ void initializeTouchInfo() {
 // This function will return true when a new stable velocity value has been
 // calculated. This is the moment when a new note should be sent out.
 //
-// The velocity is calculated using the slope of a linear regression algorithm.
+// The velocity is calculated using the slope of a linear regression algorithm:
 //   ((n * sumXY) - sumX * sumY) / ((n * sumXSquared) - sumX * sumX)
 //
 // The X values are a linear progression from 0 to the number of samples, meaning
