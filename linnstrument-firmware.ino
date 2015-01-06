@@ -863,18 +863,24 @@ inline void modeLoopPerformance() {
   else {
     TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
 
+    boolean canShortCircuit = false;
+
     if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
       handleNewTouch();
+      canShortCircuit = true;
     }
     else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements
+      canShortCircuit = true;
     }
     else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - sensorCell().lastTouch > 60 ) {                           // only release if it's later than 60ms after the touch to debounce some note starts
+             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
-    if (sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+    if (canShortCircuit &&
+        sensorCell().touched == touchedCell &&
+        sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
       sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
