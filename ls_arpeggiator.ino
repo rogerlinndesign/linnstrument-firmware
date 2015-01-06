@@ -213,7 +213,7 @@ void advanceArpeggiatorForSplit(byte split) {
 
         NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
         for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
-          midiSendNoteOn(split, getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+          midiSendNoteOn(split, getOctaveNote(octave, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
         }
 
         arpNote = entry.getNextNote();
@@ -406,7 +406,7 @@ void advanceArpeggiatorForSplit(byte split) {
 
         // send the MIDI note
         NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
       }
 
       lastArpNote[split] = arpNote;

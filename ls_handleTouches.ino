@@ -13,16 +13,16 @@ void cellTouched(TouchState state) {
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
   if (state != untouchedCell) {
-    rowsInColsTouched[sensorCol] |= (1 << sensorRow);
-    colsInRowsTouched[sensorRow] |= (1 << sensorCol);
+    rowsInColsTouched[sensorCol] |= (int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] |= (int32_t)(1 << sensorCol);
   }
   // if the state is untouched, turn off the appropriate bit in the
   // bitmasks that track the touched cells
   else {
-    rowsInColsTouched[sensorCol] &= ~(1 << sensorRow);
-    colsInRowsTouched[sensorRow] &= ~(1 << sensorCol);
+    rowsInColsTouched[sensorCol] &= ~(int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] &= ~(int32_t)(1 << sensorCol);
   }
-
+  
   // save the touched state for each cell
   cell(sensorCol, sensorRow).touched = state;
 }
@@ -212,8 +212,8 @@ void transferToSameRowCell(byte col) {
 boolean isPhantomTouch() {
   // check if this is a potential corner of a rectangle to filter out ghost notes, this first check matches
   // any cells that have other cells on the same row and column, so it's not sufficient by itself, but it's fast
-  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(1 << sensorRow);
-  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(1 << sensorCol);
+  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(int32_t)(1 << sensorRow);
+  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(int32_t)(1 << sensorCol);
   if (rowsInSensorColTouched && colsInSensorRowTouched) {
 
     // now we check each touched row in the column of the current sensor
@@ -236,7 +236,7 @@ boolean isPhantomTouch() {
 
         // if we find a cell that has both the touched row and touched column set,
         // then the current sensor completed a rectangle by being the fourth corner
-        if (rowsInColsTouched[touchedCol] & (1 << touchedRow)) {
+        if (rowsInColsTouched[touchedCol] & (int32_t)(1 << touchedRow)) {
 
           // since we found four corners, we now have to determine which ones are
           // real presses and which ones are phantom presses, so we're looking for
@@ -285,7 +285,7 @@ byte countTouchesInColumn() {
       count++;
 
       // turn the left-most active bit off, to continue the iteration over the touched rows
-      rowsInSensorColTouched &= ~(1 << touchedRow);
+      rowsInSensorColTouched &= ~(int32_t)(1 << touchedRow);
     }
   }
 
@@ -421,25 +421,23 @@ boolean isFocusedCell(byte col, byte row) {
   return col == focused.col && row == focused.row;
 }
 
-// Check if X/Y expression should be sent for this cell
-boolean isXYExpressiveCell() {
+// Check if X expression should be sent for this cell
+boolean isXExpressiveCell() {
+  return isFocusedCell();
+}
+
+// Check if Y expression should be sent for this cell
+boolean isYExpressiveCell() {
   return isFocusedCell();
 }
 
 // Check if Z expression should be sent for this cell
 boolean isZExpressiveCell() {
-  switch (Split[sensorSplit].midiMode)
-  {
-    case oneChannel:
-      if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
-        return true;
-      }
-      else {
-        return isFocusedCell();
-      }
-    case channelPerNote:
-    case channelPerRow:
-      return isFocusedCell();
+  if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
   }
 }
 
@@ -560,7 +558,7 @@ void handleXYZupdate() {
   else if (Split[sensorSplit].ccFaders) {
     handleFaderTouch(newVelocity);
   }
-  else if (handleNotes) {
+  else if (handleNotes && sensorCell().hasNote()) {
     // after the initial velocity, new velocity values are continuously being calculated simply based
     // on the Z data so that velocity can change during the arpeggiation
     sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
@@ -574,7 +572,7 @@ void handleXYZupdate() {
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
+        isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
       if (preventPitchSlides(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
@@ -586,7 +584,7 @@ void handleXYZupdate() {
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (preferredTimbre != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendY &&
+        isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
       preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
     }
@@ -641,7 +639,7 @@ void handleNewNote(signed char notenum) {
   focused.row = sensorRow;
 
   // reset the pitch bend right before sending the note on
-  if (isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+  if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
     preSendPitchBend(sensorSplit, 0, sensorCell().channel);
   }
 
@@ -943,7 +941,7 @@ void handleTouchRelease() {
       }
 
       // reset the pitch bend when the note is released if that setting is active
-      if (Split[sensorSplit].pitchResetOnRelease && isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+      if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
     }
