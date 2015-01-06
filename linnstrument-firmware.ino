@@ -408,8 +408,6 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
   #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
   #define VELOCITY_SCALE   4
   #define VELOCITY_DIVIDER 1
-  // this element of the linear regression algorithm is constant based on the number of velocity samples 
-  const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
 #else
   #define VELOCITY_SAMPLES 4
 #endif

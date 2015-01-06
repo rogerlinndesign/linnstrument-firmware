@@ -83,11 +83,17 @@ void initializeTouchInfo() {
 // calculated. This is the moment when a new note should be sent out.
 //
 // The velocity is calculated using the slope of a linear regression algorithm.
+//   ((n * sumXY) - sumX * sumY) / ((n * sumXSquared) - sumX * sumX)
+//
 // The X values are a linear progression from 0 to the number of samples, meaning
 // that they can be pre-calculated beforehand and are the same for every press.
 //
 // An initial cooridinate with Y zero is always used (0,0), which causes the number
 // of data points to be always one more than the number of velocity samples
+
+// This element of the linear regression algorithm is constant based on the number of velocity samples 
+const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
+
 boolean calcVelocity(byte z) {
   #if NEW_VELOCITY_CALCULATION  
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
