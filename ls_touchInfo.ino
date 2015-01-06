@@ -51,7 +51,6 @@ const short Z_CURVE[1017] = {
     1002, 1003, 1003, 1004, 1005, 1005, 1006, 1006, 1007, 1008, 1008, 1009, 1009, 1010, 1011, 1011, 1012, 1012, 1013, 1014, 1014, 1015, 1016
   };
 
-
 void initializeTouchInfo() {
   // Initialize the cells array, starting operating with no touched cells
   for (byte col = 0; col < NUMCOLS; ++col) {
@@ -76,6 +75,62 @@ void initializeTouchInfo() {
   for (byte row = 0; row < NUMROWS; ++row) {
     colsInRowsTouched[row] = 0;
   }
+}
+
+// Calculate the velocity value by providing pressure (z) data.
+//
+// This function will return true when a new stable velocity value has been
+// calculated. This is the moment when a new note should be sent out.
+//
+// The velocity is calculated using the slope of a linear regression algorithm:
+//   ((n * sumXY) - sumX * sumY) / ((n * sumXSquared) - sumX * sumX)
+//
+// The X values are a linear progression from 0 to the number of samples, meaning
+// that they can be pre-calculated beforehand and are the same for every press.
+//
+// An initial cooridinate with Y zero is always used (0,0), which causes the number
+// of data points to be always one more than the number of velocity samples
+
+// This element of the linear regression algorithm is constant based on the number of velocity samples 
+const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
+
+boolean calcVelocity(byte z) {
+  #if NEW_VELOCITY_CALCULATION  
+  if (sensorCell().vcount < VELOCITY_SAMPLES) {
+    // calculate the linear regression sums that are variable with the pressure
+    sensorCell().velSumY += z;
+    sensorCell().velSumXY += (sensorCell().vcount + 1) * z;
+
+    sensorCell().vcount++;
+
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES) {
+      int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
+      int slope = constrain((8 * VELOCITY_SCALE * sxy) / VELOCITY_SXX, 0, 1016);
+      slope = Z_CURVE[slope] >> 3;
+
+      sensorCell().velocity = calcPreferredVelocity(slope);
+
+      return true;
+    }
+  }
+  #else
+  // Velocity calculation, it merely looks for the highest pressure value in the last
+  // few samples (set in VELOCITY_SAMPLES define), and uses that as the velocity value
+  if (sensorCell().vcount < VELOCITY_SAMPLES) {
+    sensorCell().velocity = max(sensorCell().velocity, z);
+    sensorCell().vcount++;
+
+    // when the number of samples are reached, calculate the final velocity
+    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
+      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
+
+      return true;
+    }
+  }
+  #endif
+
+  return false;
 }
 
 void TouchInfo::shouldRefreshData() {
@@ -201,8 +256,8 @@ inline void TouchInfo::refreshZ() {
         break;
     }
 
-    short usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
-    short usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
+    unsigned short usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
+    unsigned short usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -210,21 +265,18 @@ inline void TouchInfo::refreshZ() {
     // apply the sensitivity curve
     usableVelocityZ = FXD_TO_INT(fxd_usableVelocityZ);
     usablePressureZ = FXD_TO_INT(fxd_usablePressureZ);
-    if (Global.velocitySensitivity != velocityLow) {
-      usableVelocityZ = Z_CURVE[usableVelocityZ];
-    }
-    if (Global.velocitySensitivity != velocityLow) {
+    if (Global.pressureSensitivity != pressureLow) {
       usablePressureZ = Z_CURVE[usablePressureZ];
     }
 
     // scale the result and store it as a byte in the range 1-127
-    velocityZ = byte(FXD_TO_INT(FXD_DIV(FXD_FROM_INT(usableVelocityZ), FXD_FROM_INT(8))) & B01111111);
-    pressureZ = byte(FXD_TO_INT(FXD_DIV(FXD_FROM_INT(usablePressureZ), FXD_FROM_INT(8))) & B01111111);
+    velocityZ = byte((usableVelocityZ >> 3) & B01111111);
+    pressureZ = byte((usablePressureZ >> 3) & B01111111);
   }
 }
 
 boolean TouchInfo::isCalculatingVelocity() {
-  return sensorCell().vcount > 0 && sensorCell().vcount != VELOCITY_SAMPLES;
+  return sensorCell().vcount > 0 && sensorCell().vcount < VELOCITY_SAMPLES;
 }
 
 boolean TouchInfo::hasNote() {
