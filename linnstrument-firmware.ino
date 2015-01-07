@@ -453,6 +453,12 @@ enum MidiMode {
   channelPerRow
 };
 
+enum TimbreExpression {
+  timbrePolyPressure,
+  timbreChannelPressure,
+  timbreCC
+};
+
 enum LoudnessExpression {
   loudnessPolyPressure,
   loudnessChannelPressure,
@@ -472,6 +478,7 @@ struct SplitSettings {
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;     // the expression that should be used for timbre
   unsigned short ccForY;               // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
