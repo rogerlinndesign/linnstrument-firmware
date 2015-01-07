@@ -15,7 +15,7 @@ Arduino's delayMicroseconds() function.
 // IMPORTANT: Use instead of Arduino's delayMicroseconds() function because this one handles background LED refresh and foot switch checking while it's waiting
 inline void delayUsec(unsigned long delayTime) {    // input the delay time in microseconds
   unsigned long start = micros();                   // start is set to time that function is called
-  unsigned long now = micros();                     // now is set once at function invocation...
+  unsigned long now = start;                        // now is set once at function invocation...
   while (calcTimeDelta(now, start) < delayTime) {   // do the following while the interval between now and start less than delayTime
     performContinuousTasks(now);
     now = micros();                                 // reset now to current time and repeat...
@@ -43,7 +43,7 @@ inline void performContinuousTasks(unsigned long now) {
     handleExtStorage();
   }
   else {
-    handleMidiInput();
+    handleMidiInput(now);
     handlePendingMidi(now);
   }
 }
@@ -53,7 +53,7 @@ inline void performContinuousTasks(unsigned long now) {
 // as a coarse trigger to piggy-back other continuous tasks off of
 inline boolean checkRefreshLedColumn(unsigned long now) {
   if (calcTimeDelta(now, prevLedTimerCount) > ledRefreshInterval) {        // is it time to refresh the next LED column?
-    refreshLedColumn();                                                    // yes-- refresh the next LED column...
+    refreshLedColumn(now);                                                 // yes-- refresh the next LED column...
     prevLedTimerCount = now;                                               // and reset the LED timer count to current time
     return true;
   }

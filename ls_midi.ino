@@ -50,9 +50,7 @@ void applyMidiIoSetting() {
   }
 }
 
-void handleMidiInput() {
-  unsigned long now = micros();
-
+void handleMidiInput(unsigned long now) {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;

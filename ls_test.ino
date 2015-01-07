@@ -198,7 +198,7 @@ void modeLoopManufacturingTest() {
   // send out MIDI activity
   midiOutQueue.push((byte)MIDIActiveSensing);
   handlePendingMidi(now);
-  handleMidiInput();
+  handleMidiInput(now);
 
   checkRefreshLedColumn(now);
   nextSensorCell();
