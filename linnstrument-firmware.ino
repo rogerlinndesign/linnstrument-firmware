@@ -229,6 +229,8 @@ int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly iden
 // convenience macros to easily access the cells with touch information
 #define sensorCell() touchInfo[sensorCol][sensorRow]
 #define cell(col, row) touchInfo[col][row]
+// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
+#define calcTimeDelta(now, last) (now < last ? now + ~last : now - last)
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells

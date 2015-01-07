@@ -86,15 +86,3 @@ inline void checkStopMiddleRootNoteBlink() {
     updateDisplay();
   }
 }
-
-// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
-inline unsigned long calcTimeDelta(unsigned long now, unsigned long last) {
-  // check if the timer has overflown
-  if (now < last) {
-    return now + ~last;
-  }
-  // otherwise simply substract
-  else {
-    return now - last;
-  }
-}
