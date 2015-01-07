@@ -104,6 +104,7 @@ void setLed(byte col, byte row, byte color, CellDisplay disp);
 // #define DISPLAY_XFRAME_AT_LAUNCH
 // #define DISPLAY_YFRAME_AT_LAUNCH
 // #define DISPLAY_ZFRAME_AT_LAUNCH
+// #define DISPLAY_SURFACESCAN_AT_LAUNCH
 
 // Touch surface constants
 const byte NUMCOLS = 26;                 // number of touch sensor columns
@@ -228,6 +229,8 @@ int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly iden
 // convenience macros to easily access the cells with touch information
 #define sensorCell() touchInfo[sensorCol][sensorRow]
 #define cell(col, row) touchInfo[col][row]
+// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
+#define calcTimeDelta(now, last) (now < last ? now + ~last : now - last)
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -826,6 +829,12 @@ void setup() {
   Global.serialMode = true;
   SWITCH_ZFRAME = true;
 #endif
+
+#ifdef DISPLAY_SURFACESCAN_AT_LAUNCH
+  #define DEBUG_ENABLED
+  Global.serialMode = true;
+  SWITCH_SURFACESCAN = true;
+#endif
 }
 
 
@@ -855,7 +864,7 @@ void loop() {
 
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
-    if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
+    if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
@@ -863,18 +872,24 @@ inline void modeLoopPerformance() {
   else {
     TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
 
-    if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
+    boolean canShortCircuit = false;
+
+    if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {       // if touched now but not before, it's a new touch
       handleNewTouch();
+      canShortCircuit = true;
     }
-    else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
+    else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements
+      canShortCircuit = true;
     }
-    else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
+    else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
+             calcTimeDelta(millis(), sensorCell().lastTouch) > 50 ) {             // only release if it's later than 50ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
-    if (sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+    if (canShortCircuit &&
+        sensorCell().touched == touchedCell &&
+        sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
       sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }

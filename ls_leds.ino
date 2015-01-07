@@ -64,13 +64,12 @@ void clearLed(byte col, byte row) {
 
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.
-void refreshLedColumn() {                                 // output: none
+void refreshLedColumn(unsigned long now) {               // output: none
   // keep a steady pulsating going for those leds that need it
   static unsigned long lastPulse = 0;
   static bool lastPulseOn = true;
-  unsigned long now = millis();
 
-  if (calcTimeDelta(now, lastPulse) > 80) {
+  if (calcTimeDelta(now, lastPulse) > 80000) {
     lastPulse = now;
     lastPulseOn = !lastPulseOn;
   }

@@ -907,6 +907,28 @@ void handleTempoNewTouch() {
 // Called to handle a change in one of the Global Settings,
 // meaning that user is holding global settings and touching one of global settings cells
 void handleGlobalSettingNewTouch() {
+
+#ifdef DEBUG_ENABLED
+  // Column 17 is for controlling debug levels
+  if (sensorCol == 17 && sensorRow < 4) {
+    debugLevel = sensorRow - 1;
+    DEBUGPRINT((-1,"debugLevel = "));
+    DEBUGPRINT((-1,debugLevel));
+    DEBUGPRINT((-1,"\n"));
+  }
+
+  if (sensorCol == 18 && sensorRow < SECRET_SWITCHES) {
+    // This is a hidden feature, to make it easy to toggle debug printing of MIDI messages.
+    byte ss = sensorRow;
+    secretSwitch[ss] = !secretSwitch[ss];
+    DEBUGPRINT((-1,"secretSwitch["));
+    DEBUGPRINT((-1,ss));
+    DEBUGPRINT((-1,"]="));
+    DEBUGPRINT((-1,secretSwitch[ss]));
+    DEBUGPRINT((-1,"\n"));
+  }
+#endif
+
   if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (sensorCol <= 16) {
       clearDisplay();
@@ -1159,27 +1181,6 @@ void handleGlobalSettingNewTouch() {
       initializeCalibrationSamples();
     }
  }
-
-#ifdef DEBUG_ENABLED
-  // Column 17 is for controlling debug levels
-  if (sensorCol == 17 && sensorRow < 4) {
-    debugLevel = sensorRow - 1;
-    DEBUGPRINT((-1,"debugLevel = "));
-    DEBUGPRINT((-1,debugLevel));
-    DEBUGPRINT((-1,"\n"));
-  }
-
-  if (sensorCol == 18 && sensorRow < 4) {
-    // This is a hidden feature, to make it easy to toggle debug printing of MIDI messages.
-    byte ss = sensorRow;
-    secretSwitch[ss] = !secretSwitch[ss];
-    DEBUGPRINT((-1,"secretSwitch["));
-    DEBUGPRINT((-1,ss));
-    DEBUGPRINT((-1,"]="));
-    DEBUGPRINT((-1,secretSwitch[ss]));
-    DEBUGPRINT((-1,"\n"));
-  }
-#endif
 
   if (sensorCol == 25) {
     if      (sensorRow == 0) {

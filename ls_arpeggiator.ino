@@ -9,6 +9,9 @@ actual cell that was pressed, allowing velocity to be continuously varied during
 sequence.
 ***************************************************************************************************/
 
+unsigned long arpeggiatorRefreshInterval = 500;
+unsigned long prevArpeggiatorTimerCount = 0;
+
 const unsigned long internalClockUnitBase = 2500000;  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
 
 unsigned long lastInternalClockMoment;                // the last time the internal clock stepped
@@ -33,6 +36,7 @@ short getInternalClockCount() {
 void initializeArpeggiator() {
   randomSeed(analogRead(0));
 
+  prevArpeggiatorTimerCount = micros();
   lastArpMidiClock = 0;
   lastInternalClockCount = 0;
 
@@ -138,6 +142,11 @@ void sendArpeggiatorStepMidiOff(byte split) {
 }
 
 inline void checkAdvanceArpeggiator(unsigned long now) {
+  if (calcTimeDelta(now, prevArpeggiatorTimerCount) <= arpeggiatorRefreshInterval) {
+    return;
+  }
+  prevArpeggiatorTimerCount = now;
+
   short clockCount;
 
   if (isMidiClockRunning()) {

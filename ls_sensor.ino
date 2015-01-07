@@ -67,7 +67,7 @@ inline short readY() {                                // returns a value of 0-12
 // Reads Z value at current cell
 inline unsigned short readZ() {                              // returns the raw Z value
   selectSensorCell(sensorCol, sensorRow, READ_Z);            // set analog switches to current cell in touch sensor and read Z
-  delayUsec(7);                                              // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
+  delayMicroseconds(7);                                      // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
 
   short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
 

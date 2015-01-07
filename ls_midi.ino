@@ -50,9 +50,7 @@ void applyMidiIoSetting() {
   }
 }
 
-void handleMidiInput() {
-  unsigned long now = micros();
-
+void handleMidiInput(unsigned long now) {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
@@ -833,13 +831,8 @@ void handlePendingMidi(unsigned long now) {
     }
   }
   else {
-    while (!midiOutQueue.empty() && sendNextMidiOutputByte()) {
-      // loop until the MIDI queue is empty or the serial buffer is full
-      // unless we're using DIN MIDI, then we throttle the MIDI output so that
-      // the slower serial speed can keep up
-      if (isMidiUsingDIN()) {
-        break;
-      }
+    if (!midiOutQueue.empty()) {
+      sendNextMidiOutputByte();
     }
   }
 }
