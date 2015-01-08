@@ -409,8 +409,8 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
   #define VELOCITY_N       VELOCITY_SAMPLES + 1
   #define VELOCITY_SUMX    15   // x1 + x2 + x3 + ... + xn
   #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
-  #define VELOCITY_SCALE   4
-  #define VELOCITY_DIVIDER 1
+  #define VELOCITY_SCALE   9
+  #define VELOCITY_DIVIDER 2
 #else
   #define VELOCITY_SAMPLES 4
 #endif
@@ -453,6 +453,12 @@ enum MidiMode {
   channelPerRow
 };
 
+enum TimbreExpression {
+  timbrePolyPressure,
+  timbreChannelPressure,
+  timbreCC
+};
+
 enum LoudnessExpression {
   loudnessPolyPressure,
   loudnessChannelPressure,
@@ -472,6 +478,7 @@ struct SplitSettings {
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;     // the expression that should be used for timbre
   unsigned short ccForY;               // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
@@ -883,7 +890,7 @@ inline void modeLoopPerformance() {
       canShortCircuit = true;
     }
     else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
-             calcTimeDelta(millis(), sensorCell().lastTouch) > 50 ) {             // only release if it's later than 50ms after the touch to debounce some note starts
+             calcTimeDelta(millis(), sensorCell().lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 

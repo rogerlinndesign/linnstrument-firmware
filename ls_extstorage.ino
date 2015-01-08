@@ -5,6 +5,44 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
 **************************************************************************************************/
 
+/**************************************** Configuration V1 ***************************************/
+struct SplitSettingsV1 {
+  byte midiMode;                       // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                   // main midi channel, 1 to 16
+  byte midiChanPerRow;                 // per-row midi channel, 1 to 16
+  boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  byte bendRange;                      // 1 - 96
+  boolean sendX;                       // true to send continuous X, false if not
+  boolean sendY;                       // true to send continuous Y, false if not
+  boolean sendZ;                       // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
+  boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
+  boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
+  unsigned short ccForY;               // 0-127
+  boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
+  LoudnessExpression expressionForZ;   // the expression that should be used for loudness
+  unsigned short ccForZ;               // 0-127
+  byte colorMain;                      // color for non-accented cells
+  byte colorAccent;                    // color for accented cells
+  byte colorNoteon;                    // color for played notes
+  byte colorLowRow;                    // color for low row if on
+  byte lowRowMode;                     // see LowRowMode values
+  unsigned short preset;               // preset number 0-127
+  signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;         // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                       // true when this split strums the touches of the other split
+};
+struct ConfigurationV1 {
+  GlobalSettings  global;
+  SplitSettingsV1 left;
+  SplitSettingsV1 right;
+};
+struct ConfigurationV1 configV1;
+/*************************************************************************************************/
+
 const char* countDownCode = "5, 4, 3, 2, 1 ...\n";
 const byte countDownLength = 18;
 const char* linnGoCode = "LinnStruments are go!\n"; 
@@ -109,10 +147,32 @@ void handleExtStorage() {
           buff2[j] = Serial.read();
           lastMoment = millis();
         }
-        memcpy(&config, buff2, confSize);
+
+        boolean settingsApplied = true;
+        byte settingsVersion = buff2[0];
+        // if the stored version is newer than what this firmware supports, resort to default settings
+        if (settingsVersion > config.global.version) {
+          settingsApplied = false;
+        }
+        // if this is v1 of the configuration format, load it in the old structure and then convert it
+        else if (settingsVersion == 1) {
+          memcpy(&configV1, buff2, confSize);
+
+          byte currentVersion = config.global.version;
+          config.global = configV1.global;
+          config.global.version = currentVersion;
+          copySplitSettingsV1ToSplitSettings(&config.left, &configV1.left);
+          copySplitSettingsV1ToSplitSettings(&config.right, &configV1.right);
+        }
+        // this is the latest configuration, just apply it
+        else {
+          memcpy(&config, buff2, confSize);
+        }
 
         // activate the retrieved settings
-        applyConfiguration();
+        if (settingsApplied) {
+          applyConfiguration();
+        }
 
         // send the acknowledgement of success
         Serial.write(ackCode);
@@ -122,11 +182,18 @@ void handleExtStorage() {
         switchSerialMode(false);
 
         // Enable normal playing mode and ensure calibration is fully turned off
-        setDisplayMode(displayNormal);
-        controlButton = -1;
-        clearLed(0, GLOBAL_SETTINGS_ROW);
+        if (settingsApplied) {
+          setDisplayMode(displayNormal);
+          controlButton = -1;
+          clearLed(0, GLOBAL_SETTINGS_ROW);
 
-        storeSettings();
+          storeSettings();
+        }
+        else {
+          setDisplayMode(displayCalibration);
+          controlButton = 0;
+          lightLed(0, GLOBAL_SETTINGS_ROW);
+        }
 
         updateDisplay();
         waitingForCommands = false;
@@ -155,4 +222,38 @@ void handleExtStorage() {
       codePos = 0;
     }
   }
+}
+
+void copySplitSettingsV1ToSplitSettings(void *target, void *source) {
+  SplitSettings *t = (SplitSettings *)target;
+  SplitSettingsV1 *s = (SplitSettingsV1 *)source;
+
+  t->midiMode = s->midiMode;
+  t->midiChanMain = s->midiChanMain;
+  t->midiChanPerRow = s->midiChanPerRow;
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
+  t->bendRange = s->bendRange;
+  t->sendX = s->sendX;
+  t->sendY = s->sendY;
+  t->sendZ = s->sendZ;
+  t->pitchCorrectQuantize = s->pitchCorrectQuantize;
+  t->pitchCorrectHold = s->pitchCorrectHold;
+  t->pitchResetOnRelease = s->pitchResetOnRelease;
+  t->expressionForY = timbreCC;
+  t->ccForY = s->ccForY;
+  t->relativeY = s->relativeY;
+  t->expressionForZ = s->expressionForZ;
+  t->ccForZ = s->ccForZ;
+  t->colorMain = s->colorMain;
+  t->colorAccent = s->colorAccent;
+  t->colorNoteon = s->colorNoteon;
+  t->colorLowRow = s->colorLowRow;
+  t->lowRowMode = s->lowRowMode;
+  t->preset = s->preset;
+  t->transposeOctave = s->transposeOctave;
+  t->transposePitch = s->transposePitch;
+  t->transposeLights = s->transposeLights;
+  t->ccFaders = s->ccFaders;
+  t->arpeggiator = s->arpeggiator;
+  t->strum = s->strum;
 }

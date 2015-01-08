@@ -120,6 +120,7 @@ void initializeSplitSettings() {
       Split[s].pitchCorrectQuantize = true;
       Split[s].pitchCorrectHold = true;
       Split[s].pitchResetOnRelease = false;
+      Split[s].expressionForY = timbreCC;
       Split[s].ccForY = 74;
       Split[s].relativeY = false;
       Split[s].expressionForZ = loudnessPolyPressure;
@@ -169,7 +170,7 @@ void initializeSplitSettings() {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all Global settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeGlobalSettings() {
-  Global.version = 1;
+  Global.version = 2;
   Global.serialMode = false;
 
   splitActive = false;
