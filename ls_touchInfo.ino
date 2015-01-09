@@ -130,7 +130,9 @@ void initializeTouchInfo() {
 // of data points to be always one more than the number of velocity samples
 
 // This element of the linear regression algorithm is constant based on the number of velocity samples 
+#if NEW_VELOCITY_CALCULATION
 const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
+#endif
 
 boolean calcVelocity(byte z) {
   #if NEW_VELOCITY_CALCULATION  
