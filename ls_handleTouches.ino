@@ -39,7 +39,7 @@ void initVelocity() {
 byte calcPreferredVelocity(byte velocity) {
   // determine the preferred velocity based on the sensitivity settings
   if (Global.velocitySensitivity == velocityFixed) {
-    return 96;
+    return 68;
   }
   else {
     return constrain(velocity, 1, 127);
