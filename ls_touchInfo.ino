@@ -129,31 +129,32 @@ void initializeTouchInfo() {
 // An initial cooridinate with Y zero is always used (0,0), which causes the number
 // of data points to be always one more than the number of velocity samples
 
-// This element of the linear regression algorithm is constant based on the number of velocity samples 
 #if NEW_VELOCITY_CALCULATION
-const int VELOCITY_SXX = VELOCITY_DIVIDER * ((VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX);
+// This element of the linear regression algorithm is constant based on the number of velocity samples 
+const int VELOCITY_SXX = (VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX;
 #endif
 
-boolean calcVelocity(byte z) {
-  #if NEW_VELOCITY_CALCULATION  
+boolean calcVelocity(unsigned short z) {
+  #if NEW_VELOCITY_CALCULATION
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
     // calculate the linear regression sums that are variable with the pressure
     sensorCell().velSumY += z;
-    sensorCell().velSumXY += (sensorCell().vcount + 1) * z;
+    sensorCell().velSumXY += (sensorCell().vcount + VELOCITY_ZERO_POINTS) * z;
 
     sensorCell().vcount++;
 
     // when the number of samples are reached, calculate the final velocity
     if (sensorCell().vcount == VELOCITY_SAMPLES) {
       int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
-      int slope = constrain((8 * VELOCITY_SCALE * sxy) / VELOCITY_SXX, 0, 1016);
-      if (Global.velocitySensitivity == velocityLow) {
-        slope = Z_CURVE_LOW[slope];
-      } else {
+      int slope = constrain((VELOCITY_SCALE * sxy) / VELOCITY_SXX, 0, 1016);
+      if (Global.velocitySensitivity != velocityLow) {
         slope = Z_CURVE[slope];
       }
+      else {
+        slope = Z_CURVE_LOW[slope];
+      }
 
-      slope = slope >> 3;
+      slope = ((slope * 10) + 5) / 80; // reduce 1016 > 127 by dividing, but we do this so that values are rounded instead of truncated
 
       sensorCell().velocity = calcPreferredVelocity(slope);
 
@@ -275,7 +276,7 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-    unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z);
+    unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;
     unsigned short sensorRangePressure = sensorRange;

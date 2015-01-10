@@ -213,6 +213,7 @@ void initializeGlobalSettings() {
   Global.arpDirection = ArpUp;
   Global.arpTempo = ArpSixteenth;
   Global.arpOctave = 0;
+  Global.promoAnimationAtStartup = false;
 }
 
 void initializeGlobalSensorSettings() {
@@ -250,8 +251,8 @@ void handleControlButtonNewTouch() {
     controlButton = sensorRow;                         // keep track of which control button we're handling
   }
  
-  // determine whether a double-tap happened on the switch (ie. second tap within 500 ms)
-  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 500);
+  // determine whether a double-tap happened on the switch (ie. second tap within 400 ms)
+  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 400);
 
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
