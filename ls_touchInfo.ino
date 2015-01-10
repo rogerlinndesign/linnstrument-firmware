@@ -280,7 +280,7 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-    unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z);
+    unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;
     unsigned short sensorRangePressure = sensorRange;
