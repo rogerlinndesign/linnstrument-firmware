@@ -213,6 +213,7 @@ void initializeGlobalSettings() {
   Global.arpDirection = ArpUp;
   Global.arpTempo = ArpSixteenth;
   Global.arpOctave = 0;
+  Global.promoAnimationAtStartup = false;
 }
 
 void initializeGlobalSensorSettings() {

@@ -585,8 +585,8 @@ struct GlobalSettings {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
 };
-
 GlobalSettings Global;
 
 struct Configuration {
@@ -817,6 +817,11 @@ void setup() {
 
     // update the display for the last state
     updateDisplay();
+  }
+
+  // if the promo animation was running last time the LinnStrument was on, start it up automatically
+  if (Global.promoAnimationAtStartup) {
+    playPromoAnimation();
   }
 
 #ifdef DISPLAY_XFRAME_AT_LAUNCH

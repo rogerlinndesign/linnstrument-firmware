@@ -80,7 +80,7 @@ void handleExtStorage() {
         config.left = Split[LEFT];
         config.right = Split[RIGHT];
 
-        int32_t confSize = sizeof(struct Configuration);;
+        int32_t confSize = sizeof(struct Configuration);
 
         // send the size of the settings
         byte buff1[sizeof(int32_t)];
@@ -148,14 +148,14 @@ void handleExtStorage() {
           lastMoment = millis();
         }
 
-        boolean settingsApplied = true;
+        boolean settingsApplied = false;
         byte settingsVersion = buff2[0];
         // if the stored version is newer than what this firmware supports, resort to default settings
         if (settingsVersion > config.global.version) {
           settingsApplied = false;
         }
-        // if this is v1 of the configuration format, load it in the old structure and then convert it
-        else if (settingsVersion == 1) {
+        // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
+        else if (settingsVersion == 1 && confSize == sizeof(struct ConfigurationV1)) {
           memcpy(&configV1, buff2, confSize);
 
           byte currentVersion = config.global.version;
@@ -163,10 +163,12 @@ void handleExtStorage() {
           config.global.version = currentVersion;
           copySplitSettingsV1ToSplitSettings(&config.left, &configV1.left);
           copySplitSettingsV1ToSplitSettings(&config.right, &configV1.right);
+          settingsApplied = true;
         }
-        // this is the latest configuration, just apply it
-        else {
+        // this is the v2 of the configuration configuration, apply it if the size is right
+        else if (settingsVersion == 2 && confSize == sizeof(struct Configuration)) {
           memcpy(&config, buff2, confSize);
+          settingsApplied = true;
         }
 
         // activate the retrieved settings
@@ -189,6 +191,7 @@ void handleExtStorage() {
 
           storeSettings();
         }
+        // turn on calibration instead of no new settings were applied and default settings are used
         else {
           setDisplayMode(displayCalibration);
           controlButton = 0;
