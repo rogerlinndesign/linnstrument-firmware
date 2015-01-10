@@ -261,6 +261,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // show pulsating middle root note
   if (blinkMiddleRootNote && displayedNote == 60) {
+    colour = Split[split].colorAccent;
     cellDisplay = cellPulse;
   }
 
