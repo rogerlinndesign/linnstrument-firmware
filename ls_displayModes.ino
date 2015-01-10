@@ -222,7 +222,6 @@ void paintStrumDisplayCell(byte split, byte col, byte row) {
 
   // actually set the cell's color
   setLed(col, row, colour, cellDisplay);
-  checkRefreshLedColumn(micros());
 }
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
@@ -267,7 +266,6 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // actually set the cell's color
   setLed(col, row, colour, cellDisplay);
-  checkRefreshLedColumn(micros());
 }
 
 // paintPerSplitDisplay:
