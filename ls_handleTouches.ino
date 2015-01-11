@@ -799,7 +799,8 @@ void releaseChannel(byte channel) {
   }
 }
 
-#define PENDING_RELEASE_START 3
+#define PENDING_RELEASE_MOVEMENT   3
+#define PENDING_RELEASE_STATIONARY 1
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -814,7 +815,14 @@ void handleTouchRelease() {
   }
   // if no release is pending, start a pending release
   else {
-    sensorCell().pendingReleaseCount = PENDING_RELEASE_START;
+    // if there's X movement use a longer pending release
+    if (sensorCell().fxdRateX > PENDING_RELEASE_RATE_X) {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
+    }
+    // ... than when it's a stationary release
+    else {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_STATIONARY;
+    }
   }
 
   // if a release is pending, don't perform the release logic yet
