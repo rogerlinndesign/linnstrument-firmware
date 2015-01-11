@@ -798,8 +798,8 @@ void handleTouchRelease() {
   if (sensorCell().pendingReleaseCount > 0) {
     sensorCell().pendingReleaseCount--;
   }
-  // if no release is pending and the rate of change of X is high, start a pending release
-  else if (sensorCell().fxdRateX > FXD_FROM_INT(7)) {
+  // if no release is pending, start a pending release
+  else {
     sensorCell().pendingReleaseCount = PENDING_RELEASE_START;
   }
 
