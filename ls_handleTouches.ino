@@ -64,7 +64,10 @@ boolean preventPitchSlides(byte col, byte row) {
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() && (!Split[sensorSplit].sendX || !isFocusedCell(col, sensorRow) || preventPitchSlides(col, sensorRow))) return false;
+  if (!isLowRow() && (!Split[sensorSplit].sendX ||
+                      !isFocusedCell(col, sensorRow) ||
+                      preventPitchSlides(col, sensorRow) ||
+                      cell(col, sensorRow).pendingReleaseCount && cell(col, sensorRow).fxdRateX <= FXD_FROM_INT(7))) return false;
   if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
@@ -74,8 +77,8 @@ boolean potentialSlideTransferCandidate(byte col) {
 }
 
 boolean isReadyForSlideTransfer(byte col) {
-  return cell(col, sensorRow).pendingReleaseCount && cell(col, sensorRow).fxdRateX > FXD_FROM_INT(7) ||   // there's a pending release waiting
-    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;                                          // the cell pressure is higher
+  return cell(col, sensorRow).pendingReleaseCount ||                 // there's a pending release waiting
+    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;     // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
