@@ -481,7 +481,7 @@ struct SplitSettings {
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
-  unsigned short ccForY;               // 0-127
+  unsigned short ccForY;               // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short ccForZ;               // 0-127

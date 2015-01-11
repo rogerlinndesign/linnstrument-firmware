@@ -490,6 +490,18 @@ void receivedNrpn(int parameter, int value) {
         Split[split].transposeLights = value-7;
       }
       break;
+    // Split MIDI Expression For Y
+    case 39:
+      if (inRange(value, 0, 2)) {
+        Split[split].expressionForY = (TimbreExpression)value;
+        if (Split[split].expressionForY == timbrePolyPressure) {
+          Split[split].ccForY = 128;
+        }
+        else if (Split[split].expressionForY == timbreChannelPressure) {
+          Split[split].ccForY = 129;
+        }
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -763,12 +775,25 @@ void preSendPitchBend(byte split, int pitchValue, byte channel) {
 }
 
 // Called to send Y-axis movements
-void preSendY(byte split, byte yValue, byte channel) {
-  midiSendControlChange(Split[split].ccForY, yValue, channel);
+void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
+  switch(Split[sensorSplit].expressionForY)
+  {
+    case timbrePolyPressure:
+      midiSendPolyPressure(note, yValue, channel);
+      break;
+
+    case timbreChannelPressure:
+      midiSendAfterTouch(yValue, channel);
+      break;
+
+    case loudnessCC:
+      midiSendControlChange(Split[split].ccForY, yValue, channel);
+      break;
+  }
 }
 
-// Called to send Pressure message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
-void preSendPressure(byte note, byte pressureValue, byte channel) {
+// Called to send Z message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
+void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
   switch(Split[sensorSplit].expressionForZ)
   {
     case loudnessPolyPressure:
@@ -780,7 +805,7 @@ void preSendPressure(byte note, byte pressureValue, byte channel) {
       break;
 
     case loudnessCC:
-      midiSendControlChange(Split[sensorSplit].ccForZ, pressureValue, channel);
+      midiSendControlChange(Split[split].ccForZ, pressureValue, channel);
       break;
   }
 }

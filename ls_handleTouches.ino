@@ -390,7 +390,12 @@ boolean isXExpressiveCell() {
 
 // Check if Y expression should be sent for this cell
 boolean isYExpressiveCell() {
-  return isFocusedCell();
+  if (Split[sensorSplit].expressionForY == timbrePolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
+  }
 }
 
 // Check if Z expression should be sent for this cell
@@ -528,7 +533,7 @@ void handleXYZupdate() {
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendPressure(sensorCell().note, preferredPressure, sensorCell().channel);
+      preSendLoudness(sensorSplit, preferredPressure, sensorCell().note, sensorCell().channel);
     }
 
     // if X-axis movements are enabled and it's a candidate for
@@ -548,7 +553,7 @@ void handleXYZupdate() {
     if (preferredTimbre != INVALID_DATA &&
         isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
-      preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
+      preSendTimbre(sensorSplit, preferredTimbre, sensorCell().note, sensorCell().channel);
     }
   }
 }
