@@ -48,7 +48,7 @@ byte calcPreferredVelocity(byte velocity) {
 
 #define TRANSFER_SLIDE_PROXIMITY 80
 
-boolean preventPitchSlides(byte col, byte row) {
+boolean severalTouchesForMidiChannel(byte col, byte row) {
   if (!cell(col, row).hasNote()) {
     return false;
   }
@@ -61,13 +61,19 @@ boolean preventPitchSlides(byte col, byte row) {
   return false;
 }
 
+const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
+
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() && (!Split[sensorSplit].sendX ||
-                      !isFocusedCell(col, sensorRow) ||
-                      preventPitchSlides(col, sensorRow) ||
-                      cell(col, sensorRow).pendingReleaseCount && cell(col, sensorRow).fxdRateX <= FXD_FROM_INT(7))) return false;
+  if (!isLowRow() &&                                                // don't perform slide transfers
+      (!Split[sensorSplit].sendX ||                                 // if pitch slides are disabled
+       !isFocusedCell(col, sensorRow) ||                            // if this is not a focused cell
+       severalTouchesForMidiChannel(col, sensorRow) ||              // when there are several touches for the same MIDI channel
+       (cell(col, sensorRow).pendingReleaseCount &&                 // if there's a pending release but not enough X change
+        cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X))) {
+    return false;
+  }
   if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
@@ -529,7 +535,7 @@ void handleXYZupdate() {
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
         isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      if (preventPitchSlides(sensorCol, sensorRow)) {
+      if (severalTouchesForMidiChannel(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
       else {
