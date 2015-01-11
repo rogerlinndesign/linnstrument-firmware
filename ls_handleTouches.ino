@@ -46,7 +46,7 @@ byte calcPreferredVelocity(byte velocity) {
   }
 }
 
-#define TRANSFER_SLIDE_PROXIMITY 100
+#define TRANSFER_SLIDE_PROXIMITY 80
 
 boolean preventPitchSlides(byte col, byte row) {
   if (!cell(col, row).hasNote()) {
@@ -74,8 +74,8 @@ boolean potentialSlideTransferCandidate(byte col) {
 }
 
 boolean isReadyForSlideTransfer(byte col) {
-  return cell(col, sensorRow).pendingReleaseCount ||               // there's a pending release waiting
-    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;   // the cell pressure is higher
+  return cell(col, sensorRow).pendingReleaseCount && cell(col, sensorRow).fxdRateX > FXD_FROM_INT(7) ||   // there's a pending release waiting
+    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;                                          // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
