@@ -186,6 +186,11 @@ void initializeTouchInfo() {
 const int VELOCITY_SXX = (VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX;
 #endif
 
+inline byte scale1016to127(int v) {
+  // reduce 1016 > 127 by dividing, but we do this so that values are rounded instead of truncated
+  return ((v * 10) + 40) / 80;
+}
+
 boolean calcVelocity(unsigned short z) {
   #if NEW_VELOCITY_CALCULATION
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
@@ -216,7 +221,7 @@ boolean calcVelocity(unsigned short z) {
       int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
       int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 0, 1016)];
 
-      slope = ((slope * 10) + 5) / 80; // reduce 1016 > 127 by dividing, but we do this so that values are rounded instead of truncated
+      slope = scale1016to127(slope);
 
       sensorCell().velocity = calcPreferredVelocity(slope);
 
@@ -375,9 +380,9 @@ inline void TouchInfo::refreshZ() {
     usableVelocityZ = FXD_TO_INT(fxd_usableVelocityZ);
     usablePressureZ = FXD_TO_INT(fxd_usablePressureZ);
 
-    // scale the result and store it as a byte in the range 1-127
-    velocityZ = byte((usableVelocityZ >> 3) & B01111111);
-    pressureZ = byte((usablePressureZ >> 3) & B01111111);
+    // scale the result and store it as a byte in the range 0-127
+    velocityZ = scale1016to127(usableVelocityZ);
+    pressureZ = scale1016to127(usablePressureZ);
   }
 }
 
