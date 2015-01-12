@@ -217,6 +217,7 @@ boolean calcVelocity(unsigned short z) {
       slope = scale1016to127(slope);
 
       sensorCell().velocity = calcPreferredVelocity(slope);
+      sensorCell().velocity = constrain(sensorCell().velocity, 0, Global.velocityLimit);
 
       return true;
     }

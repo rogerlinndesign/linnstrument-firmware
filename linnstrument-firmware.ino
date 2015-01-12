@@ -291,7 +291,8 @@ enum DisplayMode {
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
-  displayPromo
+  displayPromo,
+  displayCompressorLimit
 };
 void setDisplayMode(DisplayMode mode);
 
@@ -588,6 +589,7 @@ struct GlobalSettings {
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
   boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  byte velocityLimit;			     // the global velocity limiter value
 };
 GlobalSettings Global;
 

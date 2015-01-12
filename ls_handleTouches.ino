@@ -355,6 +355,9 @@ void handleNewTouch() {
     case displayGlobalWithTempo:
       handleGlobalSettingNewTouch();
       break;
+    case displayCompressorLimit:                                   // it's a change to the compressor limiter
+      handleCompressorLimitNewTouch();
+      break;
     }
   }
 }
@@ -874,6 +877,9 @@ void handleTouchRelease() {
     case displayGlobal:
     case displayGlobalWithTempo:
       handleGlobalSettingRelease();
+      return;
+    case displayCompressorLimit:
+      handleCompressorLimitRelease();
       return;
   }
 

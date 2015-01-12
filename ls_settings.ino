@@ -181,6 +181,7 @@ void initializeGlobalSettings() {
   Global.velocitySensitivity = velocityMedium;
   Global.pressureSensitivity = pressureMedium;
   Global.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
+  Global.velocityLimit = 127;
 
   // initialize switch assignments
   Global.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
@@ -720,6 +721,14 @@ void handleSensorRangeZRelease() {
   handleNumericDataRelease(false);
 }
 
+void handleCompressorLimitNewTouch() {
+  handleNumericDataNewTouch(Global.velocityLimit, 0, 127, true);
+}
+
+void handleCompressorLimitRelease() {
+  handleNumericDataRelease(false);
+}
+
 void resetNumericDataChange() {
   numericDataChangeCol = -1;
   numericActiveDown = 0;
@@ -1194,6 +1203,15 @@ void handleGlobalSettingNewTouch() {
       initializeCalibrationSamples();
     }
  }
+
+  if (sensorCol == 24) {
+    if (sensorRow == 0) {
+      Global.velocityLimit = 127;
+    }
+    else if (sensorRow == 1) {
+      setDisplayMode(displayCompressorLimit);
+    }
+  }
 
   if (sensorCol == 25) {
     if      (sensorRow == 0) {

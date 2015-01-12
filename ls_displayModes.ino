@@ -3,7 +3,7 @@ This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unpo
 To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
-There are 13 different display modes.
+There are 14 different display modes.
 
 These are the possible values of the global variable displayMode:
 
@@ -25,6 +25,7 @@ displaySensorLoZ         : sensor low Z sensitivity selection
 displaySensorFeatherZ    : sensor feather Z sensitivity selection
 displaySensorRangeZ      : max Z sensor range selection
 displayPromo             : display promotion animation
+displayCompressorLimit   : settings for velocity limiter
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -108,6 +109,9 @@ void updateDisplay() {
     break;
   case displaySensorRangeZ:      // Display the max Z range
     paintSensorRangeZDisplay();
+    break;
+  case displayCompressorLimit:   // Display the global midi velocity compressor/limiter value
+    paintCompressorLimitDisplay();
     break;
   }
 
@@ -521,6 +525,10 @@ void paintSplitNumericDataDisplay(byte side, byte value) {
   paintNumericDataDisplay(Split[side].colorMain, value);
 
   paintShowSplitSelection(side);
+}
+
+void paintCompressorLimitDisplay() {
+  paintNumericDataDisplay(globalColor, Global.velocityLimit);
 }
 
 void paintNumericDataDisplay(byte color, unsigned short value) {
