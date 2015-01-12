@@ -72,7 +72,13 @@ inline unsigned short readZ() {                              // returns the raw 
     delayUsec(32);
   }
   else {
-    delayMicroseconds(7);
+    // use a different delay whether the note is actively pressed or whether its velocity is still being calculated
+    if (sensorCell().vcount == VELOCITY_SAMPLES) {
+      delayMicroseconds(10);
+    }
+    else {
+      delayMicroseconds(7);
+    }
   }
 
   short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
