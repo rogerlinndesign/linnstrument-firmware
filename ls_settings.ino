@@ -945,7 +945,7 @@ void handleGlobalSettingNewTouch() {
   if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (sensorCol <= 16) {
       clearDisplay();
-      big_scroll_text_flipped(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+      big_scroll_text(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);
     }
     else if (sensorCol == 25) {
       playPromoAnimation();
