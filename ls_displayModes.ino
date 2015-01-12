@@ -267,6 +267,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // actually set the cell's color
   setLed(col, row, colour, cellDisplay);
+  checkRefreshLedColumn(micros());
 }
 
 // paintPerSplitDisplay:
@@ -347,16 +348,25 @@ void paintPerSplitDisplay(byte side) {
     setLed(9, 7, Split[side].colorMain, cellOn);
   }
 
-  switch (Split[side].ccForY)
+  switch (Split[side].expressionForY)
   {
-    case 1:
-      setLed(9, 6, Split[side].colorMain, cellOn);
-      break;
-    case 74:
-      setLed(9, 5, Split[side].colorMain, cellOn);
-      break;
-    default:
+    case timbrePolyPressure:
+    case timbreChannelPressure:
       setLed(9, 3, Split[side].colorMain, cellOn);
+      break;
+    case loudnessCC:
+      switch (Split[side].ccForY)
+      {
+        case 1:
+          setLed(9, 6, Split[side].colorMain, cellOn);
+          break;
+        case 74:
+          setLed(9, 5, Split[side].colorMain, cellOn);
+          break;
+        default:
+          setLed(9, 3, Split[side].colorMain, cellOn);
+          break;
+      }
       break;
   }
 
@@ -470,7 +480,19 @@ void paintBendRangeDisplay(byte side) {
 }
 
 void paintCCForYDisplay(byte side) {
-  paintSplitNumericDataDisplay(side, Split[side].ccForY);
+  if (Split[side].ccForY == 128) {
+    clearDisplay();
+    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain);
+    paintShowSplitSelection(side);
+  }
+  else if (Split[side].ccForY == 129) {
+    clearDisplay();
+    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain);
+    paintShowSplitSelection(side);
+  }
+  else {
+    paintSplitNumericDataDisplay(side, Split[side].ccForY);
+  }
 }
 
 void paintCCForZDisplay(byte side) {
@@ -504,8 +526,6 @@ void paintSplitNumericDataDisplay(byte side, byte value) {
 void paintNumericDataDisplay(byte color, unsigned short value) {
   clearDisplay();
   
-  doublePerSplit = false;  
-
   char str[10];
   char* format;
   byte offset;

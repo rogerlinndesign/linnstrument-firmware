@@ -46,9 +46,9 @@ byte calcPreferredVelocity(byte velocity) {
   }
 }
 
-#define TRANSFER_SLIDE_PROXIMITY 100
+#define TRANSFER_SLIDE_PROXIMITY 80
 
-boolean preventPitchSlides(byte col, byte row) {
+boolean severalTouchesForMidiChannel(byte col, byte row) {
   if (!cell(col, row).hasNote()) {
     return false;
   }
@@ -61,10 +61,19 @@ boolean preventPitchSlides(byte col, byte row) {
   return false;
 }
 
+const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
+
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() && (!Split[sensorSplit].sendX || !isFocusedCell(col, sensorRow) || preventPitchSlides(col, sensorRow))) return false;
+  if (!isLowRow() &&                                                // don't perform slide transfers
+      (!Split[sensorSplit].sendX ||                                 // if pitch slides are disabled
+       !isFocusedCell(col, sensorRow) ||                            // if this is not a focused cell
+       severalTouchesForMidiChannel(col, sensorRow) ||              // when there are several touches for the same MIDI channel
+       (cell(col, sensorRow).pendingReleaseCount &&                 // if there's a pending release but not enough X change
+        cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X))) {
+    return false;
+  }
   if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
@@ -74,8 +83,8 @@ boolean potentialSlideTransferCandidate(byte col) {
 }
 
 boolean isReadyForSlideTransfer(byte col) {
-  return cell(col, sensorRow).pendingReleaseCount ||               // there's a pending release waiting
-    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;   // the cell pressure is higher
+  return cell(col, sensorRow).pendingReleaseCount ||                 // there's a pending release waiting
+    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;     // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
@@ -381,7 +390,12 @@ boolean isXExpressiveCell() {
 
 // Check if Y expression should be sent for this cell
 boolean isYExpressiveCell() {
-  return isFocusedCell();
+  if (Split[sensorSplit].expressionForY == timbrePolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
+  }
 }
 
 // Check if Z expression should be sent for this cell
@@ -519,14 +533,14 @@ void handleXYZupdate() {
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendPressure(sensorCell().note, preferredPressure, sensorCell().channel);
+      preSendLoudness(sensorSplit, preferredPressure, sensorCell().note, sensorCell().channel);
     }
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
         isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      if (preventPitchSlides(sensorCol, sensorRow)) {
+      if (severalTouchesForMidiChannel(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
       else {
@@ -539,7 +553,7 @@ void handleXYZupdate() {
     if (preferredTimbre != INVALID_DATA &&
         isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
-      preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
+      preSendTimbre(sensorSplit, preferredTimbre, sensorCell().note, sensorCell().channel);
     }
   }
 }
@@ -785,7 +799,8 @@ void releaseChannel(byte channel) {
   }
 }
 
-#define PENDING_RELEASE_START 3
+#define PENDING_RELEASE_MOVEMENT   3
+#define PENDING_RELEASE_STATIONARY 1
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -798,9 +813,16 @@ void handleTouchRelease() {
   if (sensorCell().pendingReleaseCount > 0) {
     sensorCell().pendingReleaseCount--;
   }
-  // if no release is pending and the rate of change of X is high, start a pending release
-  else if (sensorCell().fxdRateX > FXD_FROM_INT(7)) {
-    sensorCell().pendingReleaseCount = PENDING_RELEASE_START;
+  // if no release is pending, start a pending release
+  else {
+    // if there's X movement use a longer pending release
+    if (sensorCell().fxdRateX > PENDING_RELEASE_RATE_X) {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
+    }
+    // ... than when it's a stationary release
+    else {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_STATIONARY;
+    }
   }
 
   // if a release is pending, don't perform the release logic yet

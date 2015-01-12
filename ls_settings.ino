@@ -511,9 +511,11 @@ void handlePerSplitSettingNewTouch() {
     }
     else if (sensorRow == 6) {
       Split[Global.currentPerSplit].ccForY = 1;            // use CC1 for y-axis
+      Split[Global.currentPerSplit].expressionForY = timbreCC;
     }
     else if (sensorRow == 5) {
       Split[Global.currentPerSplit].ccForY = 74;           // use CC74 for y-axis
+      Split[Global.currentPerSplit].expressionForY = timbreCC;
     }
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
@@ -670,7 +672,16 @@ void handleBendRangeRelease() {
 }
 
 void handleCCForYNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 127, true);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 129, true);
+  if (Split[Global.currentPerSplit].ccForY == 128) {
+    Split[Global.currentPerSplit].expressionForY = timbrePolyPressure;
+  }
+  else if (Split[Global.currentPerSplit].ccForY == 129) {
+    Split[Global.currentPerSplit].expressionForY = timbreChannelPressure;
+  }
+  else {
+    Split[Global.currentPerSplit].expressionForY = timbreCC;
+  }
 }
 
 void handleCCForYRelease() {

@@ -405,12 +405,14 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 #define NEW_VELOCITY_CALCULATION 1
 
 #if NEW_VELOCITY_CALCULATION
-  #define VELOCITY_SAMPLES     3
-  #define VELOCITY_ZERO_POINTS 1
-  #define VELOCITY_N           VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
-  #define VELOCITY_SUMX        10   // x1 + x2 + x3 + ... + xn
-  #define VELOCITY_SUMXSQ      30   // x1^2 + x2^2 + x3^2 + ... + xn^2
-  #define VELOCITY_SCALE       26
+  #define VELOCITY_SAMPLES      3
+  #define VELOCITY_ZERO_POINTS  1
+  #define VELOCITY_N            VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
+  #define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
+  #define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
+  #define VELOCITY_SCALE_LOW    26
+  #define VELOCITY_SCALE_MEDIUM 32
+  #define VELOCITY_SCALE_HIGH   34
 #else
   #define VELOCITY_SAMPLES     4
 #endif
@@ -479,7 +481,7 @@ struct SplitSettings {
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
-  unsigned short ccForY;               // 0-127
+  unsigned short ccForY;               // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short ccForZ;               // 0-127
@@ -877,6 +879,7 @@ void loop() {
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
+      storeSettings();
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
