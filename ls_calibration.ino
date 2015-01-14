@@ -55,31 +55,31 @@ void initializeCalibrationSamples() {
 }
 
 void initializeCalibrationData() {
-  Device.calibrated = false;
+  config.device.calibrated = false;
 
   // Initialize default X calibration data
   for (byte row = 0; row < 4; ++row) {
-    Device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + CALX_BORDER_OFFSET;
-    Device.calRows[0][row].fxdMeasuredX = CALX_DEFAULT_LEFT_EDGE;
-    Device.calRows[0][row].fxdRatio = 0;
+    config.device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + CALX_BORDER_OFFSET;
+    config.device.calRows[0][row].fxdMeasuredX = CALX_DEFAULT_LEFT_EDGE;
+    config.device.calRows[0][row].fxdRatio = 0;
 
     for (byte col = 1; col < NUMCOLS; ++col) {
-      Device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // multiply by 1/24th of 4095 to be centered in the middle of the cells
-      Device.calRows[col][row].fxdMeasuredX = CALX_DEFAULT_FIRST_CELL + FXD_MUL(CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
-      Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, CALX_DEFAULT_CELL_WIDTH);
+      config.device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // multiply by 1/24th of 4095 to be centered in the middle of the cells
+      config.device.calRows[col][row].fxdMeasuredX = CALX_DEFAULT_FIRST_CELL + FXD_MUL(CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
+      config.device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, CALX_DEFAULT_CELL_WIDTH);
     }
 
-    Device.calRows[NUMCOLS][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - CALX_BORDER_OFFSET;
-    Device.calRows[NUMCOLS][row].fxdMeasuredX = CALX_DEFAULT_RIGHT_EDGE;
-    Device.calRows[NUMCOLS][row].fxdRatio = 0;
+    config.device.calRows[NUMCOLS][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - CALX_BORDER_OFFSET;
+    config.device.calRows[NUMCOLS][row].fxdMeasuredX = CALX_DEFAULT_RIGHT_EDGE;
+    config.device.calRows[NUMCOLS][row].fxdRatio = 0;
   }
 
   // Initialize default Y calibration data
   for (byte col = 0; col < 9; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
-      Device.calCols[col][row].minY = CALY_DEFAULT_MIN[row];
-      Device.calCols[col][row].maxY = CALY_DEFAULT_MAX[row];
-      Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), CALY_FULL_UNIT);
+      config.device.calCols[col][row].minY = CALY_DEFAULT_MIN[row];
+      config.device.calCols[col][row].maxY = CALY_DEFAULT_MAX[row];
+      config.device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(config.device.calCols[col][row].maxY - config.device.calCols[col][row].minY), CALY_FULL_UNIT);
     }
   }
 }

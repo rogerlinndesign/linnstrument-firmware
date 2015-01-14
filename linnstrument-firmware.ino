@@ -689,6 +689,8 @@ void reset() {
 
   initializeSplitSettings();
 
+  applyConfiguration();
+
   initializeArpeggiator();
 
   initializeLastMidiTracking();
@@ -773,11 +775,11 @@ void setup() {
   // initialize input pins for 2 foot switches
   pinMode(FOOT_SW_LEFT, INPUT_PULLUP);
   pinMode(FOOT_SW_RIGHT, INPUT_PULLUP);
-
-  reset();
-
+  
   // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
   initializeCalibrationData();
+
+  reset();
 
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
