@@ -272,7 +272,7 @@ inline void TouchInfo::refreshX() {
     // if this is the first X read for this touch...
     if (initialX == -1) {
       // store the calibrated X reference that corresponds to the cell's note without any pitch bend
-      initialReferenceX = FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX);
+      initialReferenceX = FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
 
       // store the initial X position
       initialX = currentCalibratedX;
@@ -332,18 +332,18 @@ inline void TouchInfo::refreshZ() {
 
     shouldRefreshZ = false;
 
-    if (currentRawZ < Global.sensorFeatherZ) {        // if the raw touch is below feather touch, keep 0 for the Z values
+    if (currentRawZ < Device.sensorFeatherZ) {        // if the raw touch is below feather touch, keep 0 for the Z values
       return;
     }
 
-    short usableZ = currentRawZ - Global.sensorLoZ;   // subtract minimum from value
+    short usableZ = currentRawZ - Device.sensorLoZ;   // subtract minimum from value
 
     if (usableZ <= 0) {                               // if it's below the acceptable minimum, store it as a feather touch
       featherTouch = true;
       return;
     }
 
-    unsigned short sensorRange = constrain(Global.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
+    unsigned short sensorRange = constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;
     unsigned short sensorRangePressure = sensorRange;

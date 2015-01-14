@@ -242,7 +242,7 @@ void NoteTouchMapping::changeCell(signed char noteNum, signed char channel, byte
 
 void NoteTouchMapping::debugNoteChain() {
 #ifdef DEBUG_ENABLED
-  if (Global.serialMode && (debugLevel >= 1)) {
+  if (Device.serialMode && (debugLevel >= 1)) {
     DEBUGPRINT((1,"noteTouchMapping"));
     DEBUGPRINT((1,"\n"));
     DEBUGPRINT((1," noteCount="));DEBUGPRINT((1,noteCount));

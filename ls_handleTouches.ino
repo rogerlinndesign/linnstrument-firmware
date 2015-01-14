@@ -88,9 +88,9 @@ boolean isReadyForSlideTransfer(byte col) {
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
-  return Global.calibrated &&
-    (sensorCell().calibratedX() < FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
-     sensorCell().calibratedX() > FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
+  return Device.calibrated &&
+    (sensorCell().calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
+     sensorCell().calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
 }
 
 void transferFromSameRowCell(byte col) {
@@ -720,7 +720,7 @@ short handleXExpression() {
     if (Split[sensorSplit].pitchCorrectHold) {                                    // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
       int32_t fxdMovedRatio = FXD_DIV(FXD_FROM_INT(PITCH_HOLD_DURATION - sensorCell().rateCountX), fxdPitchHoldDuration);
       int32_t fxdCorrectedRatio = FXD_FROM_INT(1) - fxdMovedRatio;
-      int32_t fxdQuantizedDistance = Global.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
+      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
       int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
       bend = FXD_TO_INT(fxdInterpolatedX);
@@ -736,7 +736,7 @@ short handleXExpression() {
 
     // when there are multiple touches in the same column, reduce the pitch bend Z sensititivity to
     // prevent unwanted pitch slides
-    if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Global.sensorLoZ + SENSOR_PITCH_Z))) {
+    if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z))) {
       pitchBend = bend;
     }
   }

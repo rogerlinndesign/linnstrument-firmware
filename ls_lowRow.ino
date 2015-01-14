@@ -18,9 +18,9 @@ enum ColumnState {
 };
 
 ColumnState lowRowState[NUMCOLS];
-boolean lowRowBendActive[2];
-boolean lowRowCC1Active[2];
-short lowRowInitialColumn[2];
+boolean lowRowBendActive[NUMSPLITS];
+boolean lowRowCC1Active[NUMSPLITS];
+short lowRowInitialColumn[NUMSPLITS];
 
 inline boolean isLowRow() {
   if (sensorRow != 0) return false;
@@ -35,7 +35,7 @@ void initializeLowRowState() {
   for (byte col = 0; col < NUMCOLS; ++col) {
     lowRowState[col] = inactive;
   }
-  for (byte split = 0; split < 2; ++split) {
+  for (byte split = 0; split < NUMSPLITS; ++split) {
     lowRowBendActive[split] = false;
     lowRowCC1Active[split] = false;
     lowRowInitialColumn[split] = -1;

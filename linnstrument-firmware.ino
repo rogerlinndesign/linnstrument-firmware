@@ -107,8 +107,13 @@ void setLed(byte col, byte row, byte color, CellDisplay disp);
 // #define DISPLAY_SURFACESCAN_AT_LAUNCH
 
 // Touch surface constants
-const byte NUMCOLS = 26;                 // number of touch sensor columns
-const byte NUMROWS = 8;                  // number of touch sensor rows
+#define NUMCOLS 26                 // number of touch sensor columns
+#define NUMROWS 8                  // number of touch sensor rows
+
+#define NUMSPLITS 2                // number of splits supported
+#define LEFT 0
+#define RIGHT 1
+
 
 // LED timing
 unsigned long ledRefreshInterval = 500;
@@ -140,7 +145,7 @@ struct FocusCell {
   byte col;
   byte row;
 };
-FocusCell focusCell[2][16];             // 2 splits and 16 MIDI channels for each split
+FocusCell focusCell[NUMSPLITS][16];             // 2 splits and 16 MIDI channels for each split
 
 // Touch sensor
 byte sensorCol = 0;                         // currently read column in touch sensor
@@ -270,7 +275,7 @@ struct NoteTouchMapping {
   NoteEntry mapping[128][16];
 };
 
-NoteTouchMapping noteTouchMapping[2];
+NoteTouchMapping noteTouchMapping[NUMSPLITS];
 
 // Display Modes
 enum DisplayMode {
@@ -298,9 +303,6 @@ void setDisplayMode(DisplayMode mode);
 DisplayMode displayMode = displayNormal;
 signed char controlButton = -1;           // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
-
-#define LEFT 0
-#define RIGHT 1
 
 // convenience functions to access the focused cell
 inline FocusCell& focus(byte split, byte channel);
@@ -498,17 +500,17 @@ struct SplitSettings {
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
   boolean strum;                       // true when this split strums the touches of the other split
 };
-SplitSettings Split[2];
-ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
-byte ccFaderValues[2][8];              // the current values of the CC faders
-signed char arpTempoDelta[2];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
+SplitSettings Split[NUMSPLITS];
+ChannelBucket splitChannels[NUMSPLITS];        // the MIDI channels that are being handed out
+byte ccFaderValues[NUMSPLITS][8];              // the current values of the CC faders
+signed char arpTempoDelta[NUMSPLITS];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
 #define SWITCH_HOLD_DELAY 200
 
 unsigned long lastSwitchPress[4];
-boolean switchState[4][2];
-byte switchTargetEnabled[6][2];  // 6 targets, we keep track of them individually for each split and how many times they're active
+boolean switchState[4][NUMSPLITS];
+byte switchTargetEnabled[6][NUMSPLITS]; // 6 targets, we keep track of them individually for each split and how many times they're active
 
 boolean footSwitchState[2];             // Holds the last read footswitch state, so that we only react on state changes of the input signal
 boolean footSwitchOffState[2];          // Holds OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
@@ -563,11 +565,23 @@ enum ArpeggiatorDirection {
 
 boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
 
+struct DeviceSettings {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  byte currentPreset;                        // the currently active settings preset
+};
+DeviceSettings Device;
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
-  byte version;                              // to prepare for versioning
-  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
   boolean mainNotes[12];                     // determines which notes receive "main" lights
@@ -578,23 +592,21 @@ struct GlobalSettings {
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
-  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
-  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
-  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
-  unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
 };
 GlobalSettings Global;
 
-struct Configuration {
+struct PresetSettings {
   GlobalSettings global;
-  SplitSettings left;
-  SplitSettings right;
+  SplitSettings split[NUMSPLITS];
+};
+
+#define NUMPRESETS 4
+struct Configuration {
+  DeviceSettings device;
+  PresetSettings preset[NUMPRESETS];
 };
 
 struct Configuration config;
@@ -635,7 +647,7 @@ int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 
 byte midiDecimateRate = 0;           // by default no decimation
 
-byte lastValueMidiNotesOn[2][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+byte lastValueMidiNotesOn[NUMSPLITS][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
 
 
@@ -671,9 +683,11 @@ void reset() {
 
   initializeLowRowState();
 
-  initializeSplitSettings();
+  initializeDeviceSettings();
 
   initializeGlobalSettings();
+
+  initializeSplitSettings();
 
   initializeArpeggiator();
 
@@ -687,7 +701,7 @@ boolean switchPressAtStartup(byte switchRow) {
   sensorRow = switchRow;
   // initially we need read Z a few times for the readings to stabilize
   readZ(); readZ(); unsigned short switchZ = readZ();
-  if (switchZ > Global.sensorLoZ + 128) {
+  if (switchZ > Device.sensorLoZ + 128) {
     return true;
   }
   return false;
@@ -698,7 +712,7 @@ void setup() {
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************
   /*!!*/
-  /*!!*/  initializeGlobalSensorSettings();
+  /*!!*/  initializeDeviceSensorSettings();
   /*!!*/
   /*!!*/  // Initialize output pin 35 (midi/SERIAL) and set it HIGH for serial operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO SERIAL MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!
@@ -811,42 +825,36 @@ void setup() {
       secretSwitch[ss] = false;
     }
 
-    // Initialize serial/midi operations based on Global settings
-    digitalWrite(35, Global.serialMode);
-    
-    // initialize midi communications
-    applyMidiIoSetting();
-
     // update the display for the last state
     updateDisplay();
   }
 
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Global.promoAnimationAtStartup) {
+  if (Device.promoAnimationAtStartup) {
     playPromoAnimation();
   }
 
 #ifdef DISPLAY_XFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_XFRAME = true;
 #endif
 
 #ifdef DISPLAY_YFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_YFRAME = true;
 #endif
 
 #ifdef DISPLAY_ZFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_ZFRAME = true;
 #endif
 
 #ifdef DISPLAY_SURFACESCAN_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_SURFACESCAN = true;
 #endif
 }
