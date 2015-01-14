@@ -689,8 +689,6 @@ void reset() {
 
   initializeSplitSettings();
 
-  applyConfiguration();
-
   initializeArpeggiator();
 
   initializeLastMidiTracking();
@@ -823,6 +821,8 @@ void setup() {
 
     initializeStorage();
 
+    applyConfiguration();
+
     for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
       secretSwitch[ss] = false;
     }
@@ -890,6 +890,7 @@ inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
       storeSettings();
+      applyConfiguration();
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }

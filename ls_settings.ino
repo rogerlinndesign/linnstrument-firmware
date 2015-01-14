@@ -39,7 +39,7 @@ void initializeStorage() {
                                                           // When new code is loaded into the Due, this will be non-zero.
   if (firstTimeBoot) {
     switchSerialMode(true);                               // Start in serial mode after OS upgrade to be able to receive the settings
-    config.device.serialMode = Device.serialMode;
+    config.device.serialMode = true;
 
     writeSettingsToFlash();                               // Store the initial default settings
 
