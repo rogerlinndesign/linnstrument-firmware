@@ -21,43 +21,56 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
 }
 
 void switchSerialMode(boolean flag) {
-    Global.serialMode = flag;
-    if (flag) {
-      digitalWrite(35, HIGH);
-    }
-    else {
-      digitalWrite(35, LOW);
-    }
+  Device.serialMode = flag;
+  applySerialMode();
+}
+
+void applySerialMode() {
+  if (Device.serialMode) {
+    digitalWrite(35, HIGH);
+  }
+  else {
+    digitalWrite(35, LOW);
+  }
 }
 
 void initializeStorage() {
-  firstTimeBoot = (dueFlashStorage.read(0) != 0);    // See if this is the first time we've executed.
-                                                     // When new code is loaded into the Due, this will be non-zero.
+  firstTimeBoot = (dueFlashStorage.read(0) != 0);         // See if this is the first time we've executed.
+                                                          // When new code is loaded into the Due, this will be non-zero.
   if (firstTimeBoot) {
-    switchSerialMode(true);                          // Start in serial mode after OS upgrade to be able to receive the settings
+    switchSerialMode(true);                               // Start in serial mode after OS upgrade to be able to receive the settings
+    config.device.serialMode = true;
 
-    storeSettings();                                 // Store the initial default settings
+    writeSettingsToFlash();                               // Store the initial default settings
 
-    dueFlashStorage.write(0, 0);                     // Zero out the firstTime location.
-    setDisplayMode(displayCalibration);                // Automatically start calibration after firmware update.
+    dueFlashStorage.write(0, 0);                          // Zero out the firstTime location.
+    setDisplayMode(displayCalibration);                   // Automatically start calibration after firmware update.
     setLed(0, GLOBAL_SETTINGS_ROW, globalColor, cellOn);
     controlButton = GLOBAL_SETTINGS_ROW;
   } else {
-    loadSettings();                                  // On subsequent startups, load settings from Flash
+    loadSettings();                                       // On subsequent startups, load settings from Flash
   }
 
   applyConfiguration();
 }
 
 void storeSettings() {
+  saveSettings();
+  writeSettingsToFlash();
+}
+
+void saveSettings() {
+  config.device = Device;
+  config.preset[Device.currentPreset].global = Global;
+  config.preset[Device.currentPreset].split[LEFT] = Split[LEFT];
+  config.preset[Device.currentPreset].split[RIGHT] = Split[RIGHT];
+}
+
+void writeSettingsToFlash() {
   DEBUGPRINT((2,"storeSettings flash size="));
   DEBUGPRINT((2,sizeof(struct Configuration)));
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
-
-  config.global = Global;
-  config.left = Split[LEFT];
-  config.right = Split[RIGHT];
 
   // batch and slow down the flash storage in low power mode
   if (operatingLowPower) {
@@ -95,132 +108,155 @@ void loadSettings() {
 }
 
 void applyConfiguration() {
-  Global = config.global;
-  Split[LEFT] = config.left;
-  Split[RIGHT] = config.right;
+  Device = config.device;
+  applySerialMode();
+  applyCurrentPresetSettings();
+}
+
+void applyCurrentPresetSettings() {
+  Global = config.preset[Device.currentPreset].global;
+  Split[LEFT] = config.preset[Device.currentPreset].split[LEFT];
+  Split[RIGHT] = config.preset[Device.currentPreset].split[RIGHT];
 
   focusedSplit = Global.currentPerSplit;
 
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
+
+  applyMidiIo();
+  applyMidiPreset();
+}
+// The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
+// On subsequent startups, these values are overwritten by loading the settings stored in flash.
+void initializeDeviceSettings() {
+  config.device.version = 2;
+  config.device.serialMode = false;
+  config.device.promoAnimationAtStartup = false;
+  config.device.currentPreset = 0;
+}
+
+void initializeDeviceSensorSettings() {
+  config.device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  config.device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
+}
+
+void initializeGlobalSettings() {
+  splitActive = false;
+
+  for (byte n = 0; n < NUMPRESETS; ++n) {
+    GlobalSettings &g = config.preset[n].global;
+
+    g.splitPoint = 12;
+    g.currentPerSplit = LEFT;
+
+    g.rowOffset = 5;
+    g.velocitySensitivity = velocityMedium;
+    g.pressureSensitivity = pressureMedium;
+    g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
+    Device.velocityLimit = 127;
+
+    // initialize switch assignments
+    g.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
+    g.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
+    g.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
+    g.switchAssignment[SWITCH_SWITCH_2] = ASSIGNED_ARPEGGIATOR;
+    g.switchBothSplits[SWITCH_FOOT_L] = false;
+    g.switchBothSplits[SWITCH_FOOT_R] = false;
+    g.switchBothSplits[SWITCH_SWITCH_1] = false;
+    g.switchBothSplits[SWITCH_SWITCH_2] = false;
+
+    // initialize accentNotes array. Starting with only C within each octave highlighted
+    g.accentNotes[0] = true;
+    for (byte count = 1; count < 12; ++count) {
+      g.accentNotes[count] = false;
+    }
+
+    // initialize mainNotes array (all off).
+    for (byte count = 0; count < 12; ++count) {
+      g.mainNotes[count] = false;
+    }
+    g.mainNotes[0] = true;
+    g.mainNotes[2] = true;
+    g.mainNotes[4] = true;
+    g.mainNotes[5] = true;
+    g.mainNotes[7] = true;
+    g.mainNotes[9] = true;
+    g.mainNotes[11] = true;
+
+    g.arpDirection = ArpUp;
+    g.arpTempo = ArpSixteenth;
+    g.arpOctave = 0;
+  }
 }
 
 void initializeSplitSettings() {
-  // initialize all identical values in the keyboard split data
-  for (byte s = 0; s < 2; ++s) {
-      Split[s].midiMode = oneChannel;
-      for (byte chan = 0; chan < 16; ++chan) {
-        focusCell[s][chan].col = 0;
-        focusCell[s][chan].row = 0;
-      }
-      Split[s].bendRange = 2;
-      Split[s].sendX = true;
-      Split[s].sendY = true;
-      Split[s].sendZ = true;
-      Split[s].pitchCorrectQuantize = true;
-      Split[s].pitchCorrectHold = true;
-      Split[s].pitchResetOnRelease = false;
-      Split[s].expressionForY = timbreCC;
-      Split[s].ccForY = 74;
-      Split[s].relativeY = false;
-      Split[s].expressionForZ = loudnessPolyPressure;
-      Split[s].ccForZ = 11;
-      Split[s].colorAccent = COLOR_CYAN;
-      Split[s].colorLowRow = COLOR_YELLOW;
-      Split[s].preset = 0;
-      Split[s].transposeOctave = 0;
-      Split[s].transposePitch = 0;
-      Split[s].transposeLights = 0;
-      Split[s].arpeggiator = false;
-      Split[s].ccFaders = false;
-      Split[s].strum = false;
-      for (byte f = 0; f < 8; ++f) {
-        ccFaderValues[s][f] = 0;
-      }
-      ccFaderValues[s][6] = 63;
-      arpTempoDelta[s] = 0;
+  for (byte n = 0; n < NUMPRESETS; ++n) {
+    PresetSettings &p = config.preset[n];
 
-      splitChannels[s].clear();
+    // initialize all identical values in the keyboard split data
+    for (byte s = 0; s < NUMSPLITS; ++s) {
+        p.split[s].midiMode = oneChannel;
+        for (byte chan = 0; chan < 16; ++chan) {
+          focusCell[s][chan].col = 0;
+          focusCell[s][chan].row = 0;
+        }
+        p.split[s].bendRange = 2;
+        p.split[s].sendX = true;
+        p.split[s].sendY = true;
+        p.split[s].sendZ = true;
+        p.split[s].pitchCorrectQuantize = true;
+        p.split[s].pitchCorrectHold = true;
+        p.split[s].pitchResetOnRelease = false;
+        p.split[s].expressionForY = timbreCC;
+        p.split[s].ccForY = 74;
+        p.split[s].relativeY = false;
+        p.split[s].expressionForZ = loudnessPolyPressure;
+        p.split[s].ccForZ = 11;
+        p.split[s].colorAccent = COLOR_CYAN;
+        p.split[s].colorLowRow = COLOR_YELLOW;
+        p.split[s].preset = 0;
+        p.split[s].transposeOctave = 0;
+        p.split[s].transposePitch = 0;
+        p.split[s].transposeLights = 0;
+        p.split[s].arpeggiator = false;
+        p.split[s].ccFaders = false;
+        p.split[s].strum = false;
+    }
+
+    // initialize values that differ between the keyboard splits
+    p.split[LEFT].midiChanMain = 1;
+    for (byte chan = 0; chan < 8; ++chan) {
+      p.split[LEFT].midiChanSet[chan] = true;
+    }
+    for (byte chan = 8; chan < 16; ++chan) {
+      p.split[LEFT].midiChanSet[chan] = false;
+    }
+    p.split[LEFT].midiChanPerRow = 1;
+    p.split[LEFT].colorMain = COLOR_GREEN;
+    p.split[LEFT].colorNoteon = COLOR_RED;
+    p.split[LEFT].lowRowMode = lowRowNormal;
+
+    p.split[RIGHT].midiChanMain = 2;
+    for (byte chan = 0; chan < 8; ++chan) {
+      p.split[RIGHT].midiChanSet[chan] = false;
+    }
+    for (byte chan = 8; chan < 16; ++chan) {
+      p.split[RIGHT].midiChanSet[chan] = true;
+    }
+    p.split[RIGHT].midiChanPerRow = 9;
+    p.split[RIGHT].colorMain = COLOR_BLUE;
+    p.split[RIGHT].colorNoteon = COLOR_MAGENTA;
+    p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
-  // initialize values that differ between the keyboard splits
-  Split[LEFT].midiChanMain = 1;
-  for (byte chan= 0; chan < 8; ++chan) {
-    Split[LEFT].midiChanSet[chan] = true;
+  for (byte s = 0; s < NUMSPLITS; ++s) {
+    for (byte c = 0; c < 8; ++c) {
+      ccFaderValues[s][c] = 0;
+    }
+    arpTempoDelta[s] = 0;
+    splitChannels[s].clear();
   }
-  Split[LEFT].midiChanPerRow = 1;
-  Split[LEFT].colorMain = COLOR_GREEN;
-  Split[LEFT].colorNoteon = COLOR_RED;
-  Split[LEFT].lowRowMode = lowRowNormal;
-
-  splitChannels[LEFT].add(1);
-
-  Split[RIGHT].midiChanMain = 2;
-  for (byte chan = 8; chan < 16; ++chan) {
-    Split[RIGHT].midiChanSet[chan] = true;
-  }
-  Split[RIGHT].midiChanPerRow = 9;
-  Split[RIGHT].colorMain = COLOR_BLUE;
-  Split[RIGHT].colorNoteon = COLOR_MAGENTA;
-  Split[RIGHT].lowRowMode = lowRowNormal;
-
-  splitChannels[RIGHT].add(2);
-}
-
-// The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all Global settings.
-// On subsequent startups, these values are overwritten by loading the settings stored in flash.
-void initializeGlobalSettings() {
-  Global.version = 2;
-  Global.serialMode = false;
-
-  splitActive = false;
-  Global.splitPoint = 12;
-  Global.currentPerSplit = LEFT;
-
-  Global.rowOffset = 5;
-  Global.velocitySensitivity = velocityMedium;
-  Global.pressureSensitivity = pressureMedium;
-  Global.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
-  Global.velocityLimit = 127;
-
-  // initialize switch assignments
-  Global.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
-  Global.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
-  Global.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
-  Global.switchAssignment[SWITCH_SWITCH_2] = ASSIGNED_ARPEGGIATOR;
-  Global.switchBothSplits[SWITCH_FOOT_L] = false;
-  Global.switchBothSplits[SWITCH_FOOT_R] = false;
-  Global.switchBothSplits[SWITCH_SWITCH_1] = false;
-  Global.switchBothSplits[SWITCH_SWITCH_2] = false;
-
-  // initialize accentNotes array. Starting with only C within each octave highlighted
-  Global.accentNotes[0] = true;
-  for (byte count = 1; count < 12; ++count) {
-    Global.accentNotes[count] = false;
-  }
-
-  // initialize mainNotes array (all off).
-  for (byte count = 0; count < 12; ++count) {
-    Global.mainNotes[count] = false;
-  }
-  Global.mainNotes[0] = true;
-  Global.mainNotes[2] = true;
-  Global.mainNotes[4] = true;
-  Global.mainNotes[5] = true;
-  Global.mainNotes[7] = true;
-  Global.mainNotes[9] = true;
-  Global.mainNotes[11] = true;
-
-  Global.arpDirection = ArpUp;
-  Global.arpTempo = ArpSixteenth;
-  Global.arpOctave = 0;
-  Global.promoAnimationAtStartup = false;
-}
-
-void initializeGlobalSensorSettings() {
-  Global.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  Global.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  Global.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
 // Called to handle press events of the 8 control buttons
@@ -654,13 +690,34 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
-  if (handleNumericDataNewTouch(Split[Global.currentPerSplit].preset, 0, 127, true)) {
-    byte chan = Split[Global.currentPerSplit].midiChanMain;
-    midiSendPreset(Split[Global.currentPerSplit].preset, chan);         // Send the MIDI program change message
+  if (sensorCol == NUMCOLS-1) {
+    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
+      // save the current preset
+      saveSettings();
+
+      // switch to the selected one
+      Device.currentPreset = sensorRow-2;
+      applyCurrentPresetSettings();
+      updateDisplay();
+    }
+  }
+  else {
+    if (handleNumericDataNewTouch(Split[Global.currentPerSplit].preset, 0, 127, true)) {
+      applyMidiPreset();
+    }
   }
 }
 
+void applyMidiPreset() {
+  byte chan = Split[Global.currentPerSplit].midiChanMain;
+  midiSendPreset(Split[Global.currentPerSplit].preset, chan);         // Send the MIDI program change message
+}
+
 void handlePresetRelease() {
+  if (sensorCol == NUMCOLS-1) {
+    return;
+  }
+
   handleNumericDataRelease(true);
 }
 
@@ -698,7 +755,7 @@ void handleCCForZRelease() {
 }
 
 void handleSensorLoZNewTouch() {
-  handleNumericDataNewTouch(Global.sensorLoZ, max(0, Global.sensorFeatherZ), 1024, false);
+  handleNumericDataNewTouch(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
 }
 
 void handleSensorLoZRelease() {
@@ -706,7 +763,7 @@ void handleSensorLoZRelease() {
 }
 
 void handleSensorFeatherZNewTouch() {
-  handleNumericDataNewTouch(Global.sensorFeatherZ, 0, min(1024, Global.sensorLoZ), false);
+  handleNumericDataNewTouch(Device.sensorFeatherZ, 0, min(1024, Device.sensorLoZ), false);
 }
 
 void handleSensorFeatherZRelease() {
@@ -714,7 +771,7 @@ void handleSensorFeatherZRelease() {
 }
 
 void handleSensorRangeZNewTouch() {
-  handleNumericDataNewTouch(Global.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
+  handleNumericDataNewTouch(Device.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
 }
 
 void handleSensorRangeZRelease() {
@@ -722,7 +779,7 @@ void handleSensorRangeZRelease() {
 }
 
 void handleCompressorLimitNewTouch() {
-  handleNumericDataNewTouch(Global.velocityLimit, 0, 127, true);
+  handleNumericDataNewTouch(Device.velocityLimit, 0, 127, true);
 }
 
 void handleCompressorLimitRelease() {
@@ -1204,9 +1261,9 @@ void handleGlobalSettingNewTouch() {
     }
  }
 
-  if (sensorCol == 24) {
+  if (sensorCol == 23) {
     if (sensorRow == 0) {
-      Global.velocityLimit = 127;
+      Device.velocityLimit = 127;
     }
     else if (sensorRow == 1) {
       setDisplayMode(displayCompressorLimit);
@@ -1238,7 +1295,7 @@ void changeMidiIO(byte where) {
   else if (where == 1) {
     Global.midiIO = 1;       // Set HIGH for USB
   }
-  applyMidiIoSetting();
+  applyMidiIo();
 }
 
 void handleGlobalSettingRelease() {
@@ -1249,7 +1306,7 @@ void handleGlobalSettingRelease() {
   if (sensorCol == 16) {
     // Toggle UPDATE OS value
     if (sensorRow == 2) {
-      switchSerialMode(!Global.serialMode);
+      switchSerialMode(!Device.serialMode);
       storeSettings();
     }
     // Send AllNotesOff

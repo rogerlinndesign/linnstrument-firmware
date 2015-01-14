@@ -39,7 +39,7 @@ inline void performContinuousTasks(unsigned long now) {
   }
 
   checkAdvanceArpeggiator(now);  
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     handleExtStorage();
   }
   else {

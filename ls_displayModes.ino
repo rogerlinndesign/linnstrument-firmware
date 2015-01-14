@@ -200,7 +200,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
     int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][row], faderLeft, faderLength);
 
     for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
-      if (Global.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
         clearLed(col, row);
       }
       else {
@@ -477,6 +477,13 @@ void paintOSVersionDisplay() {
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].preset+1);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    byte color = COLOR_BLUE;
+    if (Device.currentPreset == p) {
+      color = COLOR_GREEN;
+    }
+    setLed(NUMCOLS-1, p+2, color, cellOn);
+  }
 }
 
 void paintBendRangeDisplay(byte side) {
@@ -510,15 +517,15 @@ void paintCCForZDisplay(byte side) {
 }
 
 void paintSensorLoZDisplay() {
-  paintNumericDataDisplay(globalColor, Global.sensorLoZ);
+  paintNumericDataDisplay(globalColor, Device.sensorLoZ);
 }
 
 void paintSensorFeatherZDisplay() {
-  paintNumericDataDisplay(globalColor, Global.sensorFeatherZ);
+  paintNumericDataDisplay(globalColor, Device.sensorFeatherZ);
 }
 
 void paintSensorRangeZDisplay() {
-  paintNumericDataDisplay(globalColor, Global.sensorRangeZ);
+  paintNumericDataDisplay(globalColor, Device.sensorRangeZ);
 }
 
 void paintSplitNumericDataDisplay(byte side, byte value) {
@@ -528,7 +535,7 @@ void paintSplitNumericDataDisplay(byte side, byte value) {
 }
 
 void paintCompressorLimitDisplay() {
-  paintNumericDataDisplay(globalColor, Global.velocityLimit);
+  paintNumericDataDisplay(globalColor, Device.velocityLimit);
 }
 
 void paintNumericDataDisplay(byte color, unsigned short value) {
@@ -567,7 +574,7 @@ void paintVolumeDisplay(byte side) {
   int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[side][6], 1, 24);
 
   for (byte col = 25; col >= 1; --col) {
-    if (Global.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT <= fxdFaderPosition) {
+    if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT <= fxdFaderPosition) {
       setLed(col, 5, Split[side].colorMain, cellOn);
     }
   }
@@ -857,12 +864,12 @@ void paintGlobalSettingsDisplay() {
   }
 
   // set light for serial mode
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     lightLed(16, 2);
   }
 
   // clearly indicate the calibration status
-  if (Global.calibrated) {
+  if (Device.calibrated) {
     setLed(16, 3, COLOR_GREEN, cellOn);
   }
   else {

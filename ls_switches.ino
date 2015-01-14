@@ -13,7 +13,7 @@ are read subsequently, state is compared to these OFF states to insure valid pre
 normally-open and normally-closed switches.
 **************************************************************************************************/
 
-boolean switchArpeggiatorPressed[2];
+boolean switchArpeggiatorPressed[NUMSPLITS];
 
 void initializeSwitches() {
   // read initial state of each in order to determine if nornally-open or
@@ -292,7 +292,7 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
 }
 
 void resetSwitchStates(byte whichSwitch) {
-  for (byte sp = 0; sp < 2; ++ sp) {
+  for (byte sp = 0; sp < NUMSPLITS; ++ sp) {
     if (switchState[whichSwitch][sp]) {
       byte assignment = Global.switchAssignment[whichSwitch];
       changeSwitchState(whichSwitch, assignment, sp, false);

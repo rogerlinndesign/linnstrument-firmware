@@ -6,6 +6,30 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 **************************************************************************************************/
 
 /**************************************** Configuration V1 ***************************************/
+struct GlobalSettingsV1 {
+  byte version;                              // to prepare for versioning
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  boolean mainNotes[12];                     // determines which notes receive "main" lights
+  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+};
 struct SplitSettingsV1 {
   byte midiMode;                       // 0 = one channel, 1 = note per channel, 2 = row per channel
   byte midiChanMain;                   // main midi channel, 1 to 16
@@ -36,7 +60,7 @@ struct SplitSettingsV1 {
   boolean strum;                       // true when this split strums the touches of the other split
 };
 struct ConfigurationV1 {
-  GlobalSettings  global;
+  GlobalSettingsV1 global;
   SplitSettingsV1 left;
   SplitSettingsV1 right;
 };
@@ -76,9 +100,7 @@ void handleExtStorage() {
         clearDisplay();
         delayUsec(1000);
 
-        config.global = Global;
-        config.left = Split[LEFT];
-        config.right = Split[RIGHT];
+        saveSettings();
 
         int32_t confSize = sizeof(struct Configuration);
 
@@ -151,18 +173,16 @@ void handleExtStorage() {
         boolean settingsApplied = false;
         byte settingsVersion = buff2[0];
         // if the stored version is newer than what this firmware supports, resort to default settings
-        if (settingsVersion > config.global.version) {
+        if (settingsVersion > config.device.version) {
           settingsApplied = false;
         }
         // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
         else if (settingsVersion == 1 && confSize == sizeof(struct ConfigurationV1)) {
           memcpy(&configV1, buff2, confSize);
 
-          byte currentVersion = config.global.version;
-          config.global = configV1.global;
-          config.global.version = currentVersion;
-          copySplitSettingsV1ToSplitSettings(&config.left, &configV1.left);
-          copySplitSettingsV1ToSplitSettings(&config.right, &configV1.right);
+          byte currentVersion = config.device.version;
+          copySettingsV1ToSettingsV2(&config, &configV1);
+          config.device.version = currentVersion;
           settingsApplied = true;
         }
         // this is the v2 of the configuration configuration, apply it if the size is right
@@ -227,7 +247,42 @@ void handleExtStorage() {
   }
 }
 
-void copySplitSettingsV1ToSplitSettings(void *target, void *source) {
+void copySettingsV1ToSettingsV2(void *target, void *source) {
+  Configuration *c = (Configuration *)target;
+  ConfigurationV1 *configV1 = (ConfigurationV1 *)source;
+  GlobalSettingsV1 *g = &(configV1->global);
+
+  c->device.version = g->version;
+  memcpy(c->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(c->device.calCols, g->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  c->device.calibrated = g->calibrated;
+  c->device.sensorLoZ = g->sensorLoZ;
+  c->device.sensorFeatherZ = g->sensorFeatherZ;
+  c->device.sensorRangeZ = g->sensorRangeZ;
+  c->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
+  c->device.serialMode = true;
+
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    c->preset[p].global.splitPoint = g->splitPoint;
+    c->preset[p].global.currentPerSplit = g->currentPerSplit;
+    memcpy(c->preset[p].global.mainNotes, g->mainNotes, sizeof(boolean)*12);
+    memcpy(c->preset[p].global.accentNotes, g->accentNotes, sizeof(boolean)*12);
+    c->preset[p].global.rowOffset = g->rowOffset;
+    c->preset[p].global.velocitySensitivity = g->velocitySensitivity;
+    c->preset[p].global.pressureSensitivity = g->pressureSensitivity;
+    memcpy(c->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
+    memcpy(c->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
+    c->preset[p].global.midiIO = g->midiIO;
+    c->preset[p].global.arpDirection = g->arpDirection;
+    c->preset[p].global.arpTempo = g->arpTempo;
+    c->preset[p].global.arpOctave = g->arpOctave;
+
+    copySplitSettingsV1ToSplitSettingsV2(&(c->preset[p].split[LEFT]), &(configV1->left));
+    copySplitSettingsV1ToSplitSettingsV2(&(c->preset[p].split[RIGHT]), &(configV1->right));
+  }
+}
+
+void copySplitSettingsV1ToSplitSettingsV2(void *target, void *source) {
   SplitSettings *t = (SplitSettings *)target;
   SplitSettingsV1 *s = (SplitSettingsV1 *)source;
 

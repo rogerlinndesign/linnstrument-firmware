@@ -37,7 +37,7 @@ boolean isMidiUsingDIN() {
   return Global.midiIO == 0;
 }
 
-void applyMidiIoSetting() {
+void applyMidiIo() {
   if (isMidiUsingDIN()) {
     digitalWrite(36, 0);     // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
@@ -973,7 +973,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   lastValueMidiCC[controlnum + 128*channel] = controlval;
   lastMomentMidiCC[controlnum + 128*channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendControlChange controlnum=");
@@ -997,7 +997,7 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
 
   lastValueMidiNotesOn[split][notenum][channel]++;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendNoteOn notenum=");
@@ -1026,7 +1026,7 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
 }
 
 void midiSendNoteOffRaw(byte notenum, byte channel) {
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendNoteOff notenum=");
@@ -1063,7 +1063,7 @@ void midiSendPitchBend(int pitchval, byte channel) {
   lastValueMidiPB[channel] = bend;
   lastMomentMidiPB[channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendPitchBend pitchval=");
@@ -1082,7 +1082,7 @@ void midiSendProgramChange(byte preset, byte channel) {
   preset = constrain(preset, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendProgramChange preset=");
       Serial.print(preset);
@@ -1105,7 +1105,7 @@ void midiSendAfterTouch(byte value, byte channel) {
   lastValueMidiAT[channel] = value;
   lastMomentMidiAT[channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendAfterTouch value=");
       Serial.print(value);
@@ -1129,7 +1129,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   lastValueMidiPP[index] = value;
   lastMomentMidiPP[index] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendPolyPressure notenum=");
       Serial.print((int)notenum);

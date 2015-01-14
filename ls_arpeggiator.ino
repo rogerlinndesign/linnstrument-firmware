@@ -19,11 +19,11 @@ signed char lastInternalClockCount;                   // the count of the intern
      
 signed char lastArpMidiClock;                         // the last MIDI clock that the arpeggiator played on
 signed char lastArpInternalClock;                     // the last internal clock that the arpeggiator played on
-signed char lastArpNote[2];                           // the last note played by the arpeggiator or -1 if it should be starting from scratch
-signed char lastArpChannel[2];                        // the last channel played by the arpeggiator or -1 if it should be starting from scratch
-boolean lastArpStepOdd[2];                            // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
-ArpeggiatorDirection arpUpDownState[2];               // the state in the alternating up/down pattern
-signed char arpOctaveState[2];                        // the octave that is used while playing the arpeggiator sequence
+signed char lastArpNote[NUMSPLITS];                   // the last note played by the arpeggiator or -1 if it should be starting from scratch
+signed char lastArpChannel[NUMSPLITS];                // the last channel played by the arpeggiator or -1 if it should be starting from scratch
+boolean lastArpStepOdd[NUMSPLITS];                    // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
+ArpeggiatorDirection arpUpDownState[NUMSPLITS];       // the state in the alternating up/down pattern
+signed char arpOctaveState[NUMSPLITS];                // the octave that is used while playing the arpeggiator sequence
 
 unsigned long lastTapTempo = 0;
 
@@ -40,7 +40,7 @@ void initializeArpeggiator() {
   lastArpMidiClock = 0;
   lastInternalClockCount = 0;
 
-  for (byte split = 0; split < 2; ++split) {
+  for (byte split = 0; split < NUMSPLITS; ++split) {
     noteTouchMapping[split].initialize();
     resetArpeggiatorState(split);
   }

@@ -8,25 +8,25 @@ Assorted debug functions.
 
 
 void debugPrint(int level, char* msg) {
-  if (Global.serialMode && (debugLevel >= level)) {
+  if (Device.serialMode && (debugLevel >= level)) {
     Serial.print(msg);
   }
 }
 
 void debugPrintln(int level, char* msg) {
-  if (Global.serialMode && (debugLevel >= level)) {
+  if (Device.serialMode && (debugLevel >= level)) {
     Serial.println(msg);
   }
 }
 
 void debugPrint(int level, int val) {
-  if (Global.serialMode && (debugLevel >= level)) {
+  if (Device.serialMode && (debugLevel >= level)) {
     Serial.print(val);
   }
 }
 
 void debugPrintln(int level, int val) {
-  if (Global.serialMode && (debugLevel >= level)) {
+  if (Device.serialMode && (debugLevel >= level)) {
     Serial.println(val);
   }
 }
