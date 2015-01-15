@@ -3,6 +3,11 @@ This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unpo
 To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
+Functions to exchange settings with an external device over a serial handshake protocol.
+This is essentially used by the upgrade tool to temporarily store the previous settings while doing
+an upgrade and sending them back after the upgrade is finished.
+The new firmware is then responsible of applying the received settings and possibly performing
+some transformation logic is the settings structure changed for the new firmware.
 **************************************************************************************************/
 
 /**************************************** Configuration V1 ***************************************/
