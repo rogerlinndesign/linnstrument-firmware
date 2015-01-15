@@ -916,7 +916,12 @@ void handleTouchRelease() {
       }
     }
 
-    // reset the pitch bend when the note is released if that setting is active
+    // reset the pressure when the note is release and that settings is active
+    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+      preSendLoudness(sensorSplit, 0, sensorCell().note, sensorCell().channel);
+    }
+
+    // reset the pitch bend when the note is released and that setting is active
     if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
       preSendPitchBend(sensorSplit, 0, sensorCell().channel);
     }
