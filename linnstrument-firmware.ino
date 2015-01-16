@@ -404,20 +404,14 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 
 /****************************************** Velocity *********************************************/
 
-#define NEW_VELOCITY_CALCULATION 1
-
-#if NEW_VELOCITY_CALCULATION
-  #define VELOCITY_SAMPLES      3
-  #define VELOCITY_ZERO_POINTS  1
-  #define VELOCITY_N            VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
-  #define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
-  #define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
-  #define VELOCITY_SCALE_LOW    26
-  #define VELOCITY_SCALE_MEDIUM 34
-  #define VELOCITY_SCALE_HIGH   38
-#else    
-  #define VELOCITY_SAMPLES     4
-#endif
+#define VELOCITY_SAMPLES      3
+#define VELOCITY_ZERO_POINTS  1
+#define VELOCITY_N            VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
+#define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
+#define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
+#define VELOCITY_SCALE_LOW    26
+#define VELOCITY_SCALE_MEDIUM 34
+#define VELOCITY_SCALE_HIGH   38
 
 /***************************************** Calibration *******************************************/
 

@@ -181,18 +181,17 @@ void initializeTouchInfo() {
 // An initial cooridinate with Y zero is always used (0,0), which causes the number
 // of data points to be always one more than the number of velocity samples
 
-#if NEW_VELOCITY_CALCULATION
 // This element of the linear regression algorithm is constant based on the number of velocity samples 
 const int VELOCITY_SXX = (VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX;
-#endif
 
 inline byte scale1016to127(int v) {
   // reduce 1016 > 127 by dividing, but we do this so that values are rounded instead of truncated
-  return ((v * 10) + 40) / 80;
+  // we also assume that all values that are equal to zero are filtered out already, so the bottom
+  // value is 1
+  return constrain(((v * 10) + 40) / 80, 1, 127);
 }
 
 boolean calcVelocity(unsigned short z) {
-  #if NEW_VELOCITY_CALCULATION
   if (sensorCell().vcount < VELOCITY_SAMPLES) {
     // calculate the linear regression sums that are variable with the pressure
     sensorCell().velSumY += z;
@@ -219,7 +218,7 @@ boolean calcVelocity(unsigned short z) {
           break;
       }
       int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
-      int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 0, 1016)];
+      int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 1, 1016)];
 
       slope = scale1016to127(slope);
 
@@ -228,21 +227,6 @@ boolean calcVelocity(unsigned short z) {
       return true;
     }
   }
-  #else
-  // Velocity calculation, it merely looks for the highest pressure value in the last
-  // few samples (set in VELOCITY_SAMPLES define), and uses that as the velocity value
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
-    sensorCell().vcount++;
-
-    // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
-
-      return true;
-    }
-  }
-  #endif
 
   return false;
 }
@@ -370,8 +354,8 @@ inline void TouchInfo::refreshZ() {
         break;
     }
 
-    unsigned short usableVelocityZ = constrain(usableZ, 0, sensorRangeVelocity);
-    unsigned short usablePressureZ = constrain(usableZ, 0, sensorRangePressure);
+    unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
+    unsigned short usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
