@@ -1,9 +1,28 @@
+v1.1.0
+
+  * Much reduced latency and jitter, making the LinnStrument wonderful for rapid runs and sharp attacks
+  * Improved velocity algorithm that measures actual velocity instead of instantaneous pressure
+  * Improved dynamic range and distribution in all three velocity sensitivity settings
+  * Added support for 4 presets of global and per-split settings, located at the right edge of the preset section
+  * Added support for poly pressure and channel pressure on the Y axis, to access it use the advanced CC configuration
+    and slide past number 127
+  * Slightly sped up control button double tap speed to prevent accidental split switches
+  * Improved middle root note flashing so that it would always occur with the accent color even when disabled in
+    the note highlighting configuration
+  * Improved debouncing behavior to prevent occasional double note triggers at very low velocities
+  * Fix for poly pressure only being sent per-note in ChannelPerNote mode, other modes tied poly pressure to the
+    actual MIDI channel, meaning that for instance with ChannelPerRow it was impossible to have per-note poly pressure
+    on the same row
+  * Fixes to promo animation so that it would not start flickering after a while
+
 v1.0.9
 
   * Added flashing the middle root note when exiting octave/transpose
-  * Prevent pitch bends where there are several touches for the same MIDI channel, this allows sliding over semi-tones in One Channel mode without changing the pitch of other notes
+  * Prevent pitch bends where there are several touches for the same MIDI channel, this allows sliding over semi-tones
+    in One Channel mode without changing the pitch of other notes
   * Add support for any bend range between 1-96 through the 5th option down in the Bend Range setting
-  * Fix for keeping notes highlighted in the arpeggiator when NotePerChannel is active and the same note is played several times on different channels
+  * Fix for keeping notes highlighted in the arpeggiator when NotePerChannel is active and the same note is played
+    several times on different channels
   * Regression fix for DIN MIDI output not working anymore
 
 v1.0.8
