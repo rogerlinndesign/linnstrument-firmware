@@ -39,7 +39,7 @@ void initVelocity() {
 byte calcPreferredVelocity(byte velocity) {
   // determine the preferred velocity based on the sensitivity settings
   if (Global.velocitySensitivity == velocityFixed) {
-    return 96;
+    return 68;
   }
   else {
     return constrain(velocity, 1, 127);
@@ -354,6 +354,9 @@ void handleNewTouch() {
     case displayGlobal:                                            // it's a change to one of the global settings
     case displayGlobalWithTempo:
       handleGlobalSettingNewTouch();
+      break;
+    case displayCompressorLimit:                                   // it's a change to the compressor limiter
+      handleCompressorLimitNewTouch();
       break;
     }
   }
@@ -874,6 +877,9 @@ void handleTouchRelease() {
     case displayGlobal:
     case displayGlobalWithTempo:
       handleGlobalSettingRelease();
+      return;
+    case displayCompressorLimit:
+      handleCompressorLimitRelease();
       return;
   }
 

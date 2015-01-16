@@ -65,16 +65,16 @@ char* audienceMessages[16] = {
   "SINGER SUCKS",
   "WRONG NOTE",
   "SMELLY NIGHTCLUB",
-  "HELLO",
-  "HELLO NEW YORK",
-  "HELLO LOS ANGELES",
-  "HELLO SAN FRANCISCO",
-  "HELLO LONDON",
-  "HELLO MUNICH",
-  "HELLO BRUSSELS",
-  "HELLO PARIS",
-  "HELLO TOKYO",
-  "HELLO (YOUR CITY HERE)"
+  "HELLO EMF",
+  "HELLO DETROIT",
+  "HELLO GRAND BLANC",
+  "HELLO CEDAR CREST",
+  "HELLO CONIFER",
+  "HELLO ALBUQUERQUE",
+  "HELLO LAS CRUCES",
+  "HELLO OAKTON",
+  "HELLO MOULTONBOROUGH",
+  "HELLO GLENWOOD"
 };
 
 char* OSVersion = "110.";
@@ -296,7 +296,8 @@ enum DisplayMode {
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
-  displayPromo
+  displayPromo,
+  displayCompressorLimit
 };
 void setDisplayMode(DisplayMode mode);
 
@@ -413,9 +414,9 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
   #define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
   #define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
   #define VELOCITY_SCALE_LOW    26
-  #define VELOCITY_SCALE_MEDIUM 34
-  #define VELOCITY_SCALE_HIGH   38
-#else    
+  #define VELOCITY_SCALE_MEDIUM 32
+  #define VELOCITY_SCALE_HIGH   34
+#else
   #define VELOCITY_SAMPLES     4
 #endif
 
@@ -576,6 +577,8 @@ struct DeviceSettings {
   unsigned short sensorRangeZ;               // the maximum raw value of Z
   boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
   byte currentPreset;                        // the currently active settings preset
+  byte velocityLimit;			     // the global velocity limiter value
+
 };
 DeviceSettings Device;
 

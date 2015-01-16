@@ -154,6 +154,7 @@ void initializeGlobalSettings() {
     g.velocitySensitivity = velocityMedium;
     g.pressureSensitivity = pressureMedium;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
+    Device.velocityLimit = 127;
 
     // initialize switch assignments
     g.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
@@ -777,6 +778,14 @@ void handleSensorRangeZRelease() {
   handleNumericDataRelease(false);
 }
 
+void handleCompressorLimitNewTouch() {
+  handleNumericDataNewTouch(Device.velocityLimit, 0, 127, true);
+}
+
+void handleCompressorLimitRelease() {
+  handleNumericDataRelease(false);
+}
+
 void resetNumericDataChange() {
   numericDataChangeCol = -1;
   numericActiveDown = 0;
@@ -1002,7 +1011,7 @@ void handleGlobalSettingNewTouch() {
   if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (sensorCol <= 16) {
       clearDisplay();
-      big_scroll_text_flipped(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+      big_scroll_text(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);
     }
     else if (sensorCol == 25) {
       playPromoAnimation();
@@ -1251,6 +1260,15 @@ void handleGlobalSettingNewTouch() {
       initializeCalibrationSamples();
     }
  }
+
+  if (sensorCol == 23) {
+    if (sensorRow == 0) {
+      Device.velocityLimit = 127;
+    }
+    else if (sensorRow == 1) {
+      setDisplayMode(displayCompressorLimit);
+    }
+  }
 
   if (sensorCol == 25) {
     if      (sensorRow == 0) {

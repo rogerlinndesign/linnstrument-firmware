@@ -115,7 +115,7 @@ NRPN   Value   Description
 116    0-1     Split Right MIDI Per Note Channel 15 (0: Off, 1: On)
 117    0-1     Split Right MIDI Per Note Channel 16 (0: Off, 1: On)
 118    1-16    Split Right MIDI Per Row Lowest Channel
-119    2-24    Split Right MIDI Bend Range (only supports 2, 3, 12 and 24)
+119    1-96    Split Right MIDI Bend Range
 120    0-1     Split Right Send X (0: Off, 1: On)
 121    0-1     Split Right Pitch Correct Quantize (0: Off, 1: On)
 122    0-1     Split Right Pitch Correct Hold (0: Off, 1: On)
