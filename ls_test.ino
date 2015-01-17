@@ -40,7 +40,7 @@ void displayXFrame() {
 
   static unsigned long lastFrame = 0;
   unsigned long now = micros();
-  if (sensorCol == 0 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
+  if (sensorCol == 1 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
     lastFrame = now;
 
     Serial.println();
@@ -73,7 +73,7 @@ void displayYFrame() {
 
   static unsigned long lastFrame = 0;
   unsigned long now = micros();
-  if (sensorCol == 0 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
+  if (sensorCol == 1 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
     lastFrame = now;
     
     Serial.println();
@@ -102,7 +102,7 @@ void displayYFrame() {
 void displayZFrame() {
   static unsigned long lastFrame = 0;
   unsigned long now = micros();
-  if (sensorCol == 0 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
+  if (sensorCol == 1 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
     lastFrame = now;
     
     Serial.println();
@@ -123,7 +123,7 @@ void displayZFrame() {
 
 // For debug, displays an entire frame of raw Z values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displaySurfaceScanTime() { 
-  if (sensorCol == 0 && sensorRow == 0) {
+  if (sensorCol == 1 && sensorRow == 0) {
     static int scanCount; 
     static unsigned long scanPeriod; 
     if (++scanCount > 255) { 

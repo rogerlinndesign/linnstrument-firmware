@@ -72,7 +72,7 @@ inline unsigned short readZ() {                              // returns the raw 
     delayUsec(32);
   }
   else {
-    delayMicroseconds(10);
+    delayMicroseconds(11);
   }
 
   short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
