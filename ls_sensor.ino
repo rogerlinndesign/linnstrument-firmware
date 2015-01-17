@@ -79,6 +79,9 @@ inline unsigned short readZ() {                              // returns the raw 
 
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
+
+  // this bias is totally experimental and not considered finished, it's merely an experiment to see
+  // if different values can make the november sensor better, at the moment it's not!
   // rawZ = (rawZ * Z_BIAS_MULTIPLIER_NOVEMBER) / Z_BIAS_NOVEMBER[sensorRow][sensorCol];
 
   return rawZ;
