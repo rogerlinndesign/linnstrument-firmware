@@ -31,7 +31,7 @@ const short Z_BIAS_NOVEMBER[NUMROWS][NUMCOLS] =  {
     {516, 828, 849, 858, 853, 835, 807, 770, 731, 692, 659, 635, 624, 626, 641, 668, 703, 742, 782, 816, 842, 856, 857, 844, 820, 786},
     {516, 766, 775, 780, 780, 775, 765, 750, 733, 713, 692, 671, 652, 635, 622, 613, 610, 611, 617, 628, 643, 661, 682, 703, 723, 742}
   };
-const short Z_BIAS_MULTIPLIER_NOVEMBER = 850;
+const short Z_BIAS_MULTIPLIER_NOVEMBER = 860;
 
 // readX:
 // Reads raw X value at the currently addressed column and row
