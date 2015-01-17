@@ -410,8 +410,8 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 #define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
 #define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
 #define VELOCITY_SCALE_LOW    26
-#define VELOCITY_SCALE_MEDIUM 34
-#define VELOCITY_SCALE_HIGH   38
+#define VELOCITY_SCALE_MEDIUM 32
+#define VELOCITY_SCALE_HIGH   34
 
 /***************************************** Calibration *******************************************/
 
