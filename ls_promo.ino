@@ -33,7 +33,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     PRESSURE SENSING            ", COLOR_GREEN);
+    big_scroll_text("     PRESSURE SENSING            ", COLOR_MAGENTA);
 
     if (stopAnimation) break;
 
@@ -81,7 +81,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     PITCH SLIDES            ", COLOR_GREEN);
+    big_scroll_text("     PITCH SLIDES            ", COLOR_YELLOW);
 
     if (stopAnimation) break;
     
@@ -107,7 +107,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     Y-AXIS CONTROL            ", COLOR_GREEN);
+    big_scroll_text("     Y-AXIS CONTROL            ", COLOR_BLUE);
 
     if (stopAnimation) break;
     
@@ -133,7 +133,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     POLYPHONIC            ", COLOR_GREEN);
+    big_scroll_text("     POLYPHONIC            ", COLOR_RED);
 
     if (stopAnimation) break;
     
@@ -185,7 +185,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     OPEN & CUSTOMIZABLE            ", COLOR_GREEN);
+    big_scroll_text("     OPEN & CUSTOMIZABLE            ", COLOR_BLUE);
 
     if (stopAnimation) break;
 
