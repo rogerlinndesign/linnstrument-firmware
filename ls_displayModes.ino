@@ -25,6 +25,7 @@ displaySensorLoZ         : sensor low Z sensitivity selection
 displaySensorFeatherZ    : sensor feather Z sensitivity selection
 displaySensorRangeZ      : max Z sensor range selection
 displayPromo             : display promotion animation
+displayCustom            : display custom animations - jas 2015/01/05
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -108,6 +109,9 @@ void updateDisplay() {
     break;
   case displaySensorRangeZ:      // Display the max Z range
     paintSensorRangeZDisplay();
+    break;
+  case displayCustom:            // Display Custom controls - display may overlay normal w/o animationActive --jas
+    paintCustom();
     break;
   }
 
@@ -258,7 +262,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     // distinguish middle C (MIDI note number 60) - jas 2014/11/14
     if (actualnote == 60) {
       colour = Split[split].colorMiddleC;
-      cellDisplay = cellOn;
+      cellDisplay = Global.blinkMiddleC ? cellPulse : cellOn; //optionally blink Middle C - jas 2015/01/07
     }
 
     // if the low row is anything but normal, set it to the appropriate color
@@ -882,6 +886,23 @@ void paintGlobalSettingsDisplay() {
 
 
   // Column 19 is set above, for Global.colOffset, following Global.rowOffset - jas 2014/12/11
+
+  // blink Middle C - jas 2015/01/07
+  if (Global.blinkMiddleC) {
+      lightLed(20,0);
+  }
+
+  // custom Animation properties - jas 2015/01/07 --
+  for (byte i=0; i<8; i++){
+      if (Global.customAnimations[i]) {
+          lightLed(17+i,7);
+      }
+  }
+
+  // blink active animation triggers - jas 2015/01/07 --
+    setLed(24, 7, COLOR_RED, cellOn);
+    setLed(25, 7, COLOR_RED, cellOn);
+
 
   if (displayMode == displayGlobalWithTempo) {
     byte color = Split[LEFT].colorMain;

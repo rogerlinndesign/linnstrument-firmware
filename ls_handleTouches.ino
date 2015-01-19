@@ -902,6 +902,7 @@ void handleTouchRelease() {
     case displayGlobalWithTempo:
       handleGlobalSettingRelease();
       return;
+    //case displayCustom Animation - placeholder - jas 2015/01/16 --
   }
 
   // check if calibration is active and its cell release logic needs to be executed

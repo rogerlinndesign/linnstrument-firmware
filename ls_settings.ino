@@ -215,6 +215,7 @@ void initializeGlobalSettings() {
   Global.arpDirection = ArpUp;
   Global.arpTempo = ArpSixteenth;
   Global.arpOctave = 0;
+  Global.blinkMiddleC = false; //-- new property -- jas 2015/01/07 --
 }
 
 void initializeGlobalSensorSettings() {
@@ -559,7 +560,7 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
     }
-    else if (sensorRow == 3) {  //-- distinguish Middle C - jas 2014/12/11
+    else if (sensorRow == 3) {  //-- distinguish Middle C color - jas 2014/12/11
       Split[Global.currentPerSplit].colorMiddleC = colorCycle(Split[Global.currentPerSplit].colorMiddleC, false);
     }
 
@@ -921,6 +922,12 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 25) {
       playPromoAnimation();
     }
+    else if (sensorCol ==24) {  //-- custom animations 1-8, jas 2015/01/04 --
+      playCustomAnimation();
+    }
+    else {
+        Global.customAnimations[sensorCol - 17] = !Global.customAnimations[sensorCol - 17]; //--toggle animation properties -- jas 2015/01/07 --
+    }
   }
   else if (sensorRow >= 4) {
     handleTempoNewTouch();
@@ -1202,6 +1209,11 @@ void handleGlobalSettingNewTouch() {
   }
 }
 
+if(sensorCol ==20){ //-- toggle blinking of Middle C - jas 2015/01/07 --
+    if(sensorRow == 0){
+        Global.blinkMiddleC = !Global.blinkMiddleC;
+    }
+}
   if (sensorCol == 25) {
     if      (sensorRow == 0) {
       resetNumericDataChange();

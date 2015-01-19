@@ -288,7 +288,8 @@ enum DisplayMode {
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
-  displayPromo
+  displayPromo,
+  displayCustom //-- new mode for custom animations - jas 2015/01/04 --
 };
 void setDisplayMode(DisplayMode mode);
 
@@ -578,6 +579,8 @@ struct GlobalSettings {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean blinkMiddleC;                      // optionally blink Middle C -- jas 2015/01/07 --
+  boolean customAnimations[8];               // switches for custom animations - jas 2015/01/07 --
 };
 
 GlobalSettings Global;
