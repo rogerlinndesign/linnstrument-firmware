@@ -13,22 +13,19 @@ void cellTouched(TouchState state) {
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
   if (state != untouchedCell) {
-    rowsInColsTouched[sensorCol] |= (1 << sensorRow);
-    colsInRowsTouched[sensorRow] |= (1 << sensorCol);
+    rowsInColsTouched[sensorCol] |= (int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] |= (int32_t)(1 << sensorCol);
   }
   // if the state is untouched, turn off the appropriate bit in the
   // bitmasks that track the touched cells
   else {
-    rowsInColsTouched[sensorCol] &= ~(1 << sensorRow);
-    colsInRowsTouched[sensorRow] &= ~(1 << sensorCol);
+    rowsInColsTouched[sensorCol] &= ~(int32_t)(1 << sensorRow);
+    colsInRowsTouched[sensorRow] &= ~(int32_t)(1 << sensorCol);
   }
-
+  
   // save the touched state for each cell
   cell(sensorCol, sensorRow).touched = state;
 }
-
-// Velocity calculation, it merely looks for the highest pressure value in the last
-// few samples (set in VELOCITY_SAMPLES define), and uses that as the velocity value
 
 // Re-initialize the velocity detection
 void initVelocity() {
@@ -49,53 +46,9 @@ byte calcPreferredVelocity(byte velocity) {
   }
 }
 
-// Calculate the velocity value by providing pressure (z) data.
-// This function will return true when a new stable velocity value has been
-// calculated. This is the moment when a new note should be sent out.
-boolean calcVelocity(byte z) {
-  #if NEW_VELOCITY_CALCULATION  
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
+#define TRANSFER_SLIDE_PROXIMITY 80
 
-    // ignore the first sample for linear regression since it can be sometimes unreliable
-    if (sensorCell().vcount++ > 0) {
-
-      // calculate the linear regression sums that are variable with the pressure
-      sensorCell().velSumY += z;
-      sensorCell().velSumXY += (sensorCell().vcount+1) * z;
-
-      // when the number of samples are reached, calculate the final velocity
-      if (sensorCell().vcount == VELOCITY_SAMPLES) {
-        int sxy = VELOCITY_SAMPLES * sensorCell().velSumXY - VELOCITY_SUMX * sensorCell().velSumY;
-        int slope = (VELOCITY_SCALE * sxy) / (VELOCITY_DIVIDER * VELOCITY_SXX);
-
-        // mix the maximum-based velocity approach with the linear regression slope, reminiscent of parallel compression to preserve the transients
-        sensorCell().velocity = calcPreferredVelocity((slope+sensorCell().velocity)/2);
-
-        return true;
-      }
-    }
-  }
-  #else
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    sensorCell().velocity = max(sensorCell().velocity, z);
-    sensorCell().vcount++;
-
-    // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES && sensorCell().velocity > 0) {
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocity);
-
-      return true;
-    }
-  }
-  #endif
-
-  return false;
-}
-
-#define TRANSFER_SLIDE_PROXIMITY 100
-
-boolean preventPitchSlides(byte col, byte row) {
+boolean severalTouchesForMidiChannel(byte col, byte row) {
   if (!cell(col, row).hasNote()) {
     return false;
   }
@@ -108,10 +61,19 @@ boolean preventPitchSlides(byte col, byte row) {
   return false;
 }
 
+const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
+
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() && (!Split[sensorSplit].sendX || !isFocusedCell(col, sensorRow) || preventPitchSlides(col, sensorRow))) return false;
+  if (!isLowRow() &&                                                // don't perform slide transfers
+      (!Split[sensorSplit].sendX ||                                 // if pitch slides are disabled
+       !isFocusedCell(col, sensorRow) ||                            // if this is not a focused cell
+       severalTouchesForMidiChannel(col, sensorRow) ||              // when there are several touches for the same MIDI channel
+       (cell(col, sensorRow).pendingReleaseCount &&                 // if there's a pending release but not enough X change
+        cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X))) {
+    return false;
+  }
   if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
@@ -121,14 +83,14 @@ boolean potentialSlideTransferCandidate(byte col) {
 }
 
 boolean isReadyForSlideTransfer(byte col) {
-  return cell(col, sensorRow).pendingReleaseCount ||               // there's a pending release waiting
-    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;   // the cell pressure is higher
+  return cell(col, sensorRow).pendingReleaseCount ||                 // there's a pending release waiting
+    sensorCell().currentRawZ > cell(col, sensorRow).currentRawZ;     // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
-  return Global.calibrated &&
-    (sensorCell().calibratedX() < FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
-     sensorCell().calibratedX() > FXD_TO_INT(Global.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
+  return Device.calibrated &&
+    (sensorCell().calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
+     sensorCell().calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
 }
 
 void transferFromSameRowCell(byte col) {
@@ -212,8 +174,8 @@ void transferToSameRowCell(byte col) {
 boolean isPhantomTouch() {
   // check if this is a potential corner of a rectangle to filter out ghost notes, this first check matches
   // any cells that have other cells on the same row and column, so it's not sufficient by itself, but it's fast
-  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(1 << sensorRow);
-  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(1 << sensorCol);
+  int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(int32_t)(1 << sensorRow);
+  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(int32_t)(1 << sensorCol);
   if (rowsInSensorColTouched && colsInSensorRowTouched) {
 
     // now we check each touched row in the column of the current sensor
@@ -236,7 +198,7 @@ boolean isPhantomTouch() {
 
         // if we find a cell that has both the touched row and touched column set,
         // then the current sensor completed a rectangle by being the fourth corner
-        if (rowsInColsTouched[touchedCol] & (1 << touchedRow)) {
+        if (rowsInColsTouched[touchedCol] & (int32_t)(1 << touchedRow)) {
 
           // since we found four corners, we now have to determine which ones are
           // real presses and which ones are phantom presses, so we're looking for
@@ -285,7 +247,7 @@ byte countTouchesInColumn() {
       count++;
 
       // turn the left-most active bit off, to continue the iteration over the touched rows
-      rowsInSensorColTouched &= ~(1 << touchedRow);
+      rowsInSensorColTouched &= ~(int32_t)(1 << touchedRow);
     }
   }
 
@@ -421,25 +383,28 @@ boolean isFocusedCell(byte col, byte row) {
   return col == focused.col && row == focused.row;
 }
 
-// Check if X/Y expression should be sent for this cell
-boolean isXYExpressiveCell() {
+// Check if X expression should be sent for this cell
+boolean isXExpressiveCell() {
   return isFocusedCell();
+}
+
+// Check if Y expression should be sent for this cell
+boolean isYExpressiveCell() {
+  if (Split[sensorSplit].expressionForY == timbrePolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
+  }
 }
 
 // Check if Z expression should be sent for this cell
 boolean isZExpressiveCell() {
-  switch (Split[sensorSplit].midiMode)
-  {
-    case oneChannel:
-      if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
-        return true;
-      }
-      else {
-        return isFocusedCell();
-      }
-    case channelPerNote:
-    case channelPerRow:
-      return isFocusedCell();
+  if (Split[sensorSplit].expressionForZ == loudnessPolyPressure) {
+    return true;
+  }
+  else {
+    return isFocusedCell();
   }
 }
 
@@ -560,7 +525,7 @@ void handleXYZupdate() {
   else if (Split[sensorSplit].ccFaders) {
     handleFaderTouch(newVelocity);
   }
-  else if (handleNotes) {
+  else if (handleNotes && sensorCell().hasNote()) {
     // after the initial velocity, new velocity values are continuously being calculated simply based
     // on the Z data so that velocity can change during the arpeggiation
     sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
@@ -568,14 +533,14 @@ void handleXYZupdate() {
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendPressure(sensorCell().note, preferredPressure, sensorCell().channel);
+      preSendLoudness(sensorSplit, preferredPressure, sensorCell().note, sensorCell().channel);
     }
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      if (preventPitchSlides(sensorCol, sensorRow)) {
+        isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
+      if (severalTouchesForMidiChannel(sensorCol, sensorRow)) {
         preSendPitchBend(sensorSplit, 0, sensorCell().channel);
       }
       else {
@@ -586,9 +551,9 @@ void handleXYZupdate() {
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (preferredTimbre != INVALID_DATA &&
-        isXYExpressiveCell() && Split[sensorSplit].sendY &&
+        isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
-      preSendY(sensorSplit, preferredTimbre, sensorCell().channel);
+      preSendTimbre(sensorSplit, preferredTimbre, sensorCell().note, sensorCell().channel);
     }
   }
 }
@@ -641,7 +606,7 @@ void handleNewNote(signed char notenum) {
   focused.row = sensorRow;
 
   // reset the pitch bend right before sending the note on
-  if (isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+  if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
     preSendPitchBend(sensorSplit, 0, sensorCell().channel);
   }
 
@@ -755,7 +720,7 @@ short handleXExpression() {
     if (Split[sensorSplit].pitchCorrectHold) {                                    // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
       int32_t fxdMovedRatio = FXD_DIV(FXD_FROM_INT(PITCH_HOLD_DURATION - sensorCell().rateCountX), fxdPitchHoldDuration);
       int32_t fxdCorrectedRatio = FXD_FROM_INT(1) - fxdMovedRatio;
-      int32_t fxdQuantizedDistance = Global.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
+      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
       int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
       bend = FXD_TO_INT(fxdInterpolatedX);
@@ -771,7 +736,7 @@ short handleXExpression() {
 
     // when there are multiple touches in the same column, reduce the pitch bend Z sensititivity to
     // prevent unwanted pitch slides
-    if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Global.sensorLoZ + SENSOR_PITCH_Z))) {
+    if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z))) {
       pitchBend = bend;
     }
   }
@@ -834,7 +799,8 @@ void releaseChannel(byte channel) {
   }
 }
 
-#define PENDING_RELEASE_START 3
+#define PENDING_RELEASE_MOVEMENT   3
+#define PENDING_RELEASE_STATIONARY 1
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -847,9 +813,16 @@ void handleTouchRelease() {
   if (sensorCell().pendingReleaseCount > 0) {
     sensorCell().pendingReleaseCount--;
   }
-  // if no release is pending and the rate of change of X is high, start a pending release
-  else if (sensorCell().fxdRateX > FXD_FROM_INT(7)) {
-    sensorCell().pendingReleaseCount = PENDING_RELEASE_START;
+  // if no release is pending, start a pending release
+  else {
+    // if there's X movement use a longer pending release
+    if (sensorCell().fxdRateX > PENDING_RELEASE_RATE_X) {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
+    }
+    // ... than when it's a stationary release
+    else {
+      sensorCell().pendingReleaseCount = PENDING_RELEASE_STATIONARY;
+    }
   }
 
   // if a release is pending, don't perform the release logic yet
@@ -918,35 +891,40 @@ void handleTouchRelease() {
   }
   else if (sensorCell().hasNote()) {
 
-    // unregister the note <> cell mapping if the sensor cell was the last one holding the note for the channel
-    if (noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel, sensorCol, sensorRow)) {
-      // send the Note Off
-      if (isArpeggiatorEnabled(sensorSplit)) {
-        handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-      } else {
-        midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-      }
+    // unregister the note <> cell mapping
+    noteTouchMapping[sensorSplit].noteOff(sensorCell().note, sensorCell().channel);
 
-      // unhighlight the same notes if this is activated
-      if (Split[sensorSplit].colorNoteon) {
-        // ensure that no other notes of the same value are still active
-        boolean allNotesOff = true;
-        for (byte ch = 0; ch < 16; ++ch) {
-          if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
-            allNotesOff = false;
-            break;
-          }
-        }
-        // if no notes are active anymore, reset the highlighted cells
-        if (allNotesOff) {
-          resetNoteCells(sensorSplit, sensorCell().note);
+    // send the Note Off
+    if (isArpeggiatorEnabled(sensorSplit)) {
+      handleArpeggiatorNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+    } else {
+      midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
+    }
+
+    // unhighlight the same notes if this is activated
+    if (Split[sensorSplit].colorNoteon) {
+      // ensure that no other notes of the same value are still active
+      boolean allNotesOff = true;
+      for (byte ch = 0; ch < 16; ++ch) {
+        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
+          allNotesOff = false;
+          break;
         }
       }
-
-      // reset the pitch bend when the note is released if that setting is active
-      if (Split[sensorSplit].pitchResetOnRelease && isXYExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
-        preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      // if no notes are active anymore, reset the highlighted cells
+      if (allNotesOff) {
+        resetNoteCells(sensorSplit, sensorCell().note);
       }
+    }
+
+    // reset the pressure when the note is release and that settings is active
+    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+      preSendLoudness(sensorSplit, 0, sensorCell().note, sensorCell().channel);
+    }
+
+    // reset the pitch bend when the note is released and that setting is active
+    if (Split[sensorSplit].pitchResetOnRelease && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+      preSendPitchBend(sensorSplit, 0, sensorCell().channel);
     }
 
     // If the released cell had focus, reassign focus to the latest touched cell
@@ -980,23 +958,21 @@ byte rowIndex[NUMROWS] = {0, 4, 1, 5, 2, 6, 3, 7};
 
 byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
 
-byte scannedCells[208][2] = {
-  {0, 0}, {3, 4}, {7, 1}, {10, 5}, {13, 2}, {17, 6}, {20, 3}, {24, 7}, {1, 4}, {4, 0}, {8, 5}, {11, 1}, {14, 6}, {18, 2}, {21, 7}, {25, 3}, {2, 0}, {5, 4}, {9, 1}, {12, 5}, {15, 2}, {19, 6}, {22, 3}, {6, 7}, {16, 4}, {23, 0},
-  {0, 4}, {3, 0}, {7, 5}, {10, 1}, {13, 6}, {17, 2}, {20, 7}, {24, 3}, {1, 0}, {4, 4}, {8, 1}, {11, 5}, {14, 2}, {18, 6}, {21, 3}, {25, 7}, {2, 4}, {5, 0}, {9, 5}, {12, 1}, {15, 6}, {19, 2}, {22, 7}, {6, 3}, {16, 0}, {23, 4},
-  {0, 1}, {3, 5}, {7, 2}, {10, 6}, {13, 3}, {17, 7}, {20, 4}, {24, 0}, {1, 5}, {4, 1}, {8, 6}, {11, 2}, {14, 7}, {18, 3}, {21, 0}, {25, 4}, {2, 1}, {5, 5}, {9, 2}, {12, 6}, {15, 3}, {19, 7}, {22, 4}, {6, 0}, {16, 5}, {23, 1},
-  {0, 5}, {3, 1}, {7, 6}, {10, 2}, {13, 7}, {17, 3}, {20, 0}, {24, 4}, {1, 1}, {4, 5}, {8, 2}, {11, 6}, {14, 3}, {18, 7}, {21, 4}, {25, 0}, {2, 5}, {5, 1}, {9, 6}, {12, 2}, {15, 7}, {19, 3}, {22, 0}, {6, 4}, {16, 1}, {23, 5},
-  {0, 2}, {3, 6}, {7, 3}, {10, 7}, {13, 4}, {17, 0}, {20, 5}, {24, 1}, {1, 6}, {4, 2}, {8, 7}, {11, 3}, {14, 0}, {18, 4}, {21, 1}, {25, 5}, {2, 2}, {5, 6}, {9, 3}, {12, 7}, {15, 4}, {19, 0}, {22, 5}, {6, 1}, {16, 6}, {23, 2},
-  {0, 6}, {3, 2}, {7, 7}, {10, 3}, {13, 0}, {17, 4}, {20, 1}, {24, 5}, {1, 2}, {4, 6}, {8, 3}, {11, 7}, {14, 4}, {18, 0}, {21, 5}, {25, 1}, {2, 6}, {5, 2}, {9, 7}, {12, 3}, {15, 0}, {19, 4}, {22, 1}, {6, 5}, {16, 2}, {23, 6},
-  {0, 3}, {3, 7}, {7, 4}, {10, 0}, {13, 5}, {17, 1}, {20, 6}, {24, 2}, {1, 7}, {4, 3}, {8, 0}, {11, 4}, {14, 1}, {18, 5}, {21, 2}, {25, 6}, {2, 3}, {5, 7}, {9, 4}, {12, 0}, {15, 5}, {19, 1}, {22, 6}, {6, 2}, {16, 7}, {23, 3},
-  {0, 7}, {3, 3}, {7, 0}, {10, 4}, {13, 1}, {17, 5}, {20, 2}, {24, 6}, {1, 3}, {4, 7}, {8, 4}, {11, 0}, {14, 5}, {18, 1}, {21, 6}, {25, 2}, {2, 7}, {5, 3}, {9, 0}, {12, 4}, {15, 1}, {19, 5}, {22, 2}, {6, 6}, {16, 3}, {23, 7}
+byte scannedCells[201][2] = {
+  {0, 0},
+  {3, 4}, {7, 1}, {10, 5}, {13, 2}, {17, 6}, {20, 3}, {24, 7}, {1, 4}, {4, 0}, {8, 5}, {11, 1}, {14, 6}, {18, 2}, {21, 7}, {25, 3}, {2, 0}, {5, 4}, {9, 1}, {12, 5}, {15, 2}, {19, 6}, {22, 3}, {6, 7}, {16, 4}, {23, 0},
+  {3, 0}, {7, 5}, {10, 1}, {13, 6}, {17, 2}, {20, 7}, {24, 3}, {1, 0}, {4, 4}, {8, 1}, {11, 5}, {14, 2}, {18, 6}, {21, 3}, {25, 7}, {2, 4}, {5, 0}, {9, 5}, {12, 1}, {15, 6}, {19, 2}, {22, 7}, {6, 3}, {16, 0}, {23, 4},
+  {3, 5}, {7, 2}, {10, 6}, {13, 3}, {17, 7}, {20, 4}, {24, 0}, {1, 5}, {4, 1}, {8, 6}, {11, 2}, {14, 7}, {18, 3}, {21, 0}, {25, 4}, {2, 1}, {5, 5}, {9, 2}, {12, 6}, {15, 3}, {19, 7}, {22, 4}, {6, 0}, {16, 5}, {23, 1},
+  {3, 1}, {7, 6}, {10, 2}, {13, 7}, {17, 3}, {20, 0}, {24, 4}, {1, 1}, {4, 5}, {8, 2}, {11, 6}, {14, 3}, {18, 7}, {21, 4}, {25, 0}, {2, 5}, {5, 1}, {9, 6}, {12, 2}, {15, 7}, {19, 3}, {22, 0}, {6, 4}, {16, 1}, {23, 5},
+  {3, 6}, {7, 3}, {10, 7}, {13, 4}, {17, 0}, {20, 5}, {24, 1}, {1, 6}, {4, 2}, {8, 7}, {11, 3}, {14, 0}, {18, 4}, {21, 1}, {25, 5}, {2, 2}, {5, 6}, {9, 3}, {12, 7}, {15, 4}, {19, 0}, {22, 5}, {6, 1}, {16, 6}, {23, 2},
+  {3, 2}, {7, 7}, {10, 3}, {13, 0}, {17, 4}, {20, 1}, {24, 5}, {1, 2}, {4, 6}, {8, 3}, {11, 7}, {14, 4}, {18, 0}, {21, 5}, {25, 1}, {2, 6}, {5, 2}, {9, 7}, {12, 3}, {15, 0}, {19, 4}, {22, 1}, {6, 5}, {16, 2}, {23, 6},
+  {3, 7}, {7, 4}, {10, 0}, {13, 5}, {17, 1}, {20, 6}, {24, 2}, {1, 7}, {4, 3}, {8, 0}, {11, 4}, {14, 1}, {18, 5}, {21, 2}, {25, 6}, {2, 3}, {5, 7}, {9, 4}, {12, 0}, {15, 5}, {19, 1}, {22, 6}, {6, 2}, {16, 7}, {23, 3},
+  {3, 3}, {7, 0}, {10, 4}, {13, 1}, {17, 5}, {20, 2}, {24, 6}, {1, 3}, {4, 7}, {8, 4}, {11, 0}, {14, 5}, {18, 1}, {21, 6}, {25, 2}, {2, 7}, {5, 3}, {9, 0}, {12, 4}, {15, 1}, {19, 5}, {22, 2}, {6, 6}, {16, 3}, {23, 7}
 };
 
 inline void nextSensorCell() {
-  static byte cellCount;
-
-  if (++cellCount >= 208) {
-    cellCount = 0;
-  }
+  static byte cellCount = 0;
+  static byte controlRow = 0;
 
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
   sensorCell().shouldRefreshData();
@@ -1004,6 +980,19 @@ inline void nextSensorCell() {
   sensorCol = scannedCells[cellCount][0];
   sensorRow = scannedCells[cellCount][1];
   sensorSplit = getSplitOf(sensorCol);
+
+  if (++cellCount >= 201) {
+    cellCount = 0;
+  }
+
+  // we're only scanning one of the eight control switches on each surface scan,
+  // they don't need as many updates as the playing keys
+  if (sensorCol == 0) {
+    sensorRow = controlRow;
+    if (++controlRow >= 8) {
+      controlRow = 0;
+    }
+  }
 }
 
 

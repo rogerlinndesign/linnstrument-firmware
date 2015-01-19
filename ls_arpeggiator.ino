@@ -9,6 +9,9 @@ actual cell that was pressed, allowing velocity to be continuously varied during
 sequence.
 ***************************************************************************************************/
 
+unsigned long arpeggiatorRefreshInterval = 500;
+unsigned long prevArpeggiatorTimerCount = 0;
+
 const unsigned long internalClockUnitBase = 2500000;  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
 
 unsigned long lastInternalClockMoment;                // the last time the internal clock stepped
@@ -16,11 +19,11 @@ signed char lastInternalClockCount;                   // the count of the intern
      
 signed char lastArpMidiClock;                         // the last MIDI clock that the arpeggiator played on
 signed char lastArpInternalClock;                     // the last internal clock that the arpeggiator played on
-signed char lastArpNote[2];                           // the last note played by the arpeggiator or -1 if it should be starting from scratch
-signed char lastArpChannel[2];                        // the last channel played by the arpeggiator or -1 if it should be starting from scratch
-boolean lastArpStepOdd[2];                            // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
-ArpeggiatorDirection arpUpDownState[2];               // the state in the alternating up/down pattern
-signed char arpOctaveState[2];                        // the octave that is used while playing the arpeggiator sequence
+signed char lastArpNote[NUMSPLITS];                   // the last note played by the arpeggiator or -1 if it should be starting from scratch
+signed char lastArpChannel[NUMSPLITS];                // the last channel played by the arpeggiator or -1 if it should be starting from scratch
+boolean lastArpStepOdd[NUMSPLITS];                    // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
+ArpeggiatorDirection arpUpDownState[NUMSPLITS];       // the state in the alternating up/down pattern
+signed char arpOctaveState[NUMSPLITS];                // the octave that is used while playing the arpeggiator sequence
 
 unsigned long lastTapTempo = 0;
 
@@ -33,10 +36,11 @@ short getInternalClockCount() {
 void initializeArpeggiator() {
   randomSeed(analogRead(0));
 
+  prevArpeggiatorTimerCount = micros();
   lastArpMidiClock = 0;
   lastInternalClockCount = 0;
 
-  for (byte split = 0; split < 2; ++split) {
+  for (byte split = 0; split < NUMSPLITS; ++split) {
     noteTouchMapping[split].initialize();
     resetArpeggiatorState(split);
   }
@@ -138,6 +142,11 @@ void sendArpeggiatorStepMidiOff(byte split) {
 }
 
 inline void checkAdvanceArpeggiator(unsigned long now) {
+  if (calcTimeDelta(now, prevArpeggiatorTimerCount) <= arpeggiatorRefreshInterval) {
+    return;
+  }
+  prevArpeggiatorTimerCount = now;
+
   short clockCount;
 
   if (isMidiClockRunning()) {
@@ -213,7 +222,7 @@ void advanceArpeggiatorForSplit(byte split) {
 
         NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
         for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
-          midiSendNoteOn(split, getOctaveNote(octave, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+          midiSendNoteOn(split, getOctaveNote(octave, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
         }
 
         arpNote = entry.getNextNote();
@@ -406,7 +415,7 @@ void advanceArpeggiatorForSplit(byte split) {
 
         // send the MIDI note
         NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), touchInfo[entry.getCol()][entry.getRow()].velocity, arpChannel);
+        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
       }
 
       lastArpNote[split] = arpNote;

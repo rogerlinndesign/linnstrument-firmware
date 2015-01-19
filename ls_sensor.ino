@@ -31,7 +31,7 @@ const short Z_BIAS_NOVEMBER[NUMROWS][NUMCOLS] =  {
     {516, 828, 849, 858, 853, 835, 807, 770, 731, 692, 659, 635, 624, 626, 641, 668, 703, 742, 782, 816, 842, 856, 857, 844, 820, 786},
     {516, 766, 775, 780, 780, 775, 765, 750, 733, 713, 692, 671, 652, 635, 622, 613, 610, 611, 617, 628, 643, 661, 682, 703, 723, 742}
   };
-const short Z_BIAS_MULTIPLIER_NOVEMBER = 850;
+const short Z_BIAS_MULTIPLIER_NOVEMBER = 860;
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -67,12 +67,21 @@ inline short readY() {                                // returns a value of 0-12
 // Reads Z value at current cell
 inline unsigned short readZ() {                              // returns the raw Z value
   selectSensorCell(sensorCol, sensorRow, READ_Z);            // set analog switches to current cell in touch sensor and read Z
-  delayUsec(7);                                              // prevent phantom reads when vertically adjacent cells are pressed, should be removed when the the ADC's pullup resistor is changed
+  // prevent phantom reads when vertically adjacent cells are pressed
+  if (sensorCol == 0) {
+    delayUsec(32);
+  }
+  else {
+    delayMicroseconds(11);
+  }
 
   short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
 
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
+
+  // this bias is totally experimental and not considered finished, it's merely an experiment to see
+  // if different values can make the november sensor better, at the moment it's not!
   // rawZ = (rawZ * Z_BIAS_MULTIPLIER_NOVEMBER) / Z_BIAS_NOVEMBER[sensorRow][sensorCol];
 
   return rawZ;

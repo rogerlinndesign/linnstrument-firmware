@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.0.9 =========================================
+======================================== LinnStrument Operating System v1.1.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -77,7 +77,7 @@ char* audienceMessages[16] = {
   "HELLO (YOUR CITY HERE)"
 };
 
-char* OSVersion = "109.";
+char* OSVersion = "110.";
 
 // SPI addresses
 const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
@@ -104,10 +104,16 @@ void setLed(byte col, byte row, byte color, CellDisplay disp);
 // #define DISPLAY_XFRAME_AT_LAUNCH
 // #define DISPLAY_YFRAME_AT_LAUNCH
 // #define DISPLAY_ZFRAME_AT_LAUNCH
+// #define DISPLAY_SURFACESCAN_AT_LAUNCH
 
 // Touch surface constants
-const byte NUMCOLS = 26;                 // number of touch sensor columns
-const byte NUMROWS = 8;                  // number of touch sensor rows
+#define NUMCOLS 26                 // number of touch sensor columns
+#define NUMROWS 8                  // number of touch sensor rows
+
+#define NUMSPLITS 2                // number of splits supported
+#define LEFT 0
+#define RIGHT 1
+
 
 // LED timing
 unsigned long ledRefreshInterval = 500;
@@ -139,7 +145,7 @@ struct FocusCell {
   byte col;
   byte row;
 };
-FocusCell focusCell[2][16];             // 2 splits and 16 MIDI channels for each split
+FocusCell focusCell[NUMSPLITS][16];             // 2 splits and 16 MIDI channels for each split
 
 // Touch sensor
 byte sensorCol = 0;                         // currently read column in touch sensor
@@ -200,8 +206,8 @@ struct TouchInfo {
 
   short currentRawZ;                         // the raw Z value
   boolean featherTouch;                      // indicates whether this is a feather touch
-  unsigned short velocityZ;                  // the Z value with velocity sensitivity
-  unsigned short pressureZ;                  // the Z value with pressure sensitivity
+  byte velocityZ;                            // the Z value with velocity sensitivity
+  byte pressureZ;                            // the Z value with pressure sensitivity
   boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
 
   signed char pendingReleaseCount;           // counter before which the note release will be effective
@@ -216,11 +222,11 @@ struct TouchInfo {
   signed char channel;                       // channel from 1 to 16
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
-  unsigned velSumY;                          // these are used to calculate the intial velocity slope based on the first Z samples
-  unsigned velSumXY;
+  unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
+  unsigned long velSumXY;
 };
 
-TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch informations instances as there are cells
+TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch information instances as there are cells
 
 int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
@@ -228,6 +234,8 @@ int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly iden
 // convenience macros to easily access the cells with touch information
 #define sensorCell() touchInfo[sensorCol][sensorRow]
 #define cell(col, row) touchInfo[col][row]
+// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
+#define calcTimeDelta(now, last) (now < last ? now + ~last : now - last)
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -253,7 +261,7 @@ struct NoteEntry {
 struct NoteTouchMapping {
   void initialize();                                         // initialize the mapping data
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
-  boolean noteOff(signed char, signed char, byte, byte);     // turn off a note if it corresponds to the cell coordinates
+  void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   void debugNoteChain();
@@ -267,7 +275,7 @@ struct NoteTouchMapping {
   NoteEntry mapping[128][16];
 };
 
-NoteTouchMapping noteTouchMapping[2];
+NoteTouchMapping noteTouchMapping[NUMSPLITS];
 
 // Display Modes
 enum DisplayMode {
@@ -296,9 +304,6 @@ void setDisplayMode(DisplayMode mode);
 DisplayMode displayMode = displayNormal;
 signed char controlButton = -1;           // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
-
-#define LEFT 0
-#define RIGHT 1
 
 // convenience functions to access the focused cell
 inline FocusCell& focus(byte split, byte channel);
@@ -400,19 +405,14 @@ int32_t FXD4_DIV(int32_t a, int32_t b) {
 
 /****************************************** Velocity *********************************************/
 
-#define NEW_VELOCITY_CALCULATION 1
-
-#if NEW_VELOCITY_CALCULATION
-  #define VELOCITY_SAMPLES 5
-  #define VELOCITY_SUMX    15   // x1 + x2 + x3 + ... + xn
-  #define VELOCITY_SUMXSQ  55   // x1^2 + x2^2 + x3^2 + ... + xn^2
-  #define VELOCITY_SCALE   5
-  #define VELOCITY_DIVIDER 2
-  // this element of the linear regression algorithm is constant based on the number of velocity samples 
-  const int VELOCITY_SXX = VELOCITY_SAMPLES * VELOCITY_SUMXSQ - VELOCITY_SUMX * VELOCITY_SUMX;
-#else
-  #define VELOCITY_SAMPLES 8
-#endif
+#define VELOCITY_SAMPLES      3
+#define VELOCITY_ZERO_POINTS  1
+#define VELOCITY_N            VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
+#define VELOCITY_SUMX         10   // x1 + x2 + x3 + ... + xn
+#define VELOCITY_SUMXSQ       30   // x1^2 + x2^2 + x3^2 + ... + xn^2
+#define VELOCITY_SCALE_LOW    26
+#define VELOCITY_SCALE_MEDIUM 34
+#define VELOCITY_SCALE_HIGH   38
 
 /***************************************** Calibration *******************************************/
 
@@ -452,6 +452,12 @@ enum MidiMode {
   channelPerRow
 };
 
+enum TimbreExpression {
+  timbrePolyPressure,
+  timbreChannelPressure,
+  timbreCC
+};
+
 enum LoudnessExpression {
   loudnessPolyPressure,
   loudnessChannelPressure,
@@ -471,7 +477,8 @@ struct SplitSettings {
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
   boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
-  unsigned short ccForY;               // 0-127
+  TimbreExpression expressionForY;     // the expression that should be used for timbre
+  unsigned short ccForY;               // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short ccForZ;               // 0-127
@@ -489,17 +496,17 @@ struct SplitSettings {
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
   boolean strum;                       // true when this split strums the touches of the other split
 };
-SplitSettings Split[2];
-ChannelBucket splitChannels[2];        // the MIDI channels that are being handed out
-byte ccFaderValues[2][8];              // the current values of the CC faders
-signed char arpTempoDelta[2];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
+SplitSettings Split[NUMSPLITS];
+ChannelBucket splitChannels[NUMSPLITS];        // the MIDI channels that are being handed out
+byte ccFaderValues[NUMSPLITS][8];              // the current values of the CC faders
+signed char arpTempoDelta[NUMSPLITS];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
 #define SWITCH_HOLD_DELAY 200
 
 unsigned long lastSwitchPress[4];
-boolean switchState[4][2];
-byte switchTargetEnabled[6][2];  // 6 targets, we keep track of them individually for each split and how many times they're active
+boolean switchState[4][NUMSPLITS];
+byte switchTargetEnabled[6][NUMSPLITS]; // 6 targets, we keep track of them individually for each split and how many times they're active
 
 boolean footSwitchState[2];             // Holds the last read footswitch state, so that we only react on state changes of the input signal
 boolean footSwitchOffState[2];          // Holds OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
@@ -554,11 +561,23 @@ enum ArpeggiatorDirection {
 
 boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
 
+struct DeviceSettings {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  byte currentPreset;                        // the currently active settings preset
+};
+DeviceSettings Device;
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
-  byte version;                              // to prepare for versioning
-  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
   boolean mainNotes[12];                     // determines which notes receive "main" lights
@@ -570,25 +589,23 @@ struct GlobalSettings {
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
-  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
-  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
-  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
-  unsigned short sensorRangeZ;               // the maximum raw value of Z
   boolean blinkMiddleC;                      // optionally blink Middle C -- jas 2015/01/07 --
   boolean customAnimations[8];               // switches for custom animations - jas 2015/01/07 --
 };
-
 GlobalSettings Global;
 
-struct Configuration {
+struct PresetSettings {
   GlobalSettings global;
-  SplitSettings left;
-  SplitSettings right;
+  SplitSettings split[NUMSPLITS];
+};
+
+#define NUMPRESETS 4
+struct Configuration {
+  DeviceSettings device;
+  PresetSettings preset[NUMPRESETS];
 };
 
 struct Configuration config;
@@ -629,7 +646,7 @@ int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);   // the current tempo
 
 byte midiDecimateRate = 0;           // by default no decimation
 
-byte lastValueMidiNotesOn[2][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+byte lastValueMidiNotesOn[NUMSPLITS][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
 
 
@@ -665,9 +682,11 @@ void reset() {
 
   initializeLowRowState();
 
-  initializeSplitSettings();
+  initializeDeviceSettings();
 
   initializeGlobalSettings();
+
+  initializeSplitSettings();
 
   initializeArpeggiator();
 
@@ -681,7 +700,7 @@ boolean switchPressAtStartup(byte switchRow) {
   sensorRow = switchRow;
   // initially we need read Z a few times for the readings to stabilize
   readZ(); readZ(); unsigned short switchZ = readZ();
-  if (switchZ > Global.sensorLoZ + 128) {
+  if (switchZ > Device.sensorLoZ + 128) {
     return true;
   }
   return false;
@@ -692,7 +711,7 @@ void setup() {
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************
   /*!!*/
-  /*!!*/  initializeGlobalSensorSettings();
+  /*!!*/  initializeDeviceSensorSettings();
   /*!!*/
   /*!!*/  // Initialize output pin 35 (midi/SERIAL) and set it HIGH for serial operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO SERIAL MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!
@@ -753,11 +772,11 @@ void setup() {
   // initialize input pins for 2 foot switches
   pinMode(FOOT_SW_LEFT, INPUT_PULLUP);
   pinMode(FOOT_SW_RIGHT, INPUT_PULLUP);
-
-  reset();
-
+  
   // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
   initializeCalibrationData();
+
+  reset();
 
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
@@ -801,36 +820,43 @@ void setup() {
 
     initializeStorage();
 
+    applyConfiguration();
+
     for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
       secretSwitch[ss] = false;
     }
-
-    // Initialize serial/midi operations based on Global settings
-    digitalWrite(35, Global.serialMode);
-    
-    // initialize midi communications
-    applyMidiIoSetting();
 
     // update the display for the last state
     updateDisplay();
   }
 
+  // if the promo animation was running last time the LinnStrument was on, start it up automatically
+  if (Device.promoAnimationAtStartup) {
+    playPromoAnimation();
+  }
+
 #ifdef DISPLAY_XFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_XFRAME = true;
 #endif
 
 #ifdef DISPLAY_YFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_YFRAME = true;
 #endif
 
 #ifdef DISPLAY_ZFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
-  Global.serialMode = true;
+  Device.serialMode = true;
   SWITCH_ZFRAME = true;
+#endif
+
+#ifdef DISPLAY_SURFACESCAN_AT_LAUNCH
+  #define DEBUG_ENABLED
+  Device.serialMode = true;
+  SWITCH_SURFACESCAN = true;
 #endif
 }
 
@@ -861,28 +887,36 @@ void loop() {
 
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
-    if (millis() - lastReset > 3000) {                           // restore normal operations three seconds after the reset started
-      setDisplayMode(displayNormal);                               // this should make the reset operation feel more predictable
+    if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
+      storeSettings();
+      applyConfiguration();
+      setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
   }
   else {
     TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
 
-    if (sensorCell().isMeaningfulTouch() && previousTouch != touchedCell) {       // if touched now but not before, it's a new touch
-      handleNewTouch();
-    }
-    else if (sensorCell().isActiveTouch() && previousTouch == touchedCell) {      // if touched now and touched before
-      handleXYZupdate();                                                          // handle any X, Y or Z movements
+    boolean canShortCircuit = false;
 
-      if (sensorCell().isCalculatingVelocity()) {                                 // if the initial velocity is being calculated, ensure that only Z data is being refresh and
-        sensorCell().shouldRefreshData();                                         // immediately process this cell again without going through a full surface scan
-        return;
-      }
+    if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {       // if touched now but not before, it's a new touch
+      handleNewTouch();
+      canShortCircuit = true;
     }
-    else if (!sensorCell().isActiveTouch() && previousTouch != untouchedCell &&   // if not touched now but touched before, it's been released
-             millis() - sensorCell().lastTouch > 50 ) {                           // only release if it's later than 50ms after the touch to debounce some note starts
+    else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
+      handleXYZupdate();                                                          // handle any X, Y or Z movements
+      canShortCircuit = true;
+    }
+    else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
+             calcTimeDelta(millis(), sensorCell().lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
       handleTouchRelease();
+    }
+
+    if (canShortCircuit &&
+        sensorCell().touched == touchedCell &&
+        sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+      sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
+      return;
     }
   }
 

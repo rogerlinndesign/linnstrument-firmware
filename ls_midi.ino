@@ -33,22 +33,24 @@ byte lastNrpnLsb = 127;
 byte lastDataMsb = 0;
 byte lastDataLsb = 0;
 
-void applyMidiIoSetting() {
-  if (Global.midiIO == 0) {
+boolean isMidiUsingDIN() {
+  return Global.midiIO == 0;
+}
+
+void applyMidiIo() {
+  if (isMidiUsingDIN()) {
     digitalWrite(36, 0);     // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
     Serial.flush();          // clear the serial port
   }
-  else if (Global.midiIO == 1) {
+  else {
     digitalWrite(36, 1);     // Set HIGH for USB
     Serial.begin(115200);    // set serial port at fastest speed 115200
     Serial.flush();          // clear the serial port
   }
 }
 
-void handleMidiInput() {
-  unsigned long now = micros();
-
+void handleMidiInput(unsigned long now) {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
@@ -491,6 +493,18 @@ void receivedNrpn(int parameter, int value) {
         Split[split].transposeLights = value-7;
       }
       break;
+    // Split MIDI Expression For Y
+    case 39:
+      if (inRange(value, 0, 2)) {
+        Split[split].expressionForY = (TimbreExpression)value;
+        if (Split[split].expressionForY == timbrePolyPressure) {
+          Split[split].ccForY = 128;
+        }
+        else if (Split[split].expressionForY == timbreChannelPressure) {
+          Split[split].ccForY = 129;
+        }
+      }
+      break;
 
     //-- where to put setting for Color Middle C? - jas 2014/12/11 --
     // following colorLowRow or here?
@@ -791,12 +805,25 @@ void preSendPitchBend(byte split, int pitchValue, byte channel) {
 }
 
 // Called to send Y-axis movements
-void preSendY(byte split, byte yValue, byte channel) {
-  midiSendControlChange(Split[split].ccForY, yValue, channel);
+void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
+  switch(Split[sensorSplit].expressionForY)
+  {
+    case timbrePolyPressure:
+      midiSendPolyPressure(note, yValue, channel);
+      break;
+
+    case timbreChannelPressure:
+      midiSendAfterTouch(yValue, channel);
+      break;
+
+    case loudnessCC:
+      midiSendControlChange(Split[split].ccForY, yValue, channel);
+      break;
+  }
 }
 
-// Called to send Pressure message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
-void preSendPressure(byte note, byte pressureValue, byte channel) {
+// Called to send Z message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
+void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
   switch(Split[sensorSplit].expressionForZ)
   {
     case loudnessPolyPressure:
@@ -808,7 +835,7 @@ void preSendPressure(byte note, byte pressureValue, byte channel) {
       break;
 
     case loudnessCC:
-      midiSendControlChange(Split[sensorSplit].ccForZ, pressureValue, channel);
+      midiSendControlChange(Split[split].ccForZ, pressureValue, channel);
       break;
   }
 }
@@ -853,14 +880,14 @@ void handlePendingMidi(unsigned long now) {
   // when in low power mode only send one MIDI byte every 150 microseconds
   if (operatingLowPower) {
     static unsigned long lastEnvoy = 0;
-  if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
+    if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
       sendNextMidiOutputByte();
       lastEnvoy = now;
     }
   }
   else {
-    while (!midiOutQueue.empty() && sendNextMidiOutputByte()) {
-      // loop until the MIDI queue is empty or the serial buffer is full
+    if (!midiOutQueue.empty()) {
+      sendNextMidiOutputByte();
     }
   }
 }
@@ -976,7 +1003,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   lastValueMidiCC[controlnum + 128*channel] = controlval;
   lastMomentMidiCC[controlnum + 128*channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendControlChange controlnum=");
@@ -1000,7 +1027,7 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
 
   lastValueMidiNotesOn[split][notenum][channel]++;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendNoteOn notenum=");
@@ -1029,7 +1056,7 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
 }
 
 void midiSendNoteOffRaw(byte notenum, byte channel) {
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendNoteOff notenum=");
@@ -1066,7 +1093,7 @@ void midiSendPitchBend(int pitchval, byte channel) {
   lastValueMidiPB[channel] = bend;
   lastMomentMidiPB[channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
       Serial.print("MIDI.sendPitchBend pitchval=");
@@ -1085,7 +1112,7 @@ void midiSendProgramChange(byte preset, byte channel) {
   preset = constrain(preset, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendProgramChange preset=");
       Serial.print(preset);
@@ -1108,7 +1135,7 @@ void midiSendAfterTouch(byte value, byte channel) {
   lastValueMidiAT[channel] = value;
   lastMomentMidiAT[channel] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendAfterTouch value=");
       Serial.print(value);
@@ -1132,7 +1159,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   lastValueMidiPP[index] = value;
   lastMomentMidiPP[index] = now;
 
-  if (Global.serialMode) {
+  if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
       Serial.print("MIDI.sendPolyPressure notenum=");
       Serial.print((int)notenum);

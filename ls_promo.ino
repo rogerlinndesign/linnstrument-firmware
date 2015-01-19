@@ -7,6 +7,9 @@ This shows a promotional animation that explains what's unique about the LinnStr
 **************************************************************************************************/
 
 void playPromoAnimation() {
+  Device.promoAnimationAtStartup = true;
+  storeSettings();
+
   setDisplayMode(displayPromo);
 
   while (!stopAnimation) {
@@ -30,7 +33,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     PRESSURE SENSING            ", COLOR_GREEN);
+    big_scroll_text("     PRESSURE SENSING            ", COLOR_MAGENTA);
 
     if (stopAnimation) break;
 
@@ -78,7 +81,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     PITCH SLIDES            ", COLOR_GREEN);
+    big_scroll_text("     PITCH SLIDES            ", COLOR_YELLOW);
 
     if (stopAnimation) break;
     
@@ -104,7 +107,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     Y-AXIS CONTROL            ", COLOR_GREEN);
+    big_scroll_text("     Y-AXIS CONTROL            ", COLOR_BLUE);
 
     if (stopAnimation) break;
     
@@ -130,7 +133,7 @@ void playPromoAnimation() {
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     POLYPHONIC            ", COLOR_GREEN);
+    big_scroll_text("     POLYPHONIC            ", COLOR_RED);
 
     if (stopAnimation) break;
     
@@ -145,7 +148,7 @@ void playPromoAnimation() {
         col = 1 + random(0, 3);
       }
       else {
-        col = NUMCOLS - 2 - random(0, 3);
+        col = NUMCOLS - 4 - random(0, 3);
       }
       byte row = random(0, NUMROWS-2);
       while (!stopAnimation) {
@@ -153,7 +156,7 @@ void playPromoAnimation() {
           setLed(col, row+0, COLOR_RED, cellOn);
           setLed(col, row+1, COLOR_RED, cellOn);
           setLed(col-1, row+2, COLOR_RED, cellOn);
-          delayUsecWithScanning(60000);
+          delayUsecWithScanning(80000);
           paintNormalDisplayCell(Global.currentPerSplit, col, row+0);
           paintNormalDisplayCell(Global.currentPerSplit, col, row+1);
           paintNormalDisplayCell(Global.currentPerSplit, col-1, row+2);
@@ -162,34 +165,38 @@ void playPromoAnimation() {
           setLed(col, row+0, COLOR_RED, cellOn);
           setLed(col+3, row+0, COLOR_RED, cellOn);
           setLed(col+1, row+1, COLOR_RED, cellOn);
-          delayUsecWithScanning(60000);
+          delayUsecWithScanning(80000);
           paintNormalDisplayCell(Global.currentPerSplit, col, row+0);
           paintNormalDisplayCell(Global.currentPerSplit, col+3, row+0);
           paintNormalDisplayCell(Global.currentPerSplit, col+1, row+1);
         }
 
-        if (dir && (++col >= NUMCOLS / 2)) {
+        if (dir && (++col >= (2 * NUMCOLS) / 3)) {
           break;
         }
         else if (!dir && (--col < NUMCOLS / 3)) {
           break;
         }
       }
-      delayUsecWithScanning(100000);
+      delayUsecWithScanning(150000);
     }
     animationActive = false;
 
     if (stopAnimation) break;
 
     clearDisplay();
-    big_scroll_text("     OPEN & CUSTOMIZABLE            ", COLOR_GREEN);
+    big_scroll_text("     OPEN & CUSTOMIZABLE            ", COLOR_BLUE);
 
     if (stopAnimation) break;
-  }
 
+    delayUsecWithScanning(1000000);
+  }
   stopAnimation = false;
   animationActive = false;
   clearDisplay();
+  
+  Device.promoAnimationAtStartup = false;
+  storeSettings();
 
   controlButton = -1;
   setDisplayMode(displayNormal);
