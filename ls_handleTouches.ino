@@ -46,7 +46,7 @@ byte calcPreferredVelocity(byte velocity) {
   }
 }
 
-#define TRANSFER_SLIDE_PROXIMITY 80
+#define TRANSFER_SLIDE_PROXIMITY 100
 
 boolean severalTouchesForMidiChannel(byte col, byte row) {
   if (!cell(col, row).hasNote()) {
