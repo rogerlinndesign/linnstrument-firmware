@@ -261,7 +261,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     // distinguish middle C (MIDI note number 60) - jas 2014/11/14
     if (actualnote == 60) {
       colour = Split[split].colorMiddleC;
-      cellDisplay = Global.blinkMiddleC ? cellPulse : cellOn; //optionally blink Middle C - jas 2015/01/07
+      cellDisplay = cellOn;
     }
 
     // if the low row is anything but normal, set it to the appropriate color
@@ -913,10 +913,6 @@ void paintGlobalSettingsDisplay() {
 
   // Column 19 is set above, for Global.colOffset, following Global.rowOffset - jas 2014/12/11
 
-  // blink Middle C - jas 2015/01/07
-  if (Global.blinkMiddleC) {
-      lightLed(20,0);
-  }
 
   // custom Animation properties - jas 2015/01/07 --
   for (byte i=0; i<8; i++){
