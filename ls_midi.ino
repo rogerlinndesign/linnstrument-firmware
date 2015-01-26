@@ -204,7 +204,7 @@ void handleMidiInput(unsigned long now) {
         case MIDIProgramChange:
         {
           if (split != -1) {
-            Split[split].preset = midiData1;
+            midiPreset[split] = midiData1;
             if (displayMode == displayPreset) {
               updateDisplay();
             }

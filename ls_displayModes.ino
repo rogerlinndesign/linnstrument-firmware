@@ -472,13 +472,13 @@ void paintOSVersionDisplay() {
 
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
-  paintSplitNumericDataDisplay(side, Split[side].preset+1);
+  paintSplitNumericDataDisplay(side, midiPreset[side]+1);
   for (byte p = 0; p < NUMPRESETS; ++p) {
     byte color = COLOR_BLUE;
     if (Device.currentPreset == p) {
       color = COLOR_GREEN;
     }
-    setLed(NUMCOLS-1, p+2, color, cellOn);
+    setLed(NUMCOLS-2, p+2, color, cellOn);
   }
 }
 

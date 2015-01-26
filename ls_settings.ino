@@ -124,8 +124,8 @@ void applyCurrentPresetSettings() {
   updateSplitMidiChannels(RIGHT);
 
   applyMidiIo();
-  applyMidiPreset();
 }
+
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
@@ -214,7 +214,6 @@ void initializeSplitSettings() {
         p.split[s].ccForZ = 11;
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
-        p.split[s].preset = 0;
         p.split[s].transposeOctave = 0;
         p.split[s].transposePitch = 0;
         p.split[s].transposeLights = 0;
@@ -253,6 +252,7 @@ void initializeSplitSettings() {
     for (byte c = 0; c < 8; ++c) {
       ccFaderValues[s][c] = 0;
     }
+    midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
   }
@@ -689,7 +689,7 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
-  if (sensorCol == NUMCOLS-1) {
+  if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // save the current preset
       saveSettings();
@@ -701,7 +701,7 @@ void handlePresetNewTouch() {
     }
   }
   else {
-    if (handleNumericDataNewTouch(Split[Global.currentPerSplit].preset, 0, 127, true)) {
+    if (handleNumericDataNewTouch(midiPreset[Global.currentPerSplit], 0, 127, true)) {
       applyMidiPreset();
     }
   }
@@ -709,7 +709,7 @@ void handlePresetNewTouch() {
 
 void applyMidiPreset() {
   byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendPreset(Split[Global.currentPerSplit].preset, chan);         // Send the MIDI program change message
+  midiSendPreset(midiPreset[Global.currentPerSplit], chan);         // Send the MIDI program change message
 }
 
 void handlePresetRelease() {

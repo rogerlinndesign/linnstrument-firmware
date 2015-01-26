@@ -486,7 +486,6 @@ struct SplitSettings {
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
-  unsigned short preset;               // preset number 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
@@ -496,6 +495,7 @@ struct SplitSettings {
 };
 SplitSettings Split[NUMSPLITS];
 ChannelBucket splitChannels[NUMSPLITS];        // the MIDI channels that are being handed out
+unsigned short midiPreset[NUMSPLITS];          // preset number 0-127
 byte ccFaderValues[NUMSPLITS][8];              // the current values of the CC faders
 signed char arpTempoDelta[NUMSPLITS];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 

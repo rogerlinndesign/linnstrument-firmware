@@ -312,7 +312,6 @@ void copySplitSettingsV1ToSplitSettingsV2(void *target, void *source) {
   t->colorNoteon = s->colorNoteon;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
-  t->preset = s->preset;
   t->transposeOctave = s->transposeOctave;
   t->transposePitch = s->transposePitch;
   t->transposeLights = s->transposeLights;
