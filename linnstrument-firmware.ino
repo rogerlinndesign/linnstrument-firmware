@@ -883,8 +883,8 @@ void loop() {
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
-      storeSettings();
       applyConfiguration();
+      saveSettings();
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();
     }
