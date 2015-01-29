@@ -6,7 +6,6 @@ v1.1.0
   * Added support for 4 presets of global and per-split settings, located at the right edge of the preset section
   * Added support for poly pressure and channel pressure on the Y axis, to access it use the advanced CC configuration
     and slide past number 127
-  * Slightly sped up control button double tap speed to prevent accidental split switches
   * Improved middle root note flashing so that it would always occur with the accent color even when disabled in
     the note highlighting configuration
   * Improved debouncing behavior to prevent occasional double note triggers at very low velocities
