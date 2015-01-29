@@ -630,6 +630,12 @@ void receivedNrpn(int parameter, int value) {
         Global.switchBothSplits[1] = value;
       }
       break;
+    // Global Settings Preset
+    case 243:
+      if (inRange(value, 0, 3)) {
+        activateSettingsPreset(value);
+      }
+      break;
   }
 
   updateDisplay();

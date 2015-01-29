@@ -691,13 +691,7 @@ boolean handleShowSplit() {
 void handlePresetNewTouch() {
   if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
-      // save the current preset
-      saveSettings();
-
-      // switch to the selected one
-      Device.currentPreset = sensorRow-2;
-      applyCurrentPresetSettings();
-      updateDisplay();
+      activateSettingsPreset(sensorRow-2);
     }
   }
   else {
@@ -705,6 +699,16 @@ void handlePresetNewTouch() {
       applyMidiPreset();
     }
   }
+}
+
+void activateSettingsPreset(byte preset) {
+  // save the current preset
+  saveSettings();
+
+  // switch to the selected one
+  Device.currentPreset = preset;
+  applyCurrentPresetSettings();
+  updateDisplay();
 }
 
 void applyMidiPreset() {
