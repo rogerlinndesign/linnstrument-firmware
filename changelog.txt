@@ -13,6 +13,9 @@ v1.1.0
     actual MIDI channel, meaning that for instance with ChannelPerRow it was impossible to have per-note poly pressure
     on the same row
   * Fixes to promo animation so that it would not start flickering after a while
+  * Added independent layers of lights, which are combined for the final display, allowing external light control
+    through MIDI to exist independently of the other lights
+  * Removed flicker when moving the split point
 
 v1.0.9
 
