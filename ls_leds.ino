@@ -37,18 +37,51 @@ These functions handle the low-level communication with LinnStrument's 208 RGB L
 // A 26 by 8 byte array containing one byte for each LED:
 // bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
 // bits 0-2: 0:off, 1: on, 2: pulse
-byte leds[NUMCOLS][NUMROWS];             // array holding contents of display
+byte leds[LED_LAYERS+1][NUMCOLS][NUMROWS];             // array holding contents of display
 
+void initializeLeds() {
+  for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        leds[layer][col][row] = 0;
+      }
+    }
+  }
+}
+
+inline byte getCombinedLedData(byte col, byte row) {
+  byte data = 0;
+  byte layer = LED_LAYERS;
+  do {
+    layer -= 1;
+    if (displayMode == displayNormal || layer == LED_LAYER_MAIN) {
+      data = leds[layer][col][row];
+    }
+  }
+  while(layer > 0 && (data & B00001111) == cellOff);
+
+  return data;
+}
 
 // setLed:
 // called to change the color of a single LED in the 26 x 8 RGB LED array.
 void setLed(byte col, byte row, byte color, CellDisplay disp) {
-  if (!disp) {
-    color = COLOR_BLACK;
-  }
-  leds[col][row] = (color << 4) | disp;      // packs color and display into this cell within array
+  setLed(col, row, color, disp, LED_LAYER_MAIN);
 }
 
+void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
+  if (color == COLOR_BLACK) {
+    disp = cellOff;
+  }
+  else if (disp == cellOff) {
+    color = COLOR_BLACK;
+  }
+  byte data = (color << 4) | disp;      // packs color and display into this cell within array
+  if (leds[layer][col][row] != data) {
+    leds[layer][col][row] = data;
+    leds[LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
+  }
+}
 
 // light up a single LED with the default color
 void lightLed(byte col, byte row) {
@@ -57,9 +90,20 @@ void lightLed(byte col, byte row) {
 
 // clear a single LED
 void clearLed(byte col, byte row) {
-  setLed(col, row, COLOR_BLACK, cellOff);
+  clearLed(col, row, LED_LAYER_MAIN);
 }
 
+void clearLed(byte col, byte row, byte layer) {
+  setLed(col, row, COLOR_BLACK, cellOff, layer);
+}
+
+void completelyRefreshLeds() {
+  for (byte col = 0; col < NUMCOLS; ++col) {
+    for (byte row = 0; row < NUMROWS; ++row) {
+      leds[LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
+    }
+  }
+}
 
 
 // refreshLedColumn:
@@ -92,9 +136,9 @@ void refreshLedColumn(unsigned long now) {               // output: none
 
    // Initialize bytes to send to LEDs over SPI. Each bit represents a single LED on or off
   for (byte rowCount = 0; rowCount < NUMROWS; ++rowCount) {       // step through the 8 rows
-    byte color = leds[actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
+    byte color = leds[LED_LAYER_COMBINED][actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
+    byte cellDisplay = leds[LED_LAYER_COMBINED][actualCol][rowCount] & B00001111;     // get cell display value
 
-    byte cellDisplay = leds[actualCol][rowCount] & B00001111;     // get cell display value
     if (cellDisplay == cellPulse) {
       cellDisplay = lastPulseOn ? cellOn : cellOff;
     }

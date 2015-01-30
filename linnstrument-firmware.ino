@@ -90,6 +90,7 @@ enum CellDisplay {
   cellPulse = 2
 };
 void setLed(byte col, byte row, byte color, CellDisplay disp);
+void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
 
 // Comment this define out to be able to compile against the standard Arduino API, but not
 // benefit from our no-delay serial write improvements
@@ -521,6 +522,13 @@ boolean doublePerSplit = false;   // false when only one per split is active, tr
 #define MIDICHANNEL_PERNOTE 6
 #define MIDICHANNEL_PERROW 5
 
+// The values for the different LED layers
+#define LED_LAYER_MAIN 0
+#define LED_LAYER_CUSTOM 1
+#define LED_LAYER_PLAYED 2
+#define LED_LAYER_COMBINED 3
+#define LED_LAYERS 3
+
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN 0
 #define LIGHTS_ACCENT 1
@@ -673,6 +681,8 @@ void reset() {
   for (byte i = 0; i < NUMROWS; ++i) {
     lastControlPress[i] = 0;
   }
+
+  initializeLeds();
 
   initializeTouchInfo();
 

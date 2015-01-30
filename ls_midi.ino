@@ -134,7 +134,7 @@ void handleMidiInput(unsigned long now) {
           checkAdvanceArpeggiator(now);
 
           // flash the tempo led in the global display when it is on
-          updateGlobalDisplay();
+          updateGlobalSettingsFlashTempo(now);
         }
         break;
       }
@@ -249,12 +249,13 @@ void handleMidiInput(unsigned long now) {
               break;
             case 22:
               if (displayMode == displayNormal) {
-                if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn);
+                if (midiData2 <= COLOR_MAGENTA && midiData2 != COLOR_BLACK) {
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, LED_LAYER_CUSTOM);
                 }
                 else {
-                  paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
+                  setLed(midiCellColCC, midiCellRowCC, COLOR_BLACK, cellOff, LED_LAYER_CUSTOM);
                 }
+                checkRefreshLedColumn(micros());
               }
               break;
             case 38:
@@ -659,7 +660,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, cellOn);
+      setLed(col, row, color, cellOn, LED_LAYER_PLAYED);
     }
   }
 }
@@ -674,7 +675,7 @@ void resetNoteCells(byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      paintNormalDisplayCell(split, col, row);
+      setLed(col, row, COLOR_BLACK, cellOff, LED_LAYER_PLAYED);
     }
   }
 }

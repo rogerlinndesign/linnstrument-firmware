@@ -72,7 +72,7 @@ inline void checkTimeToReadFootSwitches(unsigned long now) {
 inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
   if (calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL &&   // is it time to refresh the global settings display
       (displayMode == displayGlobal || displayMode == displayGlobalWithTempo)) {
-    updateDisplay();                                                                                          // yes-- refresh the disply...
+    paintGlobalSettingsFlashTempo(now);                                                                       // yes-- refresh the disply...
     prevGlobalSettingsDisplayTimerCount = now;                                                                // and reset the timer count to current time
   }
 }

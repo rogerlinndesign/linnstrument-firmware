@@ -36,10 +36,14 @@ bool blinkMiddleRootNote = false;      // indicates whether the middle root note
 
 // changes the active display mode
 void setDisplayMode(DisplayMode mode) {
-  if (displayMode != mode || displayModeStart == 0) {
+  boolean refresh = (displayMode != mode);
+  if (refresh || displayModeStart == 0) {
     displayModeStart = millis();
   }
   displayMode = mode;
+  if (refresh) {
+    completelyRefreshLeds();
+  }
 }
 
 // clearDisplay:
@@ -175,6 +179,7 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
         paintNormalDisplayCell(split, col, row);
       }
     }
+    performContinuousTasks(micros());
   }
 }
 
@@ -267,7 +272,6 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // actually set the cell's color
   setLed(col, row, colour, cellDisplay);
-  checkRefreshLedColumn(micros());
 }
 
 // paintPerSplitDisplay:
@@ -713,9 +717,24 @@ void paintSwitchAssignment(byte mode) {
   }
 }
 
-void updateGlobalDisplay() {
-  if (displayMode == displayGlobal || displayMode ==  displayGlobalWithTempo) {
-    updateDisplay();
+void updateGlobalSettingsFlashTempo(unsigned long now) {
+  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
+    paintGlobalSettingsFlashTempo(now);
+  }
+}
+
+inline void paintGlobalSettingsFlashTempo(unsigned long now) {
+  // flash the tap tempo cell at the beginning of the beat
+  if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
+      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
+    lightLed(14, 3);
+    tapTempoLedOn = now;
+  }
+
+  // handle turning off the tap tempo led after minimum 30ms
+  if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
+    tapTempoLedOn = 0;
+    clearLed(14, 3);
   }
 }
 
@@ -833,20 +852,7 @@ void paintGlobalSettingsDisplay() {
     lightLed(14, 1);
   }
 
-  unsigned long now = micros();
-
-  // flash the tap tempo cell at the beginning of the beat
-  if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
-      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
-    lightLed(14, 3);
-    tapTempoLedOn = now;
-  }
-
-  // handle turning off the tap tempo led after minimum 30ms
-  if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
-    tapTempoLedOn = 0;
-    clearLed(14, 3);
-  }
+  paintGlobalSettingsFlashTempo(micros());
 
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {

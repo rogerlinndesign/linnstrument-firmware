@@ -170,7 +170,7 @@ inline void checkAdvanceArpeggiator(unsigned long now) {
       lastInternalClockMoment += ((now - lastInternalClockMoment) / clockUnit) * clockUnit;
 
       // flash the tempo led in the global display when it is on
-      updateGlobalDisplay();
+      updateGlobalSettingsFlashTempo(now);
 
       if (lastArpInternalClock == lastInternalClockCount) {
         return;
