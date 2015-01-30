@@ -104,7 +104,12 @@ void doSwitchReleased(byte whichSwitch) {
 void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
   // check whether this is a hold operation by comparing the release time with
   // the last time the switch was pressed
-  if (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY) {      
+  unsigned long holdDelay = PANELSWITCH_HOLD_DELAY;
+  if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
+    holdDelay = FOOTSWITCH_HOLD_DELAY;
+  }
+
+  if (millis() - lastSwitchPress[whichSwitch] > holdDelay) {
     // perform the assignment off logic, but when a split is active, it's possible that the
     // switch started being held on the other split, so we need to check which split is actually
     // active before changing the state

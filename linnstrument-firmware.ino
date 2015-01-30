@@ -500,7 +500,8 @@ byte ccFaderValues[NUMSPLITS][8];              // the current values of the CC f
 signed char arpTempoDelta[NUMSPLITS];          // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 // switch states
-#define SWITCH_HOLD_DELAY 500
+#define PANELSWITCH_HOLD_DELAY 500
+#define FOOTSWITCH_HOLD_DELAY 150
 
 unsigned long lastSwitchPress[4];
 boolean switchState[4][NUMSPLITS];
