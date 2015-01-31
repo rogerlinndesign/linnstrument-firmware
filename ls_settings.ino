@@ -364,11 +364,11 @@ void handleControlButtonNewTouch() {
 // Called to handle release events of the 8 control buttons
 void handleControlButtonRelease() {
   if (sensorRow != SWITCH_1_ROW &&
-      sensorRow != SWITCH_2_ROW) {                                               // don't allow simultaneous control buttons except for the switches
+      sensorRow != SWITCH_2_ROW) {                                          // don't allow simultaneous control buttons except for the switches
 
-    if (controlButton != sensorRow ||                                            // only handle the release of the control button that's currently pressed
-        (millis() - lastControlPress[sensorRow] <= PANELSWITCH_HOLD_DELAY &&     // however if this was not a hold press, don't process the release either
-         controlButton != SPLIT_ROW)) {                                          // except for the split row, who has its own hold behavior
+    if (controlButton != sensorRow ||                                       // only handle the release of the control button that's currently pressed
+        (millis() - lastControlPress[sensorRow] <= SWITCH_HOLD_DELAY &&     // however if this was not a hold press, don't process the release either
+         controlButton != SPLIT_ROW)) {                                     // except for the split row, who has its own hold behavior
       return;
     }
 
