@@ -15,6 +15,9 @@ v1.1.0
   * Fixes to promo animation so that it would not start flickering after a while
   * Added independent layers of lights, which are combined for the final display, allowing external light control
     through MIDI to exist independently of the other lights
+  * Change foot pedal behavior to always be in hold mode for Sustain, CC65 and Arpeggiator, and always be in trigger
+    mode for Octave Up/Down and Alt Split
+  * Fixed octave/transpose display to update when the octave is changed through switches
   * Removed flicker when moving the split point
 
 v1.0.9
