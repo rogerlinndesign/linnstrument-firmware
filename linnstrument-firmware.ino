@@ -77,7 +77,7 @@ char* audienceMessages[16] = {
   "HELLO (YOUR CITY HERE)"
 };
 
-char* OSVersion = "110.";
+char* OSVersion = "110";
 
 // SPI addresses
 const byte SPI_LEDS = 10;                // Arduino pin for LED control over SPI
