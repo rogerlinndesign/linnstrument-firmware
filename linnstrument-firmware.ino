@@ -351,10 +351,10 @@ enum PressureSensitivity {
 #define COLOR_WHITE 7
 
 // Values related to the Z sensor, continuous pressure
-#define DEFAULT_SENSOR_LO_Z 0xcf                      // lowest acceptable raw Z value to start a touch
-#define DEFAULT_SENSOR_FEATHER_Z 0x6f                 // lowest acceptable raw Z value to continue a touch
-#define DEFAULT_SENSOR_RANGE_Z 508                    // default range of the pressure
-#define SENSOR_PITCH_Z 0x111                          // lowest acceptable raw Z value for which pitchbend is sent
+#define DEFAULT_SENSOR_LO_Z 230                       // lowest acceptable raw Z value to start a touch
+#define DEFAULT_SENSOR_FEATHER_Z 111                  // lowest acceptable raw Z value to continue a touch
+#define DEFAULT_SENSOR_RANGE_Z 648                    // default range of the pressure
+#define SENSOR_PITCH_Z 273                            // lowest acceptable raw Z value for which pitchbend is sent
 #define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN 3
