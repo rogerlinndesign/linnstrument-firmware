@@ -155,9 +155,12 @@ void displayCellTouchedFrame() {
 
 void modeLoopManufacturingTest() {
   TouchState previousTouch = sensorCell().touched;
+  sensorCell().refreshZ();
+
+  unsigned short threshold = Device.sensorLoZ + 127;
 
   // highlight the touches
-  if (sensorCell().isMeaningfulTouch()) {
+  if (previousTouch != touchedCell && sensorCell().currentRawZ > threshold) {
     sensorCell().touched = touchedCell;
 
     byte color = COLOR_WHITE;
@@ -185,7 +188,7 @@ void modeLoopManufacturingTest() {
       setLed(sensorCol, row, color, cellOn);
     }
   }
-  else if (!sensorCell().isMeaningfulTouch() && previousTouch != untouchedCell) {
+  else if (previousTouch != untouchedCell && sensorCell().currentRawZ <= threshold) {
     sensorCell().touched = untouchedCell;
 
     for (int row = sensorRow % 2; row < NUMROWS; row += 2) {
