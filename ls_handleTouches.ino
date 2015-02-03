@@ -285,6 +285,15 @@ void handleNewTouch() {
   }
 
   if (sensorCol == 0) {                                     // if it's a command button, handle it
+    if (sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
+        sensorRow != SWITCH_2_ROW) {                        // only activate them if there's note being played on the playing surface
+      for (int r = 0; r < NUMROWS; ++r) {                   // this prevents accidental settings modifications while playing
+        if ((colsInRowsTouched[r] & ~(int32_t)(1)) != 0) {
+          cellTouched(ignoredCell);
+          return;
+        }
+      }
+    }
     handleControlButtonNewTouch();
   }
   else {                                                    // or if it's in column 1-25...
