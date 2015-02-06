@@ -45,6 +45,8 @@ void initializeStorage() {
 
     dueFlashStorage.write(0, 0);                          // Zero out the firstTime location.
     setDisplayMode(displayCalibration);                   // Automatically start calibration after firmware update.
+    initializeCalibrationSamples();
+    
     setLed(0, GLOBAL_SETTINGS_ROW, globalColor, cellOn);
     controlButton = GLOBAL_SETTINGS_ROW;
   } else {

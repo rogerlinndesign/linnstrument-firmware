@@ -364,6 +364,9 @@ void handleNewTouch() {
     case displayGlobalWithTempo:
       handleGlobalSettingNewTouch();
       break;
+    case displayCalibration:
+      initVelocity();
+      break;
     }
   }
 }
@@ -454,7 +457,7 @@ void handleXYZupdate() {
   if (sensorCol == 0) return;
 
   // if this data point serves as a calibration sample, return immediately
-  if (sensorCell().isMeaningfulTouch() && handleCalibrationSample()) return;
+  if (handleCalibrationSample()) return;
 
   // only continue if the active display modes require finger tracking
   if (displayMode != displayNormal &&
@@ -887,10 +890,11 @@ void handleTouchRelease() {
   }
 
   // check if calibration is active and its cell release logic needs to be executed
-  handleCalibrationRelease();
-
+  if (handleCalibrationRelease()) {
+    // do nothing, calibration is handled elsewhere
+  }
   // CC faders have their own operation mode
-  if (Split[sensorSplit].ccFaders) {
+  else if (Split[sensorSplit].ccFaders) {
     handleFaderRelease();
   }
   // is this cell used for low row functionality

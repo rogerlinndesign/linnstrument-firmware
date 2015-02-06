@@ -426,7 +426,7 @@ byte calibrationPhase = calibrationInactive;
 struct CalibrationSample {
   short minValue;
   short maxValue;
-  signed char pass;
+  int pass;
 };
 CalibrationSample calSampleRows[NUMCOLS][4]; // store four rows of calibration measurements
 CalibrationSample calSampleCols[9][NUMROWS]; // store nine columns of calibration measurements
