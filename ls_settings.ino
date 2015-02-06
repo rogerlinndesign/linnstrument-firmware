@@ -6,6 +6,27 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the changing of any of LinnStrument's panel settings.
 **************************************************************************************************/
 
+// These messages correspond to the scrolling texts that will be displayed by default when pressing
+// the top-most row in global settings. Only the first 30 characters will be used.
+char* defaultAudienceMessages[16] = {
+  "LINNSTRUMENT",
+  "APPLAUSE",
+  "HA HA HA",
+  "SINGER SUCKS",
+  "WRONG NOTE",
+  "SMELLY NIGHTCLUB",
+  "HELLO",
+  "HELLO NEW YORK",
+  "HELLO LOS ANGELES",
+  "HELLO SAN FRANCISCO",
+  "HELLO LONDON",
+  "HELLO MUNICH",
+  "HELLO BRUSSELS",
+  "HELLO PARIS",
+  "HELLO TOKYO",
+  "HELLO BARCELONA"
+};
+
 short numericActiveDown = 0;                 // Number of cells currently held down, during numeric data changes
 
 signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
@@ -131,10 +152,19 @@ void applyCurrentPresetSettings() {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 2;
+  config.device.version = 3;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.currentPreset = 0;
+  
+  initializeAudienceMessages();
+}
+
+void initializeAudienceMessages() {
+  for (byte msg = 0; msg < 16; ++msg) {
+    memset(config.device.audienceMessages[msg], 0, 31);
+    strncpy(config.device.audienceMessages[msg], defaultAudienceMessages[msg], 30);
+  }
 }
 
 void initializeDeviceSensorSettings() {
@@ -1006,16 +1036,7 @@ void handleGlobalSettingNewTouch() {
   }
 #endif
 
-  if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
-    if (sensorCol <= 16) {
-      clearDisplay();
-      big_scroll_text_flipped(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
-    }
-    else if (sensorCol == 25) {
-      playPromoAnimation();
-    }
-  }
-  else if (sensorRow >= 4) {
+  if (sensorRow >= 4 && sensorRow < 7) {
     handleTempoNewTouch();
   }
 
@@ -1288,7 +1309,18 @@ void changeMidiIO(byte where) {
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorRow >= 4) {
+  if (sensorRow == 7) {
+    if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
+      if (sensorCol <= 16) {
+        clearDisplay();
+        big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+      }
+      else if (sensorCol == 25) {
+        playPromoAnimation();
+      }
+    }
+  }
+  else if (sensorRow >= 4) {
     handleNumericDataRelease(false);
   }
 

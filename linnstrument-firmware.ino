@@ -54,29 +54,6 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** Constants ******************************************/
 
-// These messages correspond to the scrolling texts that will be displayed when pressing the
-// top-most row in global settings.
-// FEEL FREE TO EDIT them, but note that not all characters might have a font representation.
-// Also, DO NOT CHANGE the number 16 nor remove or add any messages, you might crash the LinnStrument.
-char* audienceMessages[16] = {
-  "LINNSTRUMENT",
-  "APPLAUSE",
-  "HA HA HA",
-  "SINGER SUCKS",
-  "WRONG NOTE",
-  "SMELLY NIGHTCLUB",
-  "HELLO",
-  "HELLO NEW YORK",
-  "HELLO LOS ANGELES",
-  "HELLO SAN FRANCISCO",
-  "HELLO LONDON",
-  "HELLO MUNICH",
-  "HELLO BRUSSELS",
-  "HELLO PARIS",
-  "HELLO TOKYO",
-  "HELLO (YOUR CITY HERE)"
-};
-
 char* OSVersion = "111.";
 
 // SPI addresses
@@ -578,6 +555,7 @@ struct DeviceSettings {
   unsigned short sensorRangeZ;               // the maximum raw value of Z
   boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
   byte currentPreset;                        // the currently active settings preset
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
 };
 DeviceSettings Device;
 

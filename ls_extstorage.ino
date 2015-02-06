@@ -70,6 +70,24 @@ struct ConfigurationV1 {
   SplitSettingsV1 right;
 };
 struct ConfigurationV1 configV1;
+/**************************************** Configuration V2 ***************************************/
+struct DeviceSettingsV2 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  byte currentPreset;                        // the currently active settings preset
+};
+struct ConfigurationV2 {
+  DeviceSettingsV2 device;
+  PresetSettings preset[NUMPRESETS];
+};
+struct ConfigurationV2 configV2;
 /*************************************************************************************************/
 
 const char* countDownCode = "5, 4, 3, 2, 1 ...\n";
@@ -186,12 +204,21 @@ void handleExtStorage() {
           memcpy(&configV1, buff2, confSize);
 
           byte currentVersion = config.device.version;
-          copySettingsV1ToSettingsV2(&config, &configV1);
+          copySettingsV1ToSettingsV3(&config, &configV1);
           config.device.version = currentVersion;
           settingsApplied = true;
         }
         // this is the v2 of the configuration configuration, apply it if the size is right
-        else if (settingsVersion == 2 && confSize == sizeof(struct Configuration)) {
+        else if (settingsVersion == 2 && confSize == sizeof(struct ConfigurationV2)) {
+          memcpy(&configV2, buff2, confSize);
+
+          byte currentVersion = config.device.version;
+          copySettingsV2ToSettingsV3(&config, &configV2);
+          config.device.version = currentVersion;
+          settingsApplied = true;
+        }
+        // this is the v3 of the configuration configuration, apply it if the size is right
+        else if (settingsVersion == 3 && confSize == sizeof(struct Configuration)) {
           memcpy(&config, buff2, confSize);
           settingsApplied = true;
         }
@@ -252,7 +279,7 @@ void handleExtStorage() {
   }
 }
 
-void copySettingsV1ToSettingsV2(void *target, void *source) {
+void copySettingsV1ToSettingsV3(void *target, void *source) {
   Configuration *c = (Configuration *)target;
   ConfigurationV1 *configV1 = (ConfigurationV1 *)source;
   GlobalSettingsV1 *g = &(configV1->global);
@@ -266,6 +293,7 @@ void copySettingsV1ToSettingsV2(void *target, void *source) {
   c->device.sensorRangeZ = g->sensorRangeZ;
   c->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
   c->device.serialMode = true;
+  initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     c->preset[p].global.splitPoint = g->splitPoint;
@@ -282,12 +310,12 @@ void copySettingsV1ToSettingsV2(void *target, void *source) {
     c->preset[p].global.arpTempo = g->arpTempo;
     c->preset[p].global.arpOctave = g->arpOctave;
 
-    copySplitSettingsV1ToSplitSettingsV2(&(c->preset[p].split[LEFT]), &(configV1->left));
-    copySplitSettingsV1ToSplitSettingsV2(&(c->preset[p].split[RIGHT]), &(configV1->right));
+    copySplitSettingsV1ToSplitSettingsV3(&(c->preset[p].split[LEFT]), &(configV1->left));
+    copySplitSettingsV1ToSplitSettingsV3(&(c->preset[p].split[RIGHT]), &(configV1->right));
   }
 }
 
-void copySplitSettingsV1ToSplitSettingsV2(void *target, void *source) {
+void copySplitSettingsV1ToSplitSettingsV3(void *target, void *source) {
   SplitSettings *t = (SplitSettings *)target;
   SplitSettingsV1 *s = (SplitSettingsV1 *)source;
 
@@ -318,4 +346,24 @@ void copySplitSettingsV1ToSplitSettingsV2(void *target, void *source) {
   t->ccFaders = s->ccFaders;
   t->arpeggiator = s->arpeggiator;
   t->strum = s->strum;
+}
+
+void copySettingsV2ToSettingsV3(void *target, void *source) {
+  Configuration *c = (Configuration *)target;
+  ConfigurationV2 *configV2 = (ConfigurationV2 *)source;
+
+  c->device.version = configV2->device.version;
+  memcpy(c->device.calRows, configV2->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(c->device.calCols, configV2->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  c->device.calibrated = configV2->device.calibrated;
+  c->device.sensorLoZ = configV2->device.sensorLoZ;
+  c->device.sensorFeatherZ = configV2->device.sensorFeatherZ;
+  c->device.sensorRangeZ = configV2->device.sensorRangeZ;
+  c->device.promoAnimationAtStartup = configV2->device.promoAnimationAtStartup;
+  c->device.serialMode = true;
+  initializeAudienceMessages();
+
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    c->preset[p] = configV2->preset[p];
+  }
 }

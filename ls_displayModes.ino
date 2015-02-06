@@ -718,7 +718,7 @@ void paintSwitchAssignment(byte mode) {
 }
 
 void updateGlobalSettingsFlashTempo(unsigned long now) {
-  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
+  if ((displayMode == displayGlobal || displayMode == displayGlobalWithTempo) && !animationActive) {
     paintGlobalSettingsFlashTempo(now);
   }
 }
