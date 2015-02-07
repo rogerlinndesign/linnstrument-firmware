@@ -156,14 +156,15 @@ void initializeDeviceSettings() {
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.currentPreset = 0;
-  
+
   initializeAudienceMessages();
 }
 
 void initializeAudienceMessages() {
   for (byte msg = 0; msg < 16; ++msg) {
-    memset(config.device.audienceMessages[msg], 0, 31);
+    memset(config.device.audienceMessages[msg], '\0', sizeof(config.device.audienceMessages[msg]));
     strncpy(config.device.audienceMessages[msg], defaultAudienceMessages[msg], 30);
+    config.device.audienceMessages[msg][30] = '\0';
   }
 }
 
