@@ -1241,6 +1241,13 @@ void handleGlobalSettingHold() {
     // initialize the touch-slide interface
     resetNumericDataChange();
 
+    // switch to edit audience message
+    setDisplayMode(displayEditAudienceMessage);
+
+    // set the information of the edited message
+    audienceMessageOffset = 0;
+    audienceMessageToEdit = sensorCol - 1;
+
     // fill in all 30 spaces of the message
     int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
     if (strl < 30) {
@@ -1250,13 +1257,10 @@ void handleGlobalSettingHold() {
     }
     Device.audienceMessages[audienceMessageToEdit][30] = '\0';
 
-    // set the information of the edited message
-    audienceMessageOffset = 0;
-    audienceMessageToEdit = sensorCol - 1;
+    // calculate the length of the message to edit
     audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
 
-    // switch to edit audience message
-    setDisplayMode(displayEditAudienceMessage);
+    // show the editing mode
     updateDisplay();
   }
 }
