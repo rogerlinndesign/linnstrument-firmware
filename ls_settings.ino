@@ -30,6 +30,7 @@ char* defaultAudienceMessages[16] = {
 short numericActiveDown = 0;                 // Number of cells currently held down, during numeric data changes
 
 signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
+signed char numericDataChangeColLast = -1;   // The last column that was pressed
 unsigned long numericDataChangeTime = 0;     // time of last touch for value change
 
 unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
@@ -331,7 +332,7 @@ void handleControlButtonNewTouch() {
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
-      setDisplayMode(displayGlobal);                     // change to global settings display mode
+      setDisplayMode(displayGlobal);                   // change to global settings display mode
       resetNumericDataChange();
       updateDisplay();
       break;
@@ -759,7 +760,7 @@ void handlePresetRelease() {
 }
 
 void handleBendRangeNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].bendRange, 1, 96, true);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].bendRange, 1, 96, false);
 }
 
 void handleBendRangeRelease() {
@@ -767,7 +768,7 @@ void handleBendRangeRelease() {
 }
 
 void handleCCForYNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 129, true);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 129, false);
   if (Split[Global.currentPerSplit].ccForY == 128) {
     Split[Global.currentPerSplit].expressionForY = timbrePolyPressure;
   }
@@ -784,7 +785,7 @@ void handleCCForYRelease() {
 }
 
 void handleCCForZNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForZ, 0, 127, true);
+  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForZ, 0, 127, false);
 }
 
 void handleCCForZRelease() {
@@ -817,6 +818,7 @@ void handleSensorRangeZRelease() {
 
 void resetNumericDataChange() {
   numericDataChangeCol = -1;
+  numericDataChangeColLast = -1;
   numericActiveDown = 0;
 }
 
@@ -831,7 +833,7 @@ boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short mi
   return false;
 }
 
-boolean handleNumericDataNewTouch(byte &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+boolean handleNumericDataNewTouch(byte &currentData, byte minimum, byte maximum, boolean useFineChanges) {
   byte newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
   if (newData != currentData) {
     currentData = newData;
@@ -842,7 +844,18 @@ boolean handleNumericDataNewTouch(byte &currentData, unsigned short minimum, uns
   return false;
 }
 
-unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
+boolean handleNumericDataNewTouch(short &currentData, short minimum, short maximum, boolean useFineChanges) {
+  short newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+int handleNumericDataNewTouchRaw(int currentData, int minimum, int maximum, boolean useFineChanges) {
   // keep track of how many cells are currently down
   numericActiveDown++;
   unsigned long now = micros();
@@ -850,21 +863,26 @@ unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned
 
   // If the swipe is fast, increment by a larger amount.
   if (calcTimeDelta(now, numericDataChangeTime) < 70000) {
-    increment = 10;
-  }
-  else if (calcTimeDelta(now, numericDataChangeTime) < 120000) {
     increment = 5;
   }
+  else if (calcTimeDelta(now, numericDataChangeTime) < 120000) {
+    increment = 2;
+  }
 
-  unsigned short newData = currentData;
-  if (numericDataChangeCol < 0) {
-    // First cell hit after starting a data change,
+  int newData = currentData;
+  if (numericDataChangeCol < 0 ||
+      (numericDataChangeCol < sensorCol && numericDataChangeColLast > sensorCol) ||
+      (numericDataChangeCol > sensorCol && numericDataChangeColLast < sensorCol)) {
+    // First cell hit after starting a data change or change of direction,
     // don't change data yet.
+    numericDataChangeCol = sensorCol;
+    numericDataChangeColLast = sensorCol;
   }
   else {
     if (useFineChanges && abs(numericDataChangeCol - sensorCol) <= 3) {
       increment = 1;
     }
+
     if (sensorCol > numericDataChangeCol) {
       newData = constrain(currentData + increment, minimum, maximum);
     } else if (sensorCol < numericDataChangeCol) {
@@ -872,7 +890,7 @@ unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned
     }
   }
 
-  numericDataChangeCol = sensorCol;
+  numericDataChangeColLast = sensorCol;
   numericDataChangeTime = now;
 
   return newData;
@@ -1037,7 +1055,13 @@ void handleGlobalSettingNewTouch() {
   }
 #endif
 
-  if (sensorRow >= 4 && sensorRow < 7) {
+  if (sensorRow == 7) {
+    if (sensorCol <= 16) {
+      // start tracking the touch duration to be able to enable edit mode
+      sensorCell().lastTouch = millis();
+    }
+  }
+  else if (sensorRow >= 4) {
     handleTempoNewTouch();
   }
 
@@ -1147,8 +1171,7 @@ void handleGlobalSettingNewTouch() {
   }
 
   // select the Arpeggiator settings
-  if (sensorCol == 12)
-  {
+  if (sensorCol == 12) {
     if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
         (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
       Global.arpDirection = ArpUpDown;
@@ -1167,8 +1190,7 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  if (sensorCol == 13)
-  {
+  if (sensorCol == 13) {
     if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
          (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
       Global.arpTempo = ArpSixteenthSwing;
@@ -1221,8 +1243,7 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  if (sensorCol == 14)
-  {
+  if (sensorCol == 14) {
     if (sensorRow == 0) {
       if (Global.arpOctave == 1) {
         Global.arpOctave = 0;
@@ -1309,10 +1330,23 @@ void changeMidiIO(byte where) {
   applyMidiIo();
 }
 
+void handleGlobalSettingHold() {
+  if (sensorRow == 7 && sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > 3000) {
+    sensorCell().lastTouch = 0;
+    audienceMessageOffset = 0;
+    audienceMessageToEdit = sensorCol - 1;
+    audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS + 6;
+    resetNumericDataChange();
+    setDisplayMode(displayEditAudienceMessage);
+    updateDisplay();
+  }
+}
+
 void handleGlobalSettingRelease() {
   if (sensorRow == 7) {
     if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
-      if (sensorCol <= 16) {
+      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+        sensorCell().lastTouch = 0;
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
@@ -1346,4 +1380,14 @@ void handleGlobalSettingRelease() {
   }
 
   updateDisplay();
+}
+
+void handleEditAudienceMessageNewTouch() {
+  if (!handleNumericDataNewTouch(audienceMessageOffset, -audienceMessageLength, 0, false)) {
+
+  }
+}
+
+void handleEditAudienceMessageRelease() {
+  handleNumericDataRelease(false);
 }

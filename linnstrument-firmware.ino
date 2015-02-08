@@ -274,7 +274,8 @@ enum DisplayMode {
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
-  displayPromo
+  displayPromo,
+  displayEditAudienceMessage
 };
 void setDisplayMode(DisplayMode mode);
 
@@ -629,7 +630,9 @@ byte midiDecimateRate = 0;           // by default no decimation
 
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];  // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 
-
+byte audienceMessageToEdit = 0;        // the audience message to edit with that mode is active
+short audienceMessageOffset = 0;       // the offset in columns for printing the edited audience message
+short audienceMessageLength = 0;       // the length in pixels of the audience message to edit
 
 /***************************************** OPERATING MODE ****************************************/
 

@@ -367,6 +367,9 @@ void handleNewTouch() {
     case displayCalibration:
       initVelocity();
       break;
+    case displayEditAudienceMessage:
+      handleEditAudienceMessageNewTouch();
+      break;
     }
   }
 }
@@ -459,10 +462,17 @@ void handleXYZupdate() {
   // if this data point serves as a calibration sample, return immediately
   if (handleCalibrationSample()) return;
 
+  // if the display mode is global, some features need hold functionality
+  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
+    handleGlobalSettingHold();
+    return;
+  }
   // only continue if the active display modes require finger tracking
-  if (displayMode != displayNormal &&
+  else if (displayMode != displayNormal &&
       displayMode != displayVolume &&
-      (displayMode != displaySplitPoint || splitButtonDown)) return;
+      (displayMode != displaySplitPoint || splitButtonDown)) {
+    return;
+  }
 
   DEBUGPRINT((2,"handleXYZupdate"));
   DEBUGPRINT((2," col="));DEBUGPRINT((2,(int)sensorCol));
@@ -887,6 +897,9 @@ void handleTouchRelease() {
     case displayGlobalWithTempo:
       handleGlobalSettingRelease();
       return;
+    case displayEditAudienceMessage:
+      handleEditAudienceMessageRelease();
+      break;
   }
 
   // check if calibration is active and its cell release logic needs to be executed

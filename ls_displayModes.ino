@@ -7,24 +7,25 @@ There are 13 different display modes.
 
 These are the possible values of the global variable displayMode:
 
-displayNormal            : normal performance display
-displayPerSplit          : per-split settings (left or right split)
-displayPreset            : preset number
-displayVolume            : volume
-displayOctaveTranspose   : octave and transpose settings
-displaySplitPoint        : split point
-displayGlobal            : global settings
-displayGlobalWithTempo   : global settings with tempo
-displayOsVersion         : version number of the OS
-displayCalibration       : calibration process
-displayReset             : global reset confirmation and wait for touch release
-displayBendRange         ; custom bend range selection for X expression
-displayCCForY            : custom CC number selection for Y expression
-displayCCForZ            : custom CC number selection for Z expression
-displaySensorLoZ         : sensor low Z sensitivity selection
-displaySensorFeatherZ    : sensor feather Z sensitivity selection
-displaySensorRangeZ      : max Z sensor range selection
-displayPromo             : display promotion animation
+displayNormal               : normal performance display
+displayPerSplit             : per-split settings (left or right split)
+displayPreset               : preset number
+displayVolume               : volume
+displayOctaveTranspose      : octave and transpose settings
+displaySplitPoint           : split point
+displayGlobal               : global settings
+displayGlobalWithTempo      : global settings with tempo
+displayOsVersion            : version number of the OS
+displayCalibration          : calibration process
+displayReset                : global reset confirmation and wait for touch release
+displayBendRange            ; custom bend range selection for X expression
+displayCCForY               : custom CC number selection for Y expression
+displayCCForZ               : custom CC number selection for Z expression
+displaySensorLoZ            : sensor low Z sensitivity selection
+displaySensorFeatherZ       : sensor feather Z sensitivity selection
+displaySensorRangeZ         : max Z sensor range selection
+displayPromo                : display promotion animation
+displayEditAudienceMessage  : edit an audience message
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -66,52 +67,55 @@ void updateDisplay() {
 
   switch (displayMode)
   {
-  case displayNormal:            // Display the normal and accent note colors...
-  case displaySplitPoint:        // Split point display (which is just the normal display)
+  case displayNormal:
+  case displaySplitPoint:
     paintNormalDisplay();
     break;
-  case displayPerSplit:          // Display per-split settings
+  case displayPerSplit:
     paintPerSplitDisplay(Global.currentPerSplit);
     break;
-  case displayPreset:            // Display this split's preset number
+  case displayPreset:
     paintPresetDisplay(Global.currentPerSplit);
     break;
-  case displayOsVersion:         // Display the OS version
+  case displayOsVersion:
     paintOSVersionDisplay();
     break;
-  case displayVolume:            // Display this split's volume value
+  case displayVolume:
     paintVolumeDisplay(Global.currentPerSplit);
     break;
-  case displayOctaveTranspose:   // Display the octave shift of both splits, and the global pitch and light shift
+  case displayOctaveTranspose:
     paintOctaveTransposeDisplay(Global.currentPerSplit);
     break;
-  case displayGlobal:            // Display global settings
+  case displayGlobal:
   case displayGlobalWithTempo:
     paintGlobalSettingsDisplay();
     break;
-  case displayCalibration:       // Display the calibration pattern
+  case displayCalibration:
     paintCalibrationDisplay();
     break;
-  case displayReset:             // Display the reset information
+  case displayReset:
     paintResetDisplay();
     break;
-  case displayBendRange:         // Display this split's bend range
+  case displayBendRange:
     paintBendRangeDisplay(Global.currentPerSplit);
     break;
-  case displayCCForY:            // Display this split's Y CC number
+  case displayCCForY:
     paintCCForYDisplay(Global.currentPerSplit);
     break;
-  case displayCCForZ:            // Display this split's Z CC number
+  case displayCCForZ:
     paintCCForZDisplay(Global.currentPerSplit);
     break;
-  case displaySensorLoZ:         // Display the low Z sensitivity
+  case displaySensorLoZ:
     paintSensorLoZDisplay();
     break;
-  case displaySensorFeatherZ:    // Display the feather Z sensitivity
+  case displaySensorFeatherZ:
     paintSensorFeatherZDisplay();
     break;
-  case displaySensorRangeZ:      // Display the max Z range
+  case displaySensorRangeZ:
     paintSensorRangeZDisplay();
+    break;
+  case displayEditAudienceMessage:
+    paintEditAudienceMessage();
     break;
   }
 
@@ -931,6 +935,11 @@ void paintResetDisplay() {
   for (byte row = 0; row < NUMROWS; ++row) {
     clearLed(0, row);
   }
+}
+
+void paintEditAudienceMessage() {
+  clearDisplay();
+  bigfont_draw_string(audienceMessageOffset, 0, Device.audienceMessages[audienceMessageToEdit], Split[LEFT].colorMain);
 }
 
 void setMidiChannelLed(byte chan, byte color) {                       // chan value is 1-16
