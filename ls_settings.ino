@@ -1005,15 +1005,19 @@ void handleTempoNewTouch() {
 
     // if the swipe is fast, increment by a larger amount.
     if (calcTimeDelta(now, tempoChangeTime) < 70000) {
-      increment = 10;
-    }
-    else if (calcTimeDelta(now, tempoChangeTime) < 120000) {
       increment = 5;
     }
+    else if (calcTimeDelta(now, tempoChangeTime) < 120000) {
+      increment = 2;
+    }
 
-    if (numericDataChangeCol < 0) {
-      // First cell hit after starting a tempo change,
-      // don't change tempo yet.
+    if (numericDataChangeCol < 0 ||
+        (numericDataChangeCol < sensorCol && numericDataChangeColLast > sensorCol) ||
+        (numericDataChangeCol > sensorCol && numericDataChangeColLast < sensorCol)) {
+      // First cell hit after starting a data change or change of direction,
+      // don't change data yet.
+      numericDataChangeCol = sensorCol;
+      numericDataChangeColLast = sensorCol;
     }
     else if (sensorCol > numericDataChangeCol) {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo + FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
@@ -1022,7 +1026,7 @@ void handleTempoNewTouch() {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo - FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
     }
 
-    numericDataChangeCol = sensorCol;
+    numericDataChangeColLast = sensorCol;
     tempoChangeTime = now;
   }
 
