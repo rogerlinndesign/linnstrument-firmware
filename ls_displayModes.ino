@@ -493,7 +493,7 @@ void paintOSVersionDisplay() {
 
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
-  paintSplitNumericDataDisplay(side, midiPreset[side]+1);
+  clearDisplay();
   for (byte p = 0; p < NUMPRESETS; ++p) {
     byte color = COLOR_BLUE;
     if (Device.currentPreset == p) {
@@ -501,21 +501,22 @@ void paintPresetDisplay(byte side) {
     }
     setLed(NUMCOLS-2, p+2, color, cellOn);
   }
+  paintSplitNumericDataDisplay(side, midiPreset[side]+1);
 }
 
 void paintBendRangeDisplay(byte side) {
+  clearDisplay();
   paintSplitNumericDataDisplay(side, Split[side].bendRange);
 }
 
 void paintCCForYDisplay(byte side) {
+  clearDisplay();
   if (Split[side].ccForY == 128) {
-    clearDisplay();
-    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain);
+    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else if (Split[side].ccForY == 129) {
-    clearDisplay();
-    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain);
+    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else {
@@ -524,6 +525,7 @@ void paintCCForYDisplay(byte side) {
 }
 
 void paintCCForZDisplay(byte side) {
+  clearDisplay();
   if (Split[side].expressionForZ != loudnessCC) {
     setDisplayMode(displayPerSplit);
     updateDisplay();
@@ -534,26 +536,26 @@ void paintCCForZDisplay(byte side) {
 }
 
 void paintSensorLoZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ);
 }
 
 void paintSensorFeatherZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorFeatherZ);
 }
 
 void paintSensorRangeZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorRangeZ);
 }
 
 void paintSplitNumericDataDisplay(byte side, byte value) {
-  paintNumericDataDisplay(Split[side].colorMain, value);
-
   paintShowSplitSelection(side);
+  paintNumericDataDisplay(Split[side].colorMain, value);
 }
 
 void paintNumericDataDisplay(byte color, unsigned short value) {
-  clearDisplay();
-  
   char str[10];
   char* format;
   byte offset;
@@ -564,7 +566,7 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
   }
   else if (value >= 100 && value < 200) {
     // Handle the "1" character specially, to get the spacing right
-    smallfont_draw_string(0, 0, "1", color);
+    smallfont_draw_string(0, 0, "1", color, false);
     value -= 100;
     format = "%02d";     // to make sure a leading zero is included
     offset = 5;
@@ -575,7 +577,7 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
   }
 
   snprintf(str, sizeof(str), format, value);
-  smallfont_draw_string(offset, 0, str, color);
+  smallfont_draw_string(offset, 0, str, color, false);
 }
 
 // draw a horizontal line to indicate volume for a particular side
