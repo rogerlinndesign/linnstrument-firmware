@@ -6,15 +6,17 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions allow for changing numeric values by sliding over the LinnStrument surface.
 **************************************************************************************************/
 
-short numericActiveColDown = 0;              // Number of columns currently held down, during numeric data changes
-signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
-signed char numericDataChangeColLast = -1;   // The last column that was pressed
-unsigned long numericDataChangeColTime = 0;  // time of last touch for value change
+short numericActiveColDown = 0;               // Number of columns currently held down, during numeric data changes
+signed char numericDataChangeCol = -1;        // If -1, button has been pressed, but a starting column hasn't been set
+signed char numericDataChangeColLast = -1;    // The last column that was pressed
+unsigned long numericDataChangeColTime = 0;   // time of last touch for value change
+unsigned long numericDataReleaseColTime = 0;  // time of last touch release
 
-short numericActiveRowDown = 0;              // Number of rows currently held down, during numeric data changes
-signed char numericDataChangeRow = -1;       // If -1, button has been pressed, but a starting row hasn't been set
-signed char numericDataChangeRowLast = -1;   // The last row that was pressed
-unsigned long numericDataChangeRowTime = 0;  // time of last touch for value change
+short numericActiveRowDown = 0;               // Number of rows currently held down, during numeric data changes
+signed char numericDataChangeRow = -1;        // If -1, button has been pressed, but a starting row hasn't been set
+signed char numericDataChangeRowLast = -1;    // The last row that was pressed
+unsigned long numericDataChangeRowTime = 0;   // time of last touch for value change
+unsigned long numericDataReleaseRowTime = 0;  // time of last touch release
 
 void resetNumericDataChange() {
   resetNumericDataChangeCol();
@@ -25,12 +27,16 @@ void resetNumericDataChangeCol() {
   numericDataChangeCol = -1;
   numericDataChangeColLast = -1;
   numericActiveColDown = 0;
+  numericDataChangeColTime = 0;
+  numericDataReleaseColTime = 0;
 }
 
 void resetNumericDataChangeRow() {
   numericDataChangeRow = -1;
   numericDataChangeRowLast = -1;
   numericActiveRowDown = 0;
+  numericDataChangeRowTime = 0;
+  numericDataReleaseRowTime = 0;
 }
 
 boolean handleNumericDataNewTouchCol(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
@@ -81,7 +87,7 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
 
   // If there are no columns down, reset so that things are
   // relative to the next new touch
-  if (numericActiveColDown <= 0 && calcTimeDelta(now, numericDataChangeColTime) > 500000) {
+  if (numericActiveColDown <= 0 && calcTimeDelta(now, numericDataReleaseColTime) > 500000) {
     resetNumericDataChangeCol();
   }
 
@@ -137,6 +143,7 @@ void handleNumericDataReleaseCol(boolean handleSplitSelection) {
   }
 
   numericActiveColDown--;
+  numericDataReleaseColTime = micros();
 }
 
 boolean handleNumericDataNewTouchRow(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
@@ -188,7 +195,7 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
 
   // If there are no rows down, reset so that things are
   // relative to the next new touch
-  if (numericActiveRowDown <= 0 && calcTimeDelta(now, numericDataChangeRowTime) > 500000) {
+  if (numericActiveRowDown <= 0 && calcTimeDelta(now, numericDataReleaseRowTime) > 500000) {
     resetNumericDataChangeRow();
   }
 
@@ -244,4 +251,5 @@ void handleNumericDataReleaseRow(boolean handleSplitSelection) {
   }
 
   numericActiveRowDown--;
+  numericDataReleaseRowTime = micros();
 }
