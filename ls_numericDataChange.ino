@@ -87,7 +87,7 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
 
   // If there are no columns down, reset so that things are
   // relative to the next new touch
-  if (numericActiveColDown <= 0 && calcTimeDelta(now, numericDataReleaseColTime) > 500000) {
+  if (numericActiveColDown <= 0 && calcTimeDelta(now, numericDataReleaseColTime) > 200000) {
     resetNumericDataChangeCol();
   }
 
@@ -98,25 +98,24 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
 
   if (sensorCol != numericDataChangeColLast &&                     // only react when the column is actually different  
       calcTimeDelta(now, numericDataChangeRowTime) > 300000) {     // and prevent these too quickly after a vertical slide to make the interface feel more stable
-    byte increment = 1;
-
-    // If the swipe is fast, increment by a larger amount.
-    if (calcTimeDelta(now, numericDataChangeColTime) < 70000) {
-      increment = 4;
-    }
-    else if (calcTimeDelta(now, numericDataChangeColTime) < 120000) {
-      increment = 2;
-    }
-
     if (numericDataChangeCol < 0 ||
         (numericDataChangeCol < sensorCol && numericDataChangeColLast > sensorCol) ||
         (numericDataChangeCol > sensorCol && numericDataChangeColLast < sensorCol)) {
       // First cell hit after starting a data change or change of direction,
       // don't change data yet.
       numericDataChangeCol = sensorCol;
-      numericDataChangeColLast = sensorCol;
     }
     else {
+      byte increment = 1;
+
+      // If the swipe is fast, increment by a larger amount.
+      if (calcTimeDelta(now, numericDataChangeColTime) < 70000) {
+        increment = 4;
+      }
+      else if (calcTimeDelta(now, numericDataChangeColTime) < 120000) {
+        increment = 2;
+      }
+
       if (useFineChanges && abs(numericDataChangeCol - sensorCol) <= 3) {
         increment = 1;
       }
@@ -128,10 +127,14 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
       }
 
       numericDataChangeColTime = now;
-    }
 
-    numericDataChangeColLast = sensorCol;
+      // reset the vertical slide info when there's a horizontal change
+      numericDataChangeRow = sensorRow;
+      numericDataChangeRowLast = sensorRow;
+    }
   }
+
+  numericDataChangeColLast = sensorCol;
 
   return newData;
 }
@@ -195,7 +198,7 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
 
   // If there are no rows down, reset so that things are
   // relative to the next new touch
-  if (numericActiveRowDown <= 0 && calcTimeDelta(now, numericDataReleaseRowTime) > 500000) {
+  if (numericActiveRowDown <= 0 && calcTimeDelta(now, numericDataReleaseRowTime) > 200000) {
     resetNumericDataChangeRow();
   }
 
@@ -206,25 +209,24 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
 
   if (sensorRow != numericDataChangeRowLast &&                     // only react when the row is actually different  
       calcTimeDelta(now, numericDataChangeColTime) > 300000) {     // and prevent these too quickly after a horizontal slide to make the interface feel more stable
-    byte increment = 1;
-
-    // If the swipe is fast, increment by a larger amount.
-    if (calcTimeDelta(now, numericDataChangeRowTime) < 70000) {
-      increment = 4;
-    }
-    else if (calcTimeDelta(now, numericDataChangeRowTime) < 120000) {
-      increment = 2;
-    }
-
     if (numericDataChangeRow < 0 ||
         (numericDataChangeRow < sensorRow && numericDataChangeRowLast > sensorRow) ||
         (numericDataChangeRow > sensorRow && numericDataChangeRowLast < sensorRow)) {
       // First cell hit after starting a data change or change of direction,
       // don't change data yet.
       numericDataChangeRow = sensorRow;
-      numericDataChangeRowLast = sensorRow;
     }
     else {
+      byte increment = 1;
+
+      // If the swipe is fast, increment by a larger amount.
+      if (calcTimeDelta(now, numericDataChangeRowTime) < 70000) {
+        increment = 4;
+      }
+      else if (calcTimeDelta(now, numericDataChangeRowTime) < 120000) {
+        increment = 2;
+      }
+
       if (useFineChanges && abs(numericDataChangeRow - sensorRow) <= 3) {
         increment = 1;
       }
@@ -236,10 +238,14 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
       }
 
       numericDataChangeRowTime = now;
-    }
 
-    numericDataChangeRowLast = sensorRow;
+      // reset the horizontal slide info when there's a vertical change
+      numericDataChangeCol = sensorCol;
+      numericDataChangeColLast = sensorCol;
+    }
   }
+
+  numericDataChangeRowLast = sensorRow;
 
   return newData;
 }
