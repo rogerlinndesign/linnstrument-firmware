@@ -16,6 +16,11 @@ signed char numericDataChangeRow = -1;       // If -1, button has been pressed, 
 signed char numericDataChangeRowLast = -1;   // The last row that was pressed
 unsigned long numericDataChangeRowTime = 0;  // time of last touch for value change
 
+void resetNumericDataChange() {
+  resetNumericDataChangeCol();
+  resetNumericDataChangeRow();
+}
+
 void resetNumericDataChangeCol() {
   numericDataChangeCol = -1;
   numericDataChangeColLast = -1;
@@ -85,8 +90,8 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
 
   int newData = currentData;
 
-  // only react when the column is actually different  
-  if (sensorCol != numericDataChangeColLast) {
+  if (sensorCol != numericDataChangeColLast &&                     // only react when the column is actually different  
+      calcTimeDelta(now, numericDataChangeRowTime) > 300000) {     // and prevent these too quickly after a vertical slide to make the interface feel more stable
     byte increment = 1;
 
     // If the swipe is fast, increment by a larger amount.
@@ -115,12 +120,12 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
       } else if (sensorCol < numericDataChangeCol) {
         newData = constrain(currentData - increment, minimum, maximum);
       }
+
+      numericDataChangeColTime = now;
     }
 
     numericDataChangeColLast = sensorCol;
   }
-
-  numericDataChangeColTime = now;
 
   return newData;
 }
@@ -192,8 +197,8 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
 
   int newData = currentData;
 
-  // only react when the row is actually different  
-  if (sensorRow != numericDataChangeRowLast) {
+  if (sensorRow != numericDataChangeRowLast &&                     // only react when the row is actually different  
+      calcTimeDelta(now, numericDataChangeColTime) > 300000) {     // and prevent these too quickly after a horizontal slide to make the interface feel more stable
     byte increment = 1;
 
     // If the swipe is fast, increment by a larger amount.
@@ -222,12 +227,12 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
       } else if (sensorRow < numericDataChangeRow) {
         newData = constrain(currentData - increment, minimum, maximum);
       }
+
+      numericDataChangeRowTime = now;
     }
 
     numericDataChangeRowLast = sensorRow;
   }
-
-  numericDataChangeRowTime = now;
 
   return newData;
 }

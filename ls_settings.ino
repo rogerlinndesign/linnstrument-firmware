@@ -327,7 +327,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
       setDisplayMode(displayGlobal);                   // change to global settings display mode
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       updateDisplay();
       break;
 
@@ -375,7 +375,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PRESET_ROW, globalColor, cellOn);
       setDisplayMode(displayPreset);
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       updateDisplay();
       break;
 
@@ -383,7 +383,7 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       setLed(0, PER_SPLIT_ROW, globalColor, cellOn);
       setDisplayMode(displayPerSplit);
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       updateDisplay();
       break;
   }
@@ -1208,15 +1208,15 @@ void handleGlobalSettingNewTouch() {
 
   if (sensorCol == 25) {
     if      (sensorRow == 0) {
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       setDisplayMode(displaySensorLoZ);
     }
     else if (sensorRow == 1) {
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       setDisplayMode(displaySensorFeatherZ);
     }
     else if (sensorRow == 2) {
-      resetNumericDataChangeCol();
+      resetNumericDataChange();
       setDisplayMode(displaySensorRangeZ);
     }
   }
@@ -1239,8 +1239,7 @@ void handleGlobalSettingHold() {
     sensorCell().lastTouch = 0;
 
     // initialize the touch-slide interface
-    resetNumericDataChangeCol();
-    resetNumericDataChangeRow();
+    resetNumericDataChange();
 
     // fill in all 30 spaces of the message
     int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
