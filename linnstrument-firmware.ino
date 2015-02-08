@@ -278,6 +278,7 @@ enum DisplayMode {
   displayEditAudienceMessage
 };
 void setDisplayMode(DisplayMode mode);
+void exitDisplayMode(DisplayMode mode);
 
 DisplayMode displayMode = displayNormal;
 signed char controlButton = -1;           // records the row of the current controlButton being held down

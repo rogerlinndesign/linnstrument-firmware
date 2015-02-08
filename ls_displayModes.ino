@@ -40,7 +40,7 @@ void setDisplayMode(DisplayMode mode) {
   boolean refresh = (displayMode != mode);
   if (refresh || displayModeStart == 0) {
     displayModeStart = millis();
-    exitDisplay(displayMode);
+    exitDisplayMode(displayMode);
   }
 
   displayMode = mode;
@@ -125,7 +125,7 @@ void updateDisplay() {
 }
 
 // handle logic tied to exiting specific display mode, like post-processing or saving
-void exitDisplay(DisplayMode mode) {
+void exitDisplayMode(DisplayMode mode) {
   switch (mode)
   {
   case displayEditAudienceMessage:
