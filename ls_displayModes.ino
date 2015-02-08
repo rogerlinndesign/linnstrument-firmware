@@ -40,7 +40,9 @@ void setDisplayMode(DisplayMode mode) {
   boolean refresh = (displayMode != mode);
   if (refresh || displayModeStart == 0) {
     displayModeStart = millis();
+    exitDisplay(displayMode);
   }
+
   displayMode = mode;
   if (refresh) {
     completelyRefreshLeds();
@@ -120,6 +122,17 @@ void updateDisplay() {
   }
 
   updateSwitchLeds();
+}
+
+// handle logic tied to exiting specific display mode, like post-processing or saving
+void exitDisplay(DisplayMode mode) {
+  switch (mode)
+  {
+  case displayEditAudienceMessage:
+    trimEditedAudienceMessage();
+    storeSettings();
+    break;
+  }
 }
 
 void updateSwitchLeds() {
@@ -938,8 +951,7 @@ void paintResetDisplay() {
 }
 
 void paintEditAudienceMessage() {
-  clearDisplay();
-  bigfont_draw_string(audienceMessageOffset, 0, Device.audienceMessages[audienceMessageToEdit], Split[LEFT].colorMain);
+  bigfont_draw_string(audienceMessageOffset, 0, Device.audienceMessages[audienceMessageToEdit], Split[LEFT].colorMain, true, false, Split[LEFT].colorAccent);
 }
 
 void setMidiChannelLed(byte chan, byte color) {                       // chan value is 1-16

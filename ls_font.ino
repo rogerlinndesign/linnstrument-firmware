@@ -1188,12 +1188,12 @@ static Character big_H = { 5,
 
 static Character big_I = { 5,
   "     "
-  " 000 "
+  "00000"
   "  0  "
   "  0  "
   "  0  "
   "  0  "
-  " 000 "
+  "00000"
   "     " };
 
 static Character big_J = { 5,
@@ -1426,6 +1426,265 @@ static Character big_backtick = { 5,
   "     "
   "     " };
 
+static Character big_a = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "0  0 "
+  "0  0 "
+  " 0000"
+  "     " };
+
+static Character big_b = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0000 "
+  "     " };
+
+static Character big_c = { 5,
+  "     "
+  "     "
+  "     "
+  " 0000"
+  "0    "
+  "0    "
+  " 0000"
+  "     " };
+
+static Character big_d = { 5,
+  "     "
+  "    0"
+  "    0"
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "     " };
+
+static Character big_e = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "00000"
+  "0    "
+  " 000 "
+  "     " };
+
+static Character big_f = { 5,
+  "     "
+  "  00 "
+  " 0  0"
+  " 0   "
+  "0000 "
+  " 0   "
+  " 0   "
+  "     " };
+
+static Character big_g = { 5,
+  "     "
+  "     "
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "    0"
+  " 000 " };
+
+static Character big_h = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0   0"
+  "     " };
+
+static Character big_i = { 5,
+  "     "
+  "  0  "
+  "     "
+  " 00  "
+  "  0  "
+  "  0  "
+  " 000 "
+  "     " };
+
+static Character big_j = { 5,
+  "     "
+  "   0 "
+  "     "
+  "  00 "
+  "   0 "
+  "   0 "
+  "0  0 "
+  " 00  " };
+
+static Character big_k = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0 0  "
+  "00   "
+  "0 0  "
+  "0  0 "
+  "     " };
+
+static Character big_l = { 5,
+  "     "
+  "00   "
+  " 0   "
+  " 0   "
+  " 0   "
+  " 0   "
+  "  000"
+  "     " };
+
+static Character big_m = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0 0 0"
+  "0 0 0"
+  "0 0 0"
+  "     " };
+
+static Character big_n = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0   0"
+  "     " };
+
+static Character big_o = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_p = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0000 "
+  "0    " };
+
+static Character big_q = { 5,
+  "     "
+  "     "
+  "     "
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "    0" };
+
+static Character big_r = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0    "
+  "0    "
+  "     " };
+
+static Character big_s = { 5,
+  "     "
+  "     "
+  " 000 "
+  "0    "
+  " 000 "
+  "    0"
+  "0000 "
+  "     " };
+
+static Character big_t = { 5,
+  "     "
+  " 0   "
+  " 0   "
+  "0000 "
+  " 0   "
+  " 0  0"
+  "  00 "
+  "     " };
+
+static Character big_u = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_v = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0   0"
+  " 0 0 "
+  "  0  "
+  "     " };
+
+static Character big_w = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0 0 0"
+  "0 0 0"
+  " 0 0 "
+  "     " };
+
+static Character big_x = { 5,
+  "     "
+  "     "
+  "     "
+  "0  0 "
+  " 00  "
+  " 00  "
+  "0  0 "
+  "     " };
+
+static Character big_y = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  " 0 0 "
+  "  0  "
+  " 0   " };
+
+static Character big_z = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "  0  "
+  " 0   "
+  "0000 "
+  "     " };
+
 static Character big_lbrace = { 5,
   "   00"
   "  0  "
@@ -1482,7 +1741,8 @@ Character* smallChars[] = {
   &small_0, &small_1, &small_2, &small_3, &small_4, &small_5, &small_6, &small_7, &small_8, &small_9,
   &small_colon, &small_semi, &small_lt, &small_eq, &small_gt, &small_quest, &small_at,
   &small_A, &small_B, &small_C, &small_D, &small_E, &small_F, &small_G, &small_H, &small_I, &small_J, &small_K, &small_L, &small_M, &small_N, &small_O, &small_P, &small_Q, &small_R, &small_S, &small_T, &small_U, &small_V, &small_W, &small_X, &small_Y, &small_Z,
-  &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick, &small_lbrace, &small_pipe, &small_rbrace, &small_tilde
+  &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick,
+  &small_lbrace, &small_pipe, &small_rbrace, &small_tilde
 };
 struct Font smallFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`{|}~", smallChars };
 
@@ -1491,9 +1751,11 @@ Character* bigChars[] = {
   &big_0, &big_1, &big_2, &big_3, &big_4, &big_5, &big_6, &big_7, &big_8, &big_9,
   &big_colon, &big_semi, &big_lt, &big_eq, &big_gt, &big_quest, &big_at,
   &big_A, &big_B, &big_C, &big_D, &big_E, &big_F, &big_G, &big_H, &big_I, &big_J, &big_K, &big_L, &big_M, &big_N, &big_O, &big_P, &big_Q, &big_R, &big_S, &big_T, &big_U, &big_V, &big_W, &big_X, &big_Y, &big_Z,
-  &big_lsqbrack, &big_backslash, &big_rsqbrack, &big_pow, &big_under, &big_backtick, &big_lbrace, &big_pipe, &big_rbrace, &big_tilde
+  &big_lsqbrack, &big_backslash, &big_rsqbrack, &big_pow, &big_under, &big_backtick,
+  &big_a, &big_b, &big_c, &big_d, &big_e, &big_f, &big_g, &big_h, &big_i, &big_j, &big_k, &big_l, &big_m, &big_n, &big_o, &big_p, &big_q, &big_r, &big_s, &big_t, &big_u, &big_v, &big_w, &big_x, &big_y, &big_z,
+  &big_lbrace, &big_pipe, &big_rbrace, &big_tilde
 };
-struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`{|}~", bigChars };
+struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", bigChars };
 
 unsigned font_width_string(char* str, struct Font* font) {
   unsigned width = 0;
@@ -1509,7 +1771,7 @@ unsigned font_width_string(char* str, struct Font* font) {
 }
 
 // Draw a string of characters starting at a specific column/row
-void font_draw_string(int col, int row, char* str, byte color, struct Font* font, boolean erase, boolean reversed) {
+void font_draw_string(int col, int row, char* str, byte color, struct Font* font, boolean erase, boolean reversed, byte seperationColor) {
   int i;
   if (reversed) { i = strlen(str) - 1; }
   else          { i = 0; }
@@ -1522,7 +1784,7 @@ void font_draw_string(int col, int row, char* str, byte color, struct Font* font
       font_draw_char(col, row, font->data[i]->data, color, font->data[i]->width, font->height, erase, reversed);
       col += (font->data[i]->width + 1);
       if (erase) {
-        font_draw_blank_column(col,row,font->height);     // 1 blank pixel between characters
+        font_draw_blank_column(col, row, font->height, seperationColor);     // 1 blank pixel between characters
       }
     }
 
@@ -1542,7 +1804,11 @@ void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase
 }
 
 void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &tinyFont, erase, reversed);
+  tinyfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &tinyFont, erase, reversed, seperationColor);
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color) {
@@ -1554,7 +1820,11 @@ void smallfont_draw_string(int col, int row, char* str, byte color, boolean eras
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &smallFont, erase, reversed);
+  smallfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &smallFont, erase, reversed, seperationColor);
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color) {
@@ -1566,11 +1836,15 @@ void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase)
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &bigFont, erase, reversed);
+  bigfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &bigFont, erase, reversed, seperationColor);
 }
 
 // Draw a single character at col,row
-static void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
+void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
 {
   for (byte r = 0; r < height; ++r) {
     for (byte c = 0; c < width; ++c) {
@@ -1599,11 +1873,15 @@ static void font_draw_char(int col, int row, char* fontdata, byte color, byte wi
 }
 
 // Draw a single-pixel-wide blank column
-static void font_draw_blank_column(int col, int row, byte height)
-{
-  if (col >= 0 && col < NUMCOLS) {
+void font_draw_blank_column(int col, int row, byte height, byte seperationColor) {
+  if (col >= 1 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
-      setLed(col, r, 0, cellOn);
+      if (r == row || r == height - 1) {
+        setLed(col, r, seperationColor, cellOn);
+      }
+      else {
+        setLed(col, r, COLOR_BLACK, cellOn);
+      }
     }
   }
 }
@@ -1626,7 +1904,7 @@ void font_scroll_text_flipped(struct Font* font, char* str, byte color) {
   int totalwidth = font_width_string(str, font);
   int i;
   for (i = totalwidth; i >= -NUMCOLS && !stopAnimation; --i) {
-    font_draw_string( -i, 0, str, color, font, true, true);
+    font_draw_string( -i, 0, str, color, font, true, true, COLOR_BLACK);
 
     if (i < 0) {
       for (byte col = 0; col <= -i; ++col) {
@@ -1663,7 +1941,7 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
 
   int totalwidth = font_width_string(str, font);
   for (int i = 0; i < totalwidth && !stopAnimation; ++i) {
-    font_draw_string( -i, 0, str, color, font, true, false);
+    font_draw_string( -i, 0, str, color, font, true, false, COLOR_BLACK);
     delayUsecWithScanning(40000);
   }
 
