@@ -133,7 +133,9 @@ signed char calculateCalibratedY(short rawY) {
 bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
-    if (sensorCell().isMeaningfulTouch()) {
+    // only calibrate a deliberate touch that is at least half-way through the pressure sensitivity range
+    if (sensorCell().isMeaningfulTouch() &&
+        sensorCell().rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 2) {
       short rawX = readX();
       short rawY = readY();
       if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
