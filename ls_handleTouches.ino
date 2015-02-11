@@ -529,9 +529,13 @@ void handleXYZupdate() {
   short preferredTimbre = INVALID_DATA;
   byte preferredPressure = handleZExpression();
 
-  // Only process x and y data when there's meaningful pressure on the cell
+  // Only process x data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
     pitchBend = handleXExpression();
+  }
+
+  // Only process y data when there's the pressure is stable enough for those readings
+  if (sensorCell().isStableYTouch()) {
     preferredTimbre = handleYExpression();
   }
 

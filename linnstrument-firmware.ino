@@ -154,6 +154,7 @@ struct TouchInfo {
   short rawZ();                              // ensure that Z is updated to the latest scan and return its raw value
   inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
   inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
+  inline boolean isStableYTouch();           // ensure that Z is updated to the latest scan and check if the touch is capable of providing stable Y reading
   inline void refreshZ();                    // ensure that Z is updated to the latest scan
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates

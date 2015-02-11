@@ -320,6 +320,10 @@ inline boolean TouchInfo::isMeaningfulTouch() {
   return velocityZ > 0 || pressureZ > 0;
 }
 
+inline boolean TouchInfo::isStableYTouch() {    
+  return sensorCell().isMeaningfulTouch() && sensorCell().rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
+}
+
 inline boolean TouchInfo::isActiveTouch() {
   refreshZ();
   return featherTouch || velocityZ > 0 || pressureZ > 0;
