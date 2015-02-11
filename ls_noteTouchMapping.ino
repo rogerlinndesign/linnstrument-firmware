@@ -17,8 +17,8 @@ void resetAllTouches() {
   noteTouchMapping[RIGHT].initialize();
 }
 
-boolean validNoteNumAndChannel(signed char noteNum, signed char channel) {
-  if (noteNum < 0 || noteNum > 127 || channel < 0 || channel > 15) {
+boolean validNoteNumAndChannel(signed char noteNum, signed char noteChannel) {
+  if (noteNum < 0 || noteNum > 127 || noteChannel < 1 || noteChannel > 16) {
     return false;
   }
 
@@ -53,16 +53,16 @@ inline byte NoteEntry::getPreviousNote() {
   return previousNote;
 }
 
-inline void NoteEntry::setNextChannel(byte channel) {
-  nextPreviousChannel = (nextPreviousChannel & B00001111) | ((channel - 1) & B00001111) << 4;
+inline void NoteEntry::setNextChannel(byte noteChannel) {
+  nextPreviousChannel = (nextPreviousChannel & B00001111) | ((noteChannel - 1) & B00001111) << 4;
 }
 
 inline byte NoteEntry::getNextChannel() {
   return ((nextPreviousChannel & B11110000) >> 4) + 1;
 }
 
-inline void NoteEntry::setPreviousChannel(byte channel) {
-  nextPreviousChannel = (nextPreviousChannel & B11110000) | ((channel - 1) & B00001111);
+inline void NoteEntry::setPreviousChannel(byte noteChannel) {
+  nextPreviousChannel = (nextPreviousChannel & B11110000) | ((noteChannel - 1) & B00001111);
 }
 
 inline byte NoteEntry::getPreviousChannel() {
@@ -88,18 +88,37 @@ void NoteTouchMapping::initialize() {
   }
 }
 
-boolean NoteTouchMapping::hasTouch(signed char noteNum, signed char channel) {
-  if (!validNoteNumAndChannel(noteNum, channel)) {
+inline byte NoteTouchMapping::getMusicalTouchCount(signed char noteChannel) {
+  if (noteChannel < 1 || noteChannel > 16) {
+    return 0;
+  }
+
+  return musicalTouchCount[noteChannel - 1];
+}
+
+inline NoteEntry* NoteTouchMapping::getNoteEntry(signed char noteNum, signed char noteChannel) {
+  if (!validNoteNumAndChannel(noteNum, noteChannel)) {
+    return NULL;
+  }
+
+  return &mapping[noteNum][noteChannel - 1];
+}
+
+boolean NoteTouchMapping::hasTouch(signed char noteNum, signed char noteChannel) {
+  if (!validNoteNumAndChannel(noteNum, noteChannel)) {
     return false;
   }
 
-  return mapping[noteNum][channel].colRow != 0;
+  return mapping[noteNum][noteChannel - 1].colRow != 0;
 }
 
-void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col, byte row) {
-  if (!validNoteNumAndChannel(noteNum, channel)) {
+void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte col, byte row) {
+  if (!validNoteNumAndChannel(noteNum, noteChannel)) {
     return;
   }
+
+  // offset the channel for a 0-based arrays
+  signed char channel = noteChannel - 1;
 
   musicalTouchCount[channel] += 1;
 
@@ -109,43 +128,43 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col
     // no notes are in the chain yet, add this one as the first note
     if (-1 == firstNote) {
       firstNote = noteNum;
-      firstChannel = channel;
+      firstChannel = noteChannel;
       lastNote = noteNum;
-      lastChannel = channel;
+      lastChannel = noteChannel;
       mapping[noteNum][channel].nextNote = -1;
       mapping[noteNum][channel].previousNote = -1;
       mapping[noteNum][channel].nextPreviousChannel = 0;
     }
     else {
-      signed char noteEntry = firstNote;
-      signed char noteChannel = firstChannel;
-      while (noteEntry != -1) {
-        NoteEntry& entry = mapping[noteEntry][noteChannel];
+      signed char entryNote = firstNote;
+      signed char entryChannel = firstChannel;
+      while (entryNote != -1) {
+        NoteEntry& entry = mapping[entryNote][entryChannel - 1];
 
         // the current note entry comes after the new note, we'll insert the new note
         // right before the current note entry
         // this solves two scenarios, first it will add the new note as a last channel in the chain
         // if this note already exists (ie. earlier presses of the same note get precedence),
         // and it will slide in a new note entry between existing ones if the note didn't exist before
-        if (noteEntry > noteNum) {
+        if (entryNote > noteNum) {
           signed char prevNote = entry.previousNote;
           signed char prevChannel = entry.getPreviousChannel();
 
-          mapping[noteNum][channel].nextNote = noteEntry;
-          mapping[noteNum][channel].setNextChannel(noteChannel);
+          mapping[noteNum][channel].nextNote = entryNote;
+          mapping[noteNum][channel].setNextChannel(entryChannel);
           mapping[noteNum][channel].previousNote = entry.previousNote;
           mapping[noteNum][channel].setPreviousChannel(entry.getPreviousChannel());
           entry.previousNote = noteNum;
-          entry.setPreviousChannel(channel);
+          entry.setPreviousChannel(noteChannel);
 
           // handle the case where the current note entry is the first in the chain
           if (-1 == prevNote) {
             firstNote = noteNum;
-            firstChannel = channel;
+            firstChannel = noteChannel;
           }
           else {
-            mapping[prevNote][prevChannel].nextNote = noteNum;
-            mapping[prevNote][prevChannel].setNextChannel(channel);
+            mapping[prevNote][prevChannel - 1].nextNote = noteNum;
+            mapping[prevNote][prevChannel - 1].setNextChannel(noteChannel);
           }
 
           break;
@@ -155,18 +174,18 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col
         // insert the new note after this one
         if (entry.nextNote == -1) {
           lastNote = noteNum;
-          lastChannel = channel;
+          lastChannel = noteChannel;
           mapping[noteNum][channel].nextNote = -1;
           mapping[noteNum][channel].setNextChannel(1);
-          mapping[noteNum][channel].previousNote = noteEntry;
-          mapping[noteNum][channel].setPreviousChannel(noteChannel);
+          mapping[noteNum][channel].previousNote = entryNote;
+          mapping[noteNum][channel].setPreviousChannel(entryChannel);
           entry.nextNote = noteNum;
-          entry.setNextChannel(channel);
+          entry.setNextChannel(noteChannel);
           break;
         }
 
-        noteEntry = entry.nextNote;
-        noteChannel = entry.getNextChannel();
+        entryNote = entry.nextNote;
+        entryChannel = entry.getNextChannel();
       }
     }
   }
@@ -176,20 +195,23 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char channel, byte col
   debugNoteChain();
 }
 
-void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
-  if (!validNoteNumAndChannel(noteNum, channel)) {
+void NoteTouchMapping::noteOff(signed char noteNum, signed char noteChannel) {
+  if (!validNoteNumAndChannel(noteNum, noteChannel)) {
     return;
   }
 
+  // offset the channel for a 0-based arrays
+  signed char channel = noteChannel - 1;
+
   musicalTouchCount[channel] -= 1;
 
-  if (hasTouch(noteNum, channel)) {
+  if (hasTouch(noteNum, noteChannel)) {
     noteCount--;
 
     // if this is the first note that is active, point the first note/channel
     // markers to the next note entry in the chain and adapt this entry's
     // previous information
-    if (firstNote == noteNum && firstChannel == channel) {
+    if (firstNote == noteNum && firstChannel == noteChannel) {
       firstNote = mapping[noteNum][channel].nextNote;
       firstChannel = mapping[noteNum][channel].getNextChannel();
       if (firstNote == -1) {
@@ -197,8 +219,8 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
         lastChannel = -1;
       }
       else {
-        mapping[firstNote][firstChannel].previousNote = -1;
-        mapping[firstNote][firstChannel].setPreviousChannel(1);
+        mapping[firstNote][firstChannel - 1].previousNote = -1;
+        mapping[firstNote][firstChannel - 1].setPreviousChannel(1);
       }
     }
     // simply remove this note entry from the chain by pointing the previous and
@@ -208,15 +230,15 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
       signed char prevChannel = mapping[noteNum][channel].getPreviousChannel();
       signed char nxtNote = mapping[noteNum][channel].nextNote;
       signed char nxtChannel = mapping[noteNum][channel].getNextChannel();
-      mapping[prevNote][prevChannel].nextNote = nxtNote;
-      mapping[prevNote][prevChannel].setNextChannel(nxtChannel);
+      mapping[prevNote][prevChannel - 1].nextNote = nxtNote;
+      mapping[prevNote][prevChannel - 1].setNextChannel(nxtChannel);
       if (nxtNote == -1) {
         lastNote = prevNote;
         lastChannel = prevChannel;
       }
       else {
-        mapping[nxtNote][nxtChannel].previousNote = prevNote;
-        mapping[nxtNote][nxtChannel].setPreviousChannel(prevChannel);
+        mapping[nxtNote][nxtChannel - 1].previousNote = prevNote;
+        mapping[nxtNote][nxtChannel - 1].setPreviousChannel(prevChannel);
       }
     }
 
@@ -230,10 +252,13 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char channel) {
   debugNoteChain();
 }
 
-void NoteTouchMapping::changeCell(signed char noteNum, signed char channel, byte col, byte row) {
-  if (!validNoteNumAndChannel(noteNum, channel)) {
+void NoteTouchMapping::changeCell(signed char noteNum, signed char noteChannel, byte col, byte row) {
+  if (!validNoteNumAndChannel(noteNum, noteChannel)) {
     return;
   }
+
+  // offset the channel for a 0-based arrays
+  signed char channel = noteChannel - 1;
 
   if (mapping[noteNum][channel].colRow != 0) {
     mapping[noteNum][channel].setColRow(col, row);
@@ -249,20 +274,20 @@ void NoteTouchMapping::debugNoteChain() {
     DEBUGPRINT((1," firstNote="));DEBUGPRINT((1,firstNote));
     DEBUGPRINT((1," firstChannel="));DEBUGPRINT((1,firstChannel));
     DEBUGPRINT((1,"\n"));
-    signed char noteEntry = firstNote;
-    signed char noteChannel = firstChannel;
-    while (noteEntry != -1) {
-      NoteEntry& entry = mapping[noteEntry][noteChannel];
+    signed char entryNote = firstNote;
+    signed char entryChannel = firstChannel;
+    while (entryNote != -1) {
+      NoteEntry& entry = mapping[entryNote][entryChannel];
 
-      DEBUGPRINT((1," note="));DEBUGPRINT((1,noteEntry));
-      DEBUGPRINT((1," channel="));DEBUGPRINT((1,noteChannel));
+      DEBUGPRINT((1," note="));DEBUGPRINT((1,entryNote));
+      DEBUGPRINT((1," channel="));DEBUGPRINT((1,entryChannel));
       DEBUGPRINT((1," col="));DEBUGPRINT((1,entry.getCol()));
       DEBUGPRINT((1," row="));DEBUGPRINT((1,entry.getRow()));
       DEBUGPRINT((1," previous="));DEBUGPRINT((1,entry.previousNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getPreviousChannel()));
       DEBUGPRINT((1," next="));DEBUGPRINT((1,entry.nextNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getNextChannel()));
       DEBUGPRINT((1,"\n"));
-      noteEntry = entry.nextNote;
-      noteChannel = entry.getNextChannel();
+      entryNote = entry.nextNote;
+      entryChannel = entry.getNextChannel();
     }  
     DEBUGPRINT((1," lastNote="));DEBUGPRINT((1,lastNote));
     DEBUGPRINT((1," lastChannel="));DEBUGPRINT((1,lastChannel));

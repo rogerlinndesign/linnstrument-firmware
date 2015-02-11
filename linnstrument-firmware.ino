@@ -242,6 +242,9 @@ struct NoteTouchMapping {
   void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
+  inline NoteEntry* getNoteEntry(signed char, signed char);  // get the entry for a particular note and channel
+  inline byte getMusicalTouchCount(signed char);             // the number of musical touches for a particular MIDI channel
+
   void debugNoteChain();
 
   unsigned short noteCount;

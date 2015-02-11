@@ -54,7 +54,7 @@ boolean severalTouchesForMidiChannel(byte col, byte row) {
   }
 
   byte split = getSplitOf(col);
-  if (noteTouchMapping[split].musicalTouchCount[cell(col, row).channel - 1] > 1) {
+  if (noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel) > 1) {
     return true;
   }
 
@@ -930,7 +930,7 @@ void handleTouchRelease() {
     if (Split[sensorSplit].colorNoteon) {
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
-      for (byte ch = 0; ch < 16; ++ch) {
+      for (byte ch = 1; ch <= 16; ++ch) {
         if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
           allNotesOff = false;
           break;

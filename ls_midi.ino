@@ -1054,9 +1054,14 @@ void midiSendNoteOffForAllTouches(byte split) {
 
   while (note != -1) {
     midiSendNoteOff(split, note, channel);
-    NoteEntry& entry = noteTouchMapping[split].mapping[note][channel];
-    note = entry.getNextNote();
-    channel = entry.getNextChannel();
+    NoteEntry *entry = noteTouchMapping[split].getNoteEntry(note, channel);
+    if (entry == NULL) {
+      note = -1;
+    }
+    else {
+      note = entry->getNextNote();
+      channel = entry->getNextChannel();
+    }
   }
 }
 
