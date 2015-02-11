@@ -54,7 +54,7 @@ boolean severalTouchesForMidiChannel(byte col, byte row) {
   }
 
   byte split = getSplitOf(col);
-  if (noteTouchMapping[split].musicalTouchCount[cell(col, row).channel] > 1) {
+  if (noteTouchMapping[split].musicalTouchCount[cell(col, row).channel - 1] > 1) {
     return true;
   }
 
