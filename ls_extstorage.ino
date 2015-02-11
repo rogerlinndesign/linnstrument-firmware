@@ -71,6 +71,27 @@ struct ConfigurationV1 {
 };
 struct ConfigurationV1 configV1;
 /**************************************** Configuration V2 ***************************************/
+struct GlobalSettingsV2 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  boolean mainNotes[12];                     // determines which notes receive "main" lights
+  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+};
+struct PresetSettingsV2 {
+  GlobalSettingsV2 global;
+  SplitSettings split[NUMSPLITS];
+};
 struct DeviceSettingsV2 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -85,7 +106,7 @@ struct DeviceSettingsV2 {
 };
 struct ConfigurationV2 {
   DeviceSettingsV2 device;
-  PresetSettings preset[NUMPRESETS];
+  PresetSettingsV2 preset[NUMPRESETS];
 };
 struct ConfigurationV2 configV2;
 /*************************************************************************************************/
@@ -293,6 +314,7 @@ void copySettingsV1ToSettingsV3(void *target, void *source) {
   c->device.sensorRangeZ = g->sensorRangeZ;
   c->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
   c->device.serialMode = true;
+  c->device.operatingLowPower = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -303,6 +325,7 @@ void copySettingsV1ToSettingsV3(void *target, void *source) {
     c->preset[p].global.rowOffset = g->rowOffset;
     c->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     c->preset[p].global.pressureSensitivity = g->pressureSensitivity;
+    c->preset[p].global.pressureAftertouch = false;
     memcpy(c->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
     memcpy(c->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
     c->preset[p].global.midiIO = g->midiIO;
@@ -365,6 +388,22 @@ void copySettingsV2ToSettingsV3(void *target, void *source) {
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    c->preset[p] = configV2->preset[p];
+    c->preset[p].global.splitPoint = configV2->preset[p].global.splitPoint;
+    c->preset[p].global.currentPerSplit = configV2->preset[p].global.currentPerSplit;
+    memcpy(c->preset[p].global.mainNotes, configV2->preset[p].global.mainNotes, sizeof(boolean)*12);
+    memcpy(c->preset[p].global.accentNotes, configV2->preset[p].global.accentNotes, sizeof(boolean)*12);
+    c->preset[p].global.rowOffset = configV2->preset[p].global.rowOffset;
+    c->preset[p].global.velocitySensitivity = configV2->preset[p].global.velocitySensitivity;
+    c->preset[p].global.pressureSensitivity = configV2->preset[p].global.pressureSensitivity;
+    c->preset[p].global.pressureAftertouch = false;
+    memcpy(c->preset[p].global.switchAssignment, configV2->preset[p].global.switchAssignment, sizeof(byte)*4);
+    memcpy(c->preset[p].global.switchBothSplits, configV2->preset[p].global.switchBothSplits, sizeof(boolean)*4);
+    c->preset[p].global.midiIO = configV2->preset[p].global.midiIO;
+    c->preset[p].global.arpDirection = configV2->preset[p].global.arpDirection;
+    c->preset[p].global.arpTempo = configV2->preset[p].global.arpTempo;
+    c->preset[p].global.arpOctave = configV2->preset[p].global.arpOctave;
+
+    c->preset[p].split[LEFT] = configV2->preset[p].split[LEFT];
+    c->preset[p].split[RIGHT] = configV2->preset[p].split[RIGHT];
   }
 }

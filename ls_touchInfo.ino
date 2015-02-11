@@ -202,11 +202,11 @@ void initializeTouchInfo() {
 // This element of the linear regression algorithm is constant based on the number of velocity samples 
 const int VELOCITY_SXX = (VELOCITY_N * VELOCITY_SUMXSQ) - VELOCITY_SUMX * VELOCITY_SUMX;
 
-inline byte scale1016to127(int v) {
+inline byte scale1016to127(int v, boolean allowZero) {
   // reduce 1016 > 127 by dividing, but we do this so that values are rounded instead of truncated
   // we also assume that all values that are equal to zero are filtered out already, so the bottom
   // value is 1
-  return constrain(((v * 10) + 40) / 80, 1, 127);
+  return constrain(((v * 10) + 40) / 80, allowZero ? 0 : 1, 127);
 }
 
 boolean calcVelocity(unsigned short z) {
@@ -238,7 +238,7 @@ boolean calcVelocity(unsigned short z) {
       int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
       int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 1, 1016)];
 
-      slope = scale1016to127(slope);
+      slope = scale1016to127(slope, false);
 
       sensorCell().velocity = calcPreferredVelocity(slope);
 
@@ -377,7 +377,14 @@ inline void TouchInfo::refreshZ() {
     }
 
     unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
-    unsigned short usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
+    unsigned short usablePressureZ;
+    if (Global.pressureAftertouch) {
+        sensorRangePressure /= 4;
+        usablePressureZ = constrain(usableZ - ((sensorRangeVelocity * 3) / 4), 0, sensorRangePressure);
+    }
+    else {
+        usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
+    }
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -387,8 +394,8 @@ inline void TouchInfo::refreshZ() {
     usablePressureZ = FXD_TO_INT(fxd_usablePressureZ);
 
     // scale the result and store it as a byte in the range 0-127
-    velocityZ = scale1016to127(usableVelocityZ);
-    pressureZ = scale1016to127(usablePressureZ);
+    velocityZ = scale1016to127(usableVelocityZ, false);
+    pressureZ = scale1016to127(usablePressureZ, true);
   }
 }
 

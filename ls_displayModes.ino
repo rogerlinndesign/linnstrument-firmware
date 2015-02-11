@@ -820,6 +820,11 @@ void paintGlobalSettingsDisplay() {
   lightLed(10, Global.velocitySensitivity);
   lightLed(11, Global.pressureSensitivity);
 
+  // Indicate whether pressure is behaving like traditional aftertouch or not
+  if (Global.pressureAftertouch) {
+    lightLed(11, 3);
+  }
+
   // Set the lights for the Arpeggiator settings
   switch (Global.arpDirection) {
     case ArpDown:

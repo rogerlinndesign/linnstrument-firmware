@@ -182,6 +182,7 @@ void initializeGlobalSettings() {
     g.rowOffset = 5;
     g.velocitySensitivity = velocityMedium;
     g.pressureSensitivity = pressureMedium;
+    g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
 
     // initialize switch assignments
@@ -1062,16 +1063,18 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  // select the Pressure Sensitivity
+  // select the Pressure Sensitivity and behaviour
   if (sensorCol == 11) {
-    // Note: this assumes the PressureSensitivity values exactly match the sensor rows
     switch (sensorRow)
     {
+      // Note: this assumes the PressureSensitivity values exactly match the sensor rows
       case pressureLow:
       case pressureMedium:
       case pressureHigh:
         Global.pressureSensitivity = PressureSensitivity(sensorRow);
         break;
+      case 3:
+        Global.pressureAftertouch = !Global.pressureAftertouch;
     }
   }
 
