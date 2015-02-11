@@ -143,35 +143,35 @@ void refreshLedColumn(unsigned long now) {               // output: none
       cellDisplay = lastPulseOn ? cellOn : cellOff;
     }
 
-    if (!operatingLowPower && cellDisplay ||
-        operatingLowPower && cellDisplay > displayInterval) {     // if this LED is not off, process it
-      switch (color)                                              // set the color bytes to the correct color
+    if (!Device.operatingLowPower && cellDisplay ||
+        Device.operatingLowPower && cellDisplay > displayInterval) {    // if this LED is not off, process it
+      switch (color)                                                    // set the color bytes to the correct color
       {
         case 0:  // off-- do nothing
           break;
         case 1:  // red
-          red = red | (B00000001 << rowCount);                    // set this row's red bit on
+          red = red | (B00000001 << rowCount);                          // set this row's red bit on
           break;
         case 2:  // yellow
-          red = red | (B00000001 << rowCount);                    // set this row's red and green bits on (yellow)
+          red = red | (B00000001 << rowCount);                          // set this row's red and green bits on (yellow)
           green = green | (B00000001 << rowCount);
           break;
         case 3:  // green
-          green = green | (B00000001 << rowCount);                // set this row's green bit on
+          green = green | (B00000001 << rowCount);                      // set this row's green bit on
           break;
         case 4:  // cyan
-          green = green | (B00000001 << rowCount);                // set this row's green and blue bits on (cyan)
+          green = green | (B00000001 << rowCount);                      // set this row's green and blue bits on (cyan)
           blue = blue | (B00000001 << rowCount);
           break;
         case 5:  // blue
-          blue = blue | (B00000001 << rowCount);                  // set this row's blue bit on
+          blue = blue | (B00000001 << rowCount);                        // set this row's blue bit on
           break;
         case 6:  // magenta
-          blue = blue | (B00000001 << rowCount);                  // set this row's blue and red bits on (magenta)
+          blue = blue | (B00000001 << rowCount);                        // set this row's blue and red bits on (magenta)
           red = red | (B00000001 << rowCount);
           break;
         case 7:  // white
-          red = red | (B00000001 << rowCount);                    // set this row's red, green and blue bits on (white). Not used because current drain is too high. 
+          red = red | (B00000001 << rowCount);                          // set this row's red, green and blue bits on (white). Not used because current drain is too high. 
           green = green | (B00000001 << rowCount);
           blue = blue | (B00000001 << rowCount);
           break;

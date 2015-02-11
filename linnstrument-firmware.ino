@@ -561,6 +561,7 @@ struct DeviceSettings {
   boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
   byte currentPreset;                        // the currently active settings preset
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
 };
 DeviceSettings Device;
 
@@ -647,7 +648,6 @@ enum OperatingMode {
 };
 
 OperatingMode operatingMode = modePerformance;
-boolean operatingLowPower = false;
 
 
 /********************************************** SETUP ********************************************/
@@ -694,6 +694,14 @@ boolean switchPressAtStartup(byte switchRow) {
     return true;
   }
   return false;
+}
+
+void applyLowPowerMode() {
+  // change the behavior for low power mode
+  if (Device.operatingLowPower) {
+    ledRefreshInterval = 200;       // accelerate led refresh so that they can be lit only 1/3rd of the time
+    midiDecimateRate = 12;          // set decimation rate to 12 ms
+  }
 }
 
 void setup() {
@@ -786,14 +794,6 @@ void setup() {
     return;
   }
 
-  // detect if low power mode is active by holding down the octave/transpose button at startup
-  if (switchPressAtStartup(4)) {
-    operatingLowPower = true;
-    ledRefreshInterval = 200;                          // accelerate led refresh so that they can be lit only 1/3rd of the time
-    midiDecimateRate = 12;                             // set decimation rate to 12 ms
-    sensorCell().touched = touchedCell;
-  }
-
   // default to performance mode
   sensorCol = 0;
   sensorRow = 0;
@@ -815,6 +815,15 @@ void setup() {
     for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
       secretSwitch[ss] = false;
     }
+
+    // detect if low power mode is toggled by holding down the octave/transpose button at startup
+    if (switchPressAtStartup(4)) {
+      Device.operatingLowPower = true;
+      sensorCell().touched = touchedCell;
+      storeSettings();
+    }
+
+    applyLowPowerMode();    
 
     // update the display for the last state
     updateDisplay();

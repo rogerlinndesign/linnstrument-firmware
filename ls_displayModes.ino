@@ -885,6 +885,11 @@ void paintGlobalSettingsDisplay() {
     lightLed(15, 1);       // for MIDI jacks
   }
 
+  // Show the low power mode
+  if (Device.operatingLowPower) {
+    lightLed(15, 2);
+  }
+
   // set light for serial mode
   if (Device.serialMode) {
     lightLed(16, 2);

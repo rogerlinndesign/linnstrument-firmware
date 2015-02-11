@@ -361,6 +361,7 @@ void copySettingsV2ToSettingsV3(void *target, void *source) {
   c->device.sensorRangeZ = configV2->device.sensorRangeZ;
   c->device.promoAnimationAtStartup = configV2->device.promoAnimationAtStartup;
   c->device.serialMode = true;
+  c->device.operatingLowPower = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {

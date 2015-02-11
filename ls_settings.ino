@@ -91,7 +91,7 @@ void writeSettingsToFlash() {
   DEBUGPRINT((2,"\n"));
 
   // batch and slow down the flash storage in low power mode
-  if (operatingLowPower) {
+  if (Device.operatingLowPower) {
     clearDisplay();
 
     delayUsec(200*NUMCOLS);
@@ -151,6 +151,7 @@ void initializeDeviceSettings() {
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.currentPreset = 0;
+  config.device.operatingLowPower = false;
 
   initializeAudienceMessages();
 }
@@ -1185,6 +1186,10 @@ void handleGlobalSettingNewTouch() {
     }
     else if (sensorRow == 1) {
       changeMidiIO(0);
+    }
+    else if (sensorRow == 2) {
+      Device.operatingLowPower = !Device.operatingLowPower;
+      applyLowPowerMode();
     }
   }
 

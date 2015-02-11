@@ -855,7 +855,7 @@ void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
 
 void handlePendingMidi(unsigned long now) {
   // when in low power mode only send one MIDI byte every 150 microseconds
-  if (operatingLowPower) {
+  if (Device.operatingLowPower) {
     static unsigned long lastEnvoy = 0;
     if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
       sendNextMidiOutputByte();
