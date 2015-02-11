@@ -1,3 +1,15 @@
+v1.1.1
+
+  * Fixed regressions in the calibration procedure from v1.1.0, please recalibrate after the v1.1.1 upgrade
+  * Audience messages can now be edited by keeping the corresponding cell pressed in Global Settings for
+    three seconds, sliding horizontally scrolls the text and sliding vertically loops through different
+    characters. The maximum message length is 30 characters and trailing spaces will be stripped.
+  * Disabled control buttons except for switch 1 and switch 2 when notes are being played on the surface, this
+    prevents accidentally going into settings during a live performance
+  * Reduced flickering during numeric parameter changes
+  * Improvements to changing numeric parameters through sliding
+  * Optimized the fonts that are used on the LinnStrument surface
+
 v1.1.0
 
   * Much reduced latency and jitter, making the LinnStrument wonderful for rapid runs and sharp attacks
