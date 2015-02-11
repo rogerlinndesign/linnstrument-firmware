@@ -4,6 +4,8 @@ v1.1.1
   * Audience messages can now be edited by keeping the corresponding cell pressed in Global Settings for
     three seconds, sliding horizontally scrolls the text and sliding vertically loops through different
     characters. The maximum message length is 30 characters and trailing spaces will be stripped.
+  * Made low-power mode at boot time persist across power cycles
+  * Low-power mode can now be turned on/off through row 3 in the Global MIDI I/O settings
   * Disabled control buttons except for switch 1 and switch 2 when notes are being played on the surface, this
     prevents accidentally going into settings during a live performance
   * Reduced flickering during numeric parameter changes
