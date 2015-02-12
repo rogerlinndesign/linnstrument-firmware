@@ -4,15 +4,16 @@ v1.1.1
   * Audience messages can now be edited by keeping the corresponding cell pressed in Global Settings for
     three seconds, sliding horizontally scrolls the text and sliding vertically loops through different
     characters. The maximum message length is 30 characters and trailing spaces will be stripped.
-  * Row 4 in Global Pressure Sensitivity settings now allows to enable or disable traditional aftertouch-like
-    behavior where the pressure only has an effect when a minimum amount of force has already been applied
+  * Row 4 in Global Pressure Sensitivity settings now toggles traditional aftertouch-like behavior where the
+    pressure only has an effect when a minimum amount of force has already been applied
   * Made low-power mode at boot time persist across power cycles
-  * Low-power mode can now be turned on/off through row 3 in the Global MIDI I/O settings
+  * Low-power mode can now be turned on/off through row 3 in the Global MIDI I/O settings (above MIDI Jacks)
   * Disabled control buttons except for switch 1 and switch 2 when notes are being played on the surface, this
     prevents accidentally going into settings during a live performance
   * Reduced flickering during numeric parameter changes
   * Improvements to changing numeric parameters through sliding
   * Optimized the fonts that are used on the LinnStrument surface
+  * Quantize hold has been very slightly sped up
 
 v1.1.0
 
