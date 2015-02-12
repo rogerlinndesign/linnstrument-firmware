@@ -54,7 +54,7 @@ inline short readY() {                                // returns a value of 0-12
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
-  delayUsec(25);                                      // delay required after setting analog switches for stable Y read. Requires further research
+  delayUsec(35);                                      // delay required after setting analog switches for stable Y read. Requires further research
   short raw = spiAnalogRead();
   #ifdef APRIL_2014_PROTOTYPE
   raw = 4095 - raw;
