@@ -379,8 +379,8 @@ inline void TouchInfo::refreshZ() {
     unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
     unsigned short usablePressureZ;
     if (Global.pressureAftertouch) {
-        sensorRangePressure /= 4;
-        usablePressureZ = constrain(usableZ - ((sensorRangeVelocity * 3) / 4), 0, sensorRangePressure);
+        sensorRangePressure /= 5;
+        usablePressureZ = constrain(usableZ - (sensorRangeVelocity - sensorRangePressure), 0, sensorRangePressure);
     }
     else {
         usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
