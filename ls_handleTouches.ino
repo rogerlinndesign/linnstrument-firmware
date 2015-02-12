@@ -542,10 +542,14 @@ void handleXYZupdate() {
 
   // the volume fader has its own operation mode
   if (displayMode == displayVolume) {
-    handleVolumeNewTouch();
+    if (sensorCell().isMeaningfulTouch()) {
+      handleVolumeNewTouch(newVelocity);
+    }
   }
   else if (Split[sensorSplit].ccFaders) {
-    handleFaderTouch(newVelocity);
+    if (sensorCell().isMeaningfulTouch()) {
+      handleFaderTouch(newVelocity);
+    }
   }
   else if (handleNotes && sensorCell().hasNote()) {
     // after the initial velocity, new velocity values are continuously being calculated simply based

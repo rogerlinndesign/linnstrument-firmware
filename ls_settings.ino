@@ -720,6 +720,11 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
+  // don't change presets on the row that has the split selection
+  if (sensorRow == 7) {
+    return;
+  }
+
   if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       activateSettingsPreset(sensorRow-2);
@@ -812,13 +817,20 @@ void handleSensorRangeZRelease() {
   handleNumericDataReleaseCol(false);
 }
 
-void handleVolumeNewTouch() {
-  byte v = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
-  ccFaderValues[Global.currentPerSplit][6] = v;
+void handleVolumeNewTouch(boolean newVelocity) {
+  // don't change volume on the row that has the split selection
+  if (sensorRow == 7) {
+    return;
+  }
 
-  byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendVolume(v, chan);     // Send the MIDI volume controller message
-  updateDisplay();
+  short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
+  if (value >= 0) {
+    ccFaderValues[Global.currentPerSplit][6] = value;
+
+    byte chan = Split[Global.currentPerSplit].midiChanMain;
+    midiSendVolume(value, chan);     // Send the MIDI volume controller message
+    updateDisplay();
+  }
 }
 
 void handleVolumeRelease() {
