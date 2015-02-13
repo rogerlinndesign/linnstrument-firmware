@@ -140,7 +140,7 @@ enum TouchState {
 };
 
 #define PITCH_HOLD_DURATION 28               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
-#define ROGUE_PITCH_SWEEP_THRESHOLD 6        // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
+#define ROGUE_PITCH_SWEEP_THRESHOLD 48       // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 
 struct TouchInfo {
