@@ -78,7 +78,7 @@ NRPN   Value   Description
 19     1-96    Split Left MIDI Bend Range
 20     0-1     Split Left Send X (0: Off, 1: On)
 21     0-1     Split Left Pitch Quantize (0: Off, 1: On)
-22     0-1     Split Left Pitch Quantize Hold (0: Off, 1: On)
+22     0-3     Split Left Pitch Quantize Hold (0: Off, 1: Medium, 2: Fast, 3: Slow)
 23     0-1     Split Left Pitch Reset On Release (unprinted parameter, 0: Off, 1: On)
 24     0-1     Split Left Send Y (0: Off, 1: On)
 25     0-127   Split Left MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)
@@ -117,8 +117,8 @@ NRPN   Value   Description
 118    1-16    Split Right MIDI Per Row Lowest Channel
 119    1-96    Split Right MIDI Bend Range
 120    0-1     Split Right Send X (0: Off, 1: On)
-121    0-1     Split Right Pitch Correct Quantize (0: Off, 1: On)
-122    0-1     Split Right Pitch Correct Hold (0: Off, 1: On)
+121    0-1     Split Right Pitch Quantize (0: Off, 1: On)
+122    0-1     Split Right Pitch Quantize Hold (0: Off, 1: Medium, 2: Fast, 3: Slow)
 123    0-1     Split Right Pitch Reset On Release (unprinted parameter, 0: Off, 1: On)
 124    0-1     Split Right Send Y (0: Off, 1: On)
 125    0-127   Split Right MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)

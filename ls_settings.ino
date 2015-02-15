@@ -564,9 +564,22 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].pitchCorrectQuantize = !Split[Global.currentPerSplit].pitchCorrectQuantize;
     }
     else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].pitchCorrectHold = !Split[Global.currentPerSplit].pitchCorrectHold;
+      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
+        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
+        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
+        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
+        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
+      }
     }
     else if (sensorRow == 4) {
+      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
+        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
+        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
+        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
+        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
+      }
+    }
+    else if (sensorRow == 3) {
       Split[Global.currentPerSplit].pitchResetOnRelease = !Split[Global.currentPerSplit].pitchResetOnRelease;
     }
 

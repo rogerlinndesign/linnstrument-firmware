@@ -361,12 +361,18 @@ void paintPerSplitDisplay(byte side) {
     setLed(8, 6, Split[side].colorMain, cellOn);
   }
 
-  if (Split[side].pitchCorrectHold == true) {
+  if (Split[side].pitchCorrectHold == pitchCorrectHoldMedium ||
+      Split[side].pitchCorrectHold == pitchCorrectHoldSlow) {
     setLed(8, 5, Split[side].colorMain, cellOn);
   }
 
-  if (Split[side].pitchResetOnRelease == true) {
+  if (Split[side].pitchCorrectHold == pitchCorrectHoldFast ||
+      Split[side].pitchCorrectHold == pitchCorrectHoldSlow) {
     setLed(8, 4, Split[side].colorMain, cellOn);
+  }
+
+  if (Split[side].pitchResetOnRelease == true) {
+    setLed(8, 3, Split[side].colorMain, cellOn);
   }
 
   // set Timbre/Y settings

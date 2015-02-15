@@ -370,7 +370,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split Pitch Quantize Hold
     case 22:
-      if (inRange(value, 0, 1)) {
+      if (inRange(value, 0, 3)) {
         Split[split].pitchCorrectHold = value;
       }
       break;

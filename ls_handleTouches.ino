@@ -449,7 +449,6 @@ byte takeChannel() {
 
 const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over which the average rate of change of X is calculated
 const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
-const int32_t fxdPitchHoldDuration = FXD_FROM_INT(PITCH_HOLD_DURATION);
 
 #define INVALID_DATA SHRT_MAX
 
@@ -737,14 +736,22 @@ short handleXExpression() {
   sensorCell().fxdRateX -= FXD_DIV(sensorCell().fxdRateX, fxdRateXSamples);       // calculate the average rate of X value changes over a number of samples
   sensorCell().fxdRateX += FXD_DIV(FXD_FROM_INT(deltaX), fxdRateXSamples);
 
+  byte pitchHoldDuration = 0;
+  switch (Split[sensorSplit].pitchCorrectHold) {
+    case pitchCorrectHoldFast:   pitchHoldDuration = 1; break;
+    case pitchCorrectHoldMedium: pitchHoldDuration = 24; break;
+    case pitchCorrectHoldSlow:   pitchHoldDuration = 175; break;
+  }
+
   if (!sensorCell().hasPhantoms() ||                                              // if no phantom presses are active, send the pitch bend change
       deltaX < ROGUE_PITCH_SWEEP_THRESHOLD) {                                     // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
 
     sensorCell().lastMovedX = movedX;
     short bend = 0;
 
-    if (Split[sensorSplit].pitchCorrectHold) {                                    // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
-      int32_t fxdMovedRatio = FXD_DIV(FXD_FROM_INT(PITCH_HOLD_DURATION - sensorCell().rateCountX), fxdPitchHoldDuration);
+    // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
+    if (pitchHoldDuration != 0) {
+      int32_t fxdMovedRatio = FXD_DIV(FXD_FROM_INT(pitchHoldDuration - sensorCell().rateCountX), FXD_FROM_INT(pitchHoldDuration));
       int32_t fxdCorrectedRatio = FXD_FROM_INT(1) - fxdMovedRatio;
       int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
@@ -752,7 +759,7 @@ short handleXExpression() {
       bend = FXD_TO_INT(fxdInterpolatedX);
 
       // if the pich has stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-      if (PITCH_HOLD_DURATION == sensorCell().rateCountX) {
+      if (pitchHoldDuration == sensorCell().rateCountX) {
         sensorCell().quantizationOffsetX = sensorCell().initialX - (sensorCell().currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
       }
     }
@@ -769,7 +776,7 @@ short handleXExpression() {
 
   // keep track of how many times the X changement rate drops below the threshold or above
   if (sensorCell().fxdRateX < fxdRateXThreshold) {
-    if (sensorCell().rateCountX < PITCH_HOLD_DURATION) {
+    if (sensorCell().rateCountX < pitchHoldDuration) {
       sensorCell().rateCountX++;
     }
   }

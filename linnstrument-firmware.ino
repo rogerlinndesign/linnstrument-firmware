@@ -139,7 +139,6 @@ enum TouchState {
   touchedCell = 3
 };
 
-#define PITCH_HOLD_DURATION 28               // the number of samples over which pitch hold quantize will interpolate to correct the pitch, the higher, the slower
 #define ROGUE_PITCH_SWEEP_THRESHOLD 48       // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 
@@ -435,6 +434,13 @@ enum MidiMode {
   channelPerRow
 };
 
+enum PitchCorrectHoldSpeed {
+  pitchCorrectHoldOff = 0,
+  pitchCorrectHoldMedium = 1,
+  pitchCorrectHoldFast = 2,
+  pitchCorrectHoldSlow = 3
+};
+
 enum TimbreExpression {
   timbrePolyPressure,
   timbreChannelPressure,
@@ -458,7 +464,7 @@ struct SplitSettings {
   boolean sendY;                       // true to send continuous Y, false if not
   boolean sendZ;                       // true to send continuous Z, false if not
   boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
-  boolean pitchCorrectHold;            // true to quantize pitch when note is held, false if not
+  byte pitchCorrectHold;               // See PitchCorrectHoldSpeed values
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
   unsigned short ccForY;               // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
@@ -528,6 +534,24 @@ boolean doublePerSplit = false;   // false when only one per split is active, tr
 #define ASSIGNED_ARPEGGIATOR 4
 #define ASSIGNED_ALTSPLIT 5
 
+boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
+
+struct DeviceSettings {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  byte currentPreset;                        // the currently active settings preset
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+};
+DeviceSettings Device;
+
 enum ArpeggiatorStepTempo {
   ArpFourth = 0,
   ArpEighth = 1,
@@ -547,24 +571,6 @@ enum ArpeggiatorDirection {
   ArpRandom,
   ArpReplayAll
 };
-
-boolean firstTimeBoot = false;   // This will be true when the LinnStrument booted up the first time after a firmware upgrade
-
-struct DeviceSettings {
-  byte version;                              // the version of the configuration format
-  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
-  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
-  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
-  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
-  unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
-  byte currentPreset;                        // the currently active settings preset
-  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
-  boolean operatingLowPower;                 // whether low power mode is active or not
-};
-DeviceSettings Device;
 
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
