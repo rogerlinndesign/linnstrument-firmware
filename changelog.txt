@@ -4,12 +4,21 @@ v1.1.1
   * Audience messages can now be edited by keeping the corresponding cell pressed in Global Settings for
     three seconds, sliding horizontally scrolls the text and sliding vertically loops through different
     characters. The maximum message length is 30 characters and trailing spaces will be stripped.
-  * Row 4 in Global Pressure Sensitivity settings now toggles traditional aftertouch-like behavior where the
+  * Note pad 4 in Global Pressure Sensitivity settings now toggles traditional aftertouch-like behavior where the
     pressure only has an effect when a minimum amount of force has already been applied
   * Made low-power mode at boot time persist across power cycles
-  * Low-power mode can now be turned on/off through row 3 in the Global MIDI I/O settings (above MIDI Jacks)
+  * Added three different pitch quantize hold speeds, accessible through note pads 3 and 4 form the top in the
+    Per Split Pitch/X settings. When note pad 3 is active, quantize hold speed is medium; when note pad 4 is
+    also active, it's slow; when only note pad 4 is active, it's fast and when none are active, quantize hold is
+    turned off.
+  * Moved the hidden Reset On Release option from note pad 4 to note pad 5 in Per Split Pitch/X.
+  * Low-power mode can now be turned on/off through note pad 3 in the Global MIDI I/O settings (above MIDI Jacks)
+  * Fixed split select on preset and volume screen intervening with the actual settings.
+  * Made CC faders and Volume fader more reliable on very soft touches.
   * Disabled control buttons except for switch 1 and switch 2 when notes are being played on the surface, this
     prevents accidentally going into settings during a live performance
+  * When pressing down two fingers in the same column and sliding with a third finger on the same row as one of those
+    two pressed, the pitch sliding didn't work well. This is fixed.
   * Reduced flickering during numeric parameter changes
   * Improvements to changing numeric parameters through sliding
   * Optimized the fonts that are used on the LinnStrument surface
