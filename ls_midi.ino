@@ -637,6 +637,12 @@ void receivedNrpn(int parameter, int value) {
         activateSettingsPreset(value);
       }
       break;
+    // Global Pressure Aftertouch Active
+    case 244:
+      if (inRange(value, 0, 1)) {
+        Global.pressureAftertouch = value;
+      }
+      break;
   }
 
   updateDisplay();

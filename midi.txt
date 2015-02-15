@@ -179,6 +179,7 @@ NRPN   Value   Description
 241    0-1     Global Foot Left Both Splits (0: Off, 1: On)
 242    0-1     Global Foot Right Both Splits (0: Off, 1: On)
 243    0-3     Global Settings Preset
+244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 
 Color Values
 ============
