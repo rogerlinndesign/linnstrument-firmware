@@ -9,22 +9,27 @@ released touch events
 
 void cellTouched(TouchState state);
 void cellTouched(TouchState state) {
+  cellTouched(sensorCol, sensorRow, state);
+};
+void cellTouched(byte col, byte row, TouchState state);
+void cellTouched(byte col, byte row, TouchState state) {
   // turn on the bit that correspond to the column and row of this cell,
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
-  if (state != untouchedCell) {
-    rowsInColsTouched[sensorCol] |= (int32_t)(1 << sensorRow);
-    colsInRowsTouched[sensorRow] |= (int32_t)(1 << sensorCol);
+  if (state != untouchedCell &&
+      state != transferCell) {
+    rowsInColsTouched[col] |= (int32_t)(1 << row);
+    colsInRowsTouched[row] |= (int32_t)(1 << col);
   }
   // if the state is untouched, turn off the appropriate bit in the
   // bitmasks that track the touched cells
   else {
-    rowsInColsTouched[sensorCol] &= ~(int32_t)(1 << sensorRow);
-    colsInRowsTouched[sensorRow] &= ~(int32_t)(1 << sensorCol);
+    rowsInColsTouched[col] &= ~(int32_t)(1 << row);
+    colsInRowsTouched[row] &= ~(int32_t)(1 << col);
   }
   
   // save the touched state for each cell
-  cell(sensorCol, sensorRow).touched = state;
+  cell(col, row).touched = state;
 }
 
 // Re-initialize the velocity detection
@@ -259,7 +264,7 @@ void handleSlideTransferCandidate(byte siblingCol) {
   if (isReadyForSlideTransfer(siblingCol)) {
     transferFromSameRowCell(siblingCol);
     if (cell(siblingCol, sensorRow).touched != untouchedCell) {
-      cell(siblingCol, sensorRow).touched = transferCell;
+      cellTouched(siblingCol, sensorRow, transferCell);
     }
     handleXYZupdate();
   }
@@ -738,9 +743,9 @@ short handleXExpression() {
 
   byte pitchHoldDuration = 0;
   switch (Split[sensorSplit].pitchCorrectHold) {
-    case pitchCorrectHoldFast:   pitchHoldDuration = 1; break;
-    case pitchCorrectHoldMedium: pitchHoldDuration = 24; break;
-    case pitchCorrectHoldSlow:   pitchHoldDuration = 175; break;
+    case pitchCorrectHoldFast:   pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_FAST; break;
+    case pitchCorrectHoldMedium: pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM; break;
+    case pitchCorrectHoldSlow:   pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_SLOW; break;
   }
 
   if (!sensorCell().hasPhantoms() ||                                              // if no phantom presses are active, send the pitch bend change
@@ -767,7 +772,7 @@ short handleXExpression() {
       bend = movedX;
     }
 
-    // when there are multiple touches in the same column, reduce the pitch bend Z sensititivity to
+    // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to
     // prevent unwanted pitch slides
     if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z))) {
       pitchBend = bend;

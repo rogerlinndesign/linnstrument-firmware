@@ -139,8 +139,7 @@ enum TouchState {
   touchedCell = 3
 };
 
-#define ROGUE_PITCH_SWEEP_THRESHOLD 48       // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
-
+#define ROGUE_PITCH_SWEEP_THRESHOLD 24       // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 struct TouchInfo {
   void shouldRefreshData();                  // indicate that the X, Y and Z data should be refreshed
@@ -336,7 +335,7 @@ enum PressureSensitivity {
 #define DEFAULT_SENSOR_LO_Z 230                       // lowest acceptable raw Z value to start a touch
 #define DEFAULT_SENSOR_FEATHER_Z 111                  // lowest acceptable raw Z value to continue a touch
 #define DEFAULT_SENSOR_RANGE_Z 648                    // default range of the pressure
-#define SENSOR_PITCH_Z 273                            // lowest acceptable raw Z value for which pitchbend is sent
+#define SENSOR_PITCH_Z 173                            // lowest acceptable raw Z value for which pitchbend is sent
 #define MAX_SENSOR_RANGE_Z 1016                       // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN 3
@@ -440,6 +439,10 @@ enum PitchCorrectHoldSpeed {
   pitchCorrectHoldFast = 2,
   pitchCorrectHoldSlow = 3
 };
+
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST 1
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM 24
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW 175
 
 enum TimbreExpression {
   timbrePolyPressure,
