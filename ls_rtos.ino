@@ -33,7 +33,7 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 
 inline void performContinuousTasks(unsigned long now) {
   if (checkRefreshLedColumn(now)) {
-    checkStopMiddleRootNoteBlink();
+    checkStopBlinkingLeds();
     checkTimeToReadFootSwitches(now);
     checkRefreshGlobalSettingsDisplay(now);
   }
@@ -53,7 +53,7 @@ inline void performContinuousTasks(unsigned long now) {
 // as a coarse trigger to piggy-back other continuous tasks off of
 inline boolean checkRefreshLedColumn(unsigned long now) {
   if (calcTimeDelta(now, prevLedTimerCount) > ledRefreshInterval) {        // is it time to refresh the next LED column?
-    refreshLedColumn(now);                                                 // yes-- refresh the next LED column...
+    refreshLedColumn(now);                                                 // yes, refresh the next LED column...
     prevLedTimerCount = now;                                               // and reset the LED timer count to current time
     return true;
   }
@@ -62,27 +62,40 @@ inline boolean checkRefreshLedColumn(unsigned long now) {
 
 // checks to see if it's time to refresh the next LED column, and if so, does it
 inline void checkTimeToReadFootSwitches(unsigned long now) {
-  if (calcTimeDelta(now, prevFootSwitchTimerCount) > FOOT_SWITCH_REFRESH_INTERVAL) {    // is it time to check the foot switches?
-    checkFootSwitches();                                                                // yes-- check the foot switches and if state has changed, handle the event, then...
-    prevFootSwitchTimerCount = now;                                                     // reset the foot switch timer to current time
+  if (calcTimeDelta(now, prevFootSwitchTimerCount) > 20000) {              // is it time to check the foot switches?
+    checkFootSwitches();                                                   // yes, check the foot switches and if state has changed, handle the event, then...
+    prevFootSwitchTimerCount = now;                                        // reset the foot switch timer to current time
   }
 }
 
 // checks to see if it's time to refresh the global settings display, and if so, does it
 inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
-  if (calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > GLOBAL_SETTINGS_DISPLAY_REFRESH_INTERVAL &&   // is it time to refresh the global settings display
+  if (calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > 30000 &&                                      // is it time to refresh the global settings display
       (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) && !animationActive) {
-    paintGlobalSettingsFlashTempo(now);                                                                       // yes-- refresh the display...
+    paintGlobalSettingsFlashTempo(now);                                                                       // yes, refresh the display...
     prevGlobalSettingsDisplayTimerCount = now;                                                                // and reset the timer count to current time
   }
 }
 
-// checks whether it's time to stop blinking the middle root note
-inline void checkStopMiddleRootNoteBlink() {
+// checks whether it's time to stop blinking various LEDs
+inline void checkStopBlinkingLeds() {
+  unsigned long nowMillis = millis();
+
+  // should the blinking middle root note be stopped blinking
   if ((displayMode == displayNormal || displayMode == displaySplitPoint) && 
       blinkMiddleRootNote &&
-      calcTimeDelta(millis(), displayModeStart) > 600) {
+      calcTimeDelta(nowMillis, displayModeStart) > 600) {
     blinkMiddleRootNote = false;
     updateDisplay();
+  }
+
+  // check if there are blinking preset LEDs that need to be reset
+  if (displayMode == displayPreset) {
+    for (byte p = 0; p < NUMPRESETS; ++p) {
+      if (presetBlinkStart[p] != 0 && calcTimeDelta(nowMillis, presetBlinkStart[p]) > 1200) {
+        setLed(NUMCOLS-2, p+2, globalColor, cellOn);
+        presetBlinkStart[p] = 0;
+      }
+    }
   }
 }

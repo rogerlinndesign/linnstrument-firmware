@@ -634,7 +634,7 @@ void receivedNrpn(int parameter, int value) {
     // Global Settings Preset
     case 243:
       if (inRange(value, 0, 3)) {
-        activateSettingsPreset(value);
+        applyPresetSettings(config.preset[value]);
       }
       break;
     // Global Pressure Aftertouch Active

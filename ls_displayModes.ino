@@ -317,7 +317,7 @@ void paintPerSplitDisplay(byte side) {
       break;
   }
 
-  switch (midiChannelSettings)
+  switch (midiChannelSelect)
   {
     case MIDICHANNEL_MAIN:
       setLed(2, 7, Split[side].colorMain, cellOn);
@@ -506,11 +506,7 @@ void paintOSVersionDisplay() {
 void paintPresetDisplay(byte side) {
   clearDisplay();
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    byte color = COLOR_BLUE;
-    if (Device.currentPreset == p) {
-      color = COLOR_GREEN;
-    }
-    setLed(NUMCOLS-2, p+2, color, cellOn);
+    setLed(NUMCOLS-2, p+2, globalColor, cellOn);
   }
   paintSplitNumericDataDisplay(side, midiPreset[side]+1);
 }

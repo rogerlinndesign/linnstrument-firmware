@@ -7,11 +7,9 @@ These routines handle the processing of new touch events, continuous updates of 
 released touch events
 **************************************************************************************************/
 
-void cellTouched(TouchState state);
 void cellTouched(TouchState state) {
   cellTouched(sensorCol, sensorRow, state);
 };
-void cellTouched(byte col, byte row, TouchState state);
 void cellTouched(byte col, byte row, TouchState state) {
   // turn on the bit that correspond to the column and row of this cell,
   // this allows us to very quickly find other touched cells and detect
@@ -469,6 +467,11 @@ void handleXYZupdate() {
   // if the display mode is global, some features need hold functionality
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
     handleGlobalSettingHold();
+    return;
+  }
+  // if the display mode is preset, some features need hold functionality
+  else if (displayMode == displayPreset) {
+    handlePresetHold();
     return;
   }
   // only continue if the active display modes require finger tracking

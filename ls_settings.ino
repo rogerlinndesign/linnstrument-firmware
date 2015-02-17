@@ -79,14 +79,14 @@ void storeSettings() {
 
 void saveSettings() {
   config.device = Device;
-  config.preset[Device.currentPreset].global = Global;
-  config.preset[Device.currentPreset].split[LEFT] = Split[LEFT];
-  config.preset[Device.currentPreset].split[RIGHT] = Split[RIGHT];
+  config.settings.global = Global;
+  config.settings.split[LEFT] = Split[LEFT];
+  config.settings.split[RIGHT] = Split[RIGHT];
 }
 
 void writeSettingsToFlash() {
   DEBUGPRINT((2,"storeSettings flash size="));
-  DEBUGPRINT((2,sizeof(struct Configuration)));
+  DEBUGPRINT((2,sizeof(Configuration)));
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
@@ -98,7 +98,7 @@ void writeSettingsToFlash() {
 
     byte batchsize = 64;
     byte* source = (byte*)&config;
-    int total = sizeof(struct Configuration);
+    int total = sizeof(Configuration);
     int i = 0;
     while (i+batchsize < total) {
       dueFlashStorage.write(4+i, source+i, batchsize);
@@ -114,27 +114,21 @@ void writeSettingsToFlash() {
   }
   // do the faster possible flash storage in regular power mode
   else {
-    byte b2[sizeof(struct Configuration)];
-    memcpy(b2, &config, sizeof(struct Configuration));
-    dueFlashStorage.write(4, b2, sizeof(struct Configuration));
+    byte b2[sizeof(Configuration)];
+    memcpy(b2, &config, sizeof(Configuration));
+    dueFlashStorage.write(4, b2, sizeof(Configuration));
   }
 }
 
 void loadSettings() {
   byte* b = dueFlashStorage.readAddress(4);  // byte array which is read from flash at address 4
-  memcpy(&config, b, sizeof(struct Configuration));
+  memcpy(&config, b, sizeof(Configuration));
 }
 
-void applyConfiguration() {
-  Device = config.device;
-  applySerialMode();
-  applyCurrentPresetSettings();
-}
-
-void applyCurrentPresetSettings() {
-  Global = config.preset[Device.currentPreset].global;
-  Split[LEFT] = config.preset[Device.currentPreset].split[LEFT];
-  Split[RIGHT] = config.preset[Device.currentPreset].split[RIGHT];
+void applyPresetSettings(PresetSettings& preset) {
+  memcpy(&Global, &preset.global, sizeof(GlobalSettings));
+  memcpy(&Split[LEFT], &preset.split[LEFT], sizeof(SplitSettings));
+  memcpy(&Split[RIGHT], &preset.split[RIGHT], sizeof(SplitSettings));
 
   focusedSplit = Global.currentPerSplit;
 
@@ -144,13 +138,24 @@ void applyCurrentPresetSettings() {
   applyMidiIo();
 }
 
+void applyConfiguration() {
+  Device = config.device;
+  applySerialMode();
+  applyPresetSettings(config.settings);
+}
+
+void storeSettingsToPreset(byte p) {
+  memcpy(&config.preset[p].global, &Global, sizeof(GlobalSettings));
+  memcpy(&config.preset[p].split[LEFT], &Split[LEFT], sizeof(SplitSettings));
+  memcpy(&config.preset[p].split[RIGHT], &Split[RIGHT], sizeof(SplitSettings));
+}
+
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 3;
+  config.device.version = 4;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
-  config.device.currentPreset = 0;
   config.device.operatingLowPower = false;
 
   initializeAudienceMessages();
@@ -170,11 +175,14 @@ void initializeDeviceSensorSettings() {
   config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
-void initializeGlobalSettings() {
+void initializePresetSettings() {
   splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
-    GlobalSettings &g = config.preset[n].global;
+    presetBlinkStart[n] = 0;
+
+    PresetSettings &p = config.preset[n];
+    GlobalSettings &g = p.global;
 
     g.splitPoint = 12;
     g.currentPerSplit = LEFT;
@@ -216,12 +224,6 @@ void initializeGlobalSettings() {
     g.arpDirection = ArpUp;
     g.arpTempo = ArpSixteenth;
     g.arpOctave = 0;
-  }
-}
-
-void initializeSplitSettings() {
-  for (byte n = 0; n < NUMPRESETS; ++n) {
-    PresetSettings &p = config.preset[n];
 
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
@@ -278,6 +280,10 @@ void initializeSplitSettings() {
     p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
+  // we're initializing the current settings with preset 0
+  memcpy(&config.settings, &config.preset[0], sizeof(PresetSettings));
+
+  // initialize runtime data
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 8; ++c) {
       ccFaderValues[s][c] = 0;
@@ -376,6 +382,9 @@ void handleControlButtonNewTouch() {
     case PRESET_ROW:                                   // displayPreset button pressed
       resetAllTouches();
       setLed(0, PRESET_ROW, globalColor, cellOn);
+      for (byte p = 0; p < NUMPRESETS; ++p) {
+        presetBlinkStart[p] = 0;
+      }
       setDisplayMode(displayPreset);
       resetNumericDataChange();
       updateDisplay();
@@ -455,7 +464,7 @@ void handleControlButtonRelease() {
 }
 
 void toggleChannel(byte chan) {                          // chan value is 1-16
-  switch (midiChannelSettings)
+  switch (midiChannelSelect)
   {
     case MIDICHANNEL_MAIN:
       Split[Global.currentPerSplit].midiChanMain = chan;
@@ -526,7 +535,7 @@ void handlePerSplitSettingNewTouch() {
       case MIDICHANNEL_MAIN:
       case MIDICHANNEL_PERNOTE:
       case MIDICHANNEL_PERROW:
-        midiChannelSettings = sensorRow;
+        midiChannelSelect = sensorRow;
         break;
     }
 
@@ -740,24 +749,41 @@ void handlePresetNewTouch() {
 
   if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
-      activateSettingsPreset(sensorRow-2);
+      // start tracking the touch duration to be able detect a long press
+      sensorCell().lastTouch = millis();
     }
   }
-  else {
+  else if (sensorCol < NUMCOLS-2) {
     if (handleNumericDataNewTouchCol(midiPreset[Global.currentPerSplit], 0, 127, true)) {
       applyMidiPreset();
     }
   }
 }
 
-void activateSettingsPreset(byte preset) {
-  // save the current preset
-  saveSettings();
+void startPresetLEDBlink(byte p, byte color) {
+  unsigned long now = millis();
+  if (now == 0) {
+    now = ~now;
+  }
+  presetBlinkStart[p] = now;
 
-  // switch to the selected one
-  Device.currentPreset = preset;
-  applyCurrentPresetSettings();
-  updateDisplay();
+  setLed(NUMCOLS-2, p+2, color, cellPulse);
+}
+
+void handlePresetHold() {
+  if (sensorCol == NUMCOLS-2 &&
+      sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+      sensorCell().lastTouch != 0 &&
+      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+    // store to the selected preset
+    byte preset = sensorRow-2;
+    storeSettingsToPreset(preset);
+    sensorCell().lastTouch = 0;
+
+    saveSettings();
+    updateDisplay();
+    startPresetLEDBlink(preset, COLOR_RED);
+  }
 }
 
 void applyMidiPreset() {
@@ -770,7 +796,24 @@ void handlePresetRelease() {
     return;
   }
 
-  handleNumericDataReleaseCol(true);
+  if (sensorCol < NUMCOLS-2) {
+    handleNumericDataReleaseCol(true);
+  }
+  else if (sensorCol == NUMCOLS-2) {
+    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+        sensorCell().lastTouch != 0 &&
+        calcTimeDelta(millis(), sensorCell().lastTouch) <= EDIT_MODE_HOLD_DELAY) {
+      byte preset = sensorRow-2;
+
+      // load the selected preset
+      applyPresetSettings(config.preset[preset]);
+      sensorCell().lastTouch = 0;
+
+      saveSettings();
+      updateDisplay();
+      startPresetLEDBlink(preset, COLOR_GREEN);
+    }
+  }
 }
 
 void handleBendRangeNewTouch() {
@@ -1268,7 +1311,8 @@ void changeMidiIO(byte where) {
 }
 
 void handleGlobalSettingHold() {
-  if (sensorRow == 7 && sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > 3000) {
+  if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
+      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
     sensorCell().lastTouch = 0;
 
     // initialize the touch-slide interface
