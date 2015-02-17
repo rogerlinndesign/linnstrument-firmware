@@ -1,6 +1,10 @@
 v1.1.1
 
   * Fixed regressions in the calibration procedure from v1.1.0, please recalibrate after the v1.1.1 upgrade
+  * New approach to 'all settings' preset handling. Pressing an 'all settings' cell will now load the settings
+    that belong to it and holding down that cell for 2 seconds will store the current settings into that preset
+    cell. The current state of LinnStrument continues to exist outside of the 'all settings' presets, which have
+    now essentially become save locations.
   * Audience messages can now be edited by keeping the corresponding cell pressed in Global Settings for
     three seconds, sliding horizontally scrolls the text and sliding vertically loops through different
     characters. The maximum message length is 30 characters and trailing spaces will be stripped.
