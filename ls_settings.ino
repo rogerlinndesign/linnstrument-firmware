@@ -280,8 +280,28 @@ void initializePresetSettings() {
     p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
-  // we're initializing the current settings with preset 0
-  memcpy(&config.settings, &config.preset[0], sizeof(PresetSettings));
+  // preset 0 is pre-programmed for one channel sounds from our Logic example file
+  config.preset[0].split[LEFT].midiMode = oneChannel;
+  config.preset[0].split[RIGHT].midiMode = oneChannel;
+  config.preset[0].split[LEFT].bendRange = 12;
+  config.preset[0].split[RIGHT].bendRange = 12;
+  config.preset[0].split[LEFT].expressionForZ = loudnessPolyPressure;
+  config.preset[0].split[RIGHT].expressionForZ = loudnessPolyPressure;
+
+  // preset 1 is pre-programmed for channel per note sounds from our Logic example file
+  config.preset[1].split[LEFT].midiMode = channelPerNote;
+  config.preset[1].split[RIGHT].midiMode = channelPerNote;
+  config.preset[1].split[LEFT].bendRange = 24;
+  config.preset[1].split[RIGHT].bendRange = 24;
+  config.preset[1].split[LEFT].expressionForZ = loudnessChannelPressure;
+  config.preset[1].split[RIGHT].expressionForZ = loudnessChannelPressure;
+  config.preset[1].split[LEFT].midiChanMain = 1;
+  config.preset[1].split[LEFT].midiChanSet[0] = false;
+  config.preset[1].split[RIGHT].midiChanMain = 16;
+  config.preset[1].split[RIGHT].midiChanSet[15] = false;
+
+  // we're initializing the current settings with preset 3
+  memcpy(&config.settings, &config.preset[3], sizeof(PresetSettings));
 
   // initialize runtime data
   for (byte s = 0; s < NUMSPLITS; ++s) {
