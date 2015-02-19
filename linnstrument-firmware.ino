@@ -258,6 +258,7 @@ struct TouchInfo {
   byte velocity;                             // velocity from 0 to 127
   signed char note;                          // note from 0 to 127
   signed char channel;                       // channel from 1 to 16
+  signed char octaveOffset;                  // the octave offset when the note started, since this can change during playing
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
   unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples

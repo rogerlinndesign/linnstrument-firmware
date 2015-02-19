@@ -170,6 +170,7 @@ void initializeTouchInfo() {
       cell(col, row).velocity = 0;
       cell(col, row).note = -1;
       cell(col, row).channel = -1;
+      cell(col, row).octaveOffset = 0;
       cell(col, row).fxdPrevPressure = 0;
       cell(col, row).fxdPrevTimbre = 0;
       cell(col, row).clearPhantoms();

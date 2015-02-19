@@ -106,6 +106,7 @@ void transferFromSameRowCell(byte col) {
   sensorCell().initialY = cell(col, sensorRow).initialY;
   sensorCell().note = cell(col, sensorRow).note;
   sensorCell().channel = cell(col, sensorRow).channel;
+  sensorCell().octaveOffset = cell(col, sensorRow).octaveOffset;
   sensorCell().fxdPrevPressure = cell(col, sensorRow).fxdPrevPressure;
   sensorCell().fxdPrevTimbre = cell(col, sensorRow).fxdPrevTimbre;
   sensorCell().velocity = cell(col, sensorRow).velocity;
@@ -123,6 +124,7 @@ void transferFromSameRowCell(byte col) {
 
   cell(col, sensorRow).note = -1;
   cell(col, sensorRow).channel = -1;
+  cell(col, sensorRow).octaveOffset = 0;
   cell(col, sensorRow).fxdPrevPressure = 0;
   cell(col, sensorRow).fxdPrevTimbre = 0;
   cell(col, sensorRow).velocity = 0;
@@ -145,6 +147,7 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).initialY = sensorCell().initialY;
   cell(col, sensorRow).note = sensorCell().note;
   cell(col, sensorRow).channel = sensorCell().channel;
+  cell(col, sensorRow).octaveOffset = sensorCell().octaveOffset;
   cell(col, sensorRow).fxdPrevPressure = sensorCell().fxdPrevPressure;
   cell(col, sensorRow).fxdPrevTimbre = sensorCell().fxdPrevTimbre;
   cell(col, sensorRow).velocity = sensorCell().velocity;
@@ -162,6 +165,7 @@ void transferToSameRowCell(byte col) {
 
   sensorCell().note = -1;
   sensorCell().channel = -1;
+  sensorCell().octaveOffset = 0;
   sensorCell().fxdPrevPressure = 0;
   sensorCell().fxdPrevTimbre = 0;
   sensorCell().velocity = 0;
@@ -525,7 +529,9 @@ void handleXYZupdate() {
     }
     else if (handleNotes) {
       short notenum = cellTransposedNote();
-      if (notenum >= 0 && notenum <= 127) { // if the note number is outside of MIDI range, don't start it
+
+      // if the note number is outside of MIDI range, don't start it
+      if (notenum >= 0 && notenum <= 127) {
         handleNewNote(notenum);
       }
     }
@@ -632,6 +638,7 @@ void handleNewNote(signed char notenum) {
   byte channel = takeChannel();
   sensorCell().note = notenum;
   sensorCell().channel = channel;
+  sensorCell().octaveOffset = Split[sensorSplit].transposeOctave;
   
   // change the focused cell
   FocusCell& focused = focus(sensorSplit, channel);
@@ -947,17 +954,22 @@ void handleTouchRelease() {
 
     // unhighlight the same notes if this is activated
     if (Split[sensorSplit].colorNoteon) {
+      // calculate the difference between the octave offset when the note was turned on and the octave offset
+      // that is currently in use on the split, since the octave can change on the fly, while playing,
+      // hence changing the position of notes on the surface
+      short octaveOffsetDifference = Split[sensorSplit].transposeOctave - sensorCell().octaveOffset;
+
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
       for (byte ch = 1; ch <= 16; ++ch) {
-        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note, ch)) {
+        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell().note + octaveOffsetDifference, ch)) {
           allNotesOff = false;
           break;
         }
       }
       // if no notes are active anymore, reset the highlighted cells
       if (allNotesOff) {
-        resetNoteCells(sensorSplit, sensorCell().note);
+        resetNoteCells(sensorSplit, sensorCell().note + octaveOffsetDifference);
       }
     }
 
@@ -981,6 +993,7 @@ void handleTouchRelease() {
     // Reset all this cell's musical data
     sensorCell().note = -1;
     sensorCell().channel = -1;
+    sensorCell().octaveOffset = 0;
     sensorCell().fxdPrevPressure = 0;
     sensorCell().fxdPrevTimbre = 0;
   }

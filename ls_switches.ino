@@ -267,9 +267,11 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
     case ASSIGNED_SUSTAIN:
       preSendControlChange(split, 64, 0);
       break;
+
     case ASSIGNED_CC_65:
       preSendControlChange(split, 65, 0);
       break;
+
     case ASSIGNED_ARPEGGIATOR:
       disableTemporaryArpeggiator();
       switchArpeggiatorPressed[split] = false;
