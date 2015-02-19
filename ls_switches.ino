@@ -196,9 +196,7 @@ void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean en
 
 void switchTransposeOctave(byte split, int interval) {
   Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval, -60, 60);
-  if (displayMode == displayOctaveTranspose) {
-    updateDisplay();
-  }
+  updateDisplay();
 }
 
 void performSwitchAssignmentOn(byte assignment, byte split) {
