@@ -280,7 +280,7 @@ void handleNewTouch() {
   cellTouched(touchedCell);                                 // mark this cell as touched
 
   if (animationActive) {                                    // allow any new touch to cancel scrolling
-    stopAnimation = true;
+    if (sensorCol == 0 || displayMode == displayPromo) stopAnimation = true;  //-- custom animations stop only on control button - jas 2015/01/22 --
     return;
   }
 
@@ -298,6 +298,7 @@ void handleNewTouch() {
       // If we get here, we're displaying in displaySplitPoint mode, but we've just gotten a normal new touch.
       // THE FALL THROUGH HERE (no break statement) IS PURPOSEFUL!
 
+    case displayCustom:  //-- act here as if normal for custom - jas 2015/10/21 --
     case displayNormal:                                            // it's normal performance mode
     case displayVolume:                                            // it's a volume change
 

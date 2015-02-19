@@ -223,12 +223,13 @@ void playPoly() { // polyphonic lights
 byte lifeCells[NUMCOLS][NUMROWS];
 byte lifeNeighbors[NUMCOLS][NUMROWS];
 
-void playLife() { // Conway's game of life - with color
-  // 
-  //-- Any live cell with fewer than two live neighbours dies, as if caused by under-population.
-  //-- Any live cell with two or three live neighbours lives on to the next generation.
-  //-- Any live cell with more than three live neighbours dies, as if by overcrowding.
-  //-- Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+void playLife() {
+// Conway's game of life - with color
+// 
+//-- Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+//-- Any live cell with two or three live neighbours lives on to the next generation.
+//-- Any live cell with more than three live neighbours dies, as if by overcrowding.
+//-- Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 
   // initialize cells with random color
   byte color, stepColor = random(1, 7); // one color per generation
@@ -298,7 +299,7 @@ void playLife() { // Conway's game of life - with color
           } 
       }
     }
-  delayUsecWithScanning(100000);
+  delayUsecWithScanning(120000);
   }
   if (!changed) delayUsecWithScanning(700000);
 }
