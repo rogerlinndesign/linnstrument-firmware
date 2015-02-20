@@ -6,10 +6,26 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the changing of any of LinnStrument's panel settings.
 **************************************************************************************************/
 
-short numericActiveDown = 0;                 // Number of cells currently held down, during numeric data changes
-
-signed char numericDataChangeCol = -1;       // If -1, button has been pressed, but a starting column hasn't been set
-unsigned long numericDataChangeTime = 0;     // time of last touch for value change
+// These messages correspond to the scrolling texts that will be displayed by default when pressing
+// the top-most row in global settings. Only the first 30 characters will be used.
+char* defaultAudienceMessages[16] = {
+  "LINNSTRUMENT",
+  "APPLAUSE",
+  "HA HA HA",
+  "SINGER SUCKS",
+  "WRONG NOTE",
+  "SMELLY NIGHTCLUB",
+  "HELLO",
+  "HELLO NEW YORK",
+  "HELLO LOS ANGELES",
+  "HELLO SAN FRANCISCO",
+  "HELLO LONDON",
+  "HELLO MUNICH",
+  "HELLO BRUSSELS",
+  "HELLO PARIS",
+  "HELLO TOKYO",
+  "HELLO BARCELONA"
+};
 
 unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
 
@@ -45,6 +61,8 @@ void initializeStorage() {
 
     dueFlashStorage.write(0, 0);                          // Zero out the firstTime location.
     setDisplayMode(displayCalibration);                   // Automatically start calibration after firmware update.
+    initializeCalibrationSamples();
+    
     setLed(0, GLOBAL_SETTINGS_ROW, globalColor, cellOn);
     controlButton = GLOBAL_SETTINGS_ROW;
   } else {
@@ -61,26 +79,26 @@ void storeSettings() {
 
 void saveSettings() {
   config.device = Device;
-  config.preset[Device.currentPreset].global = Global;
-  config.preset[Device.currentPreset].split[LEFT] = Split[LEFT];
-  config.preset[Device.currentPreset].split[RIGHT] = Split[RIGHT];
+  config.settings.global = Global;
+  config.settings.split[LEFT] = Split[LEFT];
+  config.settings.split[RIGHT] = Split[RIGHT];
 }
 
 void writeSettingsToFlash() {
   DEBUGPRINT((2,"storeSettings flash size="));
-  DEBUGPRINT((2,sizeof(struct Configuration)));
+  DEBUGPRINT((2,sizeof(Configuration)));
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
   // batch and slow down the flash storage in low power mode
-  if (operatingLowPower) {
+  if (Device.operatingLowPower) {
     clearDisplay();
 
     delayUsec(200*NUMCOLS);
 
     byte batchsize = 64;
     byte* source = (byte*)&config;
-    int total = sizeof(struct Configuration);
+    int total = sizeof(Configuration);
     int i = 0;
     while (i+batchsize < total) {
       dueFlashStorage.write(4+i, source+i, batchsize);
@@ -96,27 +114,21 @@ void writeSettingsToFlash() {
   }
   // do the faster possible flash storage in regular power mode
   else {
-    byte b2[sizeof(struct Configuration)];
-    memcpy(b2, &config, sizeof(struct Configuration));
-    dueFlashStorage.write(4, b2, sizeof(struct Configuration));
+    byte b2[sizeof(Configuration)];
+    memcpy(b2, &config, sizeof(Configuration));
+    dueFlashStorage.write(4, b2, sizeof(Configuration));
   }
 }
 
 void loadSettings() {
   byte* b = dueFlashStorage.readAddress(4);  // byte array which is read from flash at address 4
-  memcpy(&config, b, sizeof(struct Configuration));
+  memcpy(&config, b, sizeof(Configuration));
 }
 
-void applyConfiguration() {
-  Device = config.device;
-  applySerialMode();
-  applyCurrentPresetSettings();
-}
-
-void applyCurrentPresetSettings() {
-  Global = config.preset[Device.currentPreset].global;
-  Split[LEFT] = config.preset[Device.currentPreset].split[LEFT];
-  Split[RIGHT] = config.preset[Device.currentPreset].split[RIGHT];
+void applyPresetSettings(PresetSettings& preset) {
+  memcpy(&Global, &preset.global, sizeof(GlobalSettings));
+  memcpy(&Split[LEFT], &preset.split[LEFT], sizeof(SplitSettings));
+  memcpy(&Split[RIGHT], &preset.split[RIGHT], sizeof(SplitSettings));
 
   focusedSplit = Global.currentPerSplit;
 
@@ -124,15 +136,37 @@ void applyCurrentPresetSettings() {
   updateSplitMidiChannels(RIGHT);
 
   applyMidiIo();
-  applyMidiPreset();
 }
+
+void applyConfiguration() {
+  Device = config.device;
+  applySerialMode();
+  applyPresetSettings(config.settings);
+}
+
+void storeSettingsToPreset(byte p) {
+  memcpy(&config.preset[p].global, &Global, sizeof(GlobalSettings));
+  memcpy(&config.preset[p].split[LEFT], &Split[LEFT], sizeof(SplitSettings));
+  memcpy(&config.preset[p].split[RIGHT], &Split[RIGHT], sizeof(SplitSettings));
+}
+
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 2;
+  config.device.version = 4;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
-  config.device.currentPreset = 0;
+  config.device.operatingLowPower = false;
+
+  initializeAudienceMessages();
+}
+
+void initializeAudienceMessages() {
+  for (byte msg = 0; msg < 16; ++msg) {
+    memset(config.device.audienceMessages[msg], '\0', sizeof(config.device.audienceMessages[msg]));
+    strncpy(config.device.audienceMessages[msg], defaultAudienceMessages[msg], 30);
+    config.device.audienceMessages[msg][30] = '\0';
+  }
 }
 
 void initializeDeviceSensorSettings() {
@@ -141,11 +175,14 @@ void initializeDeviceSensorSettings() {
   config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
-void initializeGlobalSettings() {
+void initializePresetSettings() {
   splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
-    GlobalSettings &g = config.preset[n].global;
+    presetBlinkStart[n] = 0;
+
+    PresetSettings &p = config.preset[n];
+    GlobalSettings &g = p.global;
 
     g.splitPoint = 12;
     g.currentPerSplit = LEFT;
@@ -153,6 +190,7 @@ void initializeGlobalSettings() {
     g.rowOffset = 5;
     g.velocitySensitivity = velocityMedium;
     g.pressureSensitivity = pressureMedium;
+    g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
 
     // initialize switch assignments
@@ -186,12 +224,6 @@ void initializeGlobalSettings() {
     g.arpDirection = ArpUp;
     g.arpTempo = ArpSixteenth;
     g.arpOctave = 0;
-  }
-}
-
-void initializeSplitSettings() {
-  for (byte n = 0; n < NUMPRESETS; ++n) {
-    PresetSettings &p = config.preset[n];
 
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
@@ -214,7 +246,6 @@ void initializeSplitSettings() {
         p.split[s].ccForZ = 11;
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
-        p.split[s].preset = 0;
         p.split[s].transposeOctave = 0;
         p.split[s].transposePitch = 0;
         p.split[s].transposeLights = 0;
@@ -251,10 +282,36 @@ void initializeSplitSettings() {
     p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
+  // preset 0 is pre-programmed for one channel sounds from our Logic example file
+  config.preset[0].split[LEFT].midiMode = oneChannel;
+  config.preset[0].split[RIGHT].midiMode = oneChannel;
+  config.preset[0].split[LEFT].bendRange = 12;
+  config.preset[0].split[RIGHT].bendRange = 12;
+  config.preset[0].split[LEFT].expressionForZ = loudnessPolyPressure;
+  config.preset[0].split[RIGHT].expressionForZ = loudnessPolyPressure;
+
+  // preset 1 is pre-programmed for channel per note sounds from our Logic example file
+  config.preset[1].split[LEFT].midiMode = channelPerNote;
+  config.preset[1].split[RIGHT].midiMode = channelPerNote;
+  config.preset[1].split[LEFT].bendRange = 24;
+  config.preset[1].split[RIGHT].bendRange = 24;
+  config.preset[1].split[LEFT].expressionForZ = loudnessChannelPressure;
+  config.preset[1].split[RIGHT].expressionForZ = loudnessChannelPressure;
+  config.preset[1].split[LEFT].midiChanMain = 1;
+  config.preset[1].split[LEFT].midiChanSet[0] = false;
+  config.preset[1].split[RIGHT].midiChanMain = 16;
+  config.preset[1].split[RIGHT].midiChanSet[15] = false;
+
+  // we're initializing the current settings with preset 3
+  memcpy(&config.settings, &config.preset[3], sizeof(PresetSettings));
+
+  // initialize runtime data
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 8; ++c) {
       ccFaderValues[s][c] = 0;
     }
+    ccFaderValues[s][6] = 63;
+    midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
   }
@@ -289,8 +346,8 @@ void handleControlButtonNewTouch() {
     controlButton = sensorRow;                         // keep track of which control button we're handling
   }
  
-  // determine whether a double-tap happened on the switch (ie. second tap within 400 ms)
-  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 400);
+  // determine whether a double-tap happened on the switch (ie. second tap within 500 ms)
+  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 500);
 
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
@@ -299,7 +356,7 @@ void handleControlButtonNewTouch() {
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
-      setDisplayMode(displayGlobal);                     // change to global settings display mode
+      setDisplayMode(displayGlobal);                   // change to global settings display mode
       resetNumericDataChange();
       updateDisplay();
       break;
@@ -347,6 +404,9 @@ void handleControlButtonNewTouch() {
     case PRESET_ROW:                                   // displayPreset button pressed
       resetAllTouches();
       setLed(0, PRESET_ROW, globalColor, cellOn);
+      for (byte p = 0; p < NUMPRESETS; ++p) {
+        presetBlinkStart[p] = 0;
+      }
       setDisplayMode(displayPreset);
       resetNumericDataChange();
       updateDisplay();
@@ -426,7 +486,7 @@ void handleControlButtonRelease() {
 }
 
 void toggleChannel(byte chan) {                          // chan value is 1-16
-  switch (midiChannelSettings)
+  switch (midiChannelSelect)
   {
     case MIDICHANNEL_MAIN:
       Split[Global.currentPerSplit].midiChanMain = chan;
@@ -497,7 +557,7 @@ void handlePerSplitSettingNewTouch() {
       case MIDICHANNEL_MAIN:
       case MIDICHANNEL_PERNOTE:
       case MIDICHANNEL_PERROW:
-        midiChannelSettings = sensorRow;
+        midiChannelSelect = sensorRow;
         break;
     }
 
@@ -535,9 +595,22 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].pitchCorrectQuantize = !Split[Global.currentPerSplit].pitchCorrectQuantize;
     }
     else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].pitchCorrectHold = !Split[Global.currentPerSplit].pitchCorrectHold;
+      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
+        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
+        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
+        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
+        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
+      }
     }
     else if (sensorRow == 4) {
+      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
+        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
+        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
+        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
+        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
+      }
+    }
+    else if (sensorRow == 3) {
       Split[Global.currentPerSplit].pitchResetOnRelease = !Split[Global.currentPerSplit].pitchResetOnRelease;
     }
 
@@ -694,27 +767,53 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
-  if (sensorCol == NUMCOLS-1) {
-    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
-      // save the current preset
-      saveSettings();
+  // don't change presets on the row that has the split selection
+  if (sensorRow == 7) {
+    return;
+  }
 
-      // switch to the selected one
-      Device.currentPreset = sensorRow-2;
-      applyCurrentPresetSettings();
-      updateDisplay();
+  if (sensorCol >= NUMCOLS-2) {
+    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
+      // start tracking the touch duration to be able detect a long press
+      sensorCell().lastTouch = millis();
     }
   }
-  else {
-    if (handleNumericDataNewTouch(Split[Global.currentPerSplit].preset, 0, 127, true)) {
+  else if (sensorCol < NUMCOLS-2) {
+    if (handleNumericDataNewTouchCol(midiPreset[Global.currentPerSplit], 0, 127, true)) {
       applyMidiPreset();
     }
   }
 }
 
+void startPresetLEDBlink(byte p, byte color) {
+  unsigned long now = millis();
+  if (now == 0) {
+    now = ~now;
+  }
+  presetBlinkStart[p] = now;
+
+  setLed(NUMCOLS-2, p+2, color, cellPulse);
+}
+
+void handlePresetHold() {
+  if (sensorCol == NUMCOLS-2 &&
+      sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+      sensorCell().lastTouch != 0 &&
+      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+    // store to the selected preset
+    byte preset = sensorRow-2;
+    storeSettingsToPreset(preset);
+    sensorCell().lastTouch = 0;
+
+    saveSettings();
+    updateDisplay();
+    startPresetLEDBlink(preset, COLOR_RED);
+  }
+}
+
 void applyMidiPreset() {
   byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendPreset(Split[Global.currentPerSplit].preset, chan);         // Send the MIDI program change message
+  midiSendPreset(midiPreset[Global.currentPerSplit], chan);         // Send the MIDI program change message
 }
 
 void handlePresetRelease() {
@@ -722,19 +821,36 @@ void handlePresetRelease() {
     return;
   }
 
-  handleNumericDataRelease(true);
+  if (sensorCol < NUMCOLS-2) {
+    handleNumericDataReleaseCol(true);
+  }
+  else if (sensorCol == NUMCOLS-2) {
+    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+        sensorCell().lastTouch != 0 &&
+        calcTimeDelta(millis(), sensorCell().lastTouch) <= EDIT_MODE_HOLD_DELAY) {
+      byte preset = sensorRow-2;
+
+      // load the selected preset
+      applyPresetSettings(config.preset[preset]);
+      sensorCell().lastTouch = 0;
+
+      saveSettings();
+      updateDisplay();
+      startPresetLEDBlink(preset, COLOR_GREEN);
+    }
+  }
 }
 
 void handleBendRangeNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].bendRange, 1, 96, true);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].bendRange, 1, 96, false);
 }
 
 void handleBendRangeRelease() {
-  handleNumericDataRelease(true);
+  handleNumericDataReleaseCol(true);
 }
 
 void handleCCForYNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForY, 0, 129, true);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForY, 0, 129, false);
   if (Split[Global.currentPerSplit].ccForY == 128) {
     Split[Global.currentPerSplit].expressionForY = timbrePolyPressure;
   }
@@ -747,125 +863,55 @@ void handleCCForYNewTouch() {
 }
 
 void handleCCForYRelease() {
-  handleNumericDataRelease(true);
+  handleNumericDataReleaseCol(true);
 }
 
 void handleCCForZNewTouch() {
-  handleNumericDataNewTouch(Split[Global.currentPerSplit].ccForZ, 0, 127, true);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForZ, 0, 127, false);
 }
 
 void handleCCForZRelease() {
-  handleNumericDataRelease(true);
+  handleNumericDataReleaseCol(true);
 }
 
 void handleSensorLoZNewTouch() {
-  handleNumericDataNewTouch(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
+  handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
 }
 
 void handleSensorLoZRelease() {
-  handleNumericDataRelease(false);
+  handleNumericDataReleaseCol(false);
 }
 
 void handleSensorFeatherZNewTouch() {
-  handleNumericDataNewTouch(Device.sensorFeatherZ, 0, min(1024, Device.sensorLoZ), false);
+  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 0, min(1024, Device.sensorLoZ), false);
 }
 
 void handleSensorFeatherZRelease() {
-  handleNumericDataRelease(false);
+  handleNumericDataReleaseCol(false);
 }
 
 void handleSensorRangeZNewTouch() {
-  handleNumericDataNewTouch(Device.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
+  handleNumericDataNewTouchCol(Device.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
 }
 
 void handleSensorRangeZRelease() {
-  handleNumericDataRelease(false);
+  handleNumericDataReleaseCol(false);
 }
 
-void resetNumericDataChange() {
-  numericDataChangeCol = -1;
-  numericActiveDown = 0;
-}
-
-boolean handleNumericDataNewTouch(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
-  unsigned short newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
-  if (newData != currentData) {
-    currentData = newData;
-    updateDisplay();
-    return true;
-  }
-
-  return false;
-}
-
-boolean handleNumericDataNewTouch(byte &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
-  byte newData = handleNumericDataNewTouchRaw(currentData, minimum, maximum, useFineChanges);
-  if (newData != currentData) {
-    currentData = newData;
-    updateDisplay();
-    return true;
-  }
-
-  return false;
-}
-
-unsigned short handleNumericDataNewTouchRaw(unsigned short currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
-  // keep track of how many cells are currently down
-  numericActiveDown++;
-  unsigned long now = micros();
-  byte increment = 1;
-
-  // If the swipe is fast, increment by a larger amount.
-  if (calcTimeDelta(now, numericDataChangeTime) < 70000) {
-    increment = 10;
-  }
-  else if (calcTimeDelta(now, numericDataChangeTime) < 120000) {
-    increment = 5;
-  }
-
-  unsigned short newData = currentData;
-  if (numericDataChangeCol < 0) {
-    // First cell hit after starting a data change,
-    // don't change data yet.
-  }
-  else {
-    if (useFineChanges && abs(numericDataChangeCol - sensorCol) <= 3) {
-      increment = 1;
-    }
-    if (sensorCol > numericDataChangeCol) {
-      newData = constrain(currentData + increment, minimum, maximum);
-    } else if (sensorCol < numericDataChangeCol) {
-      newData = constrain(currentData - increment, minimum, maximum);
-    }
-  }
-
-  numericDataChangeCol = sensorCol;
-  numericDataChangeTime = now;
-
-  return newData;
-}
-
-void handleNumericDataRelease(boolean handleSplitSelection) {
-  // The top row doesn't change the data, it only lets you change which side you're controlling
-  if (handleSplitSelection && handleShowSplit()) {  // see if one of the "Show Split" cells have been hit
+void handleVolumeNewTouch(boolean newVelocity) {
+  // don't change volume on the row that has the split selection
+  if (sensorRow == 7) {
     return;
   }
 
-  numericActiveDown--;
-  // If there are no cells down, reset so that things are
-  // relative to the next NewTouch
-  if (numericActiveDown <= 0) {
-    resetNumericDataChange();
+  short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
+  if (value >= 0) {
+    ccFaderValues[Global.currentPerSplit][6] = value;
+
+    byte chan = Split[Global.currentPerSplit].midiChanMain;
+    midiSendVolume(value, chan);     // Send the MIDI volume controller message
+    updateDisplay();
   }
-}
-
-void handleVolumeNewTouch() {
-  byte v = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
-  ccFaderValues[Global.currentPerSplit][6] = v;
-
-  byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendVolume(v, chan);     // Send the MIDI volume controller message
-  updateDisplay();
 }
 
 void handleVolumeRelease() {
@@ -946,7 +992,7 @@ boolean isArpeggiatorTempoTriplet() {
 
 void handleTempoNewTouch() {
   // keep track of how many cells are currently down
-  numericActiveDown++;
+  numericActiveColDown++;
 
   if (!isMidiClockRunning()) {
     unsigned long now = micros();
@@ -954,15 +1000,19 @@ void handleTempoNewTouch() {
 
     // if the swipe is fast, increment by a larger amount.
     if (calcTimeDelta(now, tempoChangeTime) < 70000) {
-      increment = 10;
-    }
-    else if (calcTimeDelta(now, tempoChangeTime) < 120000) {
       increment = 5;
     }
+    else if (calcTimeDelta(now, tempoChangeTime) < 120000) {
+      increment = 2;
+    }
 
-    if (numericDataChangeCol < 0) {
-      // First cell hit after starting a tempo change,
-      // don't change tempo yet.
+    if (numericDataChangeCol < 0 ||
+        (numericDataChangeCol < sensorCol && numericDataChangeColLast > sensorCol) ||
+        (numericDataChangeCol > sensorCol && numericDataChangeColLast < sensorCol)) {
+      // First cell hit after starting a data change or change of direction,
+      // don't change data yet.
+      numericDataChangeCol = sensorCol;
+      numericDataChangeColLast = sensorCol;
     }
     else if (sensorCol > numericDataChangeCol) {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo + FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
@@ -971,7 +1021,7 @@ void handleTempoNewTouch() {
       fxd4CurrentTempo = constrain(fxd4CurrentTempo - FXD4_FROM_INT(increment), FXD4_FROM_INT(1), FXD4_FROM_INT(360));
     }
 
-    numericDataChangeCol = sensorCol;
+    numericDataChangeColLast = sensorCol;
     tempoChangeTime = now;
   }
 
@@ -1004,13 +1054,10 @@ void handleGlobalSettingNewTouch() {
   }
 #endif
 
-  if (sensorRow == 7 && calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
+  if (sensorRow == 7) {
     if (sensorCol <= 16) {
-      clearDisplay();
-      big_scroll_text_flipped(audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
-    }
-    else if (sensorCol == 25) {
-      playPromoAnimation();
+      // start tracking the touch duration to be able to enable edit mode
+      sensorCell().lastTouch = millis();
     }
     else if (sensorCol ==24) {  //-- custom animations 1-8, jas 2015/01/04 --
       playCustomAnimation();
@@ -1115,22 +1162,23 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  // select the Pressure Sensitivity
+  // select the Pressure Sensitivity and behaviour
   if (sensorCol == 11) {
-    // Note: this assumes the PressureSensitivity values exactly match the sensor rows
     switch (sensorRow)
     {
+      // Note: this assumes the PressureSensitivity values exactly match the sensor rows
       case pressureLow:
       case pressureMedium:
       case pressureHigh:
         Global.pressureSensitivity = PressureSensitivity(sensorRow);
         break;
+      case 3:
+        Global.pressureAftertouch = !Global.pressureAftertouch;
     }
   }
 
   // select the Arpeggiator settings
-  if (sensorCol == 12)
-  {
+  if (sensorCol == 12) {
     if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
         (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
       Global.arpDirection = ArpUpDown;
@@ -1149,8 +1197,7 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  if (sensorCol == 13)
-  {
+  if (sensorCol == 13) {
     if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
          (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
       Global.arpTempo = ArpSixteenthSwing;
@@ -1203,8 +1250,7 @@ void handleGlobalSettingNewTouch() {
     }
   }
 
-  if (sensorCol == 14)
-  {
+  if (sensorCol == 14) {
     if (sensorRow == 0) {
       if (Global.arpOctave == 1) {
         Global.arpOctave = 0;
@@ -1242,6 +1288,10 @@ void handleGlobalSettingNewTouch() {
     }
     else if (sensorRow == 1) {
       changeMidiIO(0);
+    }
+    else if (sensorRow == 2) {
+      Device.operatingLowPower = !Device.operatingLowPower;
+      applyLowPowerMode();
     }
   }
 
@@ -1306,9 +1356,53 @@ void changeMidiIO(byte where) {
   applyMidiIo();
 }
 
+void handleGlobalSettingHold() {
+  if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
+      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+    sensorCell().lastTouch = 0;
+
+    // initialize the touch-slide interface
+    resetNumericDataChange();
+
+    // switch to edit audience message
+    setDisplayMode(displayEditAudienceMessage);
+
+    // set the information of the edited message
+    audienceMessageOffset = 0;
+    audienceMessageToEdit = sensorCol - 1;
+
+    // fill in all 30 spaces of the message
+    int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
+    if (strl < 30) {
+      for (byte ch = strl; ch < 30; ++ch) {
+        Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
+      }
+    }
+    Device.audienceMessages[audienceMessageToEdit][30] = '\0';
+
+    // calculate the length of the message to edit
+    audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
+
+    // show the editing mode
+    updateDisplay();
+  }
+}
+
 void handleGlobalSettingRelease() {
-  if (sensorRow >= 4) {
-    handleNumericDataRelease(false);
+  if (sensorRow == 7) {
+    if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
+      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+        sensorCell().lastTouch = 0;
+        clearDisplay();
+        big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+      }
+      else if (sensorCol == 25) {
+        playPromoAnimation();
+      }
+    }
+  }
+  else if (sensorRow >= 4) {
+    handleNumericDataReleaseCol(false);
   }
 
   if (sensorCol == 16) {
@@ -1332,4 +1426,36 @@ void handleGlobalSettingRelease() {
   }
 
   updateDisplay();
+}
+
+void handleEditAudienceMessageNewTouch() {
+  // handle horizontal slides over the columns to scroll the text
+  handleNumericDataNewTouchCol(audienceMessageOffset, -audienceMessageLength, 0, false);
+
+  // handle vertical slides over the rows to select a different character
+  int textLength = strlen(Device.audienceMessages[audienceMessageToEdit]);
+  int characterPosition = constrain(sensorCol - audienceMessageOffset, 0, INT_MAX) / 6;
+  int characterIndex = constrain(characterPosition, 0, textLength - 1);
+  if (characterPosition <= 30) {
+    handleNumericDataNewTouchRow(Device.audienceMessages[audienceMessageToEdit][characterIndex], ' ', '~', true);
+  }
+}
+
+void handleEditAudienceMessageRelease() {
+  handleNumericDataReleaseCol(false);
+  handleNumericDataReleaseRow(false);
+}
+
+void trimEditedAudienceMessage() {
+  if (audienceMessageToEdit != -1) {
+    // strip away the trailing space characters
+    for (short ch = strlen(Device.audienceMessages[audienceMessageToEdit]) - 1; ch >= 0; --ch) {
+      if (Device.audienceMessages[audienceMessageToEdit][ch] == ' ') {
+        Device.audienceMessages[audienceMessageToEdit][ch] = '\0';
+      }
+      else {
+        break;
+      }
+    }  
+  }
 }

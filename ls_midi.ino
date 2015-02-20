@@ -134,7 +134,7 @@ void handleMidiInput(unsigned long now) {
           checkAdvanceArpeggiator(now);
 
           // flash the tempo led in the global display when it is on
-          updateGlobalDisplay();
+          updateGlobalSettingsFlashTempo(now);
         }
         break;
       }
@@ -204,7 +204,7 @@ void handleMidiInput(unsigned long now) {
         case MIDIProgramChange:
         {
           if (split != -1) {
-            Split[split].preset = midiData1;
+            midiPreset[split] = midiData1;
             if (displayMode == displayPreset) {
               updateDisplay();
             }
@@ -249,12 +249,13 @@ void handleMidiInput(unsigned long now) {
               break;
             case 22:
               if (displayMode == displayNormal) {
-                if (midiData2 <= COLOR_MAGENTA) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn);
+                if (midiData2 <= COLOR_MAGENTA && midiData2 != COLOR_BLACK) {
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, LED_LAYER_CUSTOM);
                 }
                 else {
-                  paintNormalDisplayCell(getSplitOf(midiCellColCC), midiCellColCC, midiCellRowCC);
+                  setLed(midiCellColCC, midiCellRowCC, COLOR_BLACK, cellOff, LED_LAYER_CUSTOM);
                 }
+                checkRefreshLedColumn(micros());
               }
               break;
             case 38:
@@ -369,7 +370,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split Pitch Quantize Hold
     case 22:
-      if (inRange(value, 0, 1)) {
+      if (inRange(value, 0, 3)) {
         Split[split].pitchCorrectHold = value;
       }
       break;
@@ -645,6 +646,18 @@ void receivedNrpn(int parameter, int value) {
         Global.switchBothSplits[1] = value;
       }
       break;
+    // Global Settings Preset
+    case 243:
+      if (inRange(value, 0, 3)) {
+        applyPresetSettings(config.preset[value]);
+      }
+      break;
+    // Global Pressure Aftertouch Active
+    case 244:
+      if (inRange(value, 0, 1)) {
+        Global.pressureAftertouch = value;
+      }
+      break;
 
     // case 250 - Global Column Offset Global.colOffset - like Global.rowOffset - jas 2014/12/11
     case 250:
@@ -675,7 +688,7 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, cellOn);
+      setLed(col, row, color, cellOn, LED_LAYER_PLAYED);
     }
   }
 }
@@ -690,7 +703,7 @@ void resetNoteCells(byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      paintNormalDisplayCell(split, col, row);
+      setLed(col, row, COLOR_BLACK, cellOff, LED_LAYER_PLAYED);
     }
   }
 }
@@ -878,7 +891,7 @@ void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
 
 void handlePendingMidi(unsigned long now) {
   // when in low power mode only send one MIDI byte every 150 microseconds
-  if (operatingLowPower) {
+  if (Device.operatingLowPower) {
     static unsigned long lastEnvoy = 0;
     if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
       sendNextMidiOutputByte();
@@ -1077,9 +1090,14 @@ void midiSendNoteOffForAllTouches(byte split) {
 
   while (note != -1) {
     midiSendNoteOff(split, note, channel);
-    NoteEntry& entry = noteTouchMapping[split].mapping[note][channel];
-    note = entry.getNextNote();
-    channel = entry.getNextChannel();
+    NoteEntry *entry = noteTouchMapping[split].getNoteEntry(note, channel);
+    if (entry == NULL) {
+      note = -1;
+    }
+    else {
+      note = entry->getNextNote();
+      channel = entry->getNextChannel();
+    }
   }
 }
 

@@ -104,7 +104,19 @@ void doSwitchReleased(byte whichSwitch) {
 void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
   // check whether this is a hold operation by comparing the release time with
   // the last time the switch was pressed
-  if (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY) {      
+  boolean isHeld = (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY);
+
+  // foot switches have no hold or toggle havior based on time, but rather based on function
+  if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
+    if (assignment == ASSIGNED_SUSTAIN || assignment == ASSIGNED_CC_65 || assignment == ASSIGNED_ARPEGGIATOR) {
+      isHeld = true;
+    }
+    else {
+      isHeld = false;
+    }
+  }
+
+  if (isHeld) {
     // perform the assignment off logic, but when a split is active, it's possible that the
     // switch started being held on the other split, so we need to check which split is actually
     // active before changing the state
@@ -182,15 +194,22 @@ void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean en
   }
 }
 
+void switchTransposeOctave(byte split, int interval) {
+  Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval, -60, 60);
+  displayModeStart = millis();
+  blinkMiddleRootNote = true;
+  updateDisplay();
+}
+
 void performSwitchAssignmentOn(byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_OCTAVE_DOWN:
-      Split[split].transposeOctave = constrain(Split[split].transposeOctave - 12, -60, 60);
+      switchTransposeOctave(split, -12);
       break;
 
     case ASSIGNED_OCTAVE_UP:
-      Split[split].transposeOctave = constrain(Split[split].transposeOctave + 12, -60, 60);
+      switchTransposeOctave(split, 12);
       break;
 
     case ASSIGNED_SUSTAIN:
@@ -223,11 +242,11 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_OCTAVE_DOWN:
-      Split[split].transposeOctave = constrain(Split[split].transposeOctave + 12, -60, 60);
+      switchTransposeOctave(split, 12);
       break;
 
     case ASSIGNED_OCTAVE_UP:
-      Split[split].transposeOctave = constrain(Split[split].transposeOctave - 12, -60, 60);
+      switchTransposeOctave(split, -12);
       break;
 
     case ASSIGNED_SUSTAIN:
@@ -248,9 +267,11 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
     case ASSIGNED_SUSTAIN:
       preSendControlChange(split, 64, 0);
       break;
+
     case ASSIGNED_CC_65:
       preSendControlChange(split, 65, 0);
       break;
+
     case ASSIGNED_ARPEGGIATOR:
       disableTemporaryArpeggiator();
       switchArpeggiatorPressed[split] = false;

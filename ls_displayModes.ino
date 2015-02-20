@@ -7,25 +7,27 @@ There are 13 different display modes.
 
 These are the possible values of the global variable displayMode:
 
-displayNormal            : normal performance display
-displayPerSplit          : per-split settings (left or right split)
-displayPreset            : preset number
-displayVolume            : volume
-displayOctaveTranspose   : octave and transpose settings
-displaySplitPoint        : split point
-displayGlobal            : global settings
-displayGlobalWithTempo   : global settings with tempo
-displayOsVersion         : version number of the OS
-displayCalibration       : calibration process
-displayReset             : global reset confirmation and wait for touch release
-displayBendRange         ; custom bend range selection for X expression
-displayCCForY            : custom CC number selection for Y expression
-displayCCForZ            : custom CC number selection for Z expression
-displaySensorLoZ         : sensor low Z sensitivity selection
-displaySensorFeatherZ    : sensor feather Z sensitivity selection
-displaySensorRangeZ      : max Z sensor range selection
-displayPromo             : display promotion animation
-displayCustom            : display custom animations - jas 2015/01/05
+displayNormal               : normal performance display
+displayPerSplit             : per-split settings (left or right split)
+displayPreset               : preset number
+displayVolume               : volume
+displayOctaveTranspose      : octave and transpose settings
+displaySplitPoint           : split point
+displayGlobal               : global settings
+displayGlobalWithTempo      : global settings with tempo
+displayOsVersion            : version number of the OS
+displayCalibration          : calibration process
+displayReset                : global reset confirmation and wait for touch release
+displayBendRange            ; custom bend range selection for X expression
+displayCCForY               : custom CC number selection for Y expression
+displayCCForZ               : custom CC number selection for Z expression
+displaySensorLoZ            : sensor low Z sensitivity selection
+displaySensorFeatherZ       : sensor feather Z sensitivity selection
+displaySensorRangeZ         : max Z sensor range selection
+displayPromo                : display promotion animation
+displayEditAudienceMessage  : edit an audience message
+
+displayCustom               : display custom animations - jas 2015/01/05
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -37,13 +39,18 @@ bool blinkMiddleRootNote = false;      // indicates whether the middle root note
 
 // changes the active display mode
 void setDisplayMode(DisplayMode mode) {
-  if (displayMode != mode || displayModeStart == 0) {
+  boolean refresh = (displayMode != mode);
+  if (refresh || displayModeStart == 0) {
     displayModeStart = millis();
+    exitDisplayMode(displayMode);
   }
+
   displayMode = mode;
+  if (refresh) {
+    completelyRefreshLeds();
+  }
 }
 
-// clearDisplay:
 // Turns all LEDs off in columns 1 or higher
 void clearDisplay() {
   for (byte col = 1; col < NUMCOLS; ++col) {
@@ -53,7 +60,13 @@ void clearDisplay() {
   }
 }
 
-// updateDisplay:
+// Turns all LEDs off in column 0
+void clearSwitches() {
+  for (byte row = 0; row < NUMROWS; ++row) {
+    clearLed(0, row);
+  }
+}
+
 // updates columns 1=25 of the LED display based on the current displayMode setting:
 // 0:normal, 1:perSplit, 2:preset, 3:volume, 4:transpose, 5:split, 6:global
 void updateDisplay() {
@@ -63,59 +76,73 @@ void updateDisplay() {
 
   switch (displayMode)
   {
-  case displayNormal:            // Display the normal and accent note colors...
-  case displaySplitPoint:        // Split point display (which is just the normal display)
+  case displayNormal:
+  case displaySplitPoint:
     paintNormalDisplay();
     break;
-  case displayPerSplit:          // Display per-split settings
+  case displayPerSplit:
     paintPerSplitDisplay(Global.currentPerSplit);
     break;
-  case displayPreset:            // Display this split's preset number
+  case displayPreset:
     paintPresetDisplay(Global.currentPerSplit);
     break;
-  case displayOsVersion:         // Display the OS version
+  case displayOsVersion:
     paintOSVersionDisplay();
     break;
-  case displayVolume:            // Display this split's volume value
+  case displayVolume:
     paintVolumeDisplay(Global.currentPerSplit);
     break;
-  case displayOctaveTranspose:   // Display the octave shift of both splits, and the global pitch and light shift
+  case displayOctaveTranspose:
     paintOctaveTransposeDisplay(Global.currentPerSplit);
     break;
-  case displayGlobal:            // Display global settings
+  case displayGlobal:
   case displayGlobalWithTempo:
     paintGlobalSettingsDisplay();
     break;
-  case displayCalibration:       // Display the calibration pattern
+  case displayCalibration:
     paintCalibrationDisplay();
     break;
-  case displayReset:             // Display the reset information
+  case displayReset:
     paintResetDisplay();
     break;
-  case displayBendRange:         // Display this split's bend range
+  case displayBendRange:
     paintBendRangeDisplay(Global.currentPerSplit);
     break;
-  case displayCCForY:            // Display this split's Y CC number
+  case displayCCForY:
     paintCCForYDisplay(Global.currentPerSplit);
     break;
-  case displayCCForZ:            // Display this split's Z CC number
+  case displayCCForZ:
     paintCCForZDisplay(Global.currentPerSplit);
     break;
-  case displaySensorLoZ:         // Display the low Z sensitivity
+  case displaySensorLoZ:
     paintSensorLoZDisplay();
     break;
-  case displaySensorFeatherZ:    // Display the feather Z sensitivity
+  case displaySensorFeatherZ:
     paintSensorFeatherZDisplay();
     break;
-  case displaySensorRangeZ:      // Display the max Z range
+  case displaySensorRangeZ:
     paintSensorRangeZDisplay();
     break;
   case displayCustom:            // Display Custom controls - display may overlay normal w/o animationActive --jas
     paintCustom();
     break;
+  case displayEditAudienceMessage:
+    paintEditAudienceMessage();
+    break;
   }
 
   updateSwitchLeds();
+}
+
+// handle logic tied to exiting specific display mode, like post-processing or saving
+void exitDisplayMode(DisplayMode mode) {
+  switch (mode)
+  {
+  case displayEditAudienceMessage:
+    trimEditedAudienceMessage();
+    storeSettings();
+    break;
+  }
 }
 
 void updateSwitchLeds() {
@@ -179,6 +206,7 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
         paintNormalDisplayCell(split, col, row);
       }
     }
+    performContinuousTasks(micros());
   }
 }
 
@@ -279,7 +307,6 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // actually set the cell's color
   setLed(col, row, colour, cellDisplay);
-  checkRefreshLedColumn(micros());
 }
 
 // paintPerSplitDisplay:
@@ -303,7 +330,7 @@ void paintPerSplitDisplay(byte side) {
       break;
   }
 
-  switch (midiChannelSettings)
+  switch (midiChannelSelect)
   {
     case MIDICHANNEL_MAIN:
       setLed(2, 7, Split[side].colorMain, cellOn);
@@ -347,12 +374,18 @@ void paintPerSplitDisplay(byte side) {
     setLed(8, 6, Split[side].colorMain, cellOn);
   }
 
-  if (Split[side].pitchCorrectHold == true) {
+  if (Split[side].pitchCorrectHold == pitchCorrectHoldMedium ||
+      Split[side].pitchCorrectHold == pitchCorrectHoldSlow) {
     setLed(8, 5, Split[side].colorMain, cellOn);
   }
 
-  if (Split[side].pitchResetOnRelease == true) {
+  if (Split[side].pitchCorrectHold == pitchCorrectHoldFast ||
+      Split[side].pitchCorrectHold == pitchCorrectHoldSlow) {
     setLed(8, 4, Split[side].colorMain, cellOn);
+  }
+
+  if (Split[side].pitchResetOnRelease == true) {
+    setLed(8, 3, Split[side].colorMain, cellOn);
   }
 
   // set Timbre/Y settings
@@ -485,29 +518,26 @@ void paintOSVersionDisplay() {
 
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
-  paintSplitNumericDataDisplay(side, Split[side].preset+1);
+  clearDisplay();
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    byte color = COLOR_BLUE;
-    if (Device.currentPreset == p) {
-      color = COLOR_GREEN;
-    }
-    setLed(NUMCOLS-1, p+2, color, cellOn);
+    setLed(NUMCOLS-2, p+2, globalColor, cellOn);
   }
+  paintSplitNumericDataDisplay(side, midiPreset[side]+1);
 }
 
 void paintBendRangeDisplay(byte side) {
+  clearDisplay();
   paintSplitNumericDataDisplay(side, Split[side].bendRange);
 }
 
 void paintCCForYDisplay(byte side) {
+  clearDisplay();
   if (Split[side].ccForY == 128) {
-    clearDisplay();
-    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain);
+    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else if (Split[side].ccForY == 129) {
-    clearDisplay();
-    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain);
+    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else {
@@ -516,6 +546,7 @@ void paintCCForYDisplay(byte side) {
 }
 
 void paintCCForZDisplay(byte side) {
+  clearDisplay();
   if (Split[side].expressionForZ != loudnessCC) {
     setDisplayMode(displayPerSplit);
     updateDisplay();
@@ -526,26 +557,26 @@ void paintCCForZDisplay(byte side) {
 }
 
 void paintSensorLoZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ);
 }
 
 void paintSensorFeatherZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorFeatherZ);
 }
 
 void paintSensorRangeZDisplay() {
+  clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorRangeZ);
 }
 
 void paintSplitNumericDataDisplay(byte side, byte value) {
-  paintNumericDataDisplay(Split[side].colorMain, value);
-
   paintShowSplitSelection(side);
+  paintNumericDataDisplay(Split[side].colorMain, value);
 }
 
 void paintNumericDataDisplay(byte color, unsigned short value) {
-  clearDisplay();
-  
   char str[10];
   char* format;
   byte offset;
@@ -556,7 +587,7 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
   }
   else if (value >= 100 && value < 200) {
     // Handle the "1" character specially, to get the spacing right
-    smallfont_draw_string(0, 0, "1", color);
+    smallfont_draw_string(0, 0, "1", color, false);
     value -= 100;
     format = "%02d";     // to make sure a leading zero is included
     offset = 5;
@@ -567,7 +598,7 @@ void paintNumericDataDisplay(byte color, unsigned short value) {
   }
 
   snprintf(str, sizeof(str), format, value);
-  smallfont_draw_string(offset, 0, str, color);
+  smallfont_draw_string(offset, 0, str, color, false);
 }
 
 // draw a horizontal line to indicate volume for a particular side
@@ -726,9 +757,24 @@ void paintSwitchAssignment(byte mode) {
   }
 }
 
-void updateGlobalDisplay() {
-  if (displayMode == displayGlobal || displayMode ==  displayGlobalWithTempo) {
-    updateDisplay();
+void updateGlobalSettingsFlashTempo(unsigned long now) {
+  if ((displayMode == displayGlobal || displayMode == displayGlobalWithTempo) && !animationActive) {
+    paintGlobalSettingsFlashTempo(now);
+  }
+}
+
+inline void paintGlobalSettingsFlashTempo(unsigned long now) {
+  // flash the tap tempo cell at the beginning of the beat
+  if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
+      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
+    lightLed(14, 3);
+    tapTempoLedOn = now;
+  }
+
+  // handle turning off the tap tempo led after minimum 30ms
+  if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
+    tapTempoLedOn = 0;
+    clearLed(14, 3);
   }
 }
 
@@ -806,6 +852,11 @@ void paintGlobalSettingsDisplay() {
   lightLed(10, Global.velocitySensitivity);
   lightLed(11, Global.pressureSensitivity);
 
+  // Indicate whether pressure is behaving like traditional aftertouch or not
+  if (Global.pressureAftertouch) {
+    lightLed(11, 3);
+  }
+
   // Set the lights for the Arpeggiator settings
   switch (Global.arpDirection) {
     case ArpDown:
@@ -862,26 +913,18 @@ void paintGlobalSettingsDisplay() {
     lightLed(14, 1);
   }
 
-  unsigned long now = micros();
-
-  // flash the tap tempo cell at the beginning of the beat
-  if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
-      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
-    lightLed(14, 3);
-    tapTempoLedOn = now;
-  }
-
-  // handle turning off the tap tempo led after minimum 30ms
-  if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
-    tapTempoLedOn = 0;
-    clearLed(14, 3);
-  }
+  paintGlobalSettingsFlashTempo(micros());
 
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {
     lightLed(15, 0);       // for MIDI over USB
   } else {
     lightLed(15, 1);       // for MIDI jacks
+  }
+
+  // Show the low power mode
+  if (Device.operatingLowPower) {
+    lightLed(15, 2);
   }
 
   // set light for serial mode
@@ -970,6 +1013,10 @@ void paintResetDisplay() {
   for (byte row = 0; row < NUMROWS; ++row) {
     clearLed(0, row);
   }
+}
+
+void paintEditAudienceMessage() {
+  bigfont_draw_string(audienceMessageOffset, 0, Device.audienceMessages[audienceMessageToEdit], Split[LEFT].colorMain, true, false, Split[LEFT].colorAccent);
 }
 
 void setMidiChannelLed(byte chan, byte color) {                       // chan value is 1-16

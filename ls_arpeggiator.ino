@@ -129,9 +129,14 @@ void sendArpeggiatorStepMidiOff(byte split) {
             midiSendNoteOff(split, getOctaveNote(octave, arpNote), arpChannel);
           }
 
-          NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-          arpNote = entry.getNextNote();
-          arpChannel = entry.getNextChannel();
+          NoteEntry* entry = noteTouchMapping[split].getNoteEntry(arpNote, arpChannel);
+          if (entry == NULL) {
+            arpNote = -1;
+          }
+          else {
+            arpNote = entry->getNextNote();
+            arpChannel = entry->getNextChannel();
+          }
         }
       }
     }
@@ -170,7 +175,7 @@ inline void checkAdvanceArpeggiator(unsigned long now) {
       lastInternalClockMoment += ((now - lastInternalClockMoment) / clockUnit) * clockUnit;
 
       // flash the tempo led in the global display when it is on
-      updateGlobalDisplay();
+      updateGlobalSettingsFlashTempo(now);
 
       if (lastArpInternalClock == lastInternalClockCount) {
         return;
@@ -220,13 +225,18 @@ void advanceArpeggiatorForSplit(byte split) {
 
       while (arpNote != -1) {
 
-        NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
-          midiSendNoteOn(split, getOctaveNote(octave, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
+        NoteEntry* entry = noteTouchMapping[split].getNoteEntry(arpNote, arpChannel);
+        if (entry == NULL) {
+          arpNote = -1;
         }
+        else {
+          for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
+            midiSendNoteOn(split, getOctaveNote(octave, arpNote), cell(entry->getCol(), entry->getRow()).velocity, arpChannel);
+          }
 
-        arpNote = entry.getNextNote();
-        arpChannel = entry.getNextChannel();
+          arpNote = entry->getNextNote();
+          arpChannel = entry->getNextChannel();
+        }
       }
 
       lastArpNote[split] = noteTouchMapping[split].firstNote;
@@ -252,10 +262,14 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
-
-            arpNote = lastEntry.getNextNote();
-            arpChannel = lastEntry.getNextChannel();
+            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
+            if (lastEntry == NULL) {
+              arpNote = -1;
+            }
+            else {
+              arpNote = lastEntry->getNextNote();
+              arpChannel = lastEntry->getNextChannel();
+            }
 
             // start again from the beginning
             if (arpNote == -1) {
@@ -277,10 +291,14 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].lastChannel;
           }
           else {
-            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
-
-            arpNote = lastEntry.getPreviousNote();
-            arpChannel = lastEntry.getPreviousChannel();
+            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
+            if (lastEntry == NULL) {
+              arpNote = -1;
+            }
+            else {
+              arpNote = lastEntry->getPreviousNote();
+              arpChannel = lastEntry->getPreviousChannel();
+            }
 
             // start again from the end
             if (arpNote == -1) {
@@ -303,15 +321,19 @@ void advanceArpeggiatorForSplit(byte split) {
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry& lastEntry = noteTouchMapping[split].mapping[lastArpNote[split]][lastArpChannel[split]];
-
-            if (arpUpDownState[split] == ArpDown) {
-              arpNote = lastEntry.getPreviousNote();
-              arpChannel = lastEntry.getPreviousChannel();
+            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
+            if (lastEntry == NULL) {
+              arpNote = -1;
             }
             else {
-              arpNote = lastEntry.getNextNote();
-              arpChannel = lastEntry.getNextChannel();
+              if (arpUpDownState[split] == ArpDown) {
+                arpNote = lastEntry->getPreviousNote();
+                arpChannel = lastEntry->getPreviousChannel();
+              }
+              else {
+                arpNote = lastEntry->getNextNote();
+                arpChannel = lastEntry->getNextChannel();
+              }
             }
 
             // change directions
@@ -358,9 +380,14 @@ void advanceArpeggiatorForSplit(byte split) {
                   else {
                     arpUpDownState[split] = ArpDown;
                     
-                    NoteEntry& entry = noteTouchMapping[split].mapping[noteTouchMapping[split].lastNote][noteTouchMapping[split].lastChannel];
-                    arpNote = entry.getPreviousNote();
-                    arpChannel = entry.getPreviousChannel();
+                    NoteEntry* entry = noteTouchMapping[split].getNoteEntry(noteTouchMapping[split].lastNote, noteTouchMapping[split].lastChannel);
+                    if (entry == NULL) {
+                      arpNote = -1;
+                    }
+                    else {
+                      arpNote = entry->getPreviousNote();
+                      arpChannel = entry->getPreviousChannel();
+                    }
                   }
                 }
                 else if (arpUpDownState[split] == ArpDown) {
@@ -372,9 +399,14 @@ void advanceArpeggiatorForSplit(byte split) {
                   else {
                     arpUpDownState[split] = ArpUp;
 
-                    NoteEntry& entry = noteTouchMapping[split].mapping[noteTouchMapping[split].firstNote][noteTouchMapping[split].firstChannel];
-                    arpNote = entry.getNextNote();
-                    arpChannel = entry.getNextChannel();
+                    NoteEntry* entry = noteTouchMapping[split].getNoteEntry(noteTouchMapping[split].firstNote, noteTouchMapping[split].firstChannel);
+                    if (entry == NULL) {
+                      arpNote = -1;
+                    }
+                    else {
+                      arpNote = entry->getNextNote();
+                      arpChannel = entry->getNextChannel();
+                    }
                   }
                 }
               }
@@ -392,10 +424,14 @@ void advanceArpeggiatorForSplit(byte split) {
           arpChannel = noteTouchMapping[split].firstChannel;
 
           while (arpNote != -1 && pos-- != 0) {
-            NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-
-            arpNote = entry.getNextNote();
-            arpChannel = entry.getNextChannel();
+            NoteEntry* entry = noteTouchMapping[split].getNoteEntry(arpNote, arpChannel);
+            if (entry == NULL) {
+              arpNote = -1;
+            }
+            else {
+              arpNote = entry->getNextNote();
+              arpChannel = entry->getNextChannel();
+            }
           }
 
           if (Global.arpOctave) {
@@ -414,8 +450,13 @@ void advanceArpeggiatorForSplit(byte split) {
         }
 
         // send the MIDI note
-        NoteEntry& entry = noteTouchMapping[split].mapping[arpNote][arpChannel];
-        midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), cell(entry.getCol(), entry.getRow()).velocity, arpChannel);
+        NoteEntry* entry = noteTouchMapping[split].getNoteEntry(arpNote, arpChannel);
+        if (entry == NULL) {
+          arpNote = -1;
+        }
+        else {
+          midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), cell(entry->getCol(), entry->getRow()).velocity, arpChannel);
+        }
       }
 
       lastArpNote[split] = arpNote;

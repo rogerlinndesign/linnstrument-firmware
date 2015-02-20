@@ -133,17 +133,20 @@ signed char calculateCalibratedY(short rawY) {
 bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
-    sensorCell().refreshX();
-    sensorCell().refreshY();
-    if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
-      byte row = (sensorRow / 2);
-      calSampleRows[sensorCol][row].minValue = min(sensorCell().rawX(), calSampleRows[sensorCol][row].minValue);
-      calSampleRows[sensorCol][row].maxValue = max(sensorCell().rawX(), calSampleRows[sensorCol][row].maxValue);
-    }
-    else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
-      byte col = (sensorCol - 1) / 3;
-      calSampleCols[col][sensorRow].minValue = min(sensorCell().rawY(), calSampleCols[col][sensorRow].minValue);
-      calSampleCols[col][sensorRow].maxValue = max(sensorCell().rawY(), calSampleCols[col][sensorRow].maxValue);
+    // only calibrate a deliberate touch that is at least half-way through the pressure sensitivity range
+    if (sensorCell().isStableYTouch()) {
+      short rawX = readX();
+      short rawY = readY();
+      if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
+        byte row = (sensorRow / 2);
+        calSampleRows[sensorCol][row].minValue = min(rawX, calSampleRows[sensorCol][row].minValue);
+        calSampleRows[sensorCol][row].maxValue = max(rawX, calSampleRows[sensorCol][row].maxValue);
+      }
+      else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+        byte col = (sensorCol - 1) / 3;
+        calSampleCols[col][sensorRow].minValue = min(rawY, calSampleCols[col][sensorRow].minValue);
+        calSampleCols[col][sensorRow].maxValue = max(rawY, calSampleCols[col][sensorRow].maxValue);
+      }
     }
 
     return true;
@@ -152,7 +155,7 @@ bool handleCalibrationSample() {
   return false;
 }
 
-void handleCalibrationRelease() {
+boolean handleCalibrationRelease() {
   // Handle calibration passes, at least two before indicating green
   if (displayMode == displayCalibration) {
     signed char cellPass = -1;
@@ -162,7 +165,8 @@ void handleCalibrationRelease() {
       byte i2 = (sensorRow / 2);
 
       if (calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 80) {    // only proceed when at least a delta of 80 in X values is measured
-        cellPass = (calSampleRows[i1][i2].pass++);
+        cellPass = calSampleRows[i1][i2].pass;
+        calSampleRows[i1][i2].pass += 1;
       }
     }
     else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
@@ -170,7 +174,8 @@ void handleCalibrationRelease() {
       byte i2 = sensorRow;
 
       if (calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue > 180) {    // only proceed when at least a delta of 180 in Y values is measured
-        cellPass = (calSampleCols[i1][i2].pass++);
+        cellPass = calSampleCols[i1][i2].pass;
+        calSampleCols[i1][i2].pass += 1;
       }
     }
 
@@ -262,6 +267,8 @@ void handleCalibrationRelease() {
           clearDisplay();
           bigfont_draw_string(6, 0, "OK", globalColor, false);
           delayUsec(500000);
+          storeSettings();
+          
           setDisplayMode(displayNormal);
           controlButton = -1;
           clearLed(0, GLOBAL_SETTINGS_ROW);
@@ -269,12 +276,16 @@ void handleCalibrationRelease() {
         }
       }
     }
+
+    return true;
   }
+
+  return false;
 }
 
 void debugCalibration() {
   for (byte row = 0; row < 4; ++row) {
-    for (byte col = 0; col <= NUMCOLS; ++col) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
       DEBUGPRINT((0,"calRows"));
       DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)col));
       DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
@@ -285,6 +296,13 @@ void debugCalibration() {
       DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdRatio, FXD_FROM_INT(100)))));
       DEBUGPRINT((0,"\n"));
     }
+    DEBUGPRINT((0,"calRows"));
+    DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)NUMCOLS));
+    DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
+    DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdReferenceX)));
+    DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdMeasuredX)));
+    DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdRatio, FXD_FROM_INT(100)))));
+    DEBUGPRINT((0,"\n"));
   }
   for (byte col = 0; col < 5; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {

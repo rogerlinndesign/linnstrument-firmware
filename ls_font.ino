@@ -14,6 +14,14 @@ struct Character {
   char* data;
 };
 
+/******************************************* Tiny Font *******************************************/
+
+static Character tiny_blank = { 2,
+  "  "
+  "  "
+  "  "
+  "  "  };
+
 static Character tiny_0 = { 3,
   "000"
   "0 0"
@@ -74,7 +82,13 @@ static Character tiny_9 = { 3,
   "000"
   "  0" };
 
-static Character tiny_blank = { 2,
+/******************************************* Small Font ******************************************/
+
+static Character small_blank = { 2,
+  "  "
+  "  "
+  "  "
+  "  "
   "  "
   "  "
   "  "
@@ -195,10 +209,10 @@ static Character small_comma = { 2,
   "  "
   "  "
   "  "
+  "  "
   " 0"
   " 0"
-  "0 "
-  "  " };
+  "0 " };
 
 static Character small_minus = { 3,
   "   "
@@ -207,16 +221,6 @@ static Character small_minus = { 3,
   "   "
   "000"
   "   "
-  "   "
-  "   " };
-
-static Character small_div = { 3,
-  "   "
-  "   "
-  "   "
-  "  0"
-  " 0 "
-  "0  "
   "   "
   "   " };
 
@@ -229,6 +233,116 @@ static Character small_dot = { 1,
   " "
   "0"
   " " };
+
+static Character small_div = { 3,
+  "   "
+  "   "
+  "   "
+  "  0"
+  " 0 "
+  "0  "
+  "   "
+  "   " };
+
+static Character small_0 = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  "0  0"
+  "0  0"
+  "0  0"
+  " 00 "
+  "    " };
+
+static Character small_1 = { 4,
+  "    "
+  "  0 "
+  " 00 "
+  "  0 "
+  "  0 "
+  "  0 "
+  " 000"
+  "    " };
+
+static Character small_2 = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  "  0 "
+  " 0  "
+  "0   "
+  "0000"
+  "    " };
+
+static Character small_3 = { 4,
+  "    "
+  "000 "
+  "   0"
+  " 00 "
+  "   0"
+  "   0"
+  "000 "
+  "    " };
+
+static Character small_4 = { 4,
+  "    "
+  "  00"
+  " 0 0"
+  "0  0"
+  "0000"
+  "   0"
+  "   0"
+  "    " };
+
+static Character small_5 = { 4,
+  "    "
+  "0000"
+  "0   "
+  "000 "
+  "   0"
+  "0  0"
+  " 00 "
+  "    " };
+
+static Character small_6 = { 4,
+  "    "
+  " 000"
+  "0   "
+  "000 "
+  "0  0"
+  "0  0"
+  " 00 "
+  "    " };
+
+static Character small_7 = { 4,
+  "    "
+  "0000"
+  "   0"
+  "   0"
+  "  0 "
+  " 0  "
+  "0   "
+  "    " };
+
+static Character small_8 = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  " 00 "
+  "0  0"
+  "0  0"
+  " 00 "
+  "    " };
+
+static Character small_9 = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  " 000"
+  "   0"
+  "  0 "
+  " 0  "
+  "    " };
 
 static Character small_colon = { 2,
   "  "
@@ -244,11 +358,11 @@ static Character small_semi = { 2,
   "  "
   "  "
   "  "
+  "  "
   " 0"
   "  "
   " 0"
-  "0 "
-  "  " };
+  "0 " };
 
 static Character small_lt = { 3,
   "   "
@@ -299,106 +413,6 @@ static Character small_at = { 5,
   "0    "
   " 000 "
   "     " };
-
-static Character small_lsqbrack = { 2,
-  "  "
-  "  "
-  "00"
-  "0 "
-  "0 "
-  "0 "
-  "00"
-  "  " };
-
-static Character small_backslash = { 3,
-  "   "
-  "   "
-  "   "
-  "0  "
-  " 0 "
-  "  0"
-  "   "
-  "   " };
-
-static Character small_rsqbrack =  { 3,
-  "   "
-  "   "
-  "00"
-  " 0"
-  " 0"
-  " 0"
-  "00"
-  "   " };
-
-static Character small_pow = { 3,
-  "   "
-  "   "
-  " 0 "
-  "0 0"
-  "   "
-  "   "
-  "   "
-  "   " };
-
-static Character small_under = { 3,
-  "   "
-  "   "
-  "   "
-  "   "
-  "   "
-  "   "
-  "000"
-  "   " };
-
-static Character small_backtick = { 3,
-  "  "
-  "  "
-  "0 "
-  " 0"
-  "  "
-  "  "
-  "  "
-  "  " };
-
-static Character small_lbrace = { 3,
-  "   "
-  "   "
-  " 00"
-  " 0 "
-  "0  "
-  " 0 "
-  " 00"
-  "   " };
-
-static Character small_pipe = { 1,
-  " "
-  " "
-  "0"
-  "0"
-  "0"
-  "0"
-  "0"
-  " " };
-
-static Character small_rbrace = { 3,
-  "   "
-  "   "
-  "00 "
-  " 0 "
-  "  0"
-  " 0 "
-  "00 "
-  "   " };
-
-static Character small_tilde = { 7,
-  "       "
-  "       "
-  "       "
-  " 00    "
-  "0  0  0"
-  "    00 "
-  "       "
-  "       " };
 
 static Character small_A = { 4,
   "    "
@@ -660,115 +674,217 @@ static Character small_Z = { 4,
   "0000"
   "    " };
 
-static Character small_0 = { 4,
-  "    "
-  " 00 "
-  "0  0"
-  "0  0"
-  "0  0"
-  "0  0"
-  " 00 "
-  "    " };
+static Character small_lsqbrack = { 2,
+  "  "
+  "  "
+  "00"
+  "0 "
+  "0 "
+  "0 "
+  "00"
+  "  " };
 
-static Character small_1 = { 4,
-  "    "
-  "  0 "
-  " 00 "
-  "  0 "
-  "  0 "
-  "  0 "
-  " 000"
-  "    " };
+static Character small_backslash = { 3,
+  "   "
+  "   "
+  "   "
+  "0  "
+  " 0 "
+  "  0"
+  "   "
+  "   " };
 
-static Character small_2 = { 4,
-  "    "
-  " 00 "
-  "0  0"
-  "  0 "
-  " 0  "
-  "0   "
-  "0000"
-  "    " };
+static Character small_rsqbrack =  { 3,
+  "  "
+  "  "
+  "00"
+  " 0"
+  " 0"
+  " 0"
+  "00"
+  "  " };
 
-static Character small_3 = { 4,
-  "    "
-  "000 "
-  "   0"
-  " 00 "
-  "   0"
-  "   0"
-  "000 "
-  "    " };
+static Character small_pow = { 3,
+  "   "
+  "   "
+  " 0 "
+  "0 0"
+  "   "
+  "   "
+  "   "
+  "   " };
 
-static Character small_4 = { 4,
-  "    "
-  "  00"
-  " 0 0"
-  "0  0"
-  "0000"
-  "   0"
-  "   0"
-  "    " };
+static Character small_under = { 3,
+  "   "
+  "   "
+  "   "
+  "   "
+  "   "
+  "   "
+  "000"
+  "   " };
 
-static Character small_5 = { 4,
-  "    "
-  "0000"
-  "0   "
-  "000 "
-  "   0"
-  "0  0"
-  " 00 "
-  "    " };
-
-static Character small_6 = { 4,
-  "    "
-  " 000"
-  "0   "
-  "000 "
-  "0  0"
-  "0  0"
-  " 00 "
-  "    " };
-
-static Character small_7 = { 4,
-  "    "
-  "0000"
-  "   0"
-  "   0"
-  "  0 "
-  " 0  "
-  "0   "
-  "    " };
-
-static Character small_8 = { 4,
-  "    "
-  " 00 "
-  "0  0"
-  " 00 "
-  "0  0"
-  "0  0"
-  " 00 "
-  "    " };
-
-static Character small_9 = { 4,
-  "    "
-  " 00 "
-  "0  0"
-  " 000"
-  "   0"
-  "  0 "
-  " 0  "
-  "    " };
-
-static Character small_blank = { 2,
+static Character small_backtick = { 3,
+  "  "
+  "  "
+  "0 "
+  " 0"
   "  "
   "  "
   "  "
-  "  "
-  "  "
-  "  "
-  "  "
-  "  "  };
+  "  " };
+
+static Character small_lbrace = { 3,
+  "   "
+  "   "
+  " 00"
+  " 0 "
+  "0  "
+  " 0 "
+  " 00"
+  "   " };
+
+static Character small_pipe = { 1,
+  " "
+  " "
+  "0"
+  "0"
+  "0"
+  "0"
+  "0"
+  " " };
+
+static Character small_rbrace = { 3,
+  "   "
+  "   "
+  "00 "
+  " 0 "
+  "  0"
+  " 0 "
+  "00 "
+  "   " };
+
+static Character small_tilde = { 5,
+  "     "
+  "     "
+  "     "
+  " 0   "
+  "0 0 0"
+  "   0 "
+  "     "
+  "     " };
+
+/******************************************** Big Font *******************************************/
+
+static Character big_blank = { 5,
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     " };
+
+static Character big_excl = { 5,
+  "     "
+  "  0  "
+  "  0  "
+  "  0  "
+  "  0  "
+  "     "
+  "  0  "
+  "     " };
+
+static Character big_quot = { 5,
+  "     "
+  " 00  "
+  " 00  "
+  "  00 "
+  "     "
+  "     "
+  "     "
+  "     " };
+
+static Character big_hash = { 5,
+  "     "
+  "     "
+  " 0 0 "
+  "00000"
+  " 0 0 "
+  "00000"
+  " 0 0 "
+  "     " };
+
+static Character big_dollar = { 5,
+  "     "
+  "  0  "
+  " 0000"
+  "0 0  "
+  " 000 "
+  "  0 0"
+  "0000 "
+  "  0  " };
+
+static Character big_perc = { 5,
+  "     "
+  "     "
+  " 0  0"
+  "   0 "
+  "  0  "
+  " 0   "
+  "0  0 "
+  "     " };
+
+static Character big_amp = { 5,
+  "     "
+  "     "
+  " 00  "
+  "0  0 "
+  " 00  "
+  "0  00"
+  " 00 0"
+  "     " };
+
+static Character big_squot = { 5,
+  "     "
+  "  0  "
+  "  0  "
+  "   0 "
+  "     "
+  "     "
+  "     "
+  "     " };
+
+static Character big_lparen = { 5,
+  "     "
+  "  00 "
+  " 0   "
+  " 0   "
+  " 0   "
+  " 0   "
+  "  00 "
+  "     " };
+
+static Character big_rparen = { 5,
+  "     "
+  " 00  "
+  "   0 "
+  "   0 "
+  "   0 "
+  "   0 "
+  " 00  "
+  "     " };
+
+static Character big_mult = { 5,
+  "     "
+  "     "
+  "0 0 0"
+  " 000 "
+  "00000"
+  " 000 "
+  "0 0 0"
+  "     " };
 
 static Character big_plus = { 5,
   "     "
@@ -780,6 +896,16 @@ static Character big_plus = { 5,
   "  0  "
   "     " };
 
+static Character big_comma = { 5,
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "  0  "
+  "  0  "
+  " 0   " };
+
 static Character big_minus = { 5,
   "     "
   "     "
@@ -790,25 +916,195 @@ static Character big_minus = { 5,
   "     "
   "     " };
 
-static Character big_lparen = { 3,
-  "   "
-  " 00"
-  "0  "
-  "0  "
-  "0  "
-  "0  "
-  " 00"
-  "   " };
+static Character big_dot = { 5,
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "  0  "
+  "     " };
 
-static Character big_rparen = { 3,
-  "   "
-  "00 "
-  "  0"
-  "  0"
-  "  0"
-  "  0"
-  "00 "
-  "   " };
+static Character big_div = { 5,
+  "     "
+  "     "
+  "    0"
+  "   0 "
+  "  0  "
+  " 0   "
+  "0    "
+  "     " };
+
+static Character big_0 = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  "0  00"
+  "0 0 0"
+  "00  0"
+  " 000 "
+  "     " };
+
+static Character big_1 = { 5,
+  "     "
+  "  0  "
+  " 00  "
+  "0 0  "
+  "  0  "
+  "  0  "
+  "00000"
+  "     " };
+
+static Character big_2 = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  "   0 "
+  "  0  "
+  " 0   "
+  "00000"
+  "     " };
+
+static Character big_3 = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  "  00 "
+  "    0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_4 = { 5,
+  "     "
+  "   00"
+  "  0 0"
+  " 0  0"
+  "00000"
+  "    0"
+  "    0"
+  "     " };
+
+static Character big_5 = { 5,
+  "     "
+  "00000"
+  "0    "
+  "0000 "
+  "    0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_6 = { 5,
+  "     "
+  " 000 "
+  "0    "
+  "0000 "
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_7 = { 5,
+  "     "
+  "00000"
+  "    0"
+  "   0 "
+  "  0  "
+  " 0   "
+  "0    "
+  "     " };
+
+static Character big_8 = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  " 000 "
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_9 = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  "0   0"
+  " 0000"
+  "    0"
+  " 000 "
+  "     " };
+
+static Character big_colon = { 5,
+  "     "
+  "     "
+  "     "
+  "  0  "
+  "     "
+  "  0  "
+  "     "
+  "     " };
+
+static Character big_semi = { 5,
+  "     "
+  "     "
+  "     "
+  "  0  "
+  "     "
+  "  0  "
+  "  0  "
+  " 0   " };
+
+static Character big_lt = { 5,
+  "     "
+  "     "
+  "   0 "
+  "  0  "
+  " 0   "
+  "  0  "
+  "   0 "
+  "     " };
+
+static Character big_eq = { 5,
+  "     "
+  "     "
+  "     "
+  "00000"
+  "     "
+  "00000"
+  "     "
+  "     " };
+
+static Character big_gt = { 5,
+  "     "
+  "     "
+  " 0   "
+  "  0  "
+  "   0 "
+  "  0  "
+  " 0   "
+  "     " };
+
+static Character big_quest = { 5,
+  "     "
+  " 000 "
+  "0   0"
+  "   0 "
+  "  0  "
+  "     "
+  "  0  "
+  "     " };
+
+static Character big_at = { 5,
+  "     "
+  "     "
+  " 000 "
+  "0 0 0"
+  "0  0 "
+  "0    "
+  " 000 "
+  "     " };
 
 static Character big_A = { 5,
   "     "
@@ -854,7 +1150,7 @@ static Character big_E = { 5,
   "     "
   "00000"
   "0    "
-  "00000"
+  "0000 "
   "0    "
   "0    "
   "00000"
@@ -864,7 +1160,7 @@ static Character big_F = { 5,
   "     "
   "00000"
   "0    "
-  "00000"
+  "0000 "
   "0    "
   "0    "
   "0    "
@@ -892,12 +1188,12 @@ static Character big_H = { 5,
 
 static Character big_I = { 5,
   "     "
-  " 000 "
+  "00000"
   "  0  "
   "  0  "
   "  0  "
   "  0  "
-  " 000 "
+  "00000"
   "     " };
 
 static Character big_J = { 5,
@@ -915,7 +1211,7 @@ static Character big_K = { 5,
   "0   0"
   "0  0 "
   "000  "
-  "000  "
+  "0 0  "
   "0  0 "
   "0   0"
   "     " };
@@ -944,9 +1240,9 @@ static Character big_N = { 5,
   "     "
   "0   0"
   "00  0"
-  "000 0"
-  "0 000"
+  "0 0 0"
   "0  00"
+  "0   0"
   "0   0"
   "     " };
 
@@ -976,7 +1272,7 @@ static Character big_Q = { 5,
   "0   0"
   "0   0"
   "0 0 0"
-  "0  00"
+  "0  0 "
   " 00 0"
   "     " };
 
@@ -985,7 +1281,7 @@ static Character big_R = { 5,
   "0000 "
   "0   0"
   "0   0"
-  "0x00 "
+  "0000 "
   "0  0 "
   "0   0"
   "     " };
@@ -1070,16 +1366,364 @@ static Character big_Z = { 5,
   "00000"
   "     " };
 
-static Character big_blank = { 5,
+static Character big_lsqbrack = { 5,
+  "     "
+  " 000 "
+  " 0   "
+  " 0   "
+  " 0   "
+  " 0   "
+  " 000 "
+  "     " };
+
+static Character big_backslash = { 5,
+  "     "
+  "     "
+  "0    "
+  " 0   "
+  "  0  "
+  "   0 "
+  "    0"
+  "     " };
+
+static Character big_rsqbrack =  { 5,
+  "     "
+  " 000 "
+  "   0 "
+  "   0 "
+  "   0 "
+  "   0 "
+  " 000 "
+  "     " };
+
+static Character big_pow = { 5,
+  "     "
+  "  0  "
+  " 0 0 "
+  "0   0"
   "     "
   "     "
   "     "
+  "     " };
+
+static Character big_under = { 5,
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "     "
+  "00000" };
+
+static Character big_backtick = { 5,
+  "     "
+  " 0   "
+  "  0  "
   "     "
   "     "
   "     "
   "     "
   "     " };
 
+static Character big_a = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "0  0 "
+  "0  0 "
+  " 0000"
+  "     " };
+
+static Character big_b = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0000 "
+  "     " };
+
+static Character big_c = { 5,
+  "     "
+  "     "
+  "     "
+  " 0000"
+  "0    "
+  "0    "
+  " 0000"
+  "     " };
+
+static Character big_d = { 5,
+  "     "
+  "    0"
+  "    0"
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "     " };
+
+static Character big_e = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "00000"
+  "0    "
+  " 000 "
+  "     " };
+
+static Character big_f = { 5,
+  "     "
+  "  00 "
+  " 0  0"
+  " 0   "
+  "0000 "
+  " 0   "
+  " 0   "
+  "     " };
+
+static Character big_g = { 5,
+  "     "
+  "     "
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "    0"
+  " 000 " };
+
+static Character big_h = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0   0"
+  "     " };
+
+static Character big_i = { 5,
+  "     "
+  "  0  "
+  "     "
+  " 00  "
+  "  0  "
+  "  0  "
+  " 000 "
+  "     " };
+
+static Character big_j = { 5,
+  "     "
+  "   0 "
+  "     "
+  "  00 "
+  "   0 "
+  "   0 "
+  "0  0 "
+  " 00  " };
+
+static Character big_k = { 5,
+  "     "
+  "0    "
+  "0    "
+  "0 0  "
+  "00   "
+  "0 0  "
+  "0  0 "
+  "     " };
+
+static Character big_l = { 5,
+  "     "
+  "00   "
+  " 0   "
+  " 0   "
+  " 0   "
+  " 0   "
+  "  000"
+  "     " };
+
+static Character big_m = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0 0 0"
+  "0 0 0"
+  "0 0 0"
+  "     " };
+
+static Character big_n = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0   0"
+  "     " };
+
+static Character big_o = { 5,
+  "     "
+  "     "
+  "     "
+  " 000 "
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_p = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0   0"
+  "0000 "
+  "0    " };
+
+static Character big_q = { 5,
+  "     "
+  "     "
+  "     "
+  " 0000"
+  "0   0"
+  "0   0"
+  " 0000"
+  "    0" };
+
+static Character big_r = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "0   0"
+  "0    "
+  "0    "
+  "     " };
+
+static Character big_s = { 5,
+  "     "
+  "     "
+  " 000 "
+  "0    "
+  " 000 "
+  "    0"
+  "0000 "
+  "     " };
+
+static Character big_t = { 5,
+  "     "
+  " 0   "
+  " 0   "
+  "0000 "
+  " 0   "
+  " 0  0"
+  "  00 "
+  "     " };
+
+static Character big_u = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0   0"
+  "0   0"
+  " 000 "
+  "     " };
+
+static Character big_v = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0   0"
+  " 0 0 "
+  "  0  "
+  "     " };
+
+static Character big_w = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  "0 0 0"
+  "0 0 0"
+  " 0 0 "
+  "     " };
+
+static Character big_x = { 5,
+  "     "
+  "     "
+  "     "
+  "0  0 "
+  " 00  "
+  " 00  "
+  "0  0 "
+  "     " };
+
+static Character big_y = { 5,
+  "     "
+  "     "
+  "     "
+  "0   0"
+  " 0 0 "
+  "  0  "
+  " 0   " };
+
+static Character big_z = { 5,
+  "     "
+  "     "
+  "     "
+  "0000 "
+  "  0  "
+  " 0   "
+  "0000 "
+  "     " };
+
+static Character big_lbrace = { 5,
+  "   00"
+  "  0  "
+  "  0  "
+  " 0   "
+  "  0  "
+  "  0  "
+  "   00"
+  "     " };
+
+static Character big_pipe = { 5,
+  "     "
+  "  0  "
+  "  0  "
+  "  0  "
+  "  0  "
+  "  0  "
+  "  0  "
+  "     " };
+
+static Character big_rbrace = { 5,
+  "00   "
+  "  0  "
+  "  0  "
+  "   0 "
+  "  0  "
+  "  0  "
+  "00   "
+  "     " };
+
+static Character big_tilde = { 5,
+  "     "
+  "     "
+  "     "
+  " 0   "
+  "0 0 0"
+  "   0 "
+  "     "
+  "     " };
 
 struct Font {
   byte height;
@@ -1088,31 +1732,30 @@ struct Font {
 };
 
 Character* tinyChars[] = {
-  &tiny_0, &tiny_1, &tiny_2, &tiny_3, &tiny_4, &tiny_5, &tiny_6, &tiny_7, &tiny_8, &tiny_9, &tiny_blank
+  &tiny_blank, &tiny_0, &tiny_1, &tiny_2, &tiny_3, &tiny_4, &tiny_5, &tiny_6, &tiny_7, &tiny_8, &tiny_9
 };
-struct Font tinyFont = { 4, "0123456789 ", tinyChars };
+struct Font tinyFont = { 4, " 0123456789", tinyChars };
 
 Character* smallChars[] = {
-  &small_excl, &small_quot, &small_hash, &small_dollar, &small_perc, &small_amp, &small_squot, &small_lparen, &small_rparen, &small_mult,
-  &small_plus, &small_comma, &small_minus, &small_div, &small_dot, &small_colon, &small_semi, &small_lt, &small_eq, &small_gt, &small_quest,
-  &small_at, &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick, &small_lbrace, &small_pipe,
-  &small_rbrace, &small_tilde,
-  &small_A, &small_B, &small_C, &small_D, &small_E, &small_F, &small_G, &small_H, &small_I, &small_J, &small_K, &small_L, &small_M,
-  &small_N, &small_O, &small_P, &small_Q, &small_R, &small_S, &small_T, &small_U, &small_V, &small_W, &small_X, &small_Y, &small_Z,
-  &small_0, &small_1, &small_2, &small_3, &small_4, &small_5, &small_6, &small_7, &small_8, &small_9, &small_blank
+  &small_blank, &small_excl, &small_quot, &small_hash, &small_dollar, &small_perc, &small_amp, &small_squot, &small_lparen, &small_rparen, &small_mult, &small_plus, &small_comma, &small_minus, &small_dot, &small_div,
+  &small_0, &small_1, &small_2, &small_3, &small_4, &small_5, &small_6, &small_7, &small_8, &small_9,
+  &small_colon, &small_semi, &small_lt, &small_eq, &small_gt, &small_quest, &small_at,
+  &small_A, &small_B, &small_C, &small_D, &small_E, &small_F, &small_G, &small_H, &small_I, &small_J, &small_K, &small_L, &small_M, &small_N, &small_O, &small_P, &small_Q, &small_R, &small_S, &small_T, &small_U, &small_V, &small_W, &small_X, &small_Y, &small_Z,
+  &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick,
+  &small_lbrace, &small_pipe, &small_rbrace, &small_tilde
 };
-struct Font smallFont = { 8, "!\"#$%&'()*+,-/.:;<=>?@[\\]^_`{|}~ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ", smallChars };
+struct Font smallFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`{|}~", smallChars };
 
 Character* bigChars[] = {
-  &small_excl, &small_quot, &small_hash, &small_dollar, &small_perc, &small_amp, &small_squot, &big_lparen, &big_rparen, &small_mult,
-  &small_plus, &small_comma, &big_minus, &small_div, &small_dot, &small_colon, &small_semi, &small_lt, &small_eq, &small_gt, &small_quest,
-  &small_at, &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick, &small_lbrace, &small_pipe,
-  &small_rbrace, &small_tilde,
-  &big_A, &big_B, &big_C, &big_D, &big_E, &big_F, &big_G, &big_H, &big_I, &big_J, &big_K, &big_L, &big_M,
-  &big_N, &big_O, &big_P, &big_Q, &big_R, &big_S, &big_T, &big_U, &big_V, &big_W, &big_X, &big_Y, &big_Z,
-  &small_0, &small_1, &small_2, &small_3, &small_4, &small_5, &small_6, &small_7, &small_8, &small_9, &big_blank
+  &big_blank, &big_excl, &big_quot, &big_hash, &big_dollar, &big_perc, &big_amp, &big_squot, &big_lparen, &big_rparen, &big_mult, &big_plus, &big_comma, &big_minus, &big_dot, &big_div,
+  &big_0, &big_1, &big_2, &big_3, &big_4, &big_5, &big_6, &big_7, &big_8, &big_9,
+  &big_colon, &big_semi, &big_lt, &big_eq, &big_gt, &big_quest, &big_at,
+  &big_A, &big_B, &big_C, &big_D, &big_E, &big_F, &big_G, &big_H, &big_I, &big_J, &big_K, &big_L, &big_M, &big_N, &big_O, &big_P, &big_Q, &big_R, &big_S, &big_T, &big_U, &big_V, &big_W, &big_X, &big_Y, &big_Z,
+  &big_lsqbrack, &big_backslash, &big_rsqbrack, &big_pow, &big_under, &big_backtick,
+  &big_a, &big_b, &big_c, &big_d, &big_e, &big_f, &big_g, &big_h, &big_i, &big_j, &big_k, &big_l, &big_m, &big_n, &big_o, &big_p, &big_q, &big_r, &big_s, &big_t, &big_u, &big_v, &big_w, &big_x, &big_y, &big_z,
+  &big_lbrace, &big_pipe, &big_rbrace, &big_tilde
 };
-struct Font bigFont = { 8, "!\"#$%&'()*+,-/.:;<=>?@[\\]^_`{|}~ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ", bigChars };
+struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", bigChars };
 
 unsigned font_width_string(char* str, struct Font* font) {
   unsigned width = 0;
@@ -1127,9 +1770,8 @@ unsigned font_width_string(char* str, struct Font* font) {
   return width;
 }
 
-
 // Draw a string of characters starting at a specific column/row
-void font_draw_string(int col, int row, char* str, byte color, struct Font* font, boolean erase, boolean reversed) {
+void font_draw_string(int col, int row, char* str, byte color, struct Font* font, boolean erase, boolean reversed, byte seperationColor) {
   int i;
   if (reversed) { i = strlen(str) - 1; }
   else          { i = 0; }
@@ -1142,7 +1784,7 @@ void font_draw_string(int col, int row, char* str, byte color, struct Font* font
       font_draw_char(col, row, font->data[i]->data, color, font->data[i]->width, font->height, erase, reversed);
       col += (font->data[i]->width + 1);
       if (erase) {
-        font_draw_blank_column(col,row,font->height);     // 1 blank pixel between characters
+        font_draw_blank_column(col, row, font->height, seperationColor);     // 1 blank pixel between characters
       }
     }
 
@@ -1162,7 +1804,11 @@ void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase
 }
 
 void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &tinyFont, erase, reversed);
+  tinyfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &tinyFont, erase, reversed, seperationColor);
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color) {
@@ -1174,7 +1820,11 @@ void smallfont_draw_string(int col, int row, char* str, byte color, boolean eras
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &smallFont, erase, reversed);
+  smallfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &smallFont, erase, reversed, seperationColor);
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color) {
@@ -1186,11 +1836,15 @@ void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase)
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  font_draw_string(col, row, str, color, &bigFont, erase, reversed);
+  bigfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+}
+
+void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &bigFont, erase, reversed, seperationColor);
 }
 
 // Draw a single character at col,row
-static void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
+void font_draw_char(int col, int row, char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
 {
   for (byte r = 0; r < height; ++r) {
     for (byte c = 0; c < width; ++c) {
@@ -1219,11 +1873,15 @@ static void font_draw_char(int col, int row, char* fontdata, byte color, byte wi
 }
 
 // Draw a single-pixel-wide blank column
-static void font_draw_blank_column(int col, int row, byte height)
-{
-  if (col >= 0 && col < NUMCOLS) {
+void font_draw_blank_column(int col, int row, byte height, byte seperationColor) {
+  if (col >= 1 && col < NUMCOLS) {
     for (byte r = row; r < height; ++r) {
-      setLed(col, r, 0, cellOn);
+      if (r == row || r == height - 1) {
+        setLed(col, r, seperationColor, cellOn);
+      }
+      else {
+        setLed(col, r, COLOR_BLACK, cellOn);
+      }
     }
   }
 }
@@ -1246,7 +1904,7 @@ void font_scroll_text_flipped(struct Font* font, char* str, byte color) {
   int totalwidth = font_width_string(str, font);
   int i;
   for (i = totalwidth; i >= -NUMCOLS && !stopAnimation; --i) {
-    font_draw_string( -i, 0, str, color, font, true, true);
+    font_draw_string( -i, 0, str, color, font, true, true, COLOR_BLACK);
 
     if (i < 0) {
       for (byte col = 0; col <= -i; ++col) {
@@ -1281,9 +1939,9 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
   animationActive = true;
   stopAnimation = false;
 
-  int totalwidth = font_width_string(str, &smallFont);
+  int totalwidth = font_width_string(str, font);
   for (int i = 0; i < totalwidth && !stopAnimation; ++i) {
-    font_draw_string( -i, 0, str, color, font, true, false);
+    font_draw_string( -i, 0, str, color, font, true, false, COLOR_BLACK);
     delayUsecWithScanning(40000);
   }
 
