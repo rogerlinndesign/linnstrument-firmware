@@ -27,6 +27,10 @@ v1.1.1
   * Improvements to changing numeric parameters through sliding
   * Optimized the fonts that are used on the LinnStrument surface
   * Quantize hold has been very slightly sped up
+  * Blink the middle root note when the octave is changed through switches while playing
+  * The performance display is always updated when octaves are changed through switches since some cells might fall
+    out of MIDI note range and be blank
+  * Fix for played note light getting stuck when switch octaves while cells are pressed
 
 v1.1.0
 
