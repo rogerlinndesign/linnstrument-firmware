@@ -54,7 +54,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-char* OSVersion = "111";
+char* OSVersion = "111JS"; //-- modified version jas 2015/02/20
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI

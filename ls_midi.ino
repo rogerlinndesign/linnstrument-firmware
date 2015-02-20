@@ -17,6 +17,11 @@ byte midiMessageIndex = 0; // the message array index of the message that is bei
 
 byte midiCellColCC = 0;
 byte midiCellRowCC = 0;
+byte midiEnableSendRowCol = 0;    //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
+
+boolean isMidiSendRowColActive() { //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
+  return midiEnableSendRowCol !=0;
+}
 
 // MIDI Clock State
 const int32_t fxd4MidiClockUnit = FXD4_FROM_INT(2500000);  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
@@ -665,6 +670,13 @@ void receivedNrpn(int parameter, int value) {
         Global.colOffset = value;
       }
       break;
+
+    case 300:
+      if (value == 1 || value == 2 || value == 3 || value == 0) {
+        midiEnableSendRowCol = value;
+      }
+      break;
+
   }
 
   updateDisplay();

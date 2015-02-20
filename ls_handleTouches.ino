@@ -654,6 +654,12 @@ void handleNewNote(signed char notenum) {
   // register the reverse mapping
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
+  //-- send the row and column of the cell -- experimental - jas 2015/02/19 --
+  if (isMidiSendRowColActive()) {
+    midiSendControlChange(20, sensorCol, channel);
+    midiSendControlChange(21, sensorRow, channel);
+  }
+
   // send the note on
   if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit(sensorSplit)) {
     midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
