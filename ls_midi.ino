@@ -249,11 +249,11 @@ void handleMidiInput(unsigned long now) {
               break;
             case 22:
               if (displayMode == displayNormal) {
-                if (midiData2 <= COLOR_MAGENTA && midiData2 != COLOR_BLACK) {
+                if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
                   setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, LED_LAYER_CUSTOM);
                 }
                 else {
-                  setLed(midiCellColCC, midiCellRowCC, COLOR_BLACK, cellOff, LED_LAYER_CUSTOM);
+                  setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, LED_LAYER_CUSTOM);
                 }
                 checkRefreshLedColumn(micros());
               }
@@ -681,7 +681,7 @@ void resetNoteCells(byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, COLOR_BLACK, cellOff, LED_LAYER_PLAYED);
+      setLed(col, row, COLOR_OFF, cellOff, LED_LAYER_PLAYED);
     }
   }
 }

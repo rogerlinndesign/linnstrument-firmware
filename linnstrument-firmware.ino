@@ -96,14 +96,14 @@ char* OSVersion = "111";
 #define READ_Z  2
 
 // Supported colors
-#define COLOR_BLACK    0
+#define COLOR_OFF      0
 #define COLOR_RED      1
 #define COLOR_YELLOW   2
 #define COLOR_GREEN    3
 #define COLOR_CYAN     4
 #define COLOR_BLUE     5
 #define COLOR_MAGENTA  6
-#define COLOR_WHITE    7
+#define COLOR_BLACK    7
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
