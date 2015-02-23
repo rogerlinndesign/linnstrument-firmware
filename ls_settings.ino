@@ -131,6 +131,7 @@ void applyPresetSettings(PresetSettings& preset) {
   memcpy(&Split[RIGHT], &preset.split[RIGHT], sizeof(SplitSettings));
 
   focusedSplit = Global.currentPerSplit;
+  applyPitchCorrectHold();
 
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
@@ -306,6 +307,7 @@ void initializePresetSettings() {
   memcpy(&config.settings, &config.preset[3], sizeof(PresetSettings));
 
   // initialize runtime data
+  applyPitchCorrectHold();
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 8; ++c) {
       ccFaderValues[s][c] = 0;
@@ -314,6 +316,19 @@ void initializePresetSettings() {
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
+  }
+}
+
+void applyPitchCorrectHold() {
+  for (byte sp = 0; sp < NUMSPLITS; ++sp) {
+    switch (Split[sp].pitchCorrectHold) {
+      case pitchCorrectHoldOff:    pitchHoldDuration[sp] = 0; break;
+      case pitchCorrectHoldFast:   pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_FAST; break;
+      case pitchCorrectHoldMedium: pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM; break;
+      case pitchCorrectHoldSlow:   pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_SLOW; break;
+    }
+
+    fxdPitchHoldDuration[sp] = FXD_FROM_INT(pitchHoldDuration[sp]);
   }
 }
 
@@ -601,6 +616,7 @@ void handlePerSplitSettingNewTouch() {
         case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
         case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
       }
+      applyPitchCorrectHold();
     }
     else if (sensorRow == 4) {
       switch (Split[Global.currentPerSplit].pitchCorrectHold) {
@@ -609,6 +625,7 @@ void handlePerSplitSettingNewTouch() {
         case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
         case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
       }
+      applyPitchCorrectHold();
     }
     else if (sensorRow == 3) {
       Split[Global.currentPerSplit].pitchResetOnRelease = !Split[Global.currentPerSplit].pitchResetOnRelease;

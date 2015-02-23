@@ -715,8 +715,6 @@ byte handleZExpression() {
 }
 
 short handleXExpression() {
-  short pitchBend = INVALID_DATA;
-
   sensorCell().refreshX();
 
   short movedX;
@@ -754,59 +752,53 @@ short handleXExpression() {
     movedX = calibratedX - sensorCell().initialReferenceX;
   }
 
-  short deltaX = abs(movedX - sensorCell().lastMovedX);                           // calculate how much change there was since the last X update
-  sensorCell().fxdRateX -= FXD_DIV(sensorCell().fxdRateX, fxdRateXSamples);       // calculate the average rate of X value changes over a number of samples
-  sensorCell().fxdRateX += FXD_DIV(FXD_FROM_INT(deltaX), fxdRateXSamples);
+  // calculate how much change there was since the last X update
+  short deltaX = abs(movedX - sensorCell().lastMovedX);
+        
+  if ((countTouchesInColumn() < 2 ||
+       sensorCell().currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z)) &&  // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to prevent unwanted pitch slides
+      (!sensorCell().hasPhantoms() ||                                      // if no phantom presses are active, send the pitch bend change
+       deltaX < ROGUE_PITCH_SWEEP_THRESHOLD)) {                            // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
 
-  byte pitchHoldDuration = 0;
-  switch (Split[sensorSplit].pitchCorrectHold) {
-    case pitchCorrectHoldFast:   pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_FAST; break;
-    case pitchCorrectHoldMedium: pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM; break;
-    case pitchCorrectHoldSlow:   pitchHoldDuration = PITCH_CORRECT_HOLD_SAMPLES_SLOW; break;
-  }
+    // calculate the average rate of X value changes over a number of samples
+    sensorCell().fxdRateX -= FXD_DIV(sensorCell().fxdRateX, fxdRateXSamples);
+    sensorCell().fxdRateX += FXD_DIV(FXD_FROM_INT(deltaX), fxdRateXSamples);
 
-  if (!sensorCell().hasPhantoms() ||                                              // if no phantom presses are active, send the pitch bend change
-      deltaX < ROGUE_PITCH_SWEEP_THRESHOLD) {                                     // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
-
+    // remember the last X movement
     sensorCell().lastMovedX = movedX;
-    short bend = 0;
 
+    // if pitch quantize on hold is disabled, just output the current touch pitch
+    if (Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
+      return movedX;
+    }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
-    if (pitchHoldDuration != 0) {
-      int32_t fxdMovedRatio = FXD_DIV(FXD_FROM_INT(pitchHoldDuration - sensorCell().rateCountX), FXD_FROM_INT(pitchHoldDuration));
+    else {
+      int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[sensorSplit] - FXD_FROM_INT(sensorCell().rateCountX), fxdPitchHoldDuration[sensorSplit]);
       int32_t fxdCorrectedRatio = FXD_FROM_INT(1) - fxdMovedRatio;
       int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
       int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
-      bend = FXD_TO_INT(fxdInterpolatedX);
 
       // if the pich has stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-      if (pitchHoldDuration == sensorCell().rateCountX) {
+      if (pitchHoldDuration[sensorSplit] == sensorCell().rateCountX) {
         sensorCell().quantizationOffsetX = sensorCell().initialX - (sensorCell().currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
       }
-    }
-    else {                                                                        // if pitch quantize on hold is disabled, just output the current touch pitch
-      bend = movedX;
-    }
 
-    // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to
-    // prevent unwanted pitch slides
-    if ((countTouchesInColumn() < 2 || sensorCell().currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z))) {
-      pitchBend = bend;
+      // keep track of how many times the X changement rate drops below the threshold or above
+      if (sensorCell().fxdRateX < fxdRateXThreshold) {
+        if (sensorCell().rateCountX < pitchHoldDuration[sensorSplit]) {
+          sensorCell().rateCountX++;
+        }
+      }
+      else if (sensorCell().rateCountX > 0) {
+        sensorCell().rateCountX--;
+      }
+
+      return FXD_TO_INT(fxdInterpolatedX);
     }
   }
 
-  // keep track of how many times the X changement rate drops below the threshold or above
-  if (sensorCell().fxdRateX < fxdRateXThreshold) {
-    if (sensorCell().rateCountX < pitchHoldDuration) {
-      sensorCell().rateCountX++;
-    }
-  }
-  else if (sensorCell().rateCountX > 0) {
-    sensorCell().rateCountX--;
-  }
-
-  return pitchBend;
+  return INVALID_DATA;
 }
 
 const int32_t MAX_VALUE_Y = FXD_FROM_INT(127);

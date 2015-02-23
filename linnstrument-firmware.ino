@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.1.1 =========================================
+======================================== LinnStrument Operating System v1.2.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -54,7 +54,11 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
+<<<<<<< HEAD
 char* OSVersion = "111JS"; //-- modified version jas 2015/02/20
+=======
+char* OSVersion = "120.";
+>>>>>>> b11f310805385747810d3f1d394cc9d2192ff53b
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -96,14 +100,14 @@ char* OSVersion = "111JS"; //-- modified version jas 2015/02/20
 #define READ_Z  2
 
 // Supported colors
-#define COLOR_BLACK    0
+#define COLOR_OFF      0
 #define COLOR_RED      1
 #define COLOR_YELLOW   2
 #define COLOR_GREEN    3
 #define COLOR_CYAN     4
 #define COLOR_BLUE     5
 #define COLOR_MAGENTA  6
-#define COLOR_WHITE    7
+#define COLOR_BLACK    7
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
@@ -234,7 +238,7 @@ struct TouchInfo {
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
   int32_t fxdRateX;                          // the averaged rate of change of the X values
-  byte rateCountX;                           // the number of times the rate of change drops below the minimal value for quantization
+  unsigned short rateCountX;                 // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
 
   signed char initialY;                      // initial Y value of each cell
@@ -656,6 +660,8 @@ boolean stopAnimation = false;                      // indicates whether animati
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);      // the current tempo
 byte midiDecimateRate = 0;                          // by default no decimation
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
+int32_t fxdPitchHoldDuration[NUMSPLITS];
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message

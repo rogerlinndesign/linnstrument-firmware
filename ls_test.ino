@@ -163,7 +163,7 @@ void modeLoopManufacturingTest() {
   if (previousTouch != touchedCell && sensorCell().currentRawZ > threshold) {
     sensorCell().touched = touchedCell;
 
-    byte color = COLOR_WHITE;
+    byte color = COLOR_OFF;
     switch (sensorRow)
     {
       case 0:

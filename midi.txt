@@ -201,3 +201,4 @@ Color Values
 4   Cyan
 5   Blue
 6   Magenta
+7   Black
