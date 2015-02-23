@@ -235,7 +235,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
 
 void paintStrumDisplayCell(byte split, byte col, byte row) {
   // by default clear the cell color
-  byte colour = COLOR_BLACK;
+  byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
 
   if (row % 2 == 0) {
@@ -253,7 +253,7 @@ void paintStrumDisplayCell(byte split, byte col, byte row) {
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
   // by default clear the cell color
-  byte colour = COLOR_BLACK;
+  byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
 
   short displayedNote = getNoteNumber(col,row) - Split[split].transposeLights;
@@ -261,7 +261,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // the note is out of MIDI note range, disable it
   if (actualnote < 0 || actualnote > 127) {
-    colour = COLOR_BLACK;
+    colour = COLOR_OFF;
     cellDisplay = cellOff;
   }
   else {

@@ -70,11 +70,11 @@ void setLed(byte col, byte row, byte color, CellDisplay disp) {
 }
 
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
-  if (color == COLOR_BLACK) {
+  if (color == COLOR_OFF) {
     disp = cellOff;
   }
   else if (disp == cellOff) {
-    color = COLOR_BLACK;
+    color = COLOR_OFF;
   }
   byte data = (color << 4) | disp;      // packs color and display into this cell within array
   if (leds[layer][col][row] != data) {
@@ -94,7 +94,7 @@ void clearLed(byte col, byte row) {
 }
 
 void clearLed(byte col, byte row, byte layer) {
-  setLed(col, row, COLOR_BLACK, cellOff, layer);
+  setLed(col, row, COLOR_OFF, cellOff, layer);
 }
 
 void completelyRefreshLeds() {
@@ -147,33 +147,29 @@ void refreshLedColumn(unsigned long now) {               // output: none
         Device.operatingLowPower && cellDisplay > displayInterval) {    // if this LED is not off, process it
       switch (color)                                                    // set the color bytes to the correct color
       {
-        case 0:  // off-- do nothing
+        case COLOR_OFF:
+        case COLOR_BLACK:
           break;
-        case 1:  // red
+        case COLOR_RED:
           red = red | (B00000001 << rowCount);                          // set this row's red bit on
           break;
-        case 2:  // yellow
+        case COLOR_YELLOW:
           red = red | (B00000001 << rowCount);                          // set this row's red and green bits on (yellow)
           green = green | (B00000001 << rowCount);
           break;
-        case 3:  // green
+        case COLOR_GREEN:
           green = green | (B00000001 << rowCount);                      // set this row's green bit on
           break;
-        case 4:  // cyan
+        case COLOR_CYAN:
           green = green | (B00000001 << rowCount);                      // set this row's green and blue bits on (cyan)
           blue = blue | (B00000001 << rowCount);
           break;
-        case 5:  // blue
+        case COLOR_BLUE:
           blue = blue | (B00000001 << rowCount);                        // set this row's blue bit on
           break;
-        case 6:  // magenta
+        case COLOR_MAGENTA:
           blue = blue | (B00000001 << rowCount);                        // set this row's blue and red bits on (magenta)
           red = red | (B00000001 << rowCount);
-          break;
-        case 7:  // white
-          red = red | (B00000001 << rowCount);                          // set this row's red, green and blue bits on (white). Not used because current drain is too high. 
-          green = green | (B00000001 << rowCount);
-          blue = blue | (B00000001 << rowCount);
           break;
       }
     }

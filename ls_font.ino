@@ -1804,7 +1804,7 @@ void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase
 }
 
 void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  tinyfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+  tinyfont_draw_string(col, row, str, color, erase, reversed, COLOR_OFF);
 }
 
 void tinyfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
@@ -1820,7 +1820,7 @@ void smallfont_draw_string(int col, int row, char* str, byte color, boolean eras
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  smallfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+  smallfont_draw_string(col, row, str, color, erase, reversed, COLOR_OFF);
 }
 
 void smallfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
@@ -1836,7 +1836,7 @@ void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase)
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
-  bigfont_draw_string(col, row, str, color, erase, reversed, COLOR_BLACK);
+  bigfont_draw_string(col, row, str, color, erase, reversed, COLOR_OFF);
 }
 
 void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
@@ -1880,7 +1880,7 @@ void font_draw_blank_column(int col, int row, byte height, byte seperationColor)
         setLed(col, r, seperationColor, cellOn);
       }
       else {
-        setLed(col, r, COLOR_BLACK, cellOn);
+        setLed(col, r, COLOR_OFF, cellOff);
       }
     }
   }
@@ -1904,7 +1904,7 @@ void font_scroll_text_flipped(struct Font* font, char* str, byte color) {
   int totalwidth = font_width_string(str, font);
   int i;
   for (i = totalwidth; i >= -NUMCOLS && !stopAnimation; --i) {
-    font_draw_string( -i, 0, str, color, font, true, true, COLOR_BLACK);
+    font_draw_string( -i, 0, str, color, font, true, true, COLOR_OFF);
 
     if (i < 0) {
       for (byte col = 0; col <= -i; ++col) {
@@ -1941,7 +1941,7 @@ void font_scroll_text(struct Font* font, char* str, byte color) {
 
   int totalwidth = font_width_string(str, font);
   for (int i = 0; i < totalwidth && !stopAnimation; ++i) {
-    font_draw_string( -i, 0, str, color, font, true, false, COLOR_BLACK);
+    font_draw_string( -i, 0, str, color, font, true, false, COLOR_OFF);
     delayUsecWithScanning(40000);
   }
 
