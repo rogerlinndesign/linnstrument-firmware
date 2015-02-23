@@ -234,7 +234,7 @@ struct TouchInfo {
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
   int32_t fxdRateX;                          // the averaged rate of change of the X values
-  byte rateCountX;                           // the number of times the rate of change drops below the minimal value for quantization
+  unsigned short rateCountX;                 // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
 
   signed char initialY;                      // initial Y value of each cell
@@ -652,6 +652,8 @@ boolean stopAnimation = false;                      // indicates whether animati
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);      // the current tempo
 byte midiDecimateRate = 0;                          // by default no decimation
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
+int32_t fxdPitchHoldDuration[NUMSPLITS];
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message

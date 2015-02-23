@@ -372,6 +372,7 @@ void receivedNrpn(int parameter, int value) {
     case 22:
       if (inRange(value, 0, 3)) {
         Split[split].pitchCorrectHold = value;
+        applyPitchCorrectHold();
       }
       break;
     // Split Pitch Reset On Release
