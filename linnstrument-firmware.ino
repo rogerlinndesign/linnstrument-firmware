@@ -116,9 +116,9 @@ char* OSVersion = "120.";
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Pitch slides behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    1
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
-#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    100
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4000
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
@@ -233,6 +233,7 @@ struct TouchInfo {
   short currentRawX;                         // last raw X value of each cell
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
+  int32_t fxdLastMovedX;                     // the fixed precision version of the last moved X for performance improvement
   int32_t fxdRateX;                          // the averaged rate of change of the X values
   unsigned short rateCountX;                 // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
@@ -592,6 +593,12 @@ inline int32_t FXD4_DIV(int32_t a, int32_t b) {
   return ((int32_t)a << FXD4_FBITS) / (int32_t)b;
 }
 
+const int32_t FXD_CONST_1 = FXD_FROM_INT(1);
+const int32_t FXD_CONST_2 = FXD_FROM_INT(2);
+const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
+const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
+const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
+
 
 /*************************************** CONVENIENCE MACROS **************************************/
 
@@ -938,6 +945,8 @@ inline void modeLoopPerformance() {
       sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
+
+    handleQuantizeHoldForOtherCells();
   }
 
   performContinuousTasks(micros());
