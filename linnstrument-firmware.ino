@@ -235,7 +235,7 @@ struct TouchInfo {
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
   int32_t fxdLastMovedX;                     // the fixed precision version of the last moved X for performance improvement
   int32_t fxdRateX;                          // the averaged rate of change of the X values
-  unsigned short rateCountX;                 // the number of times the rate of change drops below the minimal value for quantization
+  int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
 
   signed char initialY;                      // initial Y value of each cell

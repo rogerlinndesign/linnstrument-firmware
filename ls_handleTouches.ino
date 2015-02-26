@@ -102,7 +102,7 @@ void transferFromSameRowCell(byte col) {
   sensorCell().lastMovedX = cell(col, sensorRow).lastMovedX;
   sensorCell().fxdLastMovedX = cell(col, sensorRow).fxdLastMovedX;
   sensorCell().fxdRateX = cell(col, sensorRow).fxdRateX;
-  sensorCell().rateCountX = cell(col, sensorRow).rateCountX;  
+  sensorCell().fxdRateCountX = cell(col, sensorRow).fxdRateCountX;  
   sensorCell().initialY = cell(col, sensorRow).initialY;
   sensorCell().note = cell(col, sensorRow).note;
   sensorCell().channel = cell(col, sensorRow).channel;
@@ -119,7 +119,7 @@ void transferFromSameRowCell(byte col) {
   cell(col, sensorRow).lastMovedX = 0;
   cell(col, sensorRow).fxdLastMovedX = 0;
   cell(col, sensorRow).fxdRateX = 0;
-  cell(col, sensorRow).rateCountX = 0;
+  cell(col, sensorRow).fxdRateCountX = 0;
   cell(col, sensorRow).initialY = -1;
   cell(col, sensorRow).pendingReleaseCount = 0;
 
@@ -145,7 +145,7 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).lastMovedX = sensorCell().lastMovedX;
   cell(col, sensorRow).fxdLastMovedX = sensorCell().fxdLastMovedX;
   cell(col, sensorRow).fxdRateX = sensorCell().fxdRateX;
-  cell(col, sensorRow).rateCountX = sensorCell().rateCountX;
+  cell(col, sensorRow).fxdRateCountX = sensorCell().fxdRateCountX;
   cell(col, sensorRow).initialY = sensorCell().initialY;
   cell(col, sensorRow).note = sensorCell().note;
   cell(col, sensorRow).channel = sensorCell().channel;
@@ -162,7 +162,7 @@ void transferToSameRowCell(byte col) {
   sensorCell().lastMovedX = 0;
   sensorCell().fxdLastMovedX = 0;
   sensorCell().fxdRateX = 0;
-  sensorCell().rateCountX = 0;
+  sensorCell().fxdRateCountX = 0;
   sensorCell().initialY = -1;
   sensorCell().pendingReleaseCount = 0;
 
@@ -461,9 +461,6 @@ byte takeChannel() {
   }
 }
 
-const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over which the average rate of change of X is calculated
-const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
-
 #define INVALID_DATA SHRT_MAX
 
 // handleXYZupdate:
@@ -712,6 +709,9 @@ byte handleZExpression() {
   return preferredPressure;
 }
 
+const int32_t fxdRateXSamples = FXD_FROM_INT(5);    // the number of samples over which the average rate of change of X is calculated
+const int32_t fxdRateXThreshold = FXD_FROM_INT(3);  // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
+
 short handleXExpression() {
   sensorCell().refreshX();
 
@@ -780,24 +780,25 @@ short handleXExpression() {
 }
 
 short handleQuantizeHoldCorrection(byte split, byte col, byte row) {
-  int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[split] - FXD_FROM_INT(cell(col, row).rateCountX), fxdPitchHoldDuration[split]);
+  int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[split] - cell(col, row).fxdRateCountX, fxdPitchHoldDuration[split]);
   int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
   int32_t fxdQuantizedDistance = Device.calRows[col][0].fxdReferenceX - FXD_FROM_INT(cell(col, row).initialReferenceX);
   
   int32_t fxdInterpolatedX = FXD_MUL(cell(col, row).fxdLastMovedX, fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
 
   // keep track of how many times the X changement rate drops below the threshold or above
-  if (cell(col, row).fxdRateX < fxdRateXThreshold) {
-    if (cell(col, row).rateCountX < pitchHoldDuration[split]) {
-      cell(col, row).rateCountX++;
+  int32_t fxdRateDiff = fxdRateXThreshold - cell(col, row).fxdRateX;
+  if (fxdRateDiff > 0) {
+    if (cell(col, row).fxdRateCountX < fxdPitchHoldDuration[split]) {
+      cell(col, row).fxdRateCountX += fxdRateDiff;
     }
   }
-  else if (cell(col, row).rateCountX > 0) {
-    cell(col, row).rateCountX--;
+  else if (cell(col, row).fxdRateCountX > 0) {
+    cell(col, row).fxdRateCountX -= FXD_CONST_1;
   }
 
   // if the pich has stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-  if (pitchHoldDuration[split] == cell(col, row).rateCountX) {
+  if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
     cell(col, row).quantizationOffsetX = cell(col, row).initialX - (cell(col, row).currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
   }
 

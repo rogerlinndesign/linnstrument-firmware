@@ -449,7 +449,7 @@ void TouchInfo::clearSensorData() {
   lastMovedX = 0;
   fxdLastMovedX = 0;
   fxdRateX = 0;
-  rateCountX = 0;
+  fxdRateCountX = 0;
   shouldRefreshX = true;
   initialY = -1;
   currentRawY = 0;
