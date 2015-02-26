@@ -623,6 +623,8 @@ const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 
 DueFlashStorage dueFlashStorage;                    // access to the persistent flash storage
 
+boolean setupDone = false;                          // indicates whether the setup routine is finished
+
 signed char debugLevel = -1;                        // level of debug messages that should be printed
 boolean firstTimeBoot = false;                      // this will be true when the LinnStrument booted up the first time after a firmware upgrade
 unsigned long lastReset;                            // the last time a reset was started
@@ -892,6 +894,8 @@ void setup() {
   Device.serialMode = true;
   SWITCH_SURFACESCAN = true;
 #endif
+
+  setupDone = true;
 }
 
 

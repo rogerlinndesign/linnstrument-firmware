@@ -25,6 +25,13 @@ inline void delayUsec(unsigned long delayTime) {    // input the delay time in m
 // delayUsecWithScanning:
 // use to insert a brief time delay but with key scanning still active.
 inline void delayUsecWithScanning(unsigned long delayTime) {
+  // we can not have scanning unless the full setup routine is done,
+  // falling back to regular delay in this case
+  if (!setupDone) {
+    delayUsec(delayTime);
+    return;
+  }
+
   unsigned long start = micros();                        // start is set to time that function is called
   while (calcTimeDelta(micros(), start) < delayTime) {   // use now-start to account for clock reset
     modeLoopPerformance();                               // reset now to current time and repeat...
