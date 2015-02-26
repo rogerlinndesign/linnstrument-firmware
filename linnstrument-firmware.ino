@@ -115,10 +115,16 @@ char* OSVersion = "120.";
 
 #define MAX_TOUCHES_IN_COLUMN  3
 
-// Pitch slides behavior
+// Pitch correction behavior
 #define PITCH_CORRECT_HOLD_SAMPLES_FAST    100
 #define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4000
 #define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
+
+// Threshold below which the average rate of change of X is considered 'stationary'
+#define RATEX_THRESHOLD_FAST    3.0
+#define RATEX_THRESHOLD_MEDIUM  2.5
+#define RATEX_THRESHOLD_SLOW    2.0
+#define RATEX_THRESHOLD_DEFAULT 2.0
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
@@ -661,6 +667,7 @@ byte midiDecimateRate = 0;                          // by default no decimation
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
+int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message

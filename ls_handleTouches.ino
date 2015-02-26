@@ -710,7 +710,6 @@ byte handleZExpression() {
 }
 
 const int32_t fxdRateXSamples = FXD_FROM_INT(5);    // the number of samples over which the average rate of change of X is calculated
-const int32_t fxdRateXThreshold = FXD_FROM_INT(3);  // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 
 short handleXExpression() {
   sensorCell().refreshX();
@@ -787,19 +786,19 @@ short handleQuantizeHoldCorrection(byte split, byte col, byte row) {
   int32_t fxdInterpolatedX = FXD_MUL(cell(col, row).fxdLastMovedX, fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
 
   // keep track of how many times the X changement rate drops below the threshold or above
-  int32_t fxdRateDiff = fxdRateXThreshold - cell(col, row).fxdRateX;
+  int32_t fxdRateDiff = fxdRateXThreshold[split] - cell(col, row).fxdRateX;
   if (fxdRateDiff > 0) {
     if (cell(col, row).fxdRateCountX < fxdPitchHoldDuration[split]) {
       cell(col, row).fxdRateCountX += fxdRateDiff;
+
+      // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
+      if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
+        cell(col, row).quantizationOffsetX = cell(col, row).initialX - (cell(col, row).currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
+      }
     }
   }
   else if (cell(col, row).fxdRateCountX > 0) {
     cell(col, row).fxdRateCountX -= FXD_CONST_1;
-  }
-
-  // if the pich has stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-  if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
-    cell(col, row).quantizationOffsetX = cell(col, row).initialX - (cell(col, row).currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
   }
 
   return FXD_TO_INT(fxdInterpolatedX);
