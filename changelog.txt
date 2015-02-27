@@ -1,3 +1,8 @@
+v1.1.2
+
+  * Removed delay on touch release so that accidental legato and note de-duplication aren't triggered anymore
+  * Allow MIDI CC 22 LED messages to turn a cell off explicitly by sending value 7
+
 v1.1.1
 
   * Fixed regressions in the calibration procedure from v1.1.0, please recalibrate after the v1.1.1 upgrade
