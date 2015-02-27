@@ -51,12 +51,11 @@ byte calcPreferredVelocity(byte velocity) {
 
 #define TRANSFER_SLIDE_PROXIMITY 100
 
-boolean severalTouchesForMidiChannel(byte col, byte row) {
+boolean severalTouchesForMidiChannel(byte split, byte col, byte row) {
   if (!cell(col, row).hasNote()) {
     return false;
   }
 
-  byte split = getSplitOf(col);
   if (noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel) > 1) {
     return true;
   }
@@ -69,11 +68,11 @@ const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() &&                                                // don't perform slide transfers
-      (!Split[sensorSplit].sendX ||                                 // if pitch slides are disabled
-       !isFocusedCell(col, sensorRow) ||                            // if this is not a focused cell
-       severalTouchesForMidiChannel(col, sensorRow) ||              // when there are several touches for the same MIDI channel
-       (cell(col, sensorRow).pendingReleaseCount &&                 // if there's a pending release but not enough X change
+  if (!isLowRow() &&                                                   // don't perform slide transfers
+      (!Split[sensorSplit].sendX ||                                    // if pitch slides are disabled
+       !isFocusedCell(col, sensorRow) ||                               // if this is not a focused cell
+       severalTouchesForMidiChannel(sensorSplit, col, sensorRow) ||    // when there are several touches for the same MIDI channel
+       (cell(col, sensorRow).pendingReleaseCount &&                    // if there's a pending release but not enough X change
         cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X))) {
     return false;
   }
@@ -101,8 +100,9 @@ void transferFromSameRowCell(byte col) {
   sensorCell().initialReferenceX = cell(col, sensorRow).initialReferenceX;  
   sensorCell().quantizationOffsetX = cell(col, sensorRow).quantizationOffsetX;  
   sensorCell().lastMovedX = cell(col, sensorRow).lastMovedX;
+  sensorCell().fxdLastMovedX = cell(col, sensorRow).fxdLastMovedX;
   sensorCell().fxdRateX = cell(col, sensorRow).fxdRateX;
-  sensorCell().rateCountX = cell(col, sensorRow).rateCountX;  
+  sensorCell().fxdRateCountX = cell(col, sensorRow).fxdRateCountX;  
   sensorCell().initialY = cell(col, sensorRow).initialY;
   sensorCell().note = cell(col, sensorRow).note;
   sensorCell().channel = cell(col, sensorRow).channel;
@@ -117,8 +117,9 @@ void transferFromSameRowCell(byte col) {
   cell(col, sensorRow).initialReferenceX = 0;
   cell(col, sensorRow).quantizationOffsetX = 0;
   cell(col, sensorRow).lastMovedX = 0;
+  cell(col, sensorRow).fxdLastMovedX = 0;
   cell(col, sensorRow).fxdRateX = 0;
-  cell(col, sensorRow).rateCountX = 0;
+  cell(col, sensorRow).fxdRateCountX = 0;
   cell(col, sensorRow).initialY = -1;
   cell(col, sensorRow).pendingReleaseCount = 0;
 
@@ -142,8 +143,9 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).initialReferenceX = sensorCell().initialReferenceX;
   cell(col, sensorRow).quantizationOffsetX = sensorCell().quantizationOffsetX;
   cell(col, sensorRow).lastMovedX = sensorCell().lastMovedX;
+  cell(col, sensorRow).fxdLastMovedX = sensorCell().fxdLastMovedX;
   cell(col, sensorRow).fxdRateX = sensorCell().fxdRateX;
-  cell(col, sensorRow).rateCountX = sensorCell().rateCountX;
+  cell(col, sensorRow).fxdRateCountX = sensorCell().fxdRateCountX;
   cell(col, sensorRow).initialY = sensorCell().initialY;
   cell(col, sensorRow).note = sensorCell().note;
   cell(col, sensorRow).channel = sensorCell().channel;
@@ -158,8 +160,9 @@ void transferToSameRowCell(byte col) {
   sensorCell().initialReferenceX = 0;
   sensorCell().quantizationOffsetX = 0;
   sensorCell().lastMovedX = 0;
+  sensorCell().fxdLastMovedX = 0;
   sensorCell().fxdRateX = 0;
-  sensorCell().rateCountX = 0;
+  sensorCell().fxdRateCountX = 0;
   sensorCell().initialY = -1;
   sensorCell().pendingReleaseCount = 0;
 
@@ -411,6 +414,10 @@ boolean isXExpressiveCell() {
   return isFocusedCell();
 }
 
+boolean isXExpressiveCell(byte col, byte row) {
+  return isFocusedCell(col, row);
+}
+
 // Check if Y expression should be sent for this cell
 boolean isYExpressiveCell() {
   if (Split[sensorSplit].expressionForY == timbrePolyPressure) {
@@ -454,9 +461,6 @@ byte takeChannel() {
     }
   }
 }
-
-const int32_t fxdRateXSamples = FXD_FROM_INT(5);   // the number of samples over which the average rate of change of X is calculated
-const int32_t fxdRateXThreshold = FXD_MAKE(2.0);   // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 
 #define INVALID_DATA SHRT_MAX
 
@@ -516,6 +520,7 @@ void handleXYZupdate() {
   if (newVelocity) {
     sensorCell().lastTouch = millis();
     sensorCell().lastMovedX = 0;
+    sensorCell().fxdLastMovedX = 0;
     sensorCell().shouldRefreshX = true;
     sensorCell().initialX = -1;
     sensorCell().quantizationOffsetX = 0;
@@ -580,12 +585,11 @@ void handleXYZupdate() {
     // X/Y expression based on the MIDI mode and the currently held down cells
     if (pitchBend != INVALID_DATA &&
         isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      if (severalTouchesForMidiChannel(sensorCol, sensorRow)) {
-        preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+      int pitch = pitchBend;
+      if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
+        pitch = 0;
       }
-      else {
-        preSendPitchBend(sensorSplit, pitchBend, sensorCell().channel);
-      }
+      preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
     }
 
     // if Y-axis movements are enabled and it's a candidate for
@@ -672,8 +676,6 @@ void handleNewNote(signed char notenum) {
   }
 }
 
-const int32_t FXD_MIN_SLEW = FXD_FROM_INT(1);
-
 byte handleZExpression() {
   byte preferredPressure = sensorCell().pressureZ;
 
@@ -695,9 +697,9 @@ byte handleZExpression() {
   int32_t slewRate = sensorCell().fxdRateX;
 
   // adapt the slew rate based on the rate of change on the pressure, the smaller the change, the higher the slew rate
-  slewRate += FXD_FROM_INT(2) - FXD_DIV(abs(FXD_FROM_INT(preferredPressure) - sensorCell().fxdPrevPressure), FXD_FROM_INT(64));
+  slewRate += FXD_CONST_2 - FXD_DIV(abs(FXD_FROM_INT(preferredPressure) - sensorCell().fxdPrevPressure), FXD_FROM_INT(64));
 
-  if (slewRate > FXD_MIN_SLEW) {
+  if (slewRate > FXD_CONST_1) {
     // we also keep track of the previous pressure on the cell and average it out with
     // the current pressure to smooth over the rate of change when transiting between cells
     int32_t fxdAveragedPressure = sensorCell().fxdPrevPressure;
@@ -714,6 +716,8 @@ byte handleZExpression() {
 
   return preferredPressure;
 }
+
+const int32_t fxdRateXSamples = FXD_FROM_INT(5);    // the number of samples over which the average rate of change of X is calculated
 
 short handleXExpression() {
   sensorCell().refreshX();
@@ -736,7 +740,7 @@ short handleXExpression() {
   if (transferCol != 0) {
     short totalZ = cell(transferCol, sensorRow).currentRawZ + sensorCell().currentRawZ;
     int32_t fxdTransferRatio = FXD_DIV(FXD_FROM_INT(cell(transferCol, sensorRow).currentRawZ), FXD_FROM_INT(totalZ));
-    int32_t fxdCellRatio = FXD_FROM_INT(1) - fxdTransferRatio;
+    int32_t fxdCellRatio = FXD_CONST_1 - fxdTransferRatio;
 
     int32_t fxdTransferCalibratedX = FXD_MUL(FXD_FROM_INT(cell(transferCol, sensorRow).currentCalibratedX), fxdTransferRatio);
     int32_t fxdCellCalibratedX = FXD_MUL(FXD_FROM_INT(sensorCell().calibratedX()), fxdCellRatio);
@@ -767,6 +771,7 @@ short handleXExpression() {
 
     // remember the last X movement
     sensorCell().lastMovedX = movedX;
+    sensorCell().fxdLastMovedX = FXD_FROM_INT(movedX);
 
     // if pitch quantize on hold is disabled, just output the current touch pitch
     if (Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
@@ -774,32 +779,64 @@ short handleXExpression() {
     }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
     else {
-      int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[sensorSplit] - FXD_FROM_INT(sensorCell().rateCountX), fxdPitchHoldDuration[sensorSplit]);
-      int32_t fxdCorrectedRatio = FXD_FROM_INT(1) - fxdMovedRatio;
-      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
-      
-      int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
-
-      // if the pich has stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-      if (pitchHoldDuration[sensorSplit] == sensorCell().rateCountX) {
-        sensorCell().quantizationOffsetX = sensorCell().initialX - (sensorCell().currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
-      }
-
-      // keep track of how many times the X changement rate drops below the threshold or above
-      if (sensorCell().fxdRateX < fxdRateXThreshold) {
-        if (sensorCell().rateCountX < pitchHoldDuration[sensorSplit]) {
-          sensorCell().rateCountX++;
-        }
-      }
-      else if (sensorCell().rateCountX > 0) {
-        sensorCell().rateCountX--;
-      }
-
-      return FXD_TO_INT(fxdInterpolatedX);
+      return handleQuantizeHoldCorrection(sensorSplit, sensorCol, sensorRow);
     }
   }
 
   return INVALID_DATA;
+}
+
+short handleQuantizeHoldCorrection(byte split, byte col, byte row) {
+  int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[split] - cell(col, row).fxdRateCountX, fxdPitchHoldDuration[split]);
+  int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
+  int32_t fxdQuantizedDistance = Device.calRows[col][0].fxdReferenceX - FXD_FROM_INT(cell(col, row).initialReferenceX);
+  
+  int32_t fxdInterpolatedX = FXD_MUL(cell(col, row).fxdLastMovedX, fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
+
+  // keep track of how many times the X changement rate drops below the threshold or above
+  int32_t fxdRateDiff = fxdRateXThreshold[split] - cell(col, row).fxdRateX;
+  if (fxdRateDiff > 0) {
+    if (cell(col, row).fxdRateCountX < fxdPitchHoldDuration[split]) {
+      cell(col, row).fxdRateCountX += fxdRateDiff;
+
+      // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
+      if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
+        cell(col, row).quantizationOffsetX = cell(col, row).initialX - (cell(col, row).currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
+      }
+    }
+  }
+  else if (cell(col, row).fxdRateCountX > 0) {
+    cell(col, row).fxdRateCountX -= FXD_CONST_1;
+  }
+
+  return FXD_TO_INT(fxdInterpolatedX);
+}
+
+void handleQuantizeHoldForOtherCells() {
+  for (byte row = 0; row < NUMROWS; ++row) {
+    int32_t colsInRowTouched = colsInRowsTouched[row];
+    while (colsInRowTouched) {
+      byte col = 31 - __builtin_clz(colsInRowTouched);
+      // turn the left-most active bit off, to continue the iteration over the touched rows
+      colsInRowTouched &= ~(int32_t)(1 << col);
+
+      if (col != sensorCol && row != sensorRow) {
+        byte split = getSplitOf(col);
+
+        if (Split[split].sendX &&
+            Split[split].pitchCorrectHold != pitchCorrectHoldOff &&
+            !isLowRowBendActive(split) &&
+            cell(col, row).hasNote() &&
+            isXExpressiveCell(col, row)) {
+          short pitch = handleQuantizeHoldCorrection(split, col, row);
+          if (severalTouchesForMidiChannel(split, col, row)) {
+            pitch = 0;
+          }
+          preSendPitchBend(split, pitch, cell(col, row).channel);
+        }
+      }
+    }
+  }
 }
 
 const int32_t MAX_VALUE_Y = FXD_FROM_INT(127);

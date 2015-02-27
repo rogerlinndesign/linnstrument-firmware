@@ -121,8 +121,8 @@ signed char calculateCalibratedY(short rawY) {
   }
 
   byte bias = (sensorCol - 1) % 3;
-  short result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_FROM_INT(3 - bias), FXD_FROM_INT(3))) +
-                            FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_FROM_INT(3))));
+  short result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_CONST_3 - FXD_FROM_INT(bias), FXD_CONST_3)) +
+                            FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_CONST_3)));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);
@@ -230,7 +230,7 @@ boolean handleCalibrationRelease() {
 
             // Calculate all the calibration entries in between that use the width of the cells
             for (byte col = 1; col < NUMCOLS; ++col) {
-              Device.calRows[col][row].fxdMeasuredX = FXD_FROM_INT(calSampleRows[col][row].minValue) + FXD_DIV(FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue), FXD_FROM_INT(2));
+              Device.calRows[col][row].fxdMeasuredX = FXD_FROM_INT(calSampleRows[col][row].minValue) + FXD_DIV(FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue), FXD_CONST_2);
               Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue));
             }
 
@@ -293,7 +293,7 @@ void debugCalibration() {
       DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleRows[col][row].maxValue));
       DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[col][row].fxdReferenceX)));
       DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX)));
-      DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdRatio, FXD_FROM_INT(100)))));
+      DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdRatio, FXD_CONST_100))));
       DEBUGPRINT((0,"\n"));
     }
     DEBUGPRINT((0,"calRows"));
@@ -301,7 +301,7 @@ void debugCalibration() {
     DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
     DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdReferenceX)));
     DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdMeasuredX)));
-    DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdRatio, FXD_FROM_INT(100)))));
+    DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdRatio, FXD_CONST_100))));
     DEBUGPRINT((0,"\n"));
   }
   for (byte col = 0; col < 5; ++col) {
@@ -313,7 +313,7 @@ void debugCalibration() {
       DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleCols[col][row].maxValue));
       DEBUGPRINT((0," minY="));DEBUGPRINT((0,(int)Device.calCols[col][row].minY));
       DEBUGPRINT((0," maxY="));DEBUGPRINT((0,(int)Device.calCols[col][row].maxY));
-      DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calCols[col][row].fxdRatio, FXD_FROM_INT(100)))));
+      DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calCols[col][row].fxdRatio, FXD_CONST_100))));
       DEBUGPRINT((0,"\n"));
     }
   }

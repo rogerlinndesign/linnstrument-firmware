@@ -115,10 +115,16 @@ char* OSVersion = "120.";
 
 #define MAX_TOUCHES_IN_COLUMN  3
 
-// Pitch slides behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    1
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
-#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
+// Pitch correction behavior
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    100
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4000
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
+
+// Threshold below which the average rate of change of X is considered 'stationary'
+#define RATEX_THRESHOLD_FAST    3.0
+#define RATEX_THRESHOLD_MEDIUM  2.5
+#define RATEX_THRESHOLD_SLOW    2.0
+#define RATEX_THRESHOLD_DEFAULT 2.0
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
@@ -233,8 +239,9 @@ struct TouchInfo {
   short currentRawX;                         // last raw X value of each cell
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
+  int32_t fxdLastMovedX;                     // the fixed precision version of the last moved X for performance improvement
   int32_t fxdRateX;                          // the averaged rate of change of the X values
-  unsigned short rateCountX;                 // the number of times the rate of change drops below the minimal value for quantization
+  int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
 
   signed char initialY;                      // initial Y value of each cell
@@ -596,6 +603,12 @@ inline int32_t FXD4_DIV(int32_t a, int32_t b) {
   return ((int32_t)a << FXD4_FBITS) / (int32_t)b;
 }
 
+const int32_t FXD_CONST_1 = FXD_FROM_INT(1);
+const int32_t FXD_CONST_2 = FXD_FROM_INT(2);
+const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
+const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
+const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
+
 
 /*************************************** CONVENIENCE MACROS **************************************/
 
@@ -613,6 +626,8 @@ inline int32_t FXD4_DIV(int32_t a, int32_t b) {
 /*************************************** OTHER RUNTIME STATE *************************************/
 
 DueFlashStorage dueFlashStorage;                    // access to the persistent flash storage
+
+boolean setupDone = false;                          // indicates whether the setup routine is finished
 
 signed char debugLevel = -1;                        // level of debug messages that should be printed
 boolean firstTimeBoot = false;                      // this will be true when the LinnStrument booted up the first time after a firmware upgrade
@@ -658,6 +673,7 @@ byte midiDecimateRate = 0;                          // by default no decimation
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
+int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message
@@ -882,6 +898,8 @@ void setup() {
   Device.serialMode = true;
   SWITCH_SURFACESCAN = true;
 #endif
+
+  setupDone = true;
 }
 
 
@@ -942,6 +960,8 @@ inline void modeLoopPerformance() {
       sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
+
+    handleQuantizeHoldForOtherCells();
   }
 
   performContinuousTasks(micros());

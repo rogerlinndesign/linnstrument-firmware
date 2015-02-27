@@ -283,6 +283,7 @@ inline void TouchInfo::refreshX() {
       quantizationOffsetX = 0;
       fxdRateX = 0;
       lastMovedX = 0;
+      fxdLastMovedX = 0;
     }
   }
 }
@@ -446,8 +447,9 @@ void TouchInfo::clearSensorData() {
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;
+  fxdLastMovedX = 0;
   fxdRateX = 0;
-  rateCountX = 0;
+  fxdRateCountX = 0;
   shouldRefreshX = true;
   initialY = -1;
   currentRawY = 0;

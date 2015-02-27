@@ -90,25 +90,40 @@ void writeSettingsToFlash() {
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
+  unsigned long zeromarker = 0;
+  unsigned long now = millis();
+
+  // clear out the second timestamp that is written after the configuration
+  dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
+
   // batch and slow down the flash storage in low power mode
   if (Device.operatingLowPower) {
     clearDisplay();
 
     delayUsec(200*NUMCOLS);
 
+    // write the timestamp before starting to write the configuration data
+    dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
+
+    // write the configuration data
+    uint32_t offset = 4+sizeof(unsigned long);
+
     byte batchsize = 64;
     byte* source = (byte*)&config;
     int total = sizeof(Configuration);
     int i = 0;
     while (i+batchsize < total) {
-      dueFlashStorage.write(4+i, source+i, batchsize);
+      dueFlashStorage.write(offset+i, source+i, batchsize);
       i += batchsize;
     }
 
     int remaining = total - i;
     if (remaining > 0) {
-      dueFlashStorage.write(4+i, source+i, remaining);
+      dueFlashStorage.write(offset+i, source+i, remaining);
     }
+
+    // write the timestamp after the configuration data for verification
+    dueFlashStorage.write(offset+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
 
     updateDisplay();
   }
@@ -116,13 +131,36 @@ void writeSettingsToFlash() {
   else {
     byte b2[sizeof(Configuration)];
     memcpy(b2, &config, sizeof(Configuration));
-    dueFlashStorage.write(4, b2, sizeof(Configuration));
+
+    // write the timestamp before starting to write the configuration data
+    dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
+    // write the configuration data
+    dueFlashStorage.write(4+sizeof(unsigned long), b2, sizeof(Configuration));
+    // write the timestamp after the configuration data for verification
+    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
   }
 }
 
 void loadSettings() {
-  byte* b = dueFlashStorage.readAddress(4);  // byte array which is read from flash at address 4
-  memcpy(&config, b, sizeof(Configuration));
+  // read both of the timestamps that were stored to make sure they are identical
+  // this allows the detection of corrupted settings storage due to power being removed while writing
+  unsigned long now1 = 0;
+  unsigned long now2 = 0;
+  memcpy(&now1, dueFlashStorage.readAddress(4), sizeof(unsigned long));
+  memcpy(&now2, dueFlashStorage.readAddress(4+sizeof(unsigned long)+sizeof(Configuration)), sizeof(unsigned long));
+
+  // if both timestamps are the same, read the configuration that was stored
+  if (now1 == now2) {
+    memcpy(&config, dueFlashStorage.readAddress(4+sizeof(unsigned long)), sizeof(Configuration));
+  }
+  // otherwise notify the user of the corrupt state and perform a global reset
+  else {
+    clearDisplay();
+    small_scroll_text("     SETTINGS RESET, SORRY ...", globalColor);
+
+    dueFlashStorage.write(0, 1);
+    initializeStorage();
+  }
 }
 
 void applyPresetSettings(PresetSettings& preset) {
@@ -322,13 +360,33 @@ void initializePresetSettings() {
 void applyPitchCorrectHold() {
   for (byte sp = 0; sp < NUMSPLITS; ++sp) {
     switch (Split[sp].pitchCorrectHold) {
-      case pitchCorrectHoldOff:    pitchHoldDuration[sp] = 0; break;
-      case pitchCorrectHoldFast:   pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_FAST; break;
-      case pitchCorrectHoldMedium: pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM; break;
-      case pitchCorrectHoldSlow:   pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_SLOW; break;
+      case pitchCorrectHoldOff:
+      {
+        pitchHoldDuration[sp] = 0;
+        fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_DEFAULT);
+        break;
+      }
+      case pitchCorrectHoldFast:
+      {
+        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_FAST;
+        fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_FAST);
+        break;
+      }
+      case pitchCorrectHoldMedium:
+      {
+        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM;
+        fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_MEDIUM);
+        break;
+      }
+      case pitchCorrectHoldSlow:
+      {
+        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_SLOW;
+        fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_SLOW);
+        break;
+      }
     }
 
-    fxdPitchHoldDuration[sp] = FXD_FROM_INT(pitchHoldDuration[sp]);
+    fxdPitchHoldDuration[sp] = FXD_MAKE(pitchHoldDuration[sp]);
   }
 }
 
