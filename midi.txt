@@ -191,6 +191,7 @@ NRPN   Value   Description
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 
 250    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11 --
+300    0-4     Enable MIDI Sending Row and Column per Note-On (1:row, 2:col, 3:both, 0:off) - jas 2015/02/24
 
 Color Values
 ============

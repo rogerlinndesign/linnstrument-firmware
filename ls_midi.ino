@@ -19,8 +19,8 @@ byte midiCellColCC = 0;
 byte midiCellRowCC = 0;
 byte midiEnableSendRowCol = 0;    //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
 
-boolean isMidiSendRowColActive() { //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
-  return midiEnableSendRowCol !=0;
+byte midiSendRowCol() { //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
+  return midiEnableSendRowCol ;
 }
 
 // MIDI Clock State
@@ -672,6 +672,7 @@ void receivedNrpn(int parameter, int value) {
       }
       break;
 
+    // case 300 - enable sending of row and column per noteon (1:row, 2:col, 3:both, 0:off) - jas 2015/02/24
     case 300:
       if (value == 1 || value == 2 || value == 3 || value == 0) {
         midiEnableSendRowCol = value;
