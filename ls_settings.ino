@@ -104,6 +104,7 @@ void writeSettingsToFlash() {
 
     // write the timestamp before starting to write the configuration data
     dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
+    delayMicroseconds(1000);
 
     // write the configuration data
     uint32_t offset = 4+sizeof(unsigned long);
@@ -115,15 +116,18 @@ void writeSettingsToFlash() {
     while (i+batchsize < total) {
       dueFlashStorage.write(offset+i, source+i, batchsize);
       i += batchsize;
+      delayMicroseconds(1000);
     }
 
     int remaining = total - i;
     if (remaining > 0) {
       dueFlashStorage.write(offset+i, source+i, remaining);
     }
+    delayMicroseconds(1000);
 
     // write the timestamp after the configuration data for verification
     dueFlashStorage.write(offset+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
+    delayMicroseconds(1000);
 
     updateDisplay();
   }

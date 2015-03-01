@@ -127,7 +127,7 @@ void refreshLedColumn(unsigned long now) {               // output: none
   byte blue = 0;                                          // blue value to be sent
   byte ledColShifted = 0;                                 // LED column address, which is shifted 2 bits to left within byte
 
-  if (++displayInterval >= 3) {                           // allow the user of several levels of brightness by modulating LED's ON time
+  if (++displayInterval >= 3) {                           // allow several levels of brightness by modulating LED's ON time
     displayInterval = 0;
   }
   if (++ledCol >= NUMCOLS) ledCol = 0;
@@ -143,8 +143,8 @@ void refreshLedColumn(unsigned long now) {               // output: none
       cellDisplay = lastPulseOn ? cellOn : cellOff;
     }
 
-    if (!Device.operatingLowPower && cellDisplay ||
-        Device.operatingLowPower && cellDisplay > displayInterval) {    // if this LED is not off, process it
+    if (cellDisplay &&                                                  // if this LED is not off, process it
+        (!Device.operatingLowPower || 0 == displayInterval)) {
       switch (color)                                                    // set the color bytes to the correct color
       {
         case COLOR_OFF:
