@@ -1357,7 +1357,7 @@ void handleGlobalSettingNewTouch() {
     else if (sensorRow == 1) {
       changeMidiIO(0);
     }
-    else if (sensorRow == 2) {
+    else if (sensorRow == 3) {
       Device.operatingLowPower = !Device.operatingLowPower;
       applyLowPowerMode();
     }
