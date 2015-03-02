@@ -894,7 +894,7 @@ void paintGlobalSettingsDisplay() {
 
   // Show the low power mode
   if (Device.operatingLowPower) {
-    lightLed(15, 2);
+    lightLed(15, 3);
   }
 
   // set light for serial mode
