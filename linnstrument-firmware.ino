@@ -736,7 +736,7 @@ boolean switchPressAtStartup(byte switchRow) {
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
-    ledRefreshInterval = 200;       // accelerate led refresh so that they can be lit only 1/3rd of the time
+    ledRefreshInterval = 250;       // accelerate led refresh so that they can be lit only half of the time
     midiDecimateRate = 12;          // set decimation rate to 12 ms
   }
 }

@@ -49,22 +49,6 @@ void setDisplayMode(DisplayMode mode) {
   }
 }
 
-// Turns all LEDs off in columns 1 or higher
-void clearDisplay() {
-  for (byte col = 1; col < NUMCOLS; ++col) {
-    for (byte row = 0; row < NUMROWS; ++row) {
-      clearLed(col, row);
-    }
-  }
-}
-
-// Turns all LEDs off in column 0
-void clearSwitches() {
-  for (byte row = 0; row < NUMROWS; ++row) {
-    clearLed(0, row);
-  }
-}
-
 // updates columns 1=25 of the LED display based on the current displayMode setting:
 // 0:normal, 1:perSplit, 2:preset, 3:volume, 4:transpose, 5:split, 6:global
 void updateDisplay() {

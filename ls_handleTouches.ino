@@ -1032,10 +1032,6 @@ void handleTouchRelease() {
 // Moves on to the next cell witin the total surface scan of all 208 cells.
 
 // Columns and rows are scanned in non-sequential order to minimize sensor crosstalk
-byte rowIndex[NUMROWS] = {0, 4, 1, 5, 2, 6, 3, 7};
-
-byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
-
 byte scannedCells[201][2] = {
   {0, 0},
   {3, 4}, {7, 1}, {10, 5}, {13, 2}, {17, 6}, {20, 3}, {24, 7}, {1, 4}, {4, 0}, {8, 5}, {11, 1}, {14, 6}, {18, 2}, {21, 7}, {25, 3}, {2, 0}, {5, 4}, {9, 1}, {12, 5}, {15, 2}, {19, 6}, {22, 3}, {6, 7}, {16, 4}, {23, 0},
