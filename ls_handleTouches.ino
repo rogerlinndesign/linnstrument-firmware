@@ -885,7 +885,6 @@ void releaseChannel(byte channel) {
 }
 
 #define PENDING_RELEASE_MOVEMENT   3
-#define PENDING_RELEASE_STATIONARY 1
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -899,15 +898,8 @@ void handleTouchRelease() {
     sensorCell().pendingReleaseCount--;
   }
   // if no release is pending, start a pending release
-  else {
-    // if there's X movement use a longer pending release
-    if (sensorCell().fxdRateX > PENDING_RELEASE_RATE_X) {
-      sensorCell().pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
-    }
-    // ... than when it's a stationary release
-    else {
-      sensorCell().pendingReleaseCount = PENDING_RELEASE_STATIONARY;
-    }
+  else  if (sensorCell().fxdRateX > PENDING_RELEASE_RATE_X) {
+    sensorCell().pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
   }
 
   // if a release is pending, don't perform the release logic yet
@@ -1049,10 +1041,6 @@ void handleTouchRelease() {
 // Moves on to the next cell witin the total surface scan of all 208 cells.
 
 // Columns and rows are scanned in non-sequential order to minimize sensor crosstalk
-byte rowIndex[NUMROWS] = {0, 4, 1, 5, 2, 6, 3, 7};
-
-byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
-
 byte scannedCells[201][2] = {
   {0, 0},
   {3, 4}, {7, 1}, {10, 5}, {13, 2}, {17, 6}, {20, 3}, {24, 7}, {1, 4}, {4, 0}, {8, 5}, {11, 1}, {14, 6}, {18, 2}, {21, 7}, {25, 3}, {2, 0}, {5, 4}, {9, 1}, {12, 5}, {15, 2}, {19, 6}, {22, 3}, {6, 7}, {16, 4}, {23, 0},

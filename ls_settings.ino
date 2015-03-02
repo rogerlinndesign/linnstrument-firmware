@@ -93,17 +93,23 @@ void writeSettingsToFlash() {
   unsigned long zeromarker = 0;
   unsigned long now = millis();
 
-  // clear out the second timestamp that is written after the configuration
-  dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
-
   // batch and slow down the flash storage in low power mode
   if (Device.operatingLowPower) {
+
     clearDisplay();
 
-    delayUsec(200*NUMCOLS);
+    // ensure that there's at least 200 milliseconds between refreshing the display lights and writing to flash
+    unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
+    if (displayModeDelta < 200) {
+      delayUsec((200 - displayModeDelta) * 1000);
+    }
+
+    // clear out the second timestamp that is written after the configuration
+    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
 
     // write the timestamp before starting to write the configuration data
     dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
+    delayUsec(1000);
 
     // write the configuration data
     uint32_t offset = 4+sizeof(unsigned long);
@@ -115,15 +121,18 @@ void writeSettingsToFlash() {
     while (i+batchsize < total) {
       dueFlashStorage.write(offset+i, source+i, batchsize);
       i += batchsize;
+      delayUsec(500);
     }
 
     int remaining = total - i;
     if (remaining > 0) {
       dueFlashStorage.write(offset+i, source+i, remaining);
     }
+    delayUsec(500);
 
     // write the timestamp after the configuration data for verification
     dueFlashStorage.write(offset+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
+    delayUsec(1000);
 
     updateDisplay();
   }
@@ -132,6 +141,8 @@ void writeSettingsToFlash() {
     byte b2[sizeof(Configuration)];
     memcpy(b2, &config, sizeof(Configuration));
 
+    // clear out the second timestamp that is written after the configuration
+    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
     // write the timestamp before starting to write the configuration data
     dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
     // write the configuration data
@@ -1364,7 +1375,7 @@ void handleGlobalSettingNewTouch() {
     else if (sensorRow == 1) {
       changeMidiIO(0);
     }
-    else if (sensorRow == 2) {
+    else if (sensorRow == 3) {
       Device.operatingLowPower = !Device.operatingLowPower;
       applyLowPowerMode();
     }

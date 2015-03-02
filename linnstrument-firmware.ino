@@ -116,14 +116,14 @@ char* OSVersion = "120.";
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Pitch correction behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    100
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4000
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    80
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4800
 #define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
 
 // Threshold below which the average rate of change of X is considered 'stationary'
-#define RATEX_THRESHOLD_FAST    3.0
-#define RATEX_THRESHOLD_MEDIUM  2.5
-#define RATEX_THRESHOLD_SLOW    2.0
+#define RATEX_THRESHOLD_FAST    3.5
+#define RATEX_THRESHOLD_MEDIUM  2.0
+#define RATEX_THRESHOLD_SLOW    1.5
 #define RATEX_THRESHOLD_DEFAULT 2.0
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
@@ -740,7 +740,7 @@ boolean switchPressAtStartup(byte switchRow) {
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
-    ledRefreshInterval = 200;       // accelerate led refresh so that they can be lit only 1/3rd of the time
+    ledRefreshInterval = 250;       // accelerate led refresh so that they can be lit only half of the time
     midiDecimateRate = 12;          // set decimation rate to 12 ms
   }
 }
