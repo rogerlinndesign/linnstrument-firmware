@@ -664,7 +664,7 @@ void handleNewNote(signed char notenum) {
 
   // highlight same notes of this is activated
   if (Split[sensorSplit].colorNoteon) {
-    highlightNoteCells(Split[sensorSplit].colorNoteon, sensorSplit, sensorCell().note);
+    highlightPossibleNoteCells(sensorSplit, sensorCell().note);
   }
 }
 
@@ -990,7 +990,7 @@ void handleTouchRelease() {
       }
       // if no notes are active anymore, reset the highlighted cells
       if (allNotesOff) {
-        resetNoteCells(sensorSplit, sensorCell().note + octaveOffsetDifference);
+        resetPossibleNoteCells(sensorSplit, sensorCell().note + octaveOffsetDifference);
       }
     }
 
