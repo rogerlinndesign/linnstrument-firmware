@@ -592,20 +592,24 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 6) {
       Split[Global.currentPerSplit].pitchCorrectQuantize = !Split[Global.currentPerSplit].pitchCorrectQuantize;
     }
+    else if ((sensorRow == 5 && cell(sensorCol, 4).touched != untouchedCell) ||
+         (sensorRow == 4 && cell(sensorCol, 5).touched != untouchedCell)) {
+      Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
+    }
     else if (sensorRow == 5) {
-      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
-        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
-        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
-        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
-        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
+      if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldMedium) {
+        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
+      }
+      else {
+        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium;
       }
     }
     else if (sensorRow == 4) {
-      switch (Split[Global.currentPerSplit].pitchCorrectHold) {
-        case pitchCorrectHoldOff:    Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast; break;
-        case pitchCorrectHoldMedium: Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow; break;
-        case pitchCorrectHoldFast:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff; break;
-        case pitchCorrectHoldSlow:   Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium; break;
+      if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldFast) {
+        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
+      }
+      else {
+        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast;
       }
     }
     else if (sensorRow == 3) {
