@@ -191,7 +191,11 @@ void handleMidiInput(unsigned long now) {
           // velocity 0 means the same as note off, so don't handle it further in this case
           if (midiData2 > 0) {
             if (split != -1 && (split == LEFT || splitActive)) {
-              highlightNoteCells(Split[split].colorNoteon, split, midiData1);
+              // attempts to highlight the exact cell that belongs to a midi note and channel
+              if (!highlightExactNoteCell(split, midiData1, midiChannel)) {
+                // if there's not one exact location, we highlight all cells that could correspond to the note number
+                highlightPossibleNoteCells(split, midiData1);
+              }
             }
             break;
           }
@@ -201,7 +205,11 @@ void handleMidiInput(unsigned long now) {
         case MIDINoteOff:
         {
           if (split != -1 && (split == LEFT || splitActive)) {
-            resetNoteCells(split, midiData1);
+            // attempts to reset the exact cell that belongs to a midi note and channel
+            if (!resetExactNoteCell(split, midiData1, midiChannel)) {
+              // if there's not one exact location, we reset all cells that could correspond to the note number
+            resetPossibleNoteCells(split, midiData1);
+            }
           }
           break;
         }
@@ -307,9 +315,7 @@ signed char determineSplitForChannel(byte channel) {
         }
         break;
       case channelPerRow:
-        byte basechan = Split[split].midiChanPerRow-1;
-        if ((basechan <= 8 && channel >= basechan && channel < basechan+8) ||
-            (basechan > 8 && channel < basechan && channel < basechan+8-16)) {
+        if (calculateRowPerChannelRow(split, channel) < NUMROWS) {
           return split;
         }
         break;
@@ -692,7 +698,39 @@ short getMidiClockCount() {
   return midiClockMessageCount - 1;
 }
 
-void highlightNoteCells(byte color, byte split, byte notenum) {
+boolean highlightExactNoteCell(byte split, byte notenum, byte channel) {
+  if (displayMode != displayNormal) return false;
+  if (Split[split].midiMode != channelPerRow) return false;
+
+  byte row = calculateRowPerChannelRow(split, channel);
+  if (row < NUMROWS &&                                            // it's not possible to display cells on rows that don't exist
+      (Split[split].lowRowMode == lowRowNormal || row != 0)) {    // it's not possible to display cells on the low row if it's active
+
+    short col = getNoteNumColumn(split, notenum, row);
+    if (col > 0) {
+      setLed(col, row, Split[sensorSplit].colorNoteon, cellOn, LED_LAYER_PLAYED);
+    }
+  }
+
+  return true;
+}
+
+byte calculateRowPerChannelRow(byte split, byte channel) {
+  // calculate the row that corresponds to the incoming MIDI channel and
+  // the active split MIDI Channel Per Row configuration
+  byte row = 0;
+  byte basechan = Split[split].midiChanPerRow-1;
+  if (channel >= basechan) {
+    row = channel - basechan;
+  }
+  else {
+    row = (channel + 16) - basechan;
+  }
+
+  return row;
+}
+
+void highlightPossibleNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
 
   byte row = 0;
@@ -702,12 +740,27 @@ void highlightNoteCells(byte color, byte split, byte notenum) {
   for (; row < NUMROWS; ++row) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, color, cellOn, LED_LAYER_PLAYED);
+      setLed(col, row, Split[split].colorNoteon, cellOn, LED_LAYER_PLAYED);
     }
   }
 }
 
-void resetNoteCells(byte split, byte notenum) {
+boolean resetExactNoteCell(byte split, byte notenum, byte channel) {
+  if (displayMode != displayNormal) return false;
+  if (Split[split].midiMode != channelPerRow) return false;
+
+  byte row = calculateRowPerChannelRow(split, channel);
+  if (row < NUMROWS &&                                            // it's not possible to display cells on rows that don't exist
+      (Split[split].lowRowMode == lowRowNormal || row != 0)) {    // it's not possible to display cells on the low row if it's active
+
+    short col = getNoteNumColumn(split, notenum, row);
+    if (col > 0) {
+      setLed(col, row, COLOR_OFF, cellOff, LED_LAYER_PLAYED);
+    }
+  }
+}
+
+void resetPossibleNoteCells(byte split, byte notenum) {
   if (displayMode != displayNormal) return;
   
   byte row = 0;
