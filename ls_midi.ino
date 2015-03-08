@@ -1043,7 +1043,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
-      Serial.print("MIDI.sendControlChange controlnum=");
+      Serial.print("midiSendControlChange controlnum=");
       Serial.print((int)controlnum);
       Serial.print(", controlval=");
       Serial.print((int)controlval);
@@ -1067,7 +1067,7 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
-      Serial.print("MIDI.sendNoteOn notenum=");
+      Serial.print("midiSendNoteOn notenum=");
       Serial.print((int)notenum);
       Serial.print(", velocity=");
       Serial.print((int)velocity);
@@ -1096,7 +1096,7 @@ void midiSendNoteOffRaw(byte notenum, byte channel) {
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
-      Serial.print("MIDI.sendNoteOff notenum=");
+      Serial.print("midiSendNoteOff notenum=");
       Serial.print((int)notenum);
       Serial.print(", channel=");
       Serial.print((int)channel);
@@ -1138,7 +1138,7 @@ void midiSendPitchBend(int pitchval, byte channel) {
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
-      Serial.print("MIDI.sendPitchBend pitchval=");
+      Serial.print("midiSendPitchBend pitchval=");
       Serial.print(pitchval);
       Serial.print(", channel=");
       Serial.print((int)channel);
@@ -1156,7 +1156,7 @@ void midiSendProgramChange(byte preset, byte channel) {
 
   if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
-      Serial.print("MIDI.sendProgramChange preset=");
+      Serial.print("midiSendProgramChange preset=");
       Serial.print(preset);
       Serial.print(", channel=");
       Serial.print((int)channel);
@@ -1179,7 +1179,7 @@ void midiSendAfterTouch(byte value, byte channel) {
 
   if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
-      Serial.print("MIDI.sendAfterTouch value=");
+      Serial.print("midiSendAfterTouch value=");
       Serial.print(value);
       Serial.print(", channel=");
       Serial.print((int)channel);
@@ -1203,7 +1203,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
 
   if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
-      Serial.print("MIDI.sendPolyPressure notenum=");
+      Serial.print("midiSendPolyPressure notenum=");
       Serial.print((int)notenum);
       Serial.print(", value=");
       Serial.print((int)value);
@@ -1213,5 +1213,37 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
     }
   } else {
     queueMidiMessage(MIDIPolyphonicPressure, notenum, value, channel);
+  }
+}
+
+void midiSendNRPN(unsigned short number, unsigned short value, byte channel) {
+  number = constrain(number, 0, 0x3fff);
+  value = constrain(value, 0, 0x3fff);
+  channel = constrain(channel-1, 0, 15);
+
+  if (Device.serialMode) {
+#ifdef DEBUG_ENABLED
+    if (SWITCH_DEBUGMIDI) {
+      Serial.print("midiSendNRPN number=");
+      Serial.print((int)value);
+      Serial.print(", value=");
+      Serial.print((int)controlval);
+      Serial.print(", channel=");
+      Serial.print((int)channel);
+      Serial.print("\n");
+    }
+#endif
+  } else {
+    unsigned numberMsb = (number & 0x3fff) >> 7;
+    unsigned numberLsb = number & 0x7f;
+    unsigned valueMsb = (value & 0x3fff) >> 7;
+    unsigned valueLsb = value & 0x7f;
+
+    queueMidiMessage(MIDIControlChange, 99, numberMsb, channel);
+    queueMidiMessage(MIDIControlChange, 98, numberLsb, channel);
+    queueMidiMessage(MIDIControlChange, 6, valueMsb, channel);
+    queueMidiMessage(MIDIControlChange, 38, valueLsb, channel);
+    queueMidiMessage(MIDIControlChange, 101, 127, channel);
+    queueMidiMessage(MIDIControlChange, 100, 127, channel);
   }
 }

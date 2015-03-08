@@ -440,6 +440,14 @@ boolean TouchInfo::isHigherPhantomPressure(short other) {
   return hasNote() || currentRawZ > other;
 }
 
+void TouchInfo::clearMusicalData() {
+  note = -1;
+  channel = -1;
+  octaveOffset = 0;
+  fxdPrevPressure = 0;
+  fxdPrevTimbre = 0;
+}
+
 void TouchInfo::clearSensorData() {
   initialX = -1;
   initialReferenceX = 0;

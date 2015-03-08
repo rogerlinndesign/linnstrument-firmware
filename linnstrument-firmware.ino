@@ -227,6 +227,7 @@ struct TouchInfo {
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(short);    // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  void clearMusicalData();                   // clear the musical data
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
 
@@ -910,7 +911,7 @@ void setup() {
 void loop() {
   // the default musical performance mode
   if (operatingMode == modePerformance) {
-     modeLoopPerformance();
+    modeLoopPerformance();
   }
   // manufactoring test mode where leds are shows for specific signals
   else if (operatingMode == modeManufacturingTest) {
@@ -937,7 +938,8 @@ inline void modeLoopPerformance() {
 
     boolean canShortCircuit = false;
 
-    if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {       // if touched now but not before, it's a new touch
+    if (previousTouch != touchedCell && previousTouch != ignoredCell &&
+        sensorCell().isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
       handleNewTouch();
       canShortCircuit = true;
     }

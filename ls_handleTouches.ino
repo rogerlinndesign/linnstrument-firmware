@@ -543,19 +543,19 @@ void handleXYZupdate() {
   }
 
   // get the processed expression data
-  short pitchBend = INVALID_DATA;
-  short preferredTimbre = INVALID_DATA;
-  byte preferredPressure = handleZExpression();
+  short valueX = INVALID_DATA;
+  short valueY = INVALID_DATA;
+  byte valueZ = handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
-    pitchBend = handleXExpression();
-    preferredTimbre = handleYExpression();
+    valueX = handleXExpression();
+    valueY = handleYExpression();
   }
 
   // update the low row state unless this was a new low row touch, which is handled by lowRowStart()
   if (!newVelocity || !isLowRow()) {
-    handleLowRowState(pitchBend, preferredTimbre, preferredPressure);
+    handleLowRowState(valueX, valueY, valueZ);
   }
 
   // the volume fader has its own operation mode
@@ -577,14 +577,14 @@ void handleXYZupdate() {
     // if sensing Z is enabled...
     // send different pressure update depending on midiMode
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, preferredPressure, sensorCell().note, sensorCell().channel);
+      preSendLoudness(sensorSplit, valueZ, sensorCell().note, sensorCell().channel);
     }
 
     // if X-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (pitchBend != INVALID_DATA &&
+    if (valueX != INVALID_DATA &&
         isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      int pitch = pitchBend;
+      int pitch = valueX;
       if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
         pitch = 0;
       }
@@ -593,10 +593,10 @@ void handleXYZupdate() {
 
     // if Y-axis movements are enabled and it's a candidate for
     // X/Y expression based on the MIDI mode and the currently held down cells
-    if (preferredTimbre != INVALID_DATA &&
+    if (valueY != INVALID_DATA &&
         isYExpressiveCell() && Split[sensorSplit].sendY &&
         (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
-      preSendTimbre(sensorSplit, preferredTimbre, sensorCell().note, sensorCell().channel);
+      preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
     }
   }
 }
@@ -1012,11 +1012,7 @@ void handleTouchRelease() {
     releaseChannel(sensorCell().channel);
 
     // Reset all this cell's musical data
-    sensorCell().note = -1;
-    sensorCell().channel = -1;
-    sensorCell().octaveOffset = 0;
-    sensorCell().fxdPrevPressure = 0;
-    sensorCell().fxdPrevTimbre = 0;
+    sensorCell().clearMusicalData();
   }
 
   sensorCell().clearAllPhantoms();

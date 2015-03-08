@@ -107,6 +107,10 @@ short calculateCalibratedX(short rawX) {
   // The final calibrated X position is the interpolation between the bottom and the top sector rows based on the current sensor row
   short result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
 
+  // constrain the calibrated X position to have a full 4095 range between the centers of the left and right cells,
+  // but still have values for the remaining left and right halves (4095 / 48)
+  result = constrain(result, -85, 4180);
+
   return result;
 }
 
