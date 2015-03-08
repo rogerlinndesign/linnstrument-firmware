@@ -1227,7 +1227,7 @@ void midiSendNRPN(unsigned short number, unsigned short value, byte channel) {
       Serial.print("midiSendNRPN number=");
       Serial.print((int)value);
       Serial.print(", value=");
-      Serial.print((int)controlval);
+      Serial.print((int)value);
       Serial.print(", channel=");
       Serial.print((int)channel);
       Serial.print("\n");
