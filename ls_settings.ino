@@ -1122,6 +1122,7 @@ void changeUserFirmwareMode(boolean active) {
   controlButton = -1;
   userFirmwareActive = active;
 
+  initializeLedsLayer(LED_LAYER_CUSTOM2);
   clearDisplay();
 
   if (active) {

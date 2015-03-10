@@ -262,11 +262,11 @@ void handleMidiInput(unsigned long now) {
               break;
             case 22:
               if (displayMode == displayNormal) {
-                byte layer = LED_LAYER_CUSTOM;
-                // we light the LEDs of user firmware mode in the main layer
+                byte layer = LED_LAYER_CUSTOM1;
+                // we light the LEDs of user firmware mode in a dedicated custom layer
                 // this will be cleared when switching back to regular firmware mode
                 if (userFirmwareActive) {
-                  layer = LED_LAYER_MAIN;
+                  layer = LED_LAYER_CUSTOM2;
                 }
                 if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
                   setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, layer);

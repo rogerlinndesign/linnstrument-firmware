@@ -136,10 +136,11 @@ char* OSVersion = "120.";
 
 // The values for the different LED layers
 #define LED_LAYER_MAIN      0
-#define LED_LAYER_CUSTOM    1
-#define LED_LAYER_PLAYED    2
-#define LED_LAYER_COMBINED  3
-#define LED_LAYERS          3
+#define LED_LAYER_CUSTOM1   1
+#define LED_LAYER_CUSTOM2   2
+#define LED_LAYER_PLAYED    3
+#define LED_LAYER_COMBINED  4
+#define LED_LAYERS          4
 
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
