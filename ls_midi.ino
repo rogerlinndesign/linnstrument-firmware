@@ -269,10 +269,10 @@ void handleMidiInput(unsigned long now) {
                   layer = LED_LAYER_MAIN;
                 }
                 if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, LED_LAYER_CUSTOM);
+                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, layer);
                 }
                 else {
-                  setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, LED_LAYER_CUSTOM);
+                  setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, layer);
                 }
                 checkRefreshLedColumn(micros());
               }
