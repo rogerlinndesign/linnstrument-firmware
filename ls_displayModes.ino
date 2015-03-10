@@ -244,7 +244,10 @@ void paintStrumDisplayCell(byte split, byte col, byte row) {
 }
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
-  if (userFirmwareActive) return;
+  if (userFirmwareActive) {
+    clearLed(col, row);
+    return;
+  }
 
   // by default clear the cell color
   byte colour = COLOR_OFF;
