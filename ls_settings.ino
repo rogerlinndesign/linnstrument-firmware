@@ -679,6 +679,7 @@ void handlePerSplitSettingNewTouch() {
     else if ((sensorRow == 5 && cell(sensorCol, 4).touched != untouchedCell) ||
          (sensorRow == 4 && cell(sensorCol, 5).touched != untouchedCell)) {
       Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
+      applyPitchCorrectHold();
     }
     else if (sensorRow == 5) {
       if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldMedium) {
