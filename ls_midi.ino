@@ -245,6 +245,11 @@ void handleMidiInput(unsigned long now) {
                 }
               }
               break;
+            case 9:
+              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+                userFirmwareSlideMode[midiChannel] = midiData2;
+              }
+              break;
             case 20:
               if (midiData2 < NUMCOLS) {
                 midiCellColCC = midiData2;
@@ -257,6 +262,12 @@ void handleMidiInput(unsigned long now) {
               break;
             case 22:
               if (displayMode == displayNormal) {
+                byte layer = LED_LAYER_CUSTOM;
+                // we light the LEDs of user firmware mode in the main layer
+                // this will be cleared when switching back to regular firmware mode
+                if (userFirmwareActive) {
+                  layer = LED_LAYER_MAIN;
+                }
                 if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
                   setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, LED_LAYER_CUSTOM);
                 }
@@ -638,7 +649,7 @@ void receivedNrpn(int parameter, int value) {
         Global.switchBothSplits[1] = value;
       }
       break;
-    // Global Settings Preset
+    // Global Settings Preset Load
     case 243:
       if (inRange(value, 0, 3)) {
         applyPresetSettings(config.preset[value]);
@@ -648,6 +659,12 @@ void receivedNrpn(int parameter, int value) {
     case 244:
       if (inRange(value, 0, 1)) {
         Global.pressureAftertouch = value;
+      }
+      break;
+    // User Firmware Mode Active
+    case 245:
+      if (inRange(value, 0, 1)) {
+        changeUserFirmwareMode(value);
       }
       break;
   }
@@ -664,6 +681,7 @@ short getMidiClockCount() {
 }
 
 boolean highlightExactNoteCell(byte split, byte notenum, byte channel) {
+  if (userFirmwareActive) return false;
   if (displayMode != displayNormal) return false;
   if (Split[split].midiMode != channelPerRow) return false;
 
@@ -696,6 +714,7 @@ byte calculateRowPerChannelRow(byte split, byte channel) {
 }
 
 void highlightPossibleNoteCells(byte split, byte notenum) {
+  if (userFirmwareActive) return;
   if (displayMode != displayNormal) return;
 
   byte row = 0;
@@ -711,6 +730,7 @@ void highlightPossibleNoteCells(byte split, byte notenum) {
 }
 
 boolean resetExactNoteCell(byte split, byte notenum, byte channel) {
+  if (userFirmwareActive) return false;
   if (displayMode != displayNormal) return false;
   if (Split[split].midiMode != channelPerRow) return false;
 
@@ -726,6 +746,7 @@ boolean resetExactNoteCell(byte split, byte notenum, byte channel) {
 }
 
 void resetPossibleNoteCells(byte split, byte notenum) {
+  if (userFirmwareActive) return;
   if (displayMode != displayNormal) return;
   
   byte row = 0;
@@ -1000,7 +1021,7 @@ void midiSendAllNotesOff(byte split) {
       {
         for (byte ch = 0; ch < 16; ++ch) {
           if (Split[split].midiChanSet[ch]) {
-            midiSendNoteOffRaw(notenum, ch);
+            midiSendNoteOffRaw(notenum, 0x40, ch);
           }
         }
         break;
@@ -1013,14 +1034,14 @@ void midiSendAllNotesOff(byte split) {
           if (ch > 16) {
             ch -= 16;
           }
-          midiSendNoteOffRaw(notenum, ch-1);
+          midiSendNoteOffRaw(notenum, 0x40, ch-1);
         }
         break;
       }
 
       case oneChannel:
       {
-        midiSendNoteOffRaw(notenum, Split[split].midiChanMain-1);
+        midiSendNoteOffRaw(notenum, 0x40, Split[split].midiChanMain-1);
         break;
       }
     }
@@ -1028,17 +1049,22 @@ void midiSendAllNotesOff(byte split) {
 }
 
 void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
+  midiSendControlChange(controlnum, controlval, channel, false);
+}
+
+void midiSendControlChange(byte controlnum, byte controlval, byte channel, boolean always) {
   controlval = constrain(controlval, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = millis();
-  if (controlnum < 120 && controlnum != 64) {  // always send channel mode messages and sustain
-    short index = controlnum + 128*channel;
+  // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
+  short index = controlnum + 128*channel;
+  if (!always && controlnum < 120 && controlnum != 64) {
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
   }
-  lastValueMidiCC[controlnum + 128*channel] = controlval;
-  lastMomentMidiCC[controlnum + 128*channel] = now;
+  lastValueMidiCC[index] = controlval;
+  lastMomentMidiCC[index] = now;
 
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
@@ -1054,6 +1080,48 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
 #endif
   } else {
     queueMidiMessage(MIDIControlChange, controlnum, controlval, channel);
+  }
+}
+
+void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlval, byte channel) {
+  controlval = constrain(controlval, 0, 0x3fff);
+  channel = constrain(channel-1, 0, 15);
+
+  unsigned long now = millis();
+
+  // calculate the 14-bit msb and lsb
+  unsigned msb = (controlval & 0x3fff) >> 7;
+  unsigned lsb = controlval & 0x7f;
+
+  short indexMsb = controlMsb + 128*channel;
+  short indexLsb = controlLsb + 128*channel;
+
+  if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
+  if (controlval != 0 &&
+      (calcTimeDelta(now, lastMomentMidiCC[indexMsb]) <= midiDecimateRate ||
+       calcTimeDelta(now, lastMomentMidiCC[indexLsb]) <= midiDecimateRate)) return;
+  lastValueMidiCC[indexMsb] = msb;
+  lastMomentMidiCC[indexMsb] = now;
+  lastValueMidiCC[indexLsb] = lsb;
+  lastMomentMidiCC[indexLsb] = now;
+
+  if (Device.serialMode) {
+#ifdef DEBUG_ENABLED
+    if (SWITCH_DEBUGMIDI) {
+      Serial.print("midiSendControlChange14Bit controlMsb=");
+      Serial.print((int)controlMsb);
+      Serial.print(", controlLsb=");
+      Serial.print((int)controlLsb);
+      Serial.print(", controlval=");
+      Serial.print((int)controlval);
+      Serial.print(", channel=");
+      Serial.print((int)channel);
+      Serial.print("\n");
+    }
+#endif
+  } else {
+    queueMidiMessage(MIDIControlChange, controlLsb, lsb, channel);
+    queueMidiMessage(MIDIControlChange, controlMsb, msb, channel);
   }
 }
 
@@ -1087,12 +1155,23 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
 
   if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
       lastValueMidiNotesOn[split][notenum][channel]--;
-    midiSendNoteOffRaw(notenum, channel);
+    midiSendNoteOffRaw(notenum, 0x40, channel);
     lastValueMidiPB[channel] = 0x7FFF;
   }
 }
 
-void midiSendNoteOffRaw(byte notenum, byte channel) {
+void midiSendNoteOffWithVelocity(byte split, byte notenum, byte velocity, byte channel) {
+  notenum = constrain(notenum, 0, 127);
+  channel = constrain(channel-1, 0, 15);
+
+  if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
+      lastValueMidiNotesOn[split][notenum][channel]--;
+    midiSendNoteOffRaw(notenum, velocity, channel);
+    lastValueMidiPB[channel] = 0x7FFF;
+  }
+}
+
+void midiSendNoteOffRaw(byte notenum, byte velocity, byte channel) {
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
@@ -1104,7 +1183,7 @@ void midiSendNoteOffRaw(byte notenum, byte channel) {
     }
 #endif
   } else {
-    queueMidiMessage(MIDINoteOff, notenum, 0x40, channel);
+    queueMidiMessage(MIDINoteOff, notenum, velocity, channel);
   }
 }
 

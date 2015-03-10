@@ -351,6 +351,14 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
+    // the control switches always have maximum velocity and pressure
+    if (sensorCol == 0) {
+      velocityZ = 127;
+      pressureZ = 127;
+      return;
+    }
+
+    // calculate the velocity and pressure for the playing cells
     unsigned short sensorRange = constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;

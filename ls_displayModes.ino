@@ -138,6 +138,14 @@ void updateSwitchLeds() {
 // paintNormalDisplay:
 // Paints columns 1-26 of the display with the normal performance colors
 void paintNormalDisplay() {
+  // highlight global settings red when user firmware mode is active
+  if (userFirmwareActive) {
+    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);
+  }
+  else {
+    clearLed(0, GLOBAL_SETTINGS_ROW);
+  }
+
   // determine the splits and divider
   byte split = Global.currentPerSplit;
   byte divider = NUMCOLS;
@@ -236,6 +244,8 @@ void paintStrumDisplayCell(byte split, byte col, byte row) {
 }
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
+  if (userFirmwareActive) return;
+
   // by default clear the cell color
   byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
@@ -728,23 +738,25 @@ void paintSwitchAssignment(byte mode) {
 }
 
 void updateGlobalSettingsFlashTempo(unsigned long now) {
-  if ((displayMode == displayGlobal || displayMode == displayGlobalWithTempo) && !animationActive) {
+  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
     paintGlobalSettingsFlashTempo(now);
   }
 }
 
 inline void paintGlobalSettingsFlashTempo(unsigned long now) {
-  // flash the tap tempo cell at the beginning of the beat
-  if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
-      (!isMidiClockRunning() && getInternalClockCount() == 0)) {
-    lightLed(14, 3);
-    tapTempoLedOn = now;
-  }
+  if (!animationActive && !userFirmwareActive) {
+    // flash the tap tempo cell at the beginning of the beat
+    if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
+        (!isMidiClockRunning() && getInternalClockCount() == 0)) {
+      lightLed(14, 3);
+      tapTempoLedOn = now;
+    }
 
-  // handle turning off the tap tempo led after minimum 30ms
-  if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
-    tapTempoLedOn = 0;
-    clearLed(14, 3);
+    // handle turning off the tap tempo led after minimum 30ms
+    if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
+      tapTempoLedOn = 0;
+      clearLed(14, 3);
+    }
   }
 }
 
@@ -753,121 +765,10 @@ inline void paintGlobalSettingsFlashTempo(unsigned long now) {
 void paintGlobalSettingsDisplay() {
   clearDisplay();
 
-  switch (lightSettings) {
-    case LIGHTS_MAIN:
-      lightLed(1, 0);
-      setNoteLights(Global.mainNotes);
-      break;
-    case LIGHTS_ACCENT:
-      lightLed(1, 1);
-      setNoteLights(Global.accentNotes);
-      break;
-  }
-
-  switch (Global.rowOffset)
-  {
-    case 0:        // no overlap
-      lightLed(5, 3);
-      break;
-    case 3:        // +3
-      lightLed(5, 0);
-      break;
-    case 4:        // +4
-      lightLed(6, 0);
-      break;
-    case 5:        // +5
-      lightLed(5, 1);
-      break;
-    case 6:        // +6
-      lightLed(6, 1);
-      break;
-    case 7:        // +7
-      lightLed(5, 2);
-      break;
-    case 12:      // +octave
-      lightLed(6, 2);
-      break;
-    case 13:      // guitar tuning
-      lightLed(6, 3);
-      break;
-  }
-
-  // This code assumes that switchSelect values are the same as the row numbers
-  lightLed(7, switchSelect);
-  paintSwitchAssignment(Global.switchAssignment[switchSelect]);
-
-  // Indicate whether switches operate on both splits or not
-  if (Global.switchBothSplits[switchSelect]) {
-    lightLed(8, 3);
-  }
-
   // This code assumes the velocitySensitivity and pressureSensitivity
   // values are equal to the LED rows.
   lightLed(10, Global.velocitySensitivity);
   lightLed(11, Global.pressureSensitivity);
-
-  // Indicate whether pressure is behaving like traditional aftertouch or not
-  if (Global.pressureAftertouch) {
-    lightLed(11, 3);
-  }
-
-  // Set the lights for the Arpeggiator settings
-  switch (Global.arpDirection) {
-    case ArpDown:
-      lightLed(12, 0);
-      break;
-    case ArpUp:
-      lightLed(12, 1);
-      break;
-    case ArpUpDown:
-      lightLed(12, 0);
-      lightLed(12, 1);
-      break;
-    case ArpRandom:
-      lightLed(12, 2);
-      break;
-    case ArpReplayAll:
-      lightLed(12, 3);
-      break;
-  }
-
-  switch (Global.arpTempo) {
-    case ArpSixteenthSwing:
-      lightLed(13, 0);
-      lightLed(13, 1);
-      break;
-    case ArpEighth:
-      lightLed(13, 0);
-      break;
-    case ArpEighthTriplet:
-      lightLed(13, 0);
-      lightLed(13, 3);
-      break;
-    case ArpSixteenth:
-      lightLed(13, 1);
-      break;
-    case ArpSixteenthTriplet:
-      lightLed(13, 1);
-      lightLed(13, 3);
-      break;
-    case ArpThirtysecond:
-      lightLed(13, 2);
-      break;
-    case ArpThirtysecondTriplet:
-      lightLed(13, 2);
-      lightLed(13, 3);
-      break;
-  }
-
-  // show the arpeggiator octave
-  if (Global.arpOctave == 1) {
-    lightLed(14, 0);
-  }
-  else if (Global.arpOctave == 2) {
-    lightLed(14, 1);
-  }
-
-  paintGlobalSettingsFlashTempo(micros());
 
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {
@@ -879,6 +780,10 @@ void paintGlobalSettingsDisplay() {
   // Show the low power mode
   if (Device.operatingLowPower) {
     lightLed(15, 3);
+  }
+
+  if (userFirmwareActive) {
+    setLed(16, 2, COLOR_YELLOW, cellOn);
   }
 
   // set light for serial mode
@@ -894,6 +799,128 @@ void paintGlobalSettingsDisplay() {
     setLed(16, 3, COLOR_RED, cellOn);
   }
 
+  if (!userFirmwareActive) {
+
+    switch (lightSettings) {
+      case LIGHTS_MAIN:
+        lightLed(1, 0);
+        setNoteLights(Global.mainNotes);
+        break;
+      case LIGHTS_ACCENT:
+        lightLed(1, 1);
+        setNoteLights(Global.accentNotes);
+        break;
+    }
+
+    switch (Global.rowOffset)
+    {
+      case 0:        // no overlap
+        lightLed(5, 3);
+        break;
+      case 3:        // +3
+        lightLed(5, 0);
+        break;
+      case 4:        // +4
+        lightLed(6, 0);
+        break;
+      case 5:        // +5
+        lightLed(5, 1);
+        break;
+      case 6:        // +6
+        lightLed(6, 1);
+        break;
+      case 7:        // +7
+        lightLed(5, 2);
+        break;
+      case 12:      // +octave
+        lightLed(6, 2);
+        break;
+      case 13:      // guitar tuning
+        lightLed(6, 3);
+        break;
+    }
+
+    // This code assumes that switchSelect values are the same as the row numbers
+    lightLed(7, switchSelect);
+    paintSwitchAssignment(Global.switchAssignment[switchSelect]);
+
+    // Indicate whether switches operate on both splits or not
+    if (Global.switchBothSplits[switchSelect]) {
+      lightLed(8, 3);
+    }
+
+    // Indicate whether pressure is behaving like traditional aftertouch or not
+    if (Global.pressureAftertouch) {
+      lightLed(11, 3);
+    }
+
+    // Set the lights for the Arpeggiator settings
+    switch (Global.arpDirection) {
+      case ArpDown:
+        lightLed(12, 0);
+        break;
+      case ArpUp:
+        lightLed(12, 1);
+        break;
+      case ArpUpDown:
+        lightLed(12, 0);
+        lightLed(12, 1);
+        break;
+      case ArpRandom:
+        lightLed(12, 2);
+        break;
+      case ArpReplayAll:
+        lightLed(12, 3);
+        break;
+    }
+
+    switch (Global.arpTempo) {
+      case ArpSixteenthSwing:
+        lightLed(13, 0);
+        lightLed(13, 1);
+        break;
+      case ArpEighth:
+        lightLed(13, 0);
+        break;
+      case ArpEighthTriplet:
+        lightLed(13, 0);
+        lightLed(13, 3);
+        break;
+      case ArpSixteenth:
+        lightLed(13, 1);
+        break;
+      case ArpSixteenthTriplet:
+        lightLed(13, 1);
+        lightLed(13, 3);
+        break;
+      case ArpThirtysecond:
+        lightLed(13, 2);
+        break;
+      case ArpThirtysecondTriplet:
+        lightLed(13, 2);
+        lightLed(13, 3);
+        break;
+    }
+
+    // show the arpeggiator octave
+    if (Global.arpOctave == 1) {
+      lightLed(14, 0);
+    }
+    else if (Global.arpOctave == 2) {
+      lightLed(14, 1);
+    }
+
+    paintGlobalSettingsFlashTempo(micros());
+}
+
+if (displayMode == displayGlobalWithTempo) {
+  byte color = Split[LEFT].colorMain;
+  char str[4];
+  char* format = "%3d";
+  snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
+  tinyfont_draw_string(0, 4, str, color);
+}
+
 #ifdef DEBUG_ENABLED
   // Colum 17 is for setting/showing the debug level
   // The value of debugLevel is from -1 up.
@@ -906,14 +933,6 @@ void paintGlobalSettingsDisplay() {
     }
   }
 #endif
-
-  if (displayMode == displayGlobalWithTempo) {
-    byte color = Split[LEFT].colorMain;
-    char str[4];
-    char* format = "%3d";
-    snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
-    tinyfont_draw_string(0, 4, str, color);
-  }
 }
 
 void paintCalibrationDisplay() {

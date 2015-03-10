@@ -170,6 +170,7 @@ char* OSVersion = "120.";
 #define SWITCH_HOLD_DELAY  500
 
 #define EDIT_MODE_HOLD_DELAY  2000
+#define USER_MODE_HOLD_DELAY  500
 
 
 /******************************************** VELOCITY *******************************************/
@@ -661,6 +662,9 @@ boolean doublePerSplit = false;                     // false when only one per s
 byte switchSelect = SWITCH_FOOT_L;                  // determines which switch setting is being displayed/changed
 byte midiChannelSelect = MIDICHANNEL_MAIN;          // determines which midi channel setting is being displayed/changed
 byte lightSettings = LIGHTS_MAIN;                   // determines which Lights array is being displayed/changed
+
+boolean userFirmwareActive = false;                 // indicates whether user firmware mode is active or not
+boolean userFirmwareSlideMode[NUMROWS];             // indicates whether slide mode is on for a particular row
 
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped

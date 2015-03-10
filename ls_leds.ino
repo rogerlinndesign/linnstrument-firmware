@@ -56,9 +56,14 @@ inline byte getCombinedLedData(byte col, byte row) {
   byte layer = LED_LAYERS;
   do {
     layer -= 1;
+    // don't show the custom layer in user firmware mode
+    if (userFirmwareActive && layer == LED_LAYER_CUSTOM) {
+      continue;
+    }
+    // in normal display mode, show all layers and only show the main in other display modes
     if (displayMode == displayNormal || layer == LED_LAYER_MAIN) {
       data = leds[layer][col][row];
-    }
+    }    
   }
   while(layer > 0 && (data & B00001111) == cellOff);
 

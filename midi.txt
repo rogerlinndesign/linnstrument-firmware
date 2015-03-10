@@ -28,6 +28,7 @@ MIDI Control Change input
 CC Number   Used for
 -------------------------------------------------------------------------------------------------------------
 1-8         Change the position of the CC faders, the split is determined by its active MIDI mode channels
+9           Configure User Firmware X-axis row slide, the channel specifies the row (0: disable, 1: enable)
 20          Column coordinate for cell color change with CC 22 (starts from 0)
 21          Row coordinate for cell color change with CC 22 (starts from 0)
 22          Change the color of the cell with the provided column and row coordinates
@@ -178,8 +179,9 @@ NRPN   Value   Description
 240    0-1     Global Switch 2 Both Splits (0: Off, 1: On)
 241    0-1     Global Foot Left Both Splits (0: Off, 1: On)
 242    0-1     Global Foot Right Both Splits (0: Off, 1: On)
-243    0-3     Global Settings Preset
+243    0-3     Global Settings Preset Load
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
+245    0-1     User Firmware Mode (0: Off, 1: On)
 
 Color Values
 ============
