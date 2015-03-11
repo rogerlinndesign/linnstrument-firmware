@@ -351,6 +351,14 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
+    // the control switches always have maximum velocity and pressure
+    if (sensorCol == 0) {
+      velocityZ = 127;
+      pressureZ = 127;
+      return;
+    }
+
+    // calculate the velocity and pressure for the playing cells
     unsigned short sensorRange = constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;
@@ -438,6 +446,14 @@ void TouchInfo::setPhantoms(byte col1, byte col2, byte row1, byte row2) {
 
 boolean TouchInfo::isHigherPhantomPressure(short other) {
   return hasNote() || currentRawZ > other;
+}
+
+void TouchInfo::clearMusicalData() {
+  note = -1;
+  channel = -1;
+  octaveOffset = 0;
+  fxdPrevPressure = 0;
+  fxdPrevTimbre = 0;
 }
 
 void TouchInfo::clearSensorData() {

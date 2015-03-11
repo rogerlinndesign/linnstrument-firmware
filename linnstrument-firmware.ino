@@ -136,10 +136,11 @@ char* OSVersion = "120.";
 
 // The values for the different LED layers
 #define LED_LAYER_MAIN      0
-#define LED_LAYER_CUSTOM    1
-#define LED_LAYER_PLAYED    2
-#define LED_LAYER_COMBINED  3
-#define LED_LAYERS          3
+#define LED_LAYER_CUSTOM1   1
+#define LED_LAYER_CUSTOM2   2
+#define LED_LAYER_PLAYED    3
+#define LED_LAYER_COMBINED  4
+#define LED_LAYERS          4
 
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
@@ -170,6 +171,7 @@ char* OSVersion = "120.";
 #define SWITCH_HOLD_DELAY  500
 
 #define EDIT_MODE_HOLD_DELAY  2000
+#define USER_MODE_HOLD_DELAY  500
 
 
 /******************************************** VELOCITY *******************************************/
@@ -227,6 +229,7 @@ struct TouchInfo {
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(short);    // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  void clearMusicalData();                   // clear the musical data
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
 
@@ -665,6 +668,9 @@ byte switchSelect = SWITCH_FOOT_L;                  // determines which switch s
 byte midiChannelSelect = MIDICHANNEL_MAIN;          // determines which midi channel setting is being displayed/changed
 byte lightSettings = LIGHTS_MAIN;                   // determines which Lights array is being displayed/changed
 
+boolean userFirmwareActive = false;                 // indicates whether user firmware mode is active or not
+boolean userFirmwareSlideMode[NUMROWS];             // indicates whether slide mode is on for a particular row
+
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
 
@@ -914,7 +920,7 @@ void setup() {
 void loop() {
   // the default musical performance mode
   if (operatingMode == modePerformance) {
-     modeLoopPerformance();
+    modeLoopPerformance();
   }
   // manufactoring test mode where leds are shows for specific signals
   else if (operatingMode == modeManufacturingTest) {
@@ -941,7 +947,8 @@ inline void modeLoopPerformance() {
 
     boolean canShortCircuit = false;
 
-    if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {       // if touched now but not before, it's a new touch
+    if (previousTouch != touchedCell && previousTouch != ignoredCell &&
+        sensorCell().isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
       handleNewTouch();
       canShortCircuit = true;
     }

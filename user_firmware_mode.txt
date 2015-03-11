@@ -1,0 +1,109 @@
+﻿LinnStrument User Firmware Mode
+===============================
+
+The intention of user mode is to provide a low level API to access calibrated and normalized LinnStrument sensor data
+over MIDI so that custom applications can be written without requiring firmware changes. Obviously, since MIDI, even
+over USB, is a slower transport than direct CPU access, certain features can't be developed that would need very quick
+access to the data (like for instance velocity detection). User mode is complemented by the already available MIDI CC
+API to control LEDs for user feedback of the custom functionalities through MIDI CC numbers 20, 21, and 22.
+
+
+Activating User Firmware Mode
+-----------------------------
+
+User Mode can be activated by sending LinnStrument the value 1 for MIDI NRPN  245 on any MIDI channel, sending value 0
+will turn it off. When User Mode is active, all standard firmware features will be disabled and all LEDs will be turned
+off, except for the Global Settings panel. This panel will only have settings available for Velocity Sensitivity,
+Pressure Sensitivity, MIDI I/O and Actions, the others will be disabled. When the Global Settings panel is active, no
+User Mode nor LED control features will be active. When User Mode is active, the OS Update light in Global Settings and
+the Global Settings switch itself will be lit yellow.
+
+By holding OS Update in Global Settings for half a second when User Mode is active, the user can manually turn off User
+Mode and return to the standard firmware mode. When this happens, LinnStrument will send out MIDI NRPN 245 on channel 9
+with value 0 to notify the external application that user mode is now disabled. OS Update can also be held down in
+standard firmware mode to manually re-enable User Mode, LinnStrument will then send out MIDI NRPN 245 on channel 9 with
+value 1 to notify the external application that user mode is now enabled.
+
+Each time User Mode is activated, it starts from a clean slate, so it's the responsibility of the application to set up
+the appropriate lights and the configure X-axis slide mode if that's required.
+
+
+Cell Presses
+------------
+
+In User Mode, cell presses are tied to a coordinate system using MIDI channels and notes. The rows correspond to
+channels 1 to 8 with the bottom row being 1, and the columns correspond to the MIDI notes 0 to 25 with the control
+switches being 0. When a cell is pressed, the corresponding MIDI Note On message is sent with the velocity that is
+configured in Global Settings. The velocity is needed since it will not be possible to do any meaningful velocity
+calculation from the Z data sent over MIDI. When a cell is released the corresponding MIDI Note Off message is sent with
+velocity 0.
+
+
+3D Touch Data
+-------------
+
+The X, Y and Z data are sent out over MIDI CC messages. X data is global in range, meaning that 0 starts at the left
+edge of LinnStrument and the maximum value is at the right edge. Y and Z data have their own 0-max range for each cell.
+
+The scheme below has been selected to provide direct access to the expression data of each individual cell, but also to
+make user mode somewhat useful as a plain MIDI device with 200 expressive 3D controllers. The X data is sent out in 14
+bit by using standard MSB/LSB pairs.
+
+Z data is sent as Polyphonic Pressure message over channels 1 to 8, which again correspond to the rows. Similarly to the
+note on message, the Polyphonic Pressure notes 0 to 25, correspond to the columns. The values range from 0 to 127, with
+0 being a cell's lightest possible touch and 127 being the hardest one.
+
+X data is sent over channels 1 to 8, mapped to rows 1 to 8 on the LinnStrument. MIDI CC messages 0 to 25 correspond to
+the columns and contain the 14 bit MSB part. MIDI CC messages 32 to 57 can be used as the LSB counterparts of messages 0
+to 25 to receive more precise X data. The 14-bit range from the left edge to the right edge is 0 to 4265.
+
+Y data is sent over channels 1 to 8, corresponding to the rows. The columns correspond to MIDI CC messages 64 to 89. The
+values range from 0 to 127, from the bottom edge to the top edge of a cell. X-axis Slide Mode
+
+A unique feature of LinnStrument is to be able to smoothly slide across cells in the same row. It's impossible to
+achieve this level of smoothness by combining received User Mode MIDI messages, so there's a special mode that can be
+enabled for each row so that it tracks pitch slides across cells like the low row in the standard firmware mode.
+
+When this mode is active and a slide transition occurs, MIDI CC 119 will be sent with as value the column of the cell
+that is transitioning to another cell, the channel containing the row of the transitioning cell. The Note On message of
+the cell to which the slide transitions will have the same velocity as the first cell in the slide. The Note Off message
+of the cell that is released during a slide transition will have the slide target cell's column as velocity value. The
+slide transition Note Off message will always occur after the Note On message. The combination of these messages allows
+software to perfectly track slides as they occur.
+
+To enable per-row slide mode, send MIDI NRPN message 9 with value 1 to Channels 1 to 8, corresponding to the rows.
+Sending value 0 instead will disable slide mode for a row.
+
+
+Examples
+--------
+
+In practice a single cell press could result in messages like this in non-slide mode:
+
+
+Ch3 Note On 12 Velocity 120
+
+Ch3 PolyPressure Key 12 Value Z
+Ch3 CC 12 Value X MSB
+Ch3 CC 44 Value X LSB
+Ch3 CC 76 Value Y
+
+Ch3 Note Off 12 Velocity 0
+
+In practice a cell transition could result in messages like this in slide mode:
+
+Ch3 Note On 12 Velocity 120
+
+Ch3 PolyPressure Key 12 Value Z
+Ch3 CC 12 Value X MSB
+Ch3 CC 44 Value X LSB
+Ch3 CC 76 Value Y
+Ch3 CC 119 Value 12
+Ch3 Note On 13 Velocity 120
+Ch3 Note Off 12 Velocity 13
+Ch3 PolyPressure Key 13 Value Z
+Ch3 CC 13 Value X MSB
+Ch3 CC 45 Value X LSB
+Ch3 CC 77 Value Y
+
+Ch3 Note Off 13 Velocity 0

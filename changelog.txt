@@ -1,3 +1,17 @@
+v1.2.0:
+
+  * First experimental version of User Firmware Mode
+  * New approach to pitch hold quantization so that it's more fine-grained and can be faster. It now also
+    exponentially corrects based on the movement speed instead of linearly, which feels more natural.
+  * Improvements to low power mode to make it consume less, be more robust and slightly more responsive.
+  * Added detection for settings corruption that might occur when unplugging right at the moment when
+    LinnStrument is storing settings. A global reset will automatically be formed in this case with an
+    appropriate warning message.
+  * Pitch hold quantization settings now behave consistently with the rest of the UI but being mutually
+    exclusive between medium and fast, and requiring two cells to be pressed for the slow setting.
+  * Made incoming MIDI messages on splits with ChannelPerRow mode active only highlight the exact cells that match
+    based on the channel information.
+
 v1.1.2
 
   * Removed delay on touch release so that accidental legato and note de-duplication aren't triggered anymore

@@ -43,10 +43,14 @@ byte leds[LED_LAYERS+1][NUMCOLS][NUMROWS];             // array holding contents
 
 void initializeLeds() {
   for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
-    for (byte col = 0; col < NUMCOLS; ++col) {
-      for (byte row = 0; row < NUMROWS; ++row) {
-        leds[layer][col][row] = 0;
-      }
+    initializeLedsLayer(layer);
+  }
+}
+
+void initializeLedsLayer(byte layer) {
+  for (byte col = 0; col < NUMCOLS; ++col) {
+    for (byte row = 0; row < NUMROWS; ++row) {
+      leds[layer][col][row] = 0;
     }
   }
 }
@@ -56,9 +60,18 @@ inline byte getCombinedLedData(byte col, byte row) {
   byte layer = LED_LAYERS;
   do {
     layer -= 1;
+    // don't show the custom layer 1 in user firmware mode
+    if (userFirmwareActive) {
+      if (layer == LED_LAYER_CUSTOM1) continue;
+    }
+    // don't show the custom layer 2 in regular firmware mode
+    else {
+      if (layer == LED_LAYER_CUSTOM2) continue;
+    }
+    // in normal display mode, show all layers and only show the main in other display modes
     if (displayMode == displayNormal || layer == LED_LAYER_MAIN) {
       data = leds[layer][col][row];
-    }
+    }    
   }
   while(layer > 0 && (data & B00001111) == cellOff);
 

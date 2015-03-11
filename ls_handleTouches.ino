@@ -67,17 +67,25 @@ const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
 
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
-  if (sensorSplit != getSplitOf(col)) return false;
-  if (!isLowRow() &&                                                   // don't perform slide transfers
-      (!Split[sensorSplit].sendX ||                                    // if pitch slides are disabled
-       !isFocusedCell(col, sensorRow) ||                               // if this is not a focused cell
-       severalTouchesForMidiChannel(sensorSplit, col, sensorRow) ||    // when there are several touches for the same MIDI channel
-       (cell(col, sensorRow).pendingReleaseCount &&                    // if there's a pending release but not enough X change
-        cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X))) {
+  if (userFirmwareActive) {
+    if (!userFirmwareSlideMode[sensorRow]) return false;
+  }
+  else {
+    if (sensorSplit != getSplitOf(col)) return false;
+    if (!isLowRow() &&                                                   // don't perform slide transfers
+        (!Split[sensorSplit].sendX ||                                    // if pitch slides are disabled
+         !isFocusedCell(col, sensorRow) ||                               // if this is not a focused cell
+         severalTouchesForMidiChannel(sensorSplit, col, sensorRow))) {   // when there are several touches for the same MIDI channel
+      return false;
+    }
+    if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
+    if (isStrummingSplit(sensorSplit)) return false;
+  }
+
+  if (cell(col, sensorRow).pendingReleaseCount &&                        // if there's a pending release but not enough X change
+      cell(col, sensorRow).fxdRateX <= PENDING_RELEASE_RATE_X) {
     return false;
   }
-  if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
-  if (isStrummingSplit(sensorSplit)) return false;
 
   return cell(col, sensorRow).touched != untouchedCell &&                                                     // the sibling cell has an active touch
     (cell(col, sensorRow).pendingReleaseCount ||                                                              // either a release is pending to be performed, or
@@ -268,6 +276,15 @@ void handleSlideTransferCandidate(byte siblingCol) {
   // if the pressure gets higher than adjacent cell, the slide is transitioning over
   if (isReadyForSlideTransfer(siblingCol)) {
     transferFromSameRowCell(siblingCol);
+
+    if (userFirmwareActive) {
+      // if user firmware is active, we implement a particular transition scheme to allow touches to be tracked over MIDI
+      sensorCell().note = sensorCol;
+      midiSendControlChange(119, siblingCol, sensorCell().channel, true);
+      midiSendNoteOn(LEFT, sensorCol, sensorCell().velocity, sensorCell().channel);
+      midiSendNoteOffWithVelocity(LEFT, siblingCol, sensorCol, sensorCell().channel);
+    }
+
     if (cell(siblingCol, sensorRow).touched != untouchedCell) {
       cellTouched(siblingCol, sensorRow, transferCell);
     }
@@ -294,7 +311,11 @@ void handleNewTouch() {
     return;
   }
 
-  if (sensorCol == 0) {                                     // if it's a command button, handle it
+  // if it's a command button, handle it
+  if (sensorCol == 0 &&
+      // user firmware mode only handles the global settings command button
+      (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) {
+
     if (sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
         sensorRow != SWITCH_2_ROW) {                        // only activate them if there's note being played on the playing surface
       for (int r = 0; r < NUMROWS; ++r) {                   // this prevents accidental settings modifications while playing
@@ -468,7 +489,9 @@ byte takeChannel() {
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate() {
   // if the touch is in the control buttons column, ignore it
-  if (sensorCol == 0) return;
+  if (sensorCol == 0 &&
+     // except for user firmware mode where only the global settings button is ignored for continuous updates
+     (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) return;
 
   // if this data point serves as a calibration sample, return immediately
   if (handleCalibrationSample()) return;
@@ -509,7 +532,12 @@ void handleXYZupdate() {
 
   // turn off note handling and note expression features for low row, volume, cc faders and strumming
   boolean handleNotes = true;
-  if (isLowRow() ||
+  // in user firmware mode, everything is always encoded as MIDI notes and information
+  if (userFirmwareActive) {
+    handleNotes = true;
+  }
+  // in regular firmware mode, some features need special non-MIDI note handling
+  else if (isLowRow() ||
       displayMode == displayVolume ||
       Split[sensorSplit].ccFaders ||
       isStrummingSplit(sensorSplit)) {
@@ -524,9 +552,12 @@ void handleXYZupdate() {
     sensorCell().shouldRefreshX = true;
     sensorCell().initialX = -1;
     sensorCell().quantizationOffsetX = 0;
-    
+
+    if (userFirmwareActive) {
+      handleNewUserFirmwareTouch();
+    }
     // is this cell used for low row functionality
-    if (isLowRow()) {
+    else if (isLowRow()) {
       lowRowStart();
     }
     // Split strum only triggers notes in the other split
@@ -544,19 +575,19 @@ void handleXYZupdate() {
   }
 
   // get the processed expression data
-  short pitchBend = INVALID_DATA;
-  short preferredTimbre = INVALID_DATA;
-  byte preferredPressure = handleZExpression();
+  short valueX = INVALID_DATA;
+  short valueY = INVALID_DATA;
+  byte valueZ = handleZExpression();
 
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
-    pitchBend = handleXExpression();
-    preferredTimbre = handleYExpression();
+    valueX = handleXExpression();
+    valueY = handleYExpression();
   }
 
   // update the low row state unless this was a new low row touch, which is handled by lowRowStart()
   if (!newVelocity || !isLowRow()) {
-    handleLowRowState(pitchBend, preferredTimbre, preferredPressure);
+    handleLowRowState(valueX, valueY, valueZ);
   }
 
   // the volume fader has its own operation mode
@@ -571,33 +602,57 @@ void handleXYZupdate() {
     }
   }
   else if (handleNotes && sensorCell().hasNote()) {
-    // after the initial velocity, new velocity values are continuously being calculated simply based
-    // on the Z data so that velocity can change during the arpeggiation
-    sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
+    if (userFirmwareActive) {
+      // don't send expression data for the control switches
+      if (sensorCol != 0) {
+        // Z-axis movements are encoded using Poly Pressure with the note as the column and the channel as the row
+        midiSendPolyPressure(sensorCell().note, valueZ, sensorCell().channel);
 
-    // if sensing Z is enabled...
-    // send different pressure update depending on midiMode
-    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, preferredPressure, sensorCell().note, sensorCell().channel);
-    }
+        // X-axis movements are encoded in 14-bit with MIDI CC 0-25 / 32-57 as the column and the channel as the row
+        if (valueX != INVALID_DATA) {
+          short positionX = valueX + sensorCell().initialReferenceX;
 
-    // if X-axis movements are enabled and it's a candidate for
-    // X/Y expression based on the MIDI mode and the currently held down cells
-    if (pitchBend != INVALID_DATA &&
-        isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
-      int pitch = pitchBend;
-      if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
-        pitch = 0;
+          // compensate for the -85 offset at the left side since 0 is positioned at the center of the left-most cell
+          positionX = positionX + 85;
+          
+          midiSendControlChange14Bit(sensorCol, sensorCol+32, positionX, sensorCell().channel);
+        }
+
+        // Y-axis movements are encoded using MIDI CC 64-89 as the column and the channel as the row
+        if (valueY != INVALID_DATA) {
+          midiSendControlChange(sensorCol+64, valueY, sensorCell().channel);
+        }
       }
-      preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
     }
+    else {
+      // after the initial velocity, new velocity values are continuously being calculated simply based
+      // on the Z data so that velocity can change during the arpeggiation
+      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
 
-    // if Y-axis movements are enabled and it's a candidate for
-    // X/Y expression based on the MIDI mode and the currently held down cells
-    if (preferredTimbre != INVALID_DATA &&
-        isYExpressiveCell() && Split[sensorSplit].sendY &&
-        (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
-      preSendTimbre(sensorSplit, preferredTimbre, sensorCell().note, sensorCell().channel);
+      // if sensing Z is enabled...
+      // send different pressure update depending on midiMode
+      if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+        preSendLoudness(sensorSplit, valueZ, sensorCell().note, sensorCell().channel);
+      }
+
+      // if X-axis movements are enabled and it's a candidate for
+      // X/Y expression based on the MIDI mode and the currently held down cells
+      if (valueX != INVALID_DATA &&
+          isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
+        int pitch = valueX;
+        if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
+          pitch = 0;
+        }
+        preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
+      }
+
+      // if Y-axis movements are enabled and it's a candidate for
+      // X/Y expression based on the MIDI mode and the currently held down cells
+      if (valueY != INVALID_DATA &&
+          isYExpressiveCell() && Split[sensorSplit].sendY &&
+          (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
+        preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
+      }
     }
   }
 }
@@ -676,6 +731,12 @@ void handleNewNote(signed char notenum) {
   }
 }
 
+void handleNewUserFirmwareTouch() {
+  sensorCell().note = sensorCol;
+  sensorCell().channel = sensorRow+1;
+  midiSendNoteOn(LEFT, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+}
+
 byte handleZExpression() {
   byte preferredPressure = sensorCell().pressureZ;
 
@@ -749,7 +810,7 @@ short handleXExpression() {
 
   // calculate the distance from the initial X position
   // if pitch quantize is on, the first X position becomes the center point and considered 0
-  if (Split[sensorSplit].pitchCorrectQuantize) {
+  if (!userFirmwareActive && Split[sensorSplit].pitchCorrectQuantize) {
     movedX = calibratedX - sensorCell().initialX + sensorCell().quantizationOffsetX;
   }
   // otherwise we use the intended centerpoint based on the calibration
@@ -774,7 +835,7 @@ short handleXExpression() {
     sensorCell().fxdLastMovedX = FXD_FROM_INT(movedX);
 
     // if pitch quantize on hold is disabled, just output the current touch pitch
-    if (Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
+    if (userFirmwareActive || Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
       return movedX;
     }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
@@ -911,7 +972,9 @@ void handleTouchRelease() {
   cellTouched(untouchedCell);
 
   // if touch release is in column 0, it's a command key release so handle it
-  if (sensorCol == 0) {
+  if (sensorCol == 0 &&
+      // user firmware mode only handles the global settings command button
+      (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) {
     handleControlButtonRelease();
     return;
   }
@@ -961,6 +1024,11 @@ void handleTouchRelease() {
   // check if calibration is active and its cell release logic needs to be executed
   if (handleCalibrationRelease()) {
     // do nothing, calibration is handled elsewhere
+  }
+  // user firmware mode had its own mode of operation
+  else if (userFirmwareActive) {
+    midiSendNoteOffWithVelocity(LEFT, sensorCell().note, 0, sensorCell().channel);
+    sensorCell().clearMusicalData();
   }
   // CC faders have their own operation mode
   else if (Split[sensorSplit].ccFaders) {
@@ -1021,11 +1089,7 @@ void handleTouchRelease() {
     releaseChannel(sensorCell().channel);
 
     // Reset all this cell's musical data
-    sensorCell().note = -1;
-    sensorCell().channel = -1;
-    sensorCell().octaveOffset = 0;
-    sensorCell().fxdPrevPressure = 0;
-    sensorCell().fxdPrevTimbre = 0;
+    sensorCell().clearMusicalData();
   }
 
   sensorCell().clearAllPhantoms();

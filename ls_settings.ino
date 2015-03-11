@@ -681,6 +681,7 @@ void handlePerSplitSettingNewTouch() {
     else if ((sensorRow == 5 && cell(sensorCol, 4).touched != untouchedCell) ||
          (sensorRow == 4 && cell(sensorCol, 5).touched != untouchedCell)) {
       Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
+      applyPitchCorrectHold();
     }
     else if (sensorRow == 5) {
       if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldMedium) {
@@ -1119,6 +1120,31 @@ void handleTempoNewTouch() {
   updateDisplay();
 }
 
+void changeUserFirmwareMode(boolean active) {
+  if (userFirmwareActive == active) return;
+
+  sensorCell().lastTouch = 0;
+  controlButton = -1;
+  userFirmwareActive = active;
+
+  initializeLedsLayer(LED_LAYER_CUSTOM2);
+  clearDisplay();
+
+  if (active) {
+    for (byte r = 0; r < NUMROWS; ++r) {
+      userFirmwareSlideMode[r] = false;
+    }
+  }
+
+  midiSendNRPN(245, userFirmwareActive, 9);
+
+  cellTouched(ignoredCell);
+  clearLed(0, GLOBAL_SETTINGS_ROW);
+  setDisplayMode(displayNormal);
+  completelyRefreshLeds();
+  updateDisplay();
+}
+
 // Called to handle a change in one of the Global Settings,
 // meaning that user is holding global settings and touching one of global settings cells
 void handleGlobalSettingNewTouch() {
@@ -1144,101 +1170,8 @@ void handleGlobalSettingNewTouch() {
   }
 #endif
 
-  if (sensorRow == 7) {
-    if (sensorCol <= 16) {
-      // start tracking the touch duration to be able to enable edit mode
-      sensorCell().lastTouch = millis();
-    }
-    else if (sensorCol ==24) {  //-- custom animations 1-8, jas 2015/01/04 --
-      playCustomAnimation();
-    }
-    else {
-        Global.customAnimations[sensorCol - 17] = !Global.customAnimations[sensorCol - 17]; //--toggle animation properties -- jas 2015/01/07 --
-    }
-  }
-  else if (sensorRow >= 4) {
-    handleTempoNewTouch();
-  }
-
-  // select Scale Notes or Accent Notes
-  if (sensorCol == 1) {
-    switch (sensorRow)
-    {
-      case LIGHTS_MAIN:
-      case LIGHTS_ACCENT:
-        lightSettings = sensorRow;
-        break;
-    }
-  }
-
-  if (sensorCol >= 2 && sensorCol <= 4 && sensorRow >= 0 && sensorRow <= 3) {
-    // select individual scale notes or accent notes
-    switch (lightSettings)
-    {
-      case LIGHTS_MAIN:
-        toggleNoteLights(Global.mainNotes);
-        break;
-      case LIGHTS_ACCENT:
-        toggleNoteLights(Global.accentNotes);
-        break;
-    }
-  }
-
-  // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
-  if      (sensorCol == 5 && sensorRow == 3) {
-    Global.rowOffset = 0;       // no overlap
-  }
-  else if (sensorCol == 5 && sensorRow == 0) {
-    Global.rowOffset = 3;
-  }
-  else if (sensorCol == 6 && sensorRow == 0) {
-    Global.rowOffset = 4;
-  }
-  else if (sensorCol == 5 && sensorRow == 1) {
-    Global.rowOffset = 5;
-  }
-  else if (sensorCol == 6 && sensorRow == 1) {
-    Global.rowOffset = 6;
-  }
-  else if (sensorCol == 5 && sensorRow == 2) {
-    Global.rowOffset = 7;
-  }
-  else if (sensorCol == 6 && sensorRow == 2) {
-    Global.rowOffset = 12;      // octave
-  }
-  else if (sensorCol == 6 && sensorRow == 3) {
-    Global.rowOffset = 13;      // guitar
-  }
-
-  // select which switch is being controlled/displayed
-  if (sensorCol == 7 && sensorRow < 4) {
-    switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
-  }
-
-  // toggle whether the switches operate on both splits or not
-  if (sensorCol == 8 && sensorRow == 3) {
-    Global.switchBothSplits[switchSelect] = !Global.switchBothSplits[switchSelect];
-  }
-
-  // set the switch targets
-  if      (sensorCol == 8 && sensorRow == 2) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
-  }
-  else if (sensorCol == 9 && sensorRow == 2) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
-  }
-  else if (sensorCol == 8 && sensorRow == 1) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
-  }
-  else if (sensorCol == 9 && sensorRow == 1) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
-  }
-  else if (sensorCol == 8 && sensorRow == 0) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
-  }
-  else if (sensorCol == 9 && sensorRow == 0) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
-  }
+  // start tracking the touch duration to be able to enable hold functionality
+  sensorCell().lastTouch = millis();
 
   // select the Velocity Sensitivity
   if (sensorCol == 10) {
@@ -1264,110 +1197,6 @@ void handleGlobalSettingNewTouch() {
         break;
       case 3:
         Global.pressureAftertouch = !Global.pressureAftertouch;
-    }
-  }
-
-  // select the Arpeggiator settings
-  if (sensorCol == 12) {
-    if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
-        (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
-      Global.arpDirection = ArpUpDown;
-    }
-    else if (sensorRow == 0) {
-      Global.arpDirection = ArpDown;
-    }
-    else if (sensorRow == 1) {
-      Global.arpDirection = ArpUp;
-    }
-    else if (sensorRow == 2) {
-      Global.arpDirection = ArpRandom;
-    }
-    else if (sensorRow == 3) {
-      Global.arpDirection = ArpReplayAll;
-    }
-  }
-
-  if (sensorCol == 13) {
-    if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
-         (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
-      Global.arpTempo = ArpSixteenthSwing;
-    }
-    else if (sensorRow == 0) {
-      if (isArpeggiatorTempoTriplet()) {
-        Global.arpTempo = ArpEighthTriplet;
-      }
-      else {
-        Global.arpTempo = ArpEighth;
-      }
-    }
-    else if (sensorRow == 1) {
-      if (isArpeggiatorTempoTriplet()) {
-        Global.arpTempo = ArpSixteenthTriplet;
-      }
-      else {
-        Global.arpTempo = ArpSixteenth;
-      }
-    }
-    else if (sensorRow == 2) {
-      if (isArpeggiatorTempoTriplet()) {
-        Global.arpTempo = ArpThirtysecondTriplet;
-      }
-      else {
-        Global.arpTempo = ArpThirtysecond;
-      }
-    }
-    else if (sensorRow == 3) {
-      switch (Global.arpTempo) {
-        case ArpEighth:
-          Global.arpTempo = ArpEighthTriplet;
-          break;
-        case ArpEighthTriplet:
-          Global.arpTempo = ArpEighth;
-          break;
-        case ArpSixteenth:
-          Global.arpTempo = ArpSixteenthTriplet;
-          break;
-        case ArpSixteenthTriplet:
-          Global.arpTempo = ArpSixteenth;
-          break;
-        case ArpThirtysecond:
-          Global.arpTempo = ArpThirtysecondTriplet;
-          break;
-        case ArpThirtysecondTriplet:
-          Global.arpTempo = ArpThirtysecond;
-          break;
-      }
-    }
-  }
-
-  if (sensorCol == 14) {
-    if (sensorRow == 0) {
-      if (Global.arpOctave == 1) {
-        Global.arpOctave = 0;
-      }
-      else {
-        Global.arpOctave = 1;
-      }
-    }
-    else if (sensorRow == 1) {
-      if (Global.arpOctave == 2) {
-        Global.arpOctave = 0;
-      }
-      else {
-        Global.arpOctave = 2;
-      }
-    }
-    else if (sensorRow == 3) {
-      if (!isMidiClockRunning()) {
-        lightLed(14, 3);
-
-        tapTempoPress();
-        setDisplayMode(displayGlobalWithTempo);
-
-        delayUsec(100000);
-
-        clearLed(14, 3);
-      }
     }
   }
 
@@ -1401,23 +1230,7 @@ void handleGlobalSettingNewTouch() {
       setDisplayMode(displayCalibration);
       initializeCalibrationSamples();
     }
- }
-
-  if (sensorCol == 19) {  //-- set Column Offset colOffset - jas 2014/12/11
-    if (sensorRow == 0) {
-    Global.colOffset = 1;
-    }
-    else if (sensorRow == 1) {
-    Global.colOffset = 2;
-    }
-    else if (sensorRow == 2) {
-    Global.colOffset = 3;
-    }
-    else if (sensorRow == 3) {
-    Global.colOffset = 4;
   }
-}
-
   if (sensorCol == 25) {
     if      (sensorRow == 0) {
       resetNumericDataChange();
@@ -1430,6 +1243,213 @@ void handleGlobalSettingNewTouch() {
     else if (sensorRow == 2) {
       resetNumericDataChange();
       setDisplayMode(displaySensorRangeZ);
+    }
+  }
+
+  if (!userFirmwareActive) {
+
+    // handle tempo change
+    if (sensorRow >= 4 && sensorRow != 7) {
+      handleTempoNewTouch();
+    }
+
+    // select Scale Notes or Accent Notes
+    if (sensorCol == 1) {
+      switch (sensorRow)
+      {
+        case LIGHTS_MAIN:
+        case LIGHTS_ACCENT:
+          lightSettings = sensorRow;
+          break;
+      }
+    }
+
+    if (sensorCol >= 2 && sensorCol <= 4 && sensorRow >= 0 && sensorRow <= 3) {
+      // select individual scale notes or accent notes
+      switch (lightSettings)
+      {
+        case LIGHTS_MAIN:
+          toggleNoteLights(Global.mainNotes);
+          break;
+        case LIGHTS_ACCENT:
+          toggleNoteLights(Global.accentNotes);
+          break;
+      }
+    }
+
+    // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
+    if      (sensorCol == 5 && sensorRow == 3) {
+      Global.rowOffset = 0;       // no overlap
+    }
+    else if (sensorCol == 5 && sensorRow == 0) {
+      Global.rowOffset = 3;
+    }
+    else if (sensorCol == 6 && sensorRow == 0) {
+      Global.rowOffset = 4;
+    }
+    else if (sensorCol == 5 && sensorRow == 1) {
+      Global.rowOffset = 5;
+    }
+    else if (sensorCol == 6 && sensorRow == 1) {
+      Global.rowOffset = 6;
+    }
+    else if (sensorCol == 5 && sensorRow == 2) {
+      Global.rowOffset = 7;
+    }
+    else if (sensorCol == 6 && sensorRow == 2) {
+      Global.rowOffset = 12;      // octave
+    }
+    else if (sensorCol == 6 && sensorRow == 3) {
+      Global.rowOffset = 13;      // guitar
+    }
+
+  if (sensorCol == 19) {  //-- set Column Offset colOffset - jas 2014/12/11
+    if (sensorRow == 0) {
+      Global.colOffset = 1;
+    }
+    else if (sensorRow == 1) {
+      Global.colOffset = 2;
+    }
+    else if (sensorRow == 2) {
+      Global.colOffset = 3;
+    }
+    else if (sensorRow == 3) {
+      Global.colOffset = 4;
+    }
+  }
+
+    // select which switch is being controlled/displayed
+    if (sensorCol == 7 && sensorRow < 4) {
+      switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
+    }
+
+    // toggle whether the switches operate on both splits or not
+    if (sensorCol == 8 && sensorRow == 3) {
+      Global.switchBothSplits[switchSelect] = !Global.switchBothSplits[switchSelect];
+    }
+
+    // set the switch targets
+    if      (sensorCol == 8 && sensorRow == 2) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
+    }
+    else if (sensorCol == 9 && sensorRow == 2) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
+    }
+    else if (sensorCol == 8 && sensorRow == 1) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
+    }
+    else if (sensorCol == 9 && sensorRow == 1) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
+    }
+    else if (sensorCol == 8 && sensorRow == 0) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
+    }
+    else if (sensorCol == 9 && sensorRow == 0) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
+    }
+
+    // select the Arpeggiator settings
+    if (sensorCol == 12) {
+      if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
+          (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
+        Global.arpDirection = ArpUpDown;
+      }
+      else if (sensorRow == 0) {
+        Global.arpDirection = ArpDown;
+      }
+      else if (sensorRow == 1) {
+        Global.arpDirection = ArpUp;
+      }
+      else if (sensorRow == 2) {
+        Global.arpDirection = ArpRandom;
+      }
+      else if (sensorRow == 3) {
+        Global.arpDirection = ArpReplayAll;
+      }
+    }
+
+    if (sensorCol == 13) {
+      if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
+           (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
+        Global.arpTempo = ArpSixteenthSwing;
+      }
+      else if (sensorRow == 0) {
+        if (isArpeggiatorTempoTriplet()) {
+          Global.arpTempo = ArpEighthTriplet;
+        }
+        else {
+          Global.arpTempo = ArpEighth;
+        }
+      }
+      else if (sensorRow == 1) {
+        if (isArpeggiatorTempoTriplet()) {
+          Global.arpTempo = ArpSixteenthTriplet;
+        }
+        else {
+          Global.arpTempo = ArpSixteenth;
+        }
+      }
+      else if (sensorRow == 2) {
+        if (isArpeggiatorTempoTriplet()) {
+          Global.arpTempo = ArpThirtysecondTriplet;
+        }
+        else {
+          Global.arpTempo = ArpThirtysecond;
+        }
+      }
+      else if (sensorRow == 3) {
+        switch (Global.arpTempo) {
+          case ArpEighth:
+            Global.arpTempo = ArpEighthTriplet;
+            break;
+          case ArpEighthTriplet:
+            Global.arpTempo = ArpEighth;
+            break;
+          case ArpSixteenth:
+            Global.arpTempo = ArpSixteenthTriplet;
+            break;
+          case ArpSixteenthTriplet:
+            Global.arpTempo = ArpSixteenth;
+            break;
+          case ArpThirtysecond:
+            Global.arpTempo = ArpThirtysecondTriplet;
+            break;
+          case ArpThirtysecondTriplet:
+            Global.arpTempo = ArpThirtysecond;
+            break;
+        }
+      }
+    }
+
+    if (sensorCol == 14) {
+      if (sensorRow == 0) {
+        if (Global.arpOctave == 1) {
+          Global.arpOctave = 0;
+        }
+        else {
+          Global.arpOctave = 1;
+        }
+      }
+      else if (sensorRow == 1) {
+        if (Global.arpOctave == 2) {
+          Global.arpOctave = 0;
+        }
+        else {
+          Global.arpOctave = 2;
+        }
+      }
+      else if (sensorRow == 3) {
+        if (!isMidiClockRunning()) {
+          lightLed(14, 3);
+
+          tapTempoPress();
+          setDisplayMode(displayGlobalWithTempo);
+
+          delayUsec(100000);
+
+          clearLed(14, 3);
+        }
+      }
     }
   }
 
@@ -1447,71 +1467,93 @@ void changeMidiIO(byte where) {
 }
 
 void handleGlobalSettingHold() {
-  if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
-      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
-    sensorCell().lastTouch = 0;
 
-    // initialize the touch-slide interface
-    resetNumericDataChange();
+  // handle switch to/from User Firmware Mode
+  if (sensorCol == 16 && sensorRow == 2 && cell(16, 0).touched == untouchedCell &&
+      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > USER_MODE_HOLD_DELAY) {
+    changeUserFirmwareMode(!userFirmwareActive);
+  }
 
-    // switch to edit audience message
-    setDisplayMode(displayEditAudienceMessage);
+  if (!userFirmwareActive) {
 
-    // set the information of the edited message
-    audienceMessageOffset = 0;
-    audienceMessageToEdit = sensorCol - 1;
+    if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
+        calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+      sensorCell().lastTouch = 0;
 
-    // fill in all 30 spaces of the message
-    int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
-    if (strl < 30) {
-      for (byte ch = strl; ch < 30; ++ch) {
-        Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
+      // initialize the touch-slide interface
+      resetNumericDataChange();
+
+      // switch to edit audience message
+      setDisplayMode(displayEditAudienceMessage);
+
+      // set the information of the edited message
+      audienceMessageOffset = 0;
+      audienceMessageToEdit = sensorCol - 1;
+
+      // fill in all 30 spaces of the message
+      int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
+      if (strl < 30) {
+        for (byte ch = strl; ch < 30; ++ch) {
+          Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
+        }
       }
+      Device.audienceMessages[audienceMessageToEdit][30] = '\0';
+
+      // calculate the length of the message to edit
+      audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
+
+      // show the editing mode
+      updateDisplay();
     }
-    Device.audienceMessages[audienceMessageToEdit][30] = '\0';
-
-    // calculate the length of the message to edit
-    audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
-
-    // show the editing mode
-    updateDisplay();
   }
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorRow == 7) {
-    if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
-      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
-        sensorCell().lastTouch = 0;
-        clearDisplay();
-        big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
-      }
-      else if (sensorCol == 25) {
-        playPromoAnimation();
-      }
-    }
-  }
-  else if (sensorRow >= 4) {
-    handleNumericDataReleaseCol(false);
+  sensorCell().lastTouch = 0;
+
+  // Toggle UPDATE OS value
+  if (sensorCol == 16 && sensorRow == 2) {
+    switchSerialMode(!Device.serialMode);
+    storeSettings();
   }
 
-  if (sensorCol == 16) {
-    // Toggle UPDATE OS value
-    if (sensorRow == 2) {
-      switchSerialMode(!Device.serialMode);
-      storeSettings();
-    }
-    // Send AllNotesOff
-    else if (sensorRow == 0) {
-      lightLed(16, 0);
-      if (splitActive) {
-        midiSendAllNotesOff(LEFT);
-        midiSendAllNotesOff(RIGHT);
-      } else {
-        midiSendAllNotesOff(Global.currentPerSplit);
+  if (!userFirmwareActive) {
+
+    if (sensorRow == 7) {
+      if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
+        if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+          sensorCell().lastTouch = 0;
+          clearDisplay();
+          big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+        }
+        else if (sensorCol == 25) {
+          playPromoAnimation();
+        }
+        else if (sensorCol ==24) {  //-- custom animations 1-8, jas 2015/01/04 --
+          playCustomAnimation();
+        }
+        else if (sensorCol > 16) {
+            Global.customAnimations[sensorCol - 17] = !Global.customAnimations[sensorCol - 17]; //--toggle animation properties -- jas 2015/01/07 --
+        }
       }
-      delayUsec(100000);
-      clearLed(16, 0);
+    }
+    else if (sensorRow >= 4) {
+      handleNumericDataReleaseCol(false);
+    }
+
+    if (sensorCol == 16) {
+      // Send AllNotesOff
+      if (sensorRow == 0) {
+        lightLed(16, 0);
+        if (splitActive) {
+          midiSendAllNotesOff(LEFT);
+          midiSendAllNotesOff(RIGHT);
+        } else {
+          midiSendAllNotesOff(Global.currentPerSplit);
+        }
+        delayUsec(100000);
+        clearLed(16, 0);
+      }
     }
   }
 
