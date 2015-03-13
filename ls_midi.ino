@@ -238,7 +238,8 @@ void handleMidiInput(unsigned long now) {
             case 7:
             case 8:
               if (split != -1) {
-                ccFaderValues[split][midiData1-1] = midiData2;
+                unsigned short ccForFader = Split[split].ccForFader[midiData1-1];
+                ccFaderValues[split][ccForFader] = midiData2;
                 if ((displayMode == displayNormal && Split[split].ccFaders) ||
                     displayMode == displayVolume) {
                   updateDisplay();
@@ -840,7 +841,7 @@ void preSendPitchBend(byte split, int pitchValue) {
     case channelPerRow:
     {
       for (byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -988,7 +989,7 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
     case channelPerRow:
     {
       for ( byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -1030,7 +1031,7 @@ void midiSendAllNotesOff(byte split) {
       case channelPerRow:
       {
         for ( byte row = 0; row < 8; ++row) {
-          byte ch = Split[split].midiChanMain + row;
+          byte ch = Split[split].midiChanPerRow + row;
           if (ch > 16) {
             ch -= 16;
           }

@@ -21,6 +21,7 @@ displayReset                : global reset confirmation and wait for touch relea
 displayBendRange            ; custom bend range selection for X expression
 displayCCForY               : custom CC number selection for Y expression
 displayCCForZ               : custom CC number selection for Z expression
+displayCCForFader           : custom CC number selection for a CC fader
 displaySensorLoZ            : sensor low Z sensitivity selection
 displaySensorFeatherZ       : sensor feather Z sensitivity selection
 displaySensorRangeZ         : max Z sensor range selection
@@ -95,6 +96,9 @@ void updateDisplay() {
     break;
   case displayCCForZ:
     paintCCForZDisplay(Global.currentPerSplit);
+    break;
+  case displayCCForFader:
+    paintCCForFaderDisplay(Global.currentPerSplit);
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -201,9 +205,11 @@ void paintCCFaderDisplayRow(byte split, byte row) {
   byte faderLeft, faderLength;
   determineFaderBoundaries(split, faderLeft, faderLength);
 
+  unsigned short ccForFader = Split[split].ccForFader[row];
+
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
-      if (ccFaderValues[split][row] > 0) {
+      if (ccFaderValues[split][ccForFader] > 0) {
         setLed(faderLeft, row, Split[split].colorMain, cellOn);
       }
       else {
@@ -212,7 +218,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
   }
   // otherwise calculate the fader position based on its value and light the appropriate leds
   else {
-    int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][row], faderLeft, faderLength);
+    int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][ccForFader], faderLeft, faderLength);
 
     for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
       if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
@@ -537,6 +543,15 @@ void paintCCForZDisplay(byte side) {
   else {
     paintSplitNumericDataDisplay(side, Split[side].ccForZ);
   }
+}
+
+void paintCCForFaderDisplay(byte side) {
+  clearDisplay();
+  for (byte r = 0; r < NUMROWS; ++r) {
+    setLed(NUMCOLS-1, r, globalColor, cellOn);
+  }
+  setLed(NUMCOLS-1, currentEditedCCFader[side], COLOR_GREEN, cellOn);
+  paintSplitNumericDataDisplay(side, Split[side].ccForFader[currentEditedCCFader[side]]);
 }
 
 void paintSensorLoZDisplay() {
