@@ -8,8 +8,38 @@ These functions handle the CC faders for each split
 
 #define CC_FADER_NUMBER_OFFSET 1
 
+boolean hasTouchInSplitOnRow(byte split, byte row) {
+  if (colsInRowsTouched[row]) {
+    // if split is not active and there a touch on the row, it's obviously in the current split
+    if (!splitActive) {
+      return true;
+    }
+
+    // determine which columns need to be active in the touched row for this to be considered
+    // part of either split
+    if (split == LEFT && (colsInRowsTouched[row] & ((int32_t)(1 << Global.splitPoint) - 1))) {
+      return true;
+    }
+    if (split == RIGHT && (colsInRowsTouched[row] & ~((int32_t)(1 << Global.splitPoint) - 1))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void handleFaderTouch(boolean newVelocity) {
   if (sensorCell().velocity) {
+    unsigned short ccForFader = Split[sensorSplit].ccForFader[sensorRow];
+
+    // only proceed when this is the touch on the highest row in the same split when the CC numbers
+    // are the same, only one fader with the same cc number can be used at a time
+    for (byte r = 7; r > sensorRow; --r) {
+      if (Split[sensorSplit].ccForFader[r] == ccForFader && hasTouchInSplitOnRow(sensorSplit, r)) {
+        return;
+      }
+    }
+
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
@@ -18,7 +48,7 @@ void handleFaderTouch(boolean newVelocity) {
     // when the fader only spans one cell, it acts as a toggle
     if (faderLength == 0) {
       if (newVelocity) {
-        if (ccFaderValues[sensorSplit][sensorRow] > 0) {
+        if (ccFaderValues[sensorSplit][ccForFader] > 0) {
           value = 0;
         }
         else {
@@ -42,9 +72,16 @@ void handleFaderTouch(boolean newVelocity) {
     }
 
     if (value >= 0) {
-      ccFaderValues[sensorSplit][sensorRow] = value;
-      preSendControlChange(sensorSplit, sensorRow + CC_FADER_NUMBER_OFFSET, value);
+      ccFaderValues[sensorSplit][ccForFader] = value;
+      preSendControlChange(sensorSplit, ccForFader, value);
       paintCCFaderDisplayRow(sensorSplit, sensorRow);
+      // update other faders with the same CC number
+      for (byte f = 0; f < 8; ++f) {
+        if (f != sensorRow && Split[sensorSplit].ccForFader[f] == ccForFader) {
+          performContinuousTasks(micros());
+          paintCCFaderDisplayRow(sensorSplit, f);
+        }
+      }
     }
   }
 }
