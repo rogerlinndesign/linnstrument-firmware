@@ -818,7 +818,7 @@ void preSendPitchBend(byte split, int pitchValue) {
     case channelPerRow:
     {
       for (byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -966,7 +966,7 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
     case channelPerRow:
     {
       for ( byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -1008,7 +1008,7 @@ void midiSendAllNotesOff(byte split) {
       case channelPerRow:
       {
         for ( byte row = 0; row < 8; ++row) {
-          byte ch = Split[split].midiChanMain + row;
+          byte ch = Split[split].midiChanPerRow + row;
           if (ch > 16) {
             ch -= 16;
           }
