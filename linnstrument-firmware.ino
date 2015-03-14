@@ -318,7 +318,8 @@ NoteTouchMapping noteTouchMapping[NUMSPLITS];
 enum CellDisplay {
   cellOff = 0,
   cellOn = 1,
-  cellPulse = 2
+  cellPulse = 2,
+  cellSlowPulse = 3
 };
 
 enum DisplayMode {
