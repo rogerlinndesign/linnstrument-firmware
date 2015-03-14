@@ -623,6 +623,17 @@ byte colorCycle(byte color, boolean includeBlack) {
   return color;
 }
 
+boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
+  if (sensorCell().lastTouch != 0) {
+    if (calcTimeDelta(millis(), sensorCell().lastTouch) < SENSOR_HOLD_DELAY) {
+      return true;
+    }
+
+    setLed(sensorCol, sensorRow, resetColor, resetDisplay);
+  }
+  return false;
+}
+
 void handlePerSplitSettingNewTouch() {
   // start tracking the touch duration to be able to enable hold functionality
   sensorCell().lastTouch = millis();
@@ -826,8 +837,8 @@ void handlePerSplitSettingNewTouch() {
 }
 
 void handlePerSplitSettingHold() {
-  if (sensorCol == 14 && sensorRow == 6 && sensorCell().lastTouch != 0 &&
-      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+  if (sensorCol == 14 && sensorRow == 6 &&
+      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
     sensorCell().lastTouch = 0;
 
     // initialize the touch-slide interface
@@ -842,7 +853,8 @@ void handlePerSplitSettingHold() {
 }
 
 void handlePerSplitSettingRelease() {
-  if (sensorCol == 14 && sensorRow == 6 && sensorCell().lastTouch != 0) {
+  if (sensorCol == 14 && sensorRow == 6 &&
+      ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
     Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
     if (Split[Global.currentPerSplit].ccFaders) {
       Split[Global.currentPerSplit].arpeggiator = false;
@@ -945,8 +957,7 @@ void handlePresetRelease() {
   }
   else if (sensorCol == NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
-        sensorCell().lastTouch != 0 &&
-        calcTimeDelta(millis(), sensorCell().lastTouch) <= EDIT_MODE_HOLD_DELAY) {
+        ensureCellBeforeHoldWait(globalColor, cellOn)) {
       byte preset = sensorRow-2;
 
       // load the selected preset
@@ -1545,7 +1556,8 @@ void handleGlobalSettingRelease() {
   if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) {
-      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+      if (sensorCol <= 16 && sensorCell().lastTouch != 0 &&
+        ensureCellBeforeHoldWait(COLOR_BLACK, cellOff)) {
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
