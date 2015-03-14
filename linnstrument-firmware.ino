@@ -670,6 +670,8 @@ unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the 
 void setLed(byte col, byte row, byte color, CellDisplay disp);
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
 
+boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay);
+
 void setDisplayMode(DisplayMode mode);
 void exitDisplayMode(DisplayMode mode);
 
