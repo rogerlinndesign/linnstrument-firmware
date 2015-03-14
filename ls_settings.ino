@@ -1556,8 +1556,7 @@ void handleGlobalSettingRelease() {
   if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) {
-      if (sensorCol <= 16 && sensorCell().lastTouch != 0 &&
-        ensureCellBeforeHoldWait(COLOR_BLACK, cellOff)) {
+      if (sensorCol <= 16 && ensureCellBeforeHoldWait(COLOR_BLACK, cellOff)) {
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
