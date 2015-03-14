@@ -818,6 +818,11 @@ void handlePerSplitSettingNewTouch() {
   }
 
   updateDisplay();
+
+  // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
+  if (sensorCol == 14 && sensorRow == 6) {
+    setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
+  }
 }
 
 void handlePerSplitSettingHold() {
@@ -888,6 +893,8 @@ void handlePresetNewTouch() {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
       sensorCell().lastTouch = millis();
+      // indicate that a hold operation is being waited for
+      setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
   }
   else if (sensorCol < NUMCOLS-2) {
@@ -1478,6 +1485,11 @@ void handleGlobalSettingNewTouch() {
   }
 
   updateDisplay();
+
+  // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
+  if (sensorRow == 7 && sensorCol <= 16) {
+    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+  }
 }
 
 void changeMidiIO(byte where) {

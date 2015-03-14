@@ -158,10 +158,16 @@ void refreshLedColumn(unsigned long now) {               // output: none
   // keep a steady pulsating going for those leds that need it
   static unsigned long lastPulse = 0;
   static bool lastPulseOn = true;
+  static unsigned long lastSlowPulse = 0;
+  static bool lastSlowPulseOn = true;
 
   if (calcTimeDelta(now, lastPulse) > 80000) {
     lastPulse = now;
     lastPulseOn = !lastPulseOn;
+  }
+  if (calcTimeDelta(now, lastSlowPulse) > 120000) {
+    lastSlowPulse = now;
+    lastSlowPulseOn = !lastSlowPulseOn;
   }
 
   static byte ledCol = 0;                                 // current led column counter for refresh
@@ -187,6 +193,9 @@ void refreshLedColumn(unsigned long now) {               // output: none
 
       if (cellDisplay == cellPulse) {
         cellDisplay = lastPulseOn ? cellOn : cellOff;
+      }
+      else if (cellDisplay == cellSlowPulse) {
+        cellDisplay = lastSlowPulseOn ? cellOn : cellOff;
       }
 
       if (cellDisplay) {                                                  // if this LED is not off, process it
