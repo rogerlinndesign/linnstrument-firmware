@@ -1474,42 +1474,53 @@ void handleGlobalSettingHold() {
     changeUserFirmwareMode(!userFirmwareActive);
   }
 
-  if (!userFirmwareActive) {
+  if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
+      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+    sensorCell().lastTouch = 0;
 
-    if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
-        calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
-      sensorCell().lastTouch = 0;
+    // initialize the touch-slide interface
+    resetNumericDataChange();
 
-      // initialize the touch-slide interface
-      resetNumericDataChange();
+    // switch to edit audience message
+    setDisplayMode(displayEditAudienceMessage);
 
-      // switch to edit audience message
-      setDisplayMode(displayEditAudienceMessage);
+    // set the information of the edited message
+    audienceMessageOffset = 0;
+    audienceMessageToEdit = sensorCol - 1;
 
-      // set the information of the edited message
-      audienceMessageOffset = 0;
-      audienceMessageToEdit = sensorCol - 1;
-
-      // fill in all 30 spaces of the message
-      int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
-      if (strl < 30) {
-        for (byte ch = strl; ch < 30; ++ch) {
-          Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
-        }
+    // fill in all 30 spaces of the message
+    int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
+    if (strl < 30) {
+      for (byte ch = strl; ch < 30; ++ch) {
+        Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
       }
-      Device.audienceMessages[audienceMessageToEdit][30] = '\0';
-
-      // calculate the length of the message to edit
-      audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
-
-      // show the editing mode
-      updateDisplay();
     }
+    Device.audienceMessages[audienceMessageToEdit][30] = '\0';
+
+    // calculate the length of the message to edit
+    audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
+
+    // show the editing mode
+    updateDisplay();
   }
 }
 
 void handleGlobalSettingRelease() {
-  sensorCell().lastTouch = 0;
+  if (sensorRow == 7) {
+    // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
+    if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) {
+      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+        clearDisplay();
+        big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
+      }
+      else if (sensorCol == 25) {
+        playPromoAnimation();
+      }
+      else if (sensorCol == 24) {  //-- custom animations 1-8, jas 2015/01/04 --
+        playCustomAnimation();
+      }
+    }
+  }
 
   // Toggle UPDATE OS value
   if (sensorCol == 16 && sensorRow == 2) {
@@ -1520,24 +1531,12 @@ void handleGlobalSettingRelease() {
   if (!userFirmwareActive) {
 
     if (sensorRow == 7) {
-      if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) { // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
-        if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
-          sensorCell().lastTouch = 0;
-          clearDisplay();
-          big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
-        }
-        else if (sensorCol == 25) {
-          playPromoAnimation();
-        }
-        else if (sensorCol ==24) {  //-- custom animations 1-8, jas 2015/01/04 --
-          playCustomAnimation();
-        }
-        else if (sensorCol > 16) {
-            Global.customAnimations[sensorCol - 17] = !Global.customAnimations[sensorCol - 17]; //--toggle animation properties -- jas 2015/01/07 --
-        }
+      if (sensorCol > 16 && sensorCol < 24) {
+        Global.customAnimations[sensorCol - 17] = !Global.customAnimations[sensorCol - 17]; //--toggle animation properties -- jas 2015/01/07 --
       }
     }
-    else if (sensorRow >= 4) {
+
+    if (sensorRow >= 4 && sensorRow != 7) {
       handleNumericDataReleaseCol(false);
     }
 
@@ -1556,6 +1555,8 @@ void handleGlobalSettingRelease() {
       }
     }
   }
+
+  sensorCell().lastTouch = 0;
 
   updateDisplay();
 }
