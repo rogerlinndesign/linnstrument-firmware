@@ -800,10 +800,6 @@ void paintGlobalSettingsDisplay() {
     lightLed(15, 3);
   }
 
-  if (userFirmwareActive) {
-    setLed(16, 2, COLOR_YELLOW, cellOn);
-  }
-
   // set light for serial mode
   if (Device.serialMode) {
     lightLed(16, 2);

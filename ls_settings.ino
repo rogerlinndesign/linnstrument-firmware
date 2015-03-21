@@ -1498,7 +1498,8 @@ void handleGlobalSettingNewTouch() {
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (sensorRow == 7 && sensorCol <= 16) {
+  if (sensorRow == 7 && sensorCol <= 16 ||
+      sensorCol == 16 && sensorRow == 2) {
     setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
   }
 }
@@ -1517,7 +1518,7 @@ void handleGlobalSettingHold() {
 
   // handle switch to/from User Firmware Mode
   if (sensorCol == 16 && sensorRow == 2 && cell(16, 0).touched == untouchedCell &&
-      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > USER_MODE_HOLD_DELAY) {
+      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
     changeUserFirmwareMode(!userFirmwareActive);
   }
 
@@ -1568,8 +1569,17 @@ void handleGlobalSettingRelease() {
 
   // Toggle UPDATE OS value
   if (sensorCol == 16 && sensorRow == 2) {
-    switchSerialMode(!Device.serialMode);
-    storeSettings();
+    byte resetColor = COLOR_BLACK;
+    CellDisplay resetDisplay = cellOff;
+    if (Device.serialMode) {
+      resetColor = globalColor;
+      resetDisplay = cellOn;
+    }
+
+    if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
+      switchSerialMode(!Device.serialMode);
+      storeSettings();
+    }
   }
 
   if (!userFirmwareActive) {

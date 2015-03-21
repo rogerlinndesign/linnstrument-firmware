@@ -172,7 +172,6 @@ char* OSVersion = "120.";
 #define SENSOR_HOLD_DELAY  200
 
 #define EDIT_MODE_HOLD_DELAY  1000
-#define USER_MODE_HOLD_DELAY  500
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
