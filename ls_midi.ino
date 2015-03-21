@@ -522,6 +522,54 @@ void receivedNrpn(int parameter, int value) {
         }
       }
       break;
+    // Split MIDI CC For Fader 1
+    case 40:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[0] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 2
+    case 41:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[1] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 3
+    case 42:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[2] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 4
+    case 43:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[3] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 5
+    case 44:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[4] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 6
+    case 45:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[5] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 7
+    case 46:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[6] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 8
+    case 47:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[7] = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
