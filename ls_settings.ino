@@ -153,7 +153,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 5;
+  config.device.version = 4;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
@@ -244,7 +244,6 @@ void initializePresetSettings() {
         p.split[s].relativeY = false;
         p.split[s].expressionForZ = loudnessPolyPressure;
         p.split[s].ccForZ = 11;
-        memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
         p.split[s].transposeOctave = 0;
@@ -306,11 +305,10 @@ void initializePresetSettings() {
 
   // initialize runtime data
   for (byte s = 0; s < NUMSPLITS; ++s) {
-    for (byte c = 0; c < 128; ++c) {
+    for (byte c = 0; c < 8; ++c) {
       ccFaderValues[s][c] = 0;
     }
     ccFaderValues[s][6] = 63;
-    currentEditedCCFader[s] = 0;
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
@@ -540,9 +538,6 @@ byte colorCycle(byte color, boolean includeBlack) {
 }
 
 void handlePerSplitSettingNewTouch() {
-  // start tracking the touch duration to be able to enable hold functionality
-  sensorCell().lastTouch = millis();
-
   if (sensorCol == 1) {
 
     // This column of 3 cells lets you select the mode of channel selection
@@ -719,6 +714,13 @@ void handlePerSplitSettingNewTouch() {
       }
       randomSeed(analogRead(0));
     }
+    else if (sensorRow == 6) {
+      Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
+      if (Split[Global.currentPerSplit].ccFaders) {
+        Split[Global.currentPerSplit].arpeggiator = false;
+        Split[Global.currentPerSplit].strum = false;
+      }
+    }
     else if (sensorRow == 5) {
       Split[Global.currentPerSplit].strum = !Split[Global.currentPerSplit].strum;
       if (Split[Global.currentPerSplit].strum) {
@@ -733,36 +735,8 @@ void handlePerSplitSettingNewTouch() {
   updateDisplay();
 }
 
-void handlePerSplitSettingHold() {
-  if (sensorCol == 14 && sensorRow == 6 && sensorCell().lastTouch != 0 &&
-      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
-    sensorCell().lastTouch = 0;
-
-    // initialize the touch-slide interface
-    resetNumericDataChange();
-
-    // switch to edit audience message
-    setDisplayMode(displayCCForFader);
-
-    // show the editing mode
-    updateDisplay();
-  }
-}
-
 void handlePerSplitSettingRelease() {
-  if (sensorCol == 14 && sensorRow == 6 && sensorCell().lastTouch != 0) {
-    Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
-    if (Split[Global.currentPerSplit].ccFaders) {
-      Split[Global.currentPerSplit].arpeggiator = false;
-      Split[Global.currentPerSplit].strum = false;
-    }
-  }
-
-  sensorCell().lastTouch = 0;
-
   handleShowSplit();
-
-  updateDisplay();
 }
 
 // This function handles use of the "Show Split" cells,
@@ -897,23 +871,6 @@ void handleCCForZNewTouch() {
 
 void handleCCForZRelease() {
   handleNumericDataReleaseCol(true);
-}
-
-void handleCCForFaderNewTouch() {
-  if (sensorCol == NUMCOLS-1) {
-    currentEditedCCFader[Global.currentPerSplit] = sensorRow;
-    updateDisplay();
-  }
-  else {
-    byte current = currentEditedCCFader[Global.currentPerSplit];
-    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForFader[current], 0, 127, false);
-  }
-}
-
-void handleCCForFaderRelease() {
-  if (sensorCol < NUMCOLS-1) {
-    handleNumericDataReleaseCol(true);
-  }
 }
 
 void handleSensorLoZNewTouch() {

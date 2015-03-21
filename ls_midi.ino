@@ -238,8 +238,7 @@ void handleMidiInput(unsigned long now) {
             case 7:
             case 8:
               if (split != -1) {
-                unsigned short ccForFader = Split[split].ccForFader[midiData1-1];
-                ccFaderValues[split][ccForFader] = midiData2;
+                ccFaderValues[split][midiData1-1] = midiData2;
                 if ((displayMode == displayNormal && Split[split].ccFaders) ||
                     displayMode == displayVolume) {
                   updateDisplay();
