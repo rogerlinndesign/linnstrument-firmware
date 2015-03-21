@@ -388,44 +388,44 @@ void handleExtStorage() {
 }
 
 void copySettingsV1ToSettingsV5(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV1 *s = (ConfigurationV1 *)source;
-  GlobalSettingsV1 *g = &(s->global);
+  Configuration *c = (Configuration *)target;
+  ConfigurationV1 *configV1 = (ConfigurationV1 *)source;
+  GlobalSettingsV1 *g = &(configV1->global);
 
-  t->device.version = g->version;
-  memcpy(t->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, g->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
-  t->device.calibrated = g->calibrated;
-  t->device.sensorLoZ = g->sensorLoZ;
-  t->device.sensorFeatherZ = g->sensorFeatherZ;
-  t->device.sensorRangeZ = g->sensorRangeZ;
-  t->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
+  c->device.version = g->version;
+  memcpy(c->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(c->device.calCols, g->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  c->device.calibrated = g->calibrated;
+  c->device.sensorLoZ = g->sensorLoZ;
+  c->device.sensorFeatherZ = g->sensorFeatherZ;
+  c->device.sensorRangeZ = g->sensorRangeZ;
+  c->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
+  c->device.serialMode = true;
+  c->device.operatingLowPower = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    t->preset[p].global.splitPoint = g->splitPoint;
-    t->preset[p].global.currentPerSplit = g->currentPerSplit;
-    memcpy(t->preset[p].global.mainNotes, g->mainNotes, sizeof(boolean)*12);
-    memcpy(t->preset[p].global.accentNotes, g->accentNotes, sizeof(boolean)*12);
-    t->preset[p].global.rowOffset = g->rowOffset;
-    t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
-    t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
-    t->preset[p].global.pressureAftertouch = false;
-    memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
-    memcpy(t->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
-    t->preset[p].global.midiIO = g->midiIO;
-    t->preset[p].global.arpDirection = g->arpDirection;
-    t->preset[p].global.arpTempo = g->arpTempo;
-    t->preset[p].global.arpOctave = g->arpOctave;
+    c->preset[p].global.splitPoint = g->splitPoint;
+    c->preset[p].global.currentPerSplit = g->currentPerSplit;
+    memcpy(c->preset[p].global.mainNotes, g->mainNotes, sizeof(boolean)*12);
+    memcpy(c->preset[p].global.accentNotes, g->accentNotes, sizeof(boolean)*12);
+    c->preset[p].global.rowOffset = g->rowOffset;
+    c->preset[p].global.velocitySensitivity = g->velocitySensitivity;
+    c->preset[p].global.pressureSensitivity = g->pressureSensitivity;
+    c->preset[p].global.pressureAftertouch = false;
+    memcpy(c->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
+    memcpy(c->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
+    c->preset[p].global.midiIO = g->midiIO;
+    c->preset[p].global.arpDirection = g->arpDirection;
+    c->preset[p].global.arpTempo = g->arpTempo;
+    c->preset[p].global.arpOctave = g->arpOctave;
 
-    copySplitSettingsV1ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->left);
-    copySplitSettingsV1ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->right);
+    copySplitSettingsV1ToSplitSettingsV5(&c->preset[p].split[LEFT], &configV1->left);
+    copySplitSettingsV1ToSplitSettingsV5(&c->preset[p].split[RIGHT], &configV1->right);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
-  memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
+  memcpy(&c->settings, &c->preset[0], sizeof(PresetSettings));
 }
 
 void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
@@ -463,28 +463,28 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
 }
 
 void copySettingsV2ToSettingsV5(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV2 *s = (ConfigurationV2 *)source;
+  Configuration *c = (Configuration *)target;
+  ConfigurationV2 *configV2 = (ConfigurationV2 *)source;
 
-  t->device.version = s->device.version;
-  memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
-  t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = s->device.sensorLoZ;
-  t->device.sensorFeatherZ = s->device.sensorFeatherZ;
-  if (t->device.sensorFeatherZ == 111) {
-    t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  c->device.version = configV2->device.version;
+  memcpy(c->device.calRows, configV2->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(c->device.calCols, configV2->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  c->device.calibrated = configV2->device.calibrated;
+  c->device.sensorLoZ = configV2->device.sensorLoZ;
+  c->device.sensorFeatherZ = configV2->device.sensorFeatherZ;
+  if (c->device.sensorFeatherZ == 111) {
+    c->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   }
-  t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimationAtStartup = s->device.promoAnimationAtStartup;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
+  c->device.sensorRangeZ = configV2->device.sensorRangeZ;
+  c->device.promoAnimationAtStartup = configV2->device.promoAnimationAtStartup;
+  c->device.serialMode = true;
+  c->device.operatingLowPower = false;
   initializeAudienceMessages();
 
-  copyPresetSettingsV2ToSettingsV5(t, s);
+  copyPresetSettingsV2ToSettingsV5(c, configV2);
   
   // we're adding a current settings preset, which we're initializing with preset 0
-  memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
+  memcpy(&c->settings, &c->preset[0], sizeof(PresetSettings));
 }
 
 void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
@@ -522,58 +522,58 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
 }
 
 void copyPresetSettingsV2ToSettingsV5(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV2 *s = (ConfigurationV2 *)source;
+  Configuration *c = (Configuration *)target;
+  ConfigurationV2 *configV2 = (ConfigurationV2 *)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    t->preset[p].global.splitPoint = s->preset[p].global.splitPoint;
-    t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
-    memcpy(t->preset[p].global.mainNotes, s->preset[p].global.mainNotes, sizeof(boolean)*12);
-    memcpy(t->preset[p].global.accentNotes, s->preset[p].global.accentNotes, sizeof(boolean)*12);
-    t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
-    t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
-    t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
-    t->preset[p].global.pressureAftertouch = false;
-    memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
-    memcpy(t->preset[p].global.switchBothSplits, s->preset[p].global.switchBothSplits, sizeof(boolean)*4);
-    t->preset[p].global.midiIO = s->preset[p].global.midiIO;
-    t->preset[p].global.arpDirection = s->preset[p].global.arpDirection;
-    t->preset[p].global.arpTempo = s->preset[p].global.arpTempo;
-    t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
+    c->preset[p].global.splitPoint = configV2->preset[p].global.splitPoint;
+    c->preset[p].global.currentPerSplit = configV2->preset[p].global.currentPerSplit;
+    memcpy(c->preset[p].global.mainNotes, configV2->preset[p].global.mainNotes, sizeof(boolean)*12);
+    memcpy(c->preset[p].global.accentNotes, configV2->preset[p].global.accentNotes, sizeof(boolean)*12);
+    c->preset[p].global.rowOffset = configV2->preset[p].global.rowOffset;
+    c->preset[p].global.velocitySensitivity = configV2->preset[p].global.velocitySensitivity;
+    c->preset[p].global.pressureSensitivity = configV2->preset[p].global.pressureSensitivity;
+    c->preset[p].global.pressureAftertouch = false;
+    memcpy(c->preset[p].global.switchAssignment, configV2->preset[p].global.switchAssignment, sizeof(byte)*4);
+    memcpy(c->preset[p].global.switchBothSplits, configV2->preset[p].global.switchBothSplits, sizeof(boolean)*4);
+    c->preset[p].global.midiIO = configV2->preset[p].global.midiIO;
+    c->preset[p].global.arpDirection = configV2->preset[p].global.arpDirection;
+    c->preset[p].global.arpTempo = configV2->preset[p].global.arpTempo;
+    c->preset[p].global.arpOctave = configV2->preset[p].global.arpOctave;
 
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2ToSplitSettingsV5(&c->preset[p].split[LEFT], &configV2->preset[p].split[LEFT]);
+    copySplitSettingsV2ToSplitSettingsV5(&c->preset[p].split[RIGHT], &configV2->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
-  memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
+  memcpy(&c->settings, &c->preset[0], sizeof(PresetSettings));
 }
 
 void copySettingsV3ToSettingsV5(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV3 *s = (ConfigurationV3 *)source;
+  Configuration *c = (Configuration *)target;
+  ConfigurationV3 *configV3 = (ConfigurationV3 *)source;
 
-  t->device.version = s->device.version;
-  memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
-  t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = s->device.sensorLoZ;
-  t->device.sensorFeatherZ = s->device.sensorFeatherZ;
-  if (t->device.sensorFeatherZ == 111) {
-    t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  c->device.version = configV3->device.version;
+  memcpy(c->device.calRows, configV3->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(c->device.calCols, configV3->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  c->device.calibrated = configV3->device.calibrated;
+  c->device.sensorLoZ = configV3->device.sensorLoZ;
+  c->device.sensorFeatherZ = configV3->device.sensorFeatherZ;
+  if (c->device.sensorFeatherZ == 111) {
+    c->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   }
-  t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimationAtStartup = s->device.promoAnimationAtStartup;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
-  memcpy(t->device.audienceMessages, s->device.audienceMessages, sizeof(char)*(16 * 31));
+  c->device.sensorRangeZ = configV3->device.sensorRangeZ;
+  c->device.promoAnimationAtStartup = configV3->device.promoAnimationAtStartup;
+  c->device.serialMode = true;
+  c->device.operatingLowPower = false;
+  memcpy(c->device.audienceMessages, configV3->device.audienceMessages, sizeof(char)*(16 * 31));
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV3ToSettingsV5(t, s);
+    copyPresetSettingsV3ToSettingsV5(c, configV3);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
-  memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
+  memcpy(&c->settings, &c->preset[0], sizeof(PresetSettings));
 }
 
 void copyPresetSettingsV3ToSettingsV5(void *target, void *source) {
