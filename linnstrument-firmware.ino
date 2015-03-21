@@ -162,7 +162,6 @@ char* OSVersion = "113.";
 #define PER_SPLIT_ROW        7
 
 #define SWITCH_HOLD_DELAY  500
-#define SENSOR_HOLD_DELAY  200
 
 #define EDIT_MODE_HOLD_DELAY  1000
 
