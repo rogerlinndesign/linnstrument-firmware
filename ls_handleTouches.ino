@@ -720,8 +720,8 @@ void handleNewNote(signed char notenum) {
 
     //-- send the row and column of the cell -- experimental - jas 2015/02/19 --
     byte sendRowCol = midiSendRowCol() ;
-    if (sendRowCol % 2 == 1) midiSendControlChange(21, sensorRow, channel);
-    if (sendRowCol / 2 == 1) midiSendControlChange(20, sensorCol, channel);
+    if (sendRowCol % 2 == 1) midiSendControlChange(21, sensorRow, channel, true); // avoid decimation - always send
+    if (sendRowCol / 2 == 1) midiSendControlChange(20, sensorCol, channel, true); // avoid decimation - always send
   
   }
 
