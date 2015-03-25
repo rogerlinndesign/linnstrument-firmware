@@ -532,10 +532,16 @@ void receivedNrpn(int parameter, int value) {
 
     //-- where to put setting for Color Middle C? - jas 2014/12/11 --
     // following colorLowRow or here?
-    // Split Color Middle C
+    // Split Color Middle Octave
     case 40:
       if (inRange(value, 1, 6)) {
-        Split[split].colorMiddleC = value;
+        Split[split].colorMidOct = value;
+      }
+      break;
+    // Split Color Alternative - jas 2015/03/23
+    case 41:
+      if (inRange(value, 1, 6)) {
+        Split[split].colorAlt = value;
       }
       break;
 
@@ -699,6 +705,21 @@ void receivedNrpn(int parameter, int value) {
     case 300:
       if (value == 1 || value == 2 || value == 3 || value == 0) {
         midiEnableSendRowCol = value;
+      }
+      break;
+
+    // Global Alternative Note Lights - jas 2015/03/23
+    case 301: case 302: case 303: case 304: case 305: case 306:
+    case 307: case 308: case 309: case 310: case 311: case 312:
+      if (inRange(value, 0, 1)) {
+        Global.altNotes[parameter-301] = value;
+      }
+      break;
+    // Global Middle Octave Note Lights - jas 2015/03/23
+    case 313: case 314: case 315: case 316: case 317: case 318:
+    case 319: case 320: case 321: case 322: case 323: case 324:
+      if (inRange(value, 0, 1)) {
+        Global.midOctNotes[parameter-313] = value;
       }
       break;
 

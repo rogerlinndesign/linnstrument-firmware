@@ -42,7 +42,11 @@ void playCustomAnimation() {
         playLife();
         break;
       case 6:
+        playFollow();
+        break;
       case 7:
+        playSnake();
+        break;
       default:
         medley = true;
         paintNormalDisplay();
@@ -86,28 +90,108 @@ void playSparkle() { // sparkle lights
   byte baseRow = random(0, 5);
   byte baseCol = random(1, 18);
 
-  for (byte step = 0; step < steps && !stopAnimation; ++step) { // make a random figure from a small group of cells
-    rows[step] = baseRow + random(0, 3);
-    cols[step]   = baseCol + random(0, 8);
-    colors[step] = random(1, 7);
+  for (byte seg = 0; seg < steps && !stopAnimation; ++seg) { // make a random figure from a small group of cells
+    rows[seg] = baseRow + random(0, 3);
+    cols[seg]   = baseCol + random(0, 8);
+    colors[seg] = random(1, 7);
     }
 
-  for (byte repeat = 0; repeat < 20 && !stopAnimation; ++repeat) { // move the figure around as a unit
-    for (byte step = 0; step < steps && !stopAnimation; ++step) {
-      setCustomLed(cols[step], rows[step], colors[step]); //show it in current position
+  for (byte repeat = 0; repeat < 40 && !stopAnimation; ++repeat) { // move the figure around as a unit
+    for (byte seg = 0; seg < steps && !stopAnimation; ++seg) {
+      setCustomLed(cols[seg], rows[seg], colors[seg]); //show it in current position
     }
     delayUsecWithScanning(100000);
 
-    dx = random(0,3) - 1; //randowm walk for the unit
+    dx = random(0,3) - 1; //random walk for the unit
     dy = random(0,3) - 1;
 
-    for (byte step = 0; step < steps && !stopAnimation; ++step) {
-      paintCustomCell(cols[step], rows[step]); // erase the old position before calculating new one
-      dx2 = random(0,3) - 1; //randowm walk individual cells in the unit
+    for (byte seg = 0; seg < steps && !stopAnimation; ++seg) {
+      paintCustomCell(cols[seg], rows[seg]); // erase the old position before calculating new one
+      dx2 = random(0,3) - 1; //random walk individual cells in the unit
       dy2 = random(0,3) - 1;
-      cols[step] = cols[step] + dy2;
-      rows[step] = rows[step] + dx2;
+      cols[seg] += dx2;
+      rows[seg] += dy2;
     }
+  }
+}
+
+void playFollow() { // follow the leader - independent cells follow kinda
+  byte steps = 10;
+  byte rows[steps];
+  byte cols[steps];
+  byte colors[steps];
+  byte color, dx2, dy2, x1, y1;
+  byte row = random(2, 5);
+  byte col = random(6, 15);
+
+  for (byte seg = 0; seg < steps && !stopAnimation; ++seg) { // initialize random pattern
+    row += random(0, 3) - 1;
+    col++;
+    rows[seg] = row;
+    cols[seg] = col;
+    colors[seg] = random(1, 7);
+    }
+
+  for (byte repeat = 0; repeat < 40 && !stopAnimation; ++repeat) { // move the figure around as a unit
+    for (byte seg = 0; seg < steps && !stopAnimation; ++seg) {
+      setCustomLed(cols[seg], rows[seg], colors[seg]); //show it in current position
+    }
+    delayUsecWithScanning(100000);
+
+    x1 = cols[0]; // old position of leader
+    y1 = rows[0];
+
+    for (byte seg = 0; seg < steps && !stopAnimation; ++seg) {
+      paintCustomCell(cols[seg], rows[seg]); // erase the old position before calculating new one
+      cols[seg] += random(0,3) - 1 + (cols[seg] < x1 - 1 ? 1 : (cols[seg] > x1 + 1 ? -1 : 0)); // random walk towards leader
+      rows[seg] += random(0,3) - 1 + (rows[seg] < y1 - 1 ? 1 : (rows[seg] > y1 + 1 ? -1 : 0));
+      x1 = cols[seg];
+      y1 = rows[seg];
+    }
+  }
+}
+
+void playSnake() { // body cells follow the head
+  byte steps = 10;
+  byte rows[steps];
+  byte cols[steps];
+  byte colors[steps];
+  byte color, dx, dy, dx2, dy2;
+  byte row = random(2, 6);
+  byte col = random(6, 12);
+
+  for (byte seg = 0; seg < steps && !stopAnimation; ++seg) { // initialize position and color of cells
+    row += random(0, 3) - 1;
+    if (row < 0) row = 0;
+    if (row >= NUMROWS) row = NUMROWS - 1;
+    col++;
+    rows[seg] = row;
+    cols[seg] = col;
+    colors[seg] = random(1, 7);
+    }
+
+  for (byte repeat = 0; repeat < 40 && !stopAnimation; ++repeat) { // move all cells
+    for (byte seg = 0; seg < steps && !stopAnimation; ++seg) {
+      setCustomLed(cols[seg], rows[seg], colors[seg]); //paint from back to front
+    }
+
+    delayUsecWithScanning(100000);
+
+    paintCustomCell(cols[0], rows[0]); // erase the old tail position before calculating new
+
+    for (byte seg = 0; seg < steps - 1 && !stopAnimation; ++seg) { // each cell follows previous
+      cols[seg] = cols[seg + 1];
+      rows[seg] = rows[seg + 1];
+    }
+
+    col = cols[steps-1] + random(0,3) - 1; //randowm walk for the head only
+    row = rows[steps-1] + random(0,3) - 1;
+    if (row < 0) row = 0;
+    if (row >= NUMROWS) row = NUMROWS - 1;
+    if (col < 1) col = 1;
+    if (col >= NUMCOLS) col = NUMCOLS - 1;
+    cols[steps-1] = col;
+    rows[steps-1] = row;
   }
 }
 
@@ -154,8 +238,8 @@ void playXAxis() { // move lights in X
       byte row = random(0, NUMROWS);
       byte col;
       byte dir = random(0,2);
-      for (byte step = 1; step < NUMCOLS && !stopAnimation; ++step) {
-        col = dir > 0 ? step : (NUMCOLS - step);
+      for (byte seg = 1; seg < NUMCOLS && !stopAnimation; ++seg) {
+        col = dir > 0 ? seg : (NUMCOLS - seg);
         setCustomLed(col, row, COLOR_RED);
         delayUsecWithScanning(30000);
         paintCustomCell(col, row);
@@ -168,8 +252,8 @@ void playYAxis() { // move lights in Y
       byte row;
       byte col = random(1, NUMCOLS);
       byte dir = random(0,2);
-      for (byte step = 0; step < NUMROWS && !stopAnimation; ++step) {
-        row = dir > 0 ? step : NUMROWS - step;
+      for (byte seg = 0; seg < NUMROWS && !stopAnimation; ++seg) {
+        row = dir > 0 ? seg : NUMROWS - seg;
         setCustomLed(col, row, COLOR_RED);
         delayUsecWithScanning(60000);
         paintCustomCell(col, row);
@@ -244,7 +328,7 @@ void playLife() {
 
   boolean changed = true;
 
-  for (int step=0; step<100 && changed && !stopAnimation; step++){
+  for (int seg=0; seg<100 && changed && !stopAnimation; seg++){
     changed = false;
     stepColor = random(1, 7);
 

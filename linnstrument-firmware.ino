@@ -145,6 +145,8 @@ char* OSVersion = "120.";
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
 #define LIGHTS_ACCENT  1
+#define LIGHTS_ALT     2  // alternate color group - jas 2015/03/23
+#define LIGHTS_MIDOCT  3  // middle octave color group - jas 2015/03/23
 
 // The values of SWITCH_ here MUST be the same as the row numbers of the cells used to set them.
 #define SWITCH_FOOT_L    0
@@ -445,7 +447,8 @@ struct SplitSettings {
   byte colorAccent;                    // color for accented cells
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
-  byte colorMiddleC;                   // color for middle C - jas 2014/12/11
+  byte colorMidOct;                    // color for middle Octave notes - generalized from Middle C - jas 2014/12/11
+  byte colorAlt;                       // color for alternate color group - jas 2015/03/23
   byte lowRowMode;                     // see LowRowMode values
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
@@ -513,6 +516,8 @@ struct GlobalSettings {
   byte currentPerSplit;                      // controls which split's settings are being displayed
   boolean mainNotes[12];                     // determines which notes receive "main" lights
   boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  boolean altNotes[12];                      // alternate color group like main - jas 2015/03/23
+  boolean midOctNotes[12];                   // middle octave notes - generalized from Middle C - jas 2015/03/23
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   byte colOffset;                            // interval between columns. semitone intervals (1, 2, 3, 4, 5) - jas 2014/12/11
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values

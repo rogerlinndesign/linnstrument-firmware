@@ -277,6 +277,12 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       cellDisplay = cellOn;
     }
 
+    // then paint notes marked as Alt notes with Alt color
+    if (Global.altNotes[octaveNote]) {
+      colour = Split[split].colorAlt;
+      cellDisplay = cellOn;
+    }
+
     // then paint only notes marked as Accent notes with Accent color
     if (Global.accentNotes[octaveNote]) {
       colour = Split[split].colorAccent;
@@ -284,8 +290,9 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     }
     
     // distinguish middle C (MIDI note number 60) - jas 2014/11/14
-    if (actualnote == 60) {
-      colour = Split[split].colorMiddleC;
+    // generalized to middle octave (60-71) & allow to turn it off -- jas 2015/03/23
+    if (actualnote > 59 && actualnote < 72 && Global.midOctNotes[actualnote % 12]) {
+      colour = Split[split].colorMidOct;
       cellDisplay = cellOn;
     }
 
@@ -445,7 +452,8 @@ void paintPerSplitDisplay(byte side) {
   setLed(11, 6, Split[side].colorAccent, cellOn);
   setLed(11, 5, Split[side].colorNoteon, cellOn);
   setLed(11, 4, Split[side].colorLowRow, cellOn);
-  setLed(11, 3, Split[side].colorMiddleC, cellOn); //-- jas 2014/12/29
+  setLed(11, 3, Split[side].colorMidOct, cellOn); //-- jas 2014/12/29
+  setLed(11, 2, Split[side].colorAlt, cellOn);    //-- jas 2015/03/23
 
   // Set "Low row" lights
   switch (Split[side].lowRowMode)
@@ -826,6 +834,14 @@ void paintGlobalSettingsDisplay() {
       case LIGHTS_ACCENT:
         lightLed(1, 1);
         setNoteLights(Global.accentNotes);
+        break;
+      case LIGHTS_ALT:
+        lightLed(1, 2);
+        setNoteLights(Global.altNotes);
+        break;
+      case LIGHTS_MIDOCT:
+        lightLed(1, 3);
+        setNoteLights(Global.midOctNotes);
         break;
     }
 

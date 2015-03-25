@@ -238,6 +238,7 @@ void initializePresetSettings() {
     g.currentPerSplit = LEFT;
 
     g.rowOffset = 5;
+    g.colOffset = 1; //fixed - jas 2015/03/23
     g.velocitySensitivity = velocityMedium;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
@@ -255,13 +256,16 @@ void initializePresetSettings() {
 
     // initialize accentNotes array. Starting with only C within each octave highlighted
     g.accentNotes[0] = true;
+    g.midOctNotes[0] = true; // middle C - jas 2015/03/23
     for (byte count = 1; count < 12; ++count) {
       g.accentNotes[count] = false;
+      g.midOctNotes[count] = false; //--jas 2015/03/23
     }
 
     // initialize mainNotes array (all off).
     for (byte count = 0; count < 12; ++count) {
       g.mainNotes[count] = false;
+      g.altNotes[count] = false; //--jas 2015/03/23
     }
     g.mainNotes[0] = true;
     g.mainNotes[2] = true;
@@ -315,7 +319,8 @@ void initializePresetSettings() {
     p.split[LEFT].midiChanPerRow = 1;
     p.split[LEFT].colorMain = COLOR_GREEN;
     p.split[LEFT].colorNoteon = COLOR_RED;
-    p.split[LEFT].colorMiddleC = COLOR_BLUE; //-- new property to distinguish middle C - jas 2014/12/11
+    p.split[LEFT].colorMidOct = COLOR_BLUE; //-- new property to distinguish middle C - jas 2014/12/11
+    p.split[LEFT].colorAlt = COLOR_MAGENTA; //-- new property for alternate color group - jas 2015/03/23
     p.split[LEFT].lowRowMode = lowRowNormal;
 
     p.split[RIGHT].midiChanMain = 2;
@@ -328,7 +333,8 @@ void initializePresetSettings() {
     p.split[RIGHT].midiChanPerRow = 9;
     p.split[RIGHT].colorMain = COLOR_BLUE;
     p.split[RIGHT].colorNoteon = COLOR_MAGENTA;
-    p.split[RIGHT].colorMiddleC = COLOR_GREEN; //-- new property to distinguish middle C - jas 2014/12/11
+    p.split[RIGHT].colorMidOct = COLOR_GREEN; //-- new property to distinguish middle C - jas 2014/12/11
+    p.split[RIGHT].colorAlt = COLOR_RED;      //-- new property for alternate color group - jas 2015/03/23
     p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
@@ -763,7 +769,10 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
     }
     else if (sensorRow == 3) {  //-- distinguish Middle C color - jas 2014/12/11
-      Split[Global.currentPerSplit].colorMiddleC = colorCycle(Split[Global.currentPerSplit].colorMiddleC, false);
+      Split[Global.currentPerSplit].colorMidOct = colorCycle(Split[Global.currentPerSplit].colorMidOct, false);
+    }
+    else if (sensorRow == 2) {  //--  for alternate color group - jas 2015/03/23
+      Split[Global.currentPerSplit].colorAlt = colorCycle(Split[Global.currentPerSplit].colorAlt, false);
     }
 
   } else if (sensorCol == 12) {
@@ -1259,6 +1268,8 @@ void handleGlobalSettingNewTouch() {
       {
         case LIGHTS_MAIN:
         case LIGHTS_ACCENT:
+        case LIGHTS_ALT:
+        case LIGHTS_MIDOCT:
           lightSettings = sensorRow;
           break;
       }
@@ -1273,6 +1284,12 @@ void handleGlobalSettingNewTouch() {
           break;
         case LIGHTS_ACCENT:
           toggleNoteLights(Global.accentNotes);
+          break;
+        case LIGHTS_ALT: //-- jas 2015/03/23
+          toggleNoteLights(Global.altNotes);
+          break;
+        case LIGHTS_MIDOCT: //-- jas 2015/03/23
+          toggleNoteLights(Global.midOctNotes);
           break;
       }
     }
