@@ -28,6 +28,8 @@ displaySensorRangeZ         : max Z sensor range selection
 displayPromo                : display promotion animation
 displayEditAudienceMessage  : edit an audience message
 
+displayCustom               : display custom animations - jas 2015/01/05
+
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
 
@@ -108,6 +110,9 @@ void updateDisplay() {
     break;
   case displaySensorRangeZ:
     paintSensorRangeZDisplay();
+    break;
+  case displayCustom:            // Display Custom controls - display may overlay normal w/o animationActive --jas
+    paintCustom();
     break;
   case displayEditAudienceMessage:
     paintEditAudienceMessage();
@@ -225,7 +230,9 @@ void paintCCFaderDisplayRow(byte split, byte row) {
         clearLed(col, row);
       }
       else {
+
         setLed(col, row, Split[split].colorMain, cellOn);
+
       }
     }
   }
@@ -276,9 +283,22 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       cellDisplay = cellOn;
     }
 
+    // then paint notes marked as Alt notes with Alt color
+    if (Global.altNotes[octaveNote]) {
+      colour = Split[split].colorAlt;
+      cellDisplay = cellOn;
+    }
+
     // then paint only notes marked as Accent notes with Accent color
     if (Global.accentNotes[octaveNote]) {
       colour = Split[split].colorAccent;
+      cellDisplay = cellOn;
+    }
+    
+    // distinguish middle C (MIDI note number 60) - jas 2014/11/14
+    // generalized to middle octave (60-71) & allow to turn it off -- jas 2015/03/23
+    if (actualnote > 59 && actualnote < 72 && Global.midOctNotes[actualnote % 12]) {
+      colour = Split[split].colorMidOct;
       cellDisplay = cellOn;
     }
 
@@ -438,6 +458,8 @@ void paintPerSplitDisplay(byte side) {
   setLed(11, 6, Split[side].colorAccent, cellOn);
   setLed(11, 5, Split[side].colorNoteon, cellOn);
   setLed(11, 4, Split[side].colorLowRow, cellOn);
+  setLed(11, 3, Split[side].colorMidOct, cellOn); //-- jas 2014/12/29
+  setLed(11, 2, Split[side].colorAlt, cellOn);    //-- jas 2015/03/23
 
   // Set "Low row" lights
   switch (Split[side].lowRowMode)
@@ -824,6 +846,14 @@ void paintGlobalSettingsDisplay() {
         lightLed(1, 1);
         setNoteLights(Global.accentNotes);
         break;
+      case LIGHTS_ALT:
+        lightLed(1, 2);
+        setNoteLights(Global.altNotes);
+        break;
+      case LIGHTS_MIDOCT:
+        lightLed(1, 3);
+        setNoteLights(Global.midOctNotes);
+        break;
     }
 
     switch (Global.rowOffset)
@@ -853,6 +883,23 @@ void paintGlobalSettingsDisplay() {
         lightLed(6, 3);
         break;
     }
+
+  switch (Global.colOffset) //-- add this new setting to unused column 19 - jas 2014/12/11 --
+  {
+    case 1:        // 1 semitone (default)
+      lightLed(19, 0);
+      break;
+    case 2:        // 2 semitone
+      lightLed(19, 1);
+      break;
+    case 3:        // 3 semitone
+      lightLed(19, 2);
+      break;
+    case 4:        // 4 semitone
+      lightLed(19, 3);
+      break;
+  }
+
 
     // This code assumes that switchSelect values are the same as the row numbers
     lightLed(7, switchSelect);
@@ -936,7 +983,7 @@ if (displayMode == displayGlobalWithTempo) {
 }
 
 #ifdef DEBUG_ENABLED
-  // Colum 17 is for setting/showing the debug level
+  // Column 17 is for setting/showing the debug level
   // The value of debugLevel is from -1 up.
   lightLed(17, debugLevel + 1);
 
@@ -947,6 +994,22 @@ if (displayMode == displayGlobalWithTempo) {
     }
   }
 #endif
+
+
+  // Column 19 is set above, for Global.colOffset, following Global.rowOffset - jas 2014/12/11
+
+
+  // custom Animation properties - jas 2015/01/07 --
+  for (byte i=0; i<8; i++){
+      if (Global.customAnimations[i]) {
+          lightLed(17+i,7);
+      }
+  }
+
+  // blink active animation triggers - jas 2015/01/07 --
+    setLed(24, 7, COLOR_RED, cellOn);
+    setLed(25, 7, COLOR_RED, cellOn);
+
 }
 
 void paintCalibrationDisplay() {

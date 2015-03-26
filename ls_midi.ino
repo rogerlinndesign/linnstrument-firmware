@@ -17,6 +17,11 @@ byte midiMessageIndex = 0; // the message array index of the message that is bei
 
 byte midiCellColCC = 0;
 byte midiCellRowCC = 0;
+byte midiEnableSendRowCol = 0;    //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
+
+byte midiSendRowCol() { //-- enable/disable sending of touched cell coordinates -- experimental jas 2015/02/20 --
+  return midiEnableSendRowCol ;
+}
 
 // MIDI Clock State
 const int32_t fxd4MidiClockUnit = FXD4_FROM_INT(2500000);  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
@@ -459,6 +464,9 @@ void receivedNrpn(int parameter, int value) {
         Split[split].colorLowRow = value;
       }
       break;
+//---------------------------------------------------------------------------------------------------------------------
+    // Split Color Alternative (98) & Spilt Color Middle Octave (99) - jas 2015/03/23 -- logically fit here but no room
+//---------------------------------------------------------------------------------------------------------------------
     // Split LowRow Mode
     case 34:
       if (inRange(value, 0, 7)) {
@@ -570,6 +578,20 @@ void receivedNrpn(int parameter, int value) {
         Split[split].ccForFader[7] = value;
       }
       break;
+//------------------------------------------------------------------------------------------------------
+    // Split Color Alternative - jas 2015/03/23 -- logically fits above, but no room in numeric sequence
+    case 98:
+      if (inRange(value, 1, 6)) {
+        Split[split].colorAlt = value;
+      }
+      break;
+    // Split Color Middle Octave - jas 2014/12/11 --
+    case 99:
+      if (inRange(value, 1, 6)) {
+        Split[split].colorMidOct = value;
+      }
+      break;
+//-----------------------------------------------------------------------------------------------------
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -602,12 +624,19 @@ void receivedNrpn(int parameter, int value) {
         Global.accentNotes[parameter-215] = value;
       }
       break;
+//-------------------------------------------------------------------
+    // Global Alternative Note Lights - case 301-312 - jas 2015/03/23
+    // Global Middle Octave Lights    - case 313-324 - jas 2015/03/23
+//-------------------------------------------------------------------
     // Global Row Offset
     case 227:
       if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13) {
         Global.rowOffset = value;
       }
       break;
+//--------------------------------------------------------
+    // Global Column Offset - case 250 - jas 2014/12/11 --
+//--------------------------------------------------------
     // Global Switch 1 Assignment
     case 228:
       if (inRange(value, 0, 5)) {
@@ -716,6 +745,37 @@ void receivedNrpn(int parameter, int value) {
         changeUserFirmwareMode(value);
       }
       break;
+//-------------------------------------------------------------------------------------------------------
+    // case 250 - Global Column Offset Global.colOffset - like Global.rowOffset - jas 2014/12/11
+    case 250:
+      if (value == 1 || value == 2 || value == 3 || value == 4) {
+        Global.colOffset = value;
+      }
+      break;
+
+    // case 300 - enable sending of row and column per noteon (1:row, 2:col, 3:both, 0:off) - jas 2015/02/24
+    case 300:
+      if (value == 1 || value == 2 || value == 3 || value == 0) {
+        midiEnableSendRowCol = value;
+      }
+      break;
+
+    // Global Alternative Note Lights - jas 2015/03/23
+    case 301: case 302: case 303: case 304: case 305: case 306:
+    case 307: case 308: case 309: case 310: case 311: case 312:
+      if (inRange(value, 0, 1)) {
+        Global.altNotes[parameter-301] = value;
+      }
+      break;
+    // Global Middle Octave Note Lights - jas 2015/03/23
+    case 313: case 314: case 315: case 316: case 317: case 318:
+    case 319: case 320: case 321: case 322: case 323: case 324:
+      if (inRange(value, 0, 1)) {
+        Global.midOctNotes[parameter-313] = value;
+      }
+      break;
+//-------------------------------------------------------------------------------------------------------
+
   }
 
   updateDisplay();
@@ -814,8 +874,16 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
   short offset, lowest;
   determineNoteOffsetAndLowest(split, row, offset, lowest);
 
-  short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
-            + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
+  //-- base column unscaled by colOffset - jas 2014/12/11 --
+  short baseCol = notenum - (lowest + (row * offset) + Split[split].transposeOctave)  // calculate the base column that this MIDI note can be played on
+            + Split[split].transposeLights - Split[split].transposePitch;;           // adapt for transposition settings
+            
+  //-- for colOffset>1 notes may appear only on every 2nd, 3rd, or 4th row, etc - jas 2014/12/11 --
+  if ((baseCol< 0) || (baseCol % Global.colOffset != 0)) {
+    return -1;
+  }
+  
+  short col = baseCol / Global.colOffset + 1; // jas 2014/12/11 --
 
   byte lowColSplit, highColSplit;
   getSplitBoundaries(split, lowColSplit, highColSplit);

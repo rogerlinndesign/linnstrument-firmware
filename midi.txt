@@ -105,6 +105,10 @@ NRPN   Value   Description
 45     0-127   Split Left MIDI CC For Fader 6
 46     0-127   Split Left MIDI CC For Fader 7
 47     0-127   Split Left MIDI CC For Fader 8
+--------------------------------------------------------------------------------------------------
+98     1-6     Split Left Color Alternative   //-- colorAlt    (repeated from above) jas 2015/03/25
+99     1-6     Split Left Color Middle Octave //-- colorMidOct (repeated from above) jas 2014/12/11
+---------------------------------------------------------------------------------------------------
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -153,6 +157,10 @@ NRPN   Value   Description
 145    0-127   Split Right MIDI CC For Fader 6
 146    0-127   Split Right MIDI CC For Fader 7
 147    0-127   Split Right MIDI CC For Fader 8
+----------------------------------------------------------------------------------------------------
+198    1-6     Split Right Color Alternative   //-- colorAlt    (repeated from above) jas 2015/03/25
+199    1-6     Split Right Color Middle Octave //-- colorMidOct (repeated from above) jas 2014/12/11
+----------------------------------------------------------------------------------------------------
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column
@@ -199,6 +207,12 @@ NRPN   Value   Description
 243    0-3     Global Settings Preset Load
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 245    0-1     User Firmware Mode (0: Off, 1: On)
+--------------------------------------------------------------------------------------------------------------
+250    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11
+300    0-4     Enable MIDI Sending Row and Column per Note-On (1:row, 2:col, 3:both, 0:off)   - jas 2015/02/24
+301-312        Global Alternative Note Lights   - see Main and Accent above - jas 2015/03/25
+313-324        Global Middle Octave Note Lights - see Main and Accent above - jas 2015/03/25
+--------------------------------------------------------------------------------------------------------------
 
 Color Values
 ============

@@ -307,7 +307,7 @@ void handleNewTouch() {
   cellTouched(touchedCell);                                 // mark this cell as touched
 
   if (animationActive) {                                    // allow any new touch to cancel scrolling
-    stopAnimation = true;
+    if (sensorCol == 0 || displayMode == displayPromo) stopAnimation = true;  //-- custom animations stop only on control button - jas 2015/01/22 --
     return;
   }
 
@@ -338,6 +338,7 @@ void handleNewTouch() {
       // If we get here, we're displaying in displaySplitPoint mode, but we've just gotten a normal new touch.
       // THE FALL THROUGH HERE (no break statement) IS PURPOSEFUL!
 
+    case displayCustom:  //-- act here as if normal for custom - jas 2015/10/21 --
     case displayNormal:                                            // it's normal performance mode
     case displayVolume:                                            // it's a volume change
 
@@ -719,9 +720,16 @@ void handleNewNote(signed char notenum) {
   // register the reverse mapping
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
+
   // send the note on
   if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit(sensorSplit)) {
     midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+
+    //-- send the row and column of the cell -- experimental - jas 2015/02/19 --
+    byte sendRowCol = midiSendRowCol() ;
+    if (sendRowCol % 2 == 1) midiSendControlChange(21, sensorRow, channel, true); // avoid decimation - always send
+    if (sendRowCol / 2 == 1) midiSendControlChange(20, sensorCol, channel, true); // avoid decimation - always send
+  
   }
 
   // highlight same notes of this is activated
@@ -1017,6 +1025,7 @@ void handleTouchRelease() {
     case displayGlobalWithTempo:
       handleGlobalSettingRelease();
       return;
+    //case displayCustom Animation - placeholder - jas 2015/01/16 --
     case displayEditAudienceMessage:
       handleEditAudienceMessageRelease();
       return;
@@ -1154,7 +1163,7 @@ byte getNoteNumber(byte col, byte row) {
   determineNoteOffsetAndLowest(sp, row, offset, lowest);
 
   // return the computed note based on the selected rowOffset
-  notenum = lowest + (row * offset) + (col - 1) + Split[sp].transposeOctave;
+  notenum = lowest + (row * offset ) + (col - 1) * Global.colOffset + Split[sp].transposeOctave; //-- whole tone etc per column - jas 2014/12/11
 
   return notenum;
 }
