@@ -171,10 +171,11 @@ char* OSVersion = "120.";
 #define PER_SPLIT_ROW        7
 
 #define SWITCH_HOLD_DELAY  500
+#define SENSOR_HOLD_DELAY  200
 
-#define EDIT_MODE_HOLD_DELAY  2000
-#define USER_MODE_HOLD_DELAY  500
+#define EDIT_MODE_HOLD_DELAY  1000
 
+const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 /******************************************** VELOCITY *******************************************/
 
@@ -329,7 +330,8 @@ NoteTouchMapping noteTouchMapping[NUMSPLITS];
 enum CellDisplay {
   cellOff = 0,
   cellOn = 1,
-  cellPulse = 2
+  cellPulse = 2,
+  cellSlowPulse = 3
 };
 
 enum DisplayMode {
@@ -347,6 +349,7 @@ enum DisplayMode {
   displayBendRange,
   displayCCForY,
   displayCCForZ,
+  displayCCForFader,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -443,6 +446,7 @@ struct SplitSettings {
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short ccForZ;               // 0-127
+  unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
   byte colorNoteon;                    // color for played notes
@@ -655,7 +659,8 @@ unsigned long prevGlobalSettingsDisplayTimerCount;  // timer for refreshing the 
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
-byte ccFaderValues[NUMSPLITS][8];                   // the current values of the CC faders
+byte ccFaderValues[NUMSPLITS][128];                 // the current values of the CC faders
+byte currentEditedCCFader[NUMSPLITS];               // the current CC fader number that is being edited
 signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 unsigned long lastSwitchPress[4];
@@ -696,6 +701,8 @@ unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the 
 
 void setLed(byte col, byte row, byte color, CellDisplay disp);
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
+
+boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay);
 
 void setDisplayMode(DisplayMode mode);
 void exitDisplayMode(DisplayMode mode);

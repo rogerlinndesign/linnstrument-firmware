@@ -380,6 +380,9 @@ void handleNewTouch() {
     case displayCCForZ:                                            // it's a CC for Z change
       handleCCForZNewTouch();
       break;
+    case displayCCForFader:                                        // it's a CC for fader change
+      handleCCForFaderNewTouch();
+      break;
     case displaySensorLoZ:                                         // it's a sensor low Z change
       handleSensorLoZNewTouch();
       break;
@@ -496,18 +499,22 @@ void handleXYZupdate() {
   // if this data point serves as a calibration sample, return immediately
   if (handleCalibrationSample()) return;
 
-  // if the display mode is global, some features need hold functionality
-  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
-    handleGlobalSettingHold();
-    return;
+  // some features need hold functionality
+  switch (displayMode) {
+    case displayPerSplit:
+      handlePerSplitSettingHold();
+      return;
+    case displayPreset:
+      handlePresetHold();
+      return;
+    case displayGlobal:
+    case displayGlobalWithTempo:
+      handleGlobalSettingHold();
+      return;
   }
-  // if the display mode is preset, some features need hold functionality
-  else if (displayMode == displayPreset) {
-    handlePresetHold();
-    return;
-  }
+  
   // only continue if the active display modes require finger tracking
-  else if (displayMode != displayNormal &&
+  if (displayMode != displayNormal &&
       displayMode != displayVolume &&
       (displayMode != displaySplitPoint || splitButtonDown)) {
     return;
@@ -996,6 +1003,9 @@ void handleTouchRelease() {
     case displayCCForZ:
       handleCCForZRelease();
       return;
+    case displayCCForFader:
+      handleCCForFaderRelease();
+      return;
     case displaySensorLoZ:
       handleSensorLoZRelease();
       return;
@@ -1018,7 +1028,7 @@ void handleTouchRelease() {
     //case displayCustom Animation - placeholder - jas 2015/01/16 --
     case displayEditAudienceMessage:
       handleEditAudienceMessageRelease();
-      break;
+      return;
   }
 
   // check if calibration is active and its cell release logic needs to be executed

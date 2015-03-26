@@ -91,16 +91,24 @@ NRPN   Value   Description
 31     1-6     Split Left Color Accent (see color value table below)
 32     0-6     Split Left Color Played (see color value table below)
 33     1-6     Split Left Color LowRow (see color value table below)
-40     1-6     Split Left Color MiddleC (see color value table below) //-- colorMiddleC jas 2014/12/11 --
 34     0-7     Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
 35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum))
 36     0-10    Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 39     0-2     Split Left MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #25) 
-
-40     1-6     Split Left Color MiddleC (see color value table below) //-- colorMiddleC (repeated from above) jas 2014/12/11 --
-
+40     0-127   Split Left MIDI CC For Fader 1
+41     0-127   Split Left MIDI CC For Fader 2
+42     0-127   Split Left MIDI CC For Fader 3
+43     0-127   Split Left MIDI CC For Fader 4
+44     0-127   Split Left MIDI CC For Fader 5
+45     0-127   Split Left MIDI CC For Fader 6
+46     0-127   Split Left MIDI CC For Fader 7
+47     0-127   Split Left MIDI CC For Fader 8
+--------------------------------------------------------------------------------------------------
+98     1-6     Split Left Color Alternative   //-- colorAlt    (repeated from above) jas 2015/03/25
+99     1-6     Split Left Color Middle Octave //-- colorMidOct (repeated from above) jas 2014/12/11
+---------------------------------------------------------------------------------------------------
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -129,21 +137,30 @@ NRPN   Value   Description
 125    0-127   Split Right MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)
 126    0-1     Split Right Relative Y (0: Off, 1: On)
 127    0-1     Split Right Send Z (0: Off, 1: On)
-128    0-2     Split Right MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #29) 
+128    0-2     Split Right MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #129) 
 129    0-127   Split Right MIDI CC For Z (CC 11 is recommended, any CC is possible though)
 130    1-6     Split Right Color Main (see color value table below)
 131    1-6     Split Right Color Accent (see color value table below)
 132    0-6     Split Right Color Played (see color value table below)
 133    1-6     Split Right Color LowRow (see color value table below)
-140    1-6     Split Right Color MiddleC (see color value table below) //-- colorMiddleC jas 2014/12/11 --
 134    0-7     Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
 135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum)
 136    0-10    Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
-
-140     1-6     Split Left Color MiddleC (see color value table below) //-- colorMiddleC (repeated from above) jas 2014/12/11 --
-
+139    0-2     Split Right MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #125) 
+140    0-127   Split Right MIDI CC For Fader 1
+141    0-127   Split Right MIDI CC For Fader 2
+142    0-127   Split Right MIDI CC For Fader 3
+143    0-127   Split Right MIDI CC For Fader 4
+144    0-127   Split Right MIDI CC For Fader 5
+145    0-127   Split Right MIDI CC For Fader 6
+146    0-127   Split Right MIDI CC For Fader 7
+147    0-127   Split Right MIDI CC For Fader 8
+----------------------------------------------------------------------------------------------------
+198    1-6     Split Right Color Alternative   //-- colorAlt    (repeated from above) jas 2015/03/25
+199    1-6     Split Right Color Middle Octave //-- colorMidOct (repeated from above) jas 2014/12/11
+----------------------------------------------------------------------------------------------------
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column
@@ -172,7 +189,6 @@ NRPN   Value   Description
 225    0-1     Global Accent Note Light A# (0: Off, 1: On)
 226    0-1     Global Accent Note Light B (0: Off, 1: On)
 227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar)
-250    1-4     Global Column Offset  //-- colOffset - jas 2014/12/11 --
 228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
 229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
 230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split)
@@ -191,9 +207,12 @@ NRPN   Value   Description
 243    0-3     Global Settings Preset Load
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 245    0-1     User Firmware Mode (0: Off, 1: On)
-
-250    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11 --
-300    0-4     Enable MIDI Sending Row and Column per Note-On (1:row, 2:col, 3:both, 0:off) - jas 2015/02/24
+--------------------------------------------------------------------------------------------------------------
+250    1-4     Global Column Offset (repeated from above, following rowOffset) //-- colOffset - jas 2014/12/11
+300    0-4     Enable MIDI Sending Row and Column per Note-On (1:row, 2:col, 3:both, 0:off)   - jas 2015/02/24
+301-312        Global Alternative Note Lights   - see Main and Accent above - jas 2015/03/25
+313-324        Global Middle Octave Note Lights - see Main and Accent above - jas 2015/03/25
+--------------------------------------------------------------------------------------------------------------
 
 Color Values
 ============

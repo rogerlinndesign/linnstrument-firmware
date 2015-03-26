@@ -243,7 +243,8 @@ void handleMidiInput(unsigned long now) {
             case 7:
             case 8:
               if (split != -1) {
-                ccFaderValues[split][midiData1-1] = midiData2;
+                unsigned short ccForFader = Split[split].ccForFader[midiData1-1];
+                ccFaderValues[split][ccForFader] = midiData2;
                 if ((displayMode == displayNormal && Split[split].ccFaders) ||
                     displayMode == displayVolume) {
                   updateDisplay();
@@ -463,9 +464,9 @@ void receivedNrpn(int parameter, int value) {
         Split[split].colorLowRow = value;
       }
       break;
-    //-- where to put setting for Color Middle C? - jas 2014/12/11 --
-    // it logically seems to fit here, but no room so case 40
-
+//---------------------------------------------------------------------------------------------------------------------
+    // Split Color Alternative (98) & Spilt Color Middle Octave (99) - jas 2015/03/23 -- logically fit here but no room
+//---------------------------------------------------------------------------------------------------------------------
     // Split LowRow Mode
     case 34:
       if (inRange(value, 0, 7)) {
@@ -529,22 +530,68 @@ void receivedNrpn(int parameter, int value) {
         }
       }
       break;
-
-    //-- where to put setting for Color Middle C? - jas 2014/12/11 --
-    // following colorLowRow or here?
-    // Split Color Middle Octave
+    // Split MIDI CC For Fader 1
     case 40:
-      if (inRange(value, 1, 6)) {
-        Split[split].colorMidOct = value;
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[0] = value;
       }
       break;
-    // Split Color Alternative - jas 2015/03/23
+    // Split MIDI CC For Fader 2
     case 41:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[1] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 3
+    case 42:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[2] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 4
+    case 43:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[3] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 5
+    case 44:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[4] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 6
+    case 45:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[5] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 7
+    case 46:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[6] = value;
+      }
+      break;
+    // Split MIDI CC For Fader 8
+    case 47:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForFader[7] = value;
+      }
+      break;
+//------------------------------------------------------------------------------------------------------
+    // Split Color Alternative - jas 2015/03/23 -- logically fits above, but no room in numeric sequence
+    case 98:
       if (inRange(value, 1, 6)) {
         Split[split].colorAlt = value;
       }
       break;
-
+    // Split Color Middle Octave - jas 2014/12/11 --
+    case 99:
+      if (inRange(value, 1, 6)) {
+        Split[split].colorMidOct = value;
+      }
+      break;
+//-----------------------------------------------------------------------------------------------------
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -577,14 +624,19 @@ void receivedNrpn(int parameter, int value) {
         Global.accentNotes[parameter-215] = value;
       }
       break;
+//-------------------------------------------------------------------
+    // Global Alternative Note Lights - case 301-312 - jas 2015/03/23
+    // Global Middle Octave Lights    - case 313-324 - jas 2015/03/23
+//-------------------------------------------------------------------
     // Global Row Offset
     case 227:
       if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13) {
         Global.rowOffset = value;
       }
       break;
+//--------------------------------------------------------
     // Global Column Offset - case 250 - jas 2014/12/11 --
-
+//--------------------------------------------------------
     // Global Switch 1 Assignment
     case 228:
       if (inRange(value, 0, 5)) {
@@ -693,7 +745,7 @@ void receivedNrpn(int parameter, int value) {
         changeUserFirmwareMode(value);
       }
       break;
-
+//-------------------------------------------------------------------------------------------------------
     // case 250 - Global Column Offset Global.colOffset - like Global.rowOffset - jas 2014/12/11
     case 250:
       if (value == 1 || value == 2 || value == 3 || value == 4) {
@@ -722,6 +774,7 @@ void receivedNrpn(int parameter, int value) {
         Global.midOctNotes[parameter-313] = value;
       }
       break;
+//-------------------------------------------------------------------------------------------------------
 
   }
 
@@ -904,7 +957,7 @@ void preSendPitchBend(byte split, int pitchValue) {
     case channelPerRow:
     {
       for (byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -1052,7 +1105,7 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
     case channelPerRow:
     {
       for ( byte row = 0; row < 8; ++row) {
-        byte ch = Split[split].midiChanMain + row;
+        byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
         }
@@ -1094,7 +1147,7 @@ void midiSendAllNotesOff(byte split) {
       case channelPerRow:
       {
         for ( byte row = 0; row < 8; ++row) {
-          byte ch = Split[split].midiChanMain + row;
+          byte ch = Split[split].midiChanPerRow + row;
           if (ch > 16) {
             ch -= 16;
           }

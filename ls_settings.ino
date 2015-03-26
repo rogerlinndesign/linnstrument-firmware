@@ -203,7 +203,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 4;
+  config.device.version = 5;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
@@ -298,6 +298,7 @@ void initializePresetSettings() {
         p.split[s].relativeY = false;
         p.split[s].expressionForZ = loudnessPolyPressure;
         p.split[s].ccForZ = 11;
+        memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
         p.split[s].transposeOctave = 0;
@@ -364,10 +365,11 @@ void initializePresetSettings() {
   // initialize runtime data
   applyPitchCorrectHold();
   for (byte s = 0; s < NUMSPLITS; ++s) {
-    for (byte c = 0; c < 8; ++c) {
+    for (byte c = 0; c < 128; ++c) {
       ccFaderValues[s][c] = 0;
     }
     ccFaderValues[s][6] = 63;
+    currentEditedCCFader[s] = 0;
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
@@ -629,7 +631,21 @@ byte colorCycle(byte color, boolean includeBlack) {
   return color;
 }
 
+boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
+  if (sensorCell().lastTouch != 0) {
+    if (calcTimeDelta(millis(), sensorCell().lastTouch) < SENSOR_HOLD_DELAY) {
+      return true;
+    }
+
+    setLed(sensorCol, sensorRow, resetColor, resetDisplay);
+  }
+  return false;
+}
+
 void handlePerSplitSettingNewTouch() {
+  // start tracking the touch duration to be able to enable hold functionality
+  sensorCell().lastTouch = millis();
+
   if (sensorCol == 1) {
 
     // This column of 3 cells lets you select the mode of channel selection
@@ -815,13 +831,6 @@ void handlePerSplitSettingNewTouch() {
       }
       randomSeed(analogRead(0));
     }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
-      if (Split[Global.currentPerSplit].ccFaders) {
-        Split[Global.currentPerSplit].arpeggiator = false;
-        Split[Global.currentPerSplit].strum = false;
-      }
-    }
     else if (sensorRow == 5) {
       Split[Global.currentPerSplit].strum = !Split[Global.currentPerSplit].strum;
       if (Split[Global.currentPerSplit].strum) {
@@ -834,10 +843,44 @@ void handlePerSplitSettingNewTouch() {
   }
 
   updateDisplay();
+
+  // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
+  if (sensorCol == 14 && sensorRow == 6) {
+    setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
+  }
+}
+
+void handlePerSplitSettingHold() {
+  if (sensorCol == 14 && sensorRow == 6 &&
+      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+    sensorCell().lastTouch = 0;
+
+    // initialize the touch-slide interface
+    resetNumericDataChange();
+
+    // switch to edit audience message
+    setDisplayMode(displayCCForFader);
+
+    // show the editing mode
+    updateDisplay();
+  }
 }
 
 void handlePerSplitSettingRelease() {
+  if (sensorCol == 14 && sensorRow == 6 &&
+      ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
+    Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
+    if (Split[Global.currentPerSplit].ccFaders) {
+      Split[Global.currentPerSplit].arpeggiator = false;
+      Split[Global.currentPerSplit].strum = false;
+    }
+  }
+
+  sensorCell().lastTouch = 0;
+
   handleShowSplit();
+
+  updateDisplay();
 }
 
 // This function handles use of the "Show Split" cells,
@@ -876,6 +919,8 @@ void handlePresetNewTouch() {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
       sensorCell().lastTouch = millis();
+      // indicate that a hold operation is being waited for
+      setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
   }
   else if (sensorCol < NUMCOLS-2) {
@@ -926,8 +971,7 @@ void handlePresetRelease() {
   }
   else if (sensorCol == NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
-        sensorCell().lastTouch != 0 &&
-        calcTimeDelta(millis(), sensorCell().lastTouch) <= EDIT_MODE_HOLD_DELAY) {
+        ensureCellBeforeHoldWait(globalColor, cellOn)) {
       byte preset = sensorRow-2;
 
       // load the selected preset
@@ -972,6 +1016,23 @@ void handleCCForZNewTouch() {
 
 void handleCCForZRelease() {
   handleNumericDataReleaseCol(true);
+}
+
+void handleCCForFaderNewTouch() {
+  if (sensorCol == NUMCOLS-1) {
+    currentEditedCCFader[Global.currentPerSplit] = sensorRow;
+    updateDisplay();
+  }
+  else {
+    byte current = currentEditedCCFader[Global.currentPerSplit];
+    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForFader[current], 0, 127, false);
+  }
+}
+
+void handleCCForFaderRelease() {
+  if (sensorCol < NUMCOLS-1) {
+    handleNumericDataReleaseCol(true);
+  }
 }
 
 void handleSensorLoZNewTouch() {
@@ -1471,6 +1532,12 @@ void handleGlobalSettingNewTouch() {
   }
 
   updateDisplay();
+
+  // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
+  if (sensorRow == 7 && sensorCol <= 16 ||
+      sensorCol == 16 && sensorRow == 2) {
+    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+  }
 }
 
 void changeMidiIO(byte where) {
@@ -1487,7 +1554,7 @@ void handleGlobalSettingHold() {
 
   // handle switch to/from User Firmware Mode
   if (sensorCol == 16 && sensorRow == 2 && cell(16, 0).touched == untouchedCell &&
-      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > USER_MODE_HOLD_DELAY) {
+      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
     changeUserFirmwareMode(!userFirmwareActive);
   }
 
@@ -1526,7 +1593,7 @@ void handleGlobalSettingRelease() {
   if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) {
-      if (sensorCol <= 16 && sensorCell().lastTouch != 0) {
+      if (sensorCol <= 16 && ensureCellBeforeHoldWait(COLOR_BLACK, cellOff)) {
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
@@ -1541,8 +1608,17 @@ void handleGlobalSettingRelease() {
 
   // Toggle UPDATE OS value
   if (sensorCol == 16 && sensorRow == 2) {
-    switchSerialMode(!Device.serialMode);
-    storeSettings();
+    byte resetColor = COLOR_BLACK;
+    CellDisplay resetDisplay = cellOff;
+    if (Device.serialMode) {
+      resetColor = globalColor;
+      resetDisplay = cellOn;
+    }
+
+    if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
+      switchSerialMode(!Device.serialMode);
+      storeSettings();
+    }
   }
 
   if (!userFirmwareActive) {

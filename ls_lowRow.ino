@@ -110,12 +110,12 @@ void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
             }
             case lowRowCC1:
             {
-              preSendControlChange(sensorSplit, 1, constrain(xDelta >> 4, 0, 127));
+              preSendControlChange(sensorSplit, 1, constrain(xDelta >> 3, 0, 127));
               break;
             }
             case lowRowCCXYZ:
             {
-              midiSendControlChange(16, constrain(xDelta >> 4, 0, 127), Split[sensorSplit].midiChanMain);
+              midiSendControlChange(16, constrain(xDelta >> 3, 0, 127), Split[sensorSplit].midiChanMain);
               if (timbre != SHRT_MAX) {
                 midiSendControlChange(17, timbre, Split[sensorSplit].midiChanMain);
               }
