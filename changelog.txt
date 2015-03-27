@@ -1,3 +1,10 @@
+v1.1.3:
+
+  * Pitch hold quantization settings now behave consistently with the rest of the UI but being mutually
+    exclusive between medium and fast, and requiring two cells to be pressed for the slow setting.
+  * Made incoming MIDI messages on splits with ChannelPerRow mode active only highlight the exact cells that match
+    based on the channel information.
+
 v1.1.2
 
   * Removed delay on touch release so that accidental legato and note de-duplication aren't triggered anymore
