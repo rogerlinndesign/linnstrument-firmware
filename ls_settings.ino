@@ -835,10 +835,12 @@ void handlePerSplitSettingNewTouch() {
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (sensorCol == 13 && sensorRow == 4 ||
-      sensorCol == 13 && sensorRow == 5 ||
-      sensorCol == 14 && sensorRow == 6) {
-    setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
+  if (displayMode == displayPerSplit) {
+    if (sensorCol == 13 && sensorRow == 4 ||
+        sensorCol == 13 && sensorRow == 5 ||
+        sensorCol == 14 && sensorRow == 6) {
+      setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
+    }
   }
 }
 
@@ -1567,9 +1569,11 @@ void handleGlobalSettingNewTouch() {
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (sensorRow == 7 && sensorCol <= 16 ||
-      sensorCol == 16 && sensorRow == 2) {
-    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
+    if (sensorRow == 7 && sensorCol <= 16 ||
+        sensorCol == 16 && sensorRow == 2) {
+      setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+    }
   }
 }
 
