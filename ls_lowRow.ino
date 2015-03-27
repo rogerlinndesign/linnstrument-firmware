@@ -210,7 +210,7 @@ void lowRowStart() {
       break;
     case lowRowSustain:
       lowRowState[sensorSplit] = pressed;
-      preSendSustain(127);
+      preSendSustain(sensorSplit, 127);
       break;
     case lowRowBend:
       lowRowBendActive[sensorSplit] = true;
@@ -256,7 +256,7 @@ void lowRowStop() {
       break;
     case lowRowSustain:
       lowRowState[sensorSplit] = inactive;
-      preSendSustain(0);
+      preSendSustain(sensorSplit, 0);
       break;
     case lowRowArpeggiator:
     case lowRowBend:

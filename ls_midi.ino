@@ -672,7 +672,7 @@ boolean highlightExactNoteCell(byte split, byte notenum, byte channel) {
 
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
-      setLed(col, row, Split[sensorSplit].colorNoteon, cellOn, LED_LAYER_PLAYED);
+      setLed(col, row, Split[split].colorNoteon, cellOn, LED_LAYER_PLAYED);
     }
   }
 
@@ -842,7 +842,7 @@ void preSendPitchBend(byte split, int pitchValue, byte channel) {
 
 // Called to send Y-axis movements
 void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
-  switch(Split[sensorSplit].expressionForY)
+  switch(Split[split].expressionForY)
   {
     case timbrePolyPressure:
       midiSendPolyPressure(note, yValue, channel);
@@ -852,7 +852,7 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
       midiSendAfterTouch(yValue, channel);
       break;
 
-    case loudnessCC:
+    case timbreCC:
       midiSendControlChange(Split[split].ccForY, yValue, channel);
       break;
   }
@@ -860,7 +860,7 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
 
 // Called to send Z message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
 void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
-  switch(Split[sensorSplit].expressionForZ)
+  switch(Split[split].expressionForZ)
   {
     case loudnessPolyPressure:
       midiSendPolyPressure(note, pressureValue, channel);
@@ -946,8 +946,8 @@ void midiSendVolume(byte v, byte channel) {
   midiSendControlChange(7, v, channel);
 }
 
-void preSendSustain(byte v) {
-  preSendControlChange(sensorSplit, 64, v);
+void preSendSustain(byte split, byte v) {
+  preSendControlChange(split, 64, v);
 }
 
 void preSendControlChange(byte split, byte controlnum, byte v) {
