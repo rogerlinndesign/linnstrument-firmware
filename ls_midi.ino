@@ -570,6 +570,42 @@ void receivedNrpn(int parameter, int value) {
         Split[split].ccForFader[7] = value;
       }
       break;
+    // Split LowRow X Behavior
+    case 48:
+      if (inRange(value, 0, 1)) {
+        Split[split].lowRowCCXBehavior = (LowRowCCBehavior)value;
+      }
+      break;
+    // Split MIDI CC For LowRow X
+    case 49:
+      if (inRange(value, 0, 127)) {
+        Split[split].ccForLowRow = value;
+      }
+      break;
+    // Split LowRow XYZ Behavior
+    case 50:
+      if (inRange(value, 0, 1)) {
+        Split[split].lowRowCCXYZBehavior = (LowRowCCBehavior)value;
+      }
+      break;
+    // Split MIDI CC For LowRow XYZ X
+    case 51:
+      if (inRange(value, 0, 99)) {
+        Split[split].ccForLowRowX = value;
+      }
+      break;
+    // Split MIDI CC For LowRow XYZ Y
+    case 52:
+      if (inRange(value, 0, 99)) {
+        Split[split].ccForLowRowY = value;
+      }
+      break;
+    // Split MIDI CC For LowRow XYZ Z
+    case 53:
+      if (inRange(value, 0, 99)) {
+        Split[split].ccForLowRowZ = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -924,7 +960,17 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
       break;
 
     case timbreCC:
-      midiSendControlChange(Split[split].ccForY, yValue, channel);
+      // if the low row is down, only send the CC for Y if it's not being sent by the low row already
+      if ((!isLowRowCCXActive(split) ||
+            Split[split].expressionForY != timbreCC ||
+            Split[split].ccForY != Split[split].ccForLowRow) &&
+          (!isLowRowCCXYZActive(split) ||
+            Split[split].expressionForY != timbreCC ||
+            (Split[split].ccForY != Split[split].ccForLowRowX &&
+             Split[split].ccForY != Split[split].ccForLowRowY &&
+             Split[split].ccForY != Split[split].ccForLowRowZ))) {
+          midiSendControlChange(Split[split].ccForY, yValue, channel);
+      }
       break;
   }
 }
@@ -942,7 +988,15 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
       break;
 
     case loudnessCC:
-      midiSendControlChange(Split[split].ccForZ, pressureValue, channel);
+      // if the low row is down, only send the CC for Z if it's not being sent by the low row already
+      if ((!isLowRowCCXActive(split) ||
+            Split[split].ccForZ != Split[split].ccForLowRow) &&
+          (!isLowRowCCXYZActive(split) ||
+            (Split[split].ccForZ != Split[split].ccForLowRowX &&
+             Split[split].ccForZ != Split[split].ccForLowRowY &&
+             Split[split].ccForZ != Split[split].ccForLowRowZ))) {
+        midiSendControlChange(Split[split].ccForZ, pressureValue, channel);
+      }
       break;
   }
 }

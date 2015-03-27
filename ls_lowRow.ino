@@ -19,7 +19,8 @@ enum ColumnState {
 
 ColumnState lowRowState[NUMCOLS];
 boolean lowRowBendActive[NUMSPLITS];
-boolean lowRowCC1Active[NUMSPLITS];
+boolean lowRowCCXActive[NUMSPLITS];
+boolean lowRowCCXYZActive[NUMSPLITS];
 short lowRowInitialColumn[NUMSPLITS];
 
 inline boolean isLowRow() {
@@ -37,7 +38,8 @@ void initializeLowRowState() {
   }
   for (byte split = 0; split < NUMSPLITS; ++split) {
     lowRowBendActive[split] = false;
-    lowRowCC1Active[split] = false;
+    lowRowCCXActive[split] = false;
+    lowRowCCXYZActive[split] = false;
     lowRowInitialColumn[split] = -1;
   }
 }
@@ -51,7 +53,7 @@ boolean lowRowRequiresSlideTracking() {
       return false;
     case lowRowArpeggiator:
     case lowRowBend:
-    case lowRowCC1:
+    case lowRowCCX:
     case lowRowCCXYZ:
       return true;
   }
@@ -64,7 +66,7 @@ boolean allowNewTouchOnLowRow() {
     case lowRowStrum:
     case lowRowArpeggiator:
     case lowRowBend:
-    case lowRowCC1:
+    case lowRowCCX:
     case lowRowCCXYZ:
       return true;
     case lowRowSustain:
@@ -75,24 +77,63 @@ boolean allowNewTouchOnLowRow() {
 #define LOWROW_X_LEFT_LIMIT   0
 #define LOWROW_X_RIGHT_LIMIT  4095
 
-void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
+void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte pressure) {
   // if we're processing a low-row sensor, mark the appropriate column as continuous
   // if it was previously presssed
   if (isLowRow()) {
+    // get fader dimensions for possible later use
+    byte faderLeft, faderLength;
+    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
+
+    // it's a new touch which is complementary to lowRowStart since we have access to the expression data
+    if (newVelocity) {
+      // when the fader only spans one cell, it acts as a toggle in fader mode
+      if (faderLength == 0) {
+        switch (Split[sensorSplit].lowRowMode)
+        {
+          case lowRowCCX:
+          {
+            if (Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader) {
+              if (ccFaderValues[sensorSplit][Split[sensorSplit].ccForLowRow] > 0) {
+                sendLowRowCCX(0);
+              }
+              else {
+                sendLowRowCCX(127);
+              }
+            }
+            break;
+          }
+          case lowRowCCXYZ:
+          {
+            // determine the X value based on the fader behavior, also update the fader position if that's needed
+            if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+              if (ccFaderValues[sensorSplit][Split[sensorSplit].ccForLowRowX] > 0) {
+                sendLowRowCCXYZ(0, timbre, pressure);
+              }
+              else {
+                sendLowRowCCXYZ(127, timbre, pressure);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
     // send out the continuous data for the low row cells
-    if (sensorCell().velocity) {
+    else if (sensorCell().velocity) {
       switch (Split[sensorSplit].lowRowMode)
       {
         case lowRowArpeggiator:
         case lowRowBend:
-        case lowRowCC1:
+        case lowRowCCX:
         case lowRowCCXYZ:
           // We limit the low row data to not go past the center of the leftmost and rightmost cell.
           // This gives us exactly 2 octaves in the main split.
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          short xDelta = sensorCell().calibratedX() - sensorCell().initialX;
+          short xDelta = constrain((sensorCell().calibratedX() - sensorCell().initialX) >> 3, 0, 127);
+          short xPosition = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
 
           switch (Split[sensorSplit].lowRowMode)
           {
@@ -108,18 +149,29 @@ void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
               }
               break;
             }
-            case lowRowCC1:
+            case lowRowCCX:
             {
-              preSendControlChange(sensorSplit, 1, constrain(xDelta >> 3, 0, 127));
+              if (Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader) {
+                if (faderLength > 0) {
+                  sendLowRowCCX(xPosition);
+                }
+              }
+              else {
+                sendLowRowCCX(xDelta);
+              }
+
               break;
             }
             case lowRowCCXYZ:
             {
-              midiSendControlChange(16, constrain(xDelta >> 3, 0, 127), Split[sensorSplit].midiChanMain);
-              if (timbre != SHRT_MAX) {
-                midiSendControlChange(17, timbre, Split[sensorSplit].midiChanMain);
+              if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+                if (faderLength > 0) {
+                  sendLowRowCCXYZ(xPosition, timbre, pressure);
+                }
               }
-              midiSendControlChange(18, pressure, Split[sensorSplit].midiChanMain);
+              else {
+                sendLowRowCCXYZ(xDelta, timbre, pressure);
+              }
               break;
             }
           }
@@ -134,7 +186,7 @@ void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
       case lowRowArpeggiator:
       case lowRowSustain:
       case lowRowBend:
-      case lowRowCC1:
+      case lowRowCCX:
       case lowRowCCXYZ:
         if (lowRowState[sensorSplit] == pressed) {
           lowRowState[sensorSplit] = continuous;
@@ -158,6 +210,30 @@ void handleLowRowState(short pitchBend, byte timbre, byte pressure) {
         break;
     }
   }
+}
+
+void sendLowRowCCX(unsigned short x) {
+  if (Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader) {
+    ccFaderValues[sensorSplit][Split[sensorSplit].ccForLowRow] = x;
+    paintCCFaderDisplayRow(sensorSplit, sensorRow, Split[sensorSplit].colorLowRow, Split[sensorSplit].ccForLowRow);
+  }
+
+  // send out the MIDI CC
+  midiSendControlChange(Split[sensorSplit].ccForLowRow, x, Split[sensorSplit].midiChanMain);
+}
+
+void sendLowRowCCXYZ(unsigned short x, short y, short z) {
+  if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+    ccFaderValues[sensorSplit][Split[sensorSplit].ccForLowRowX] = x;
+    paintCCFaderDisplayRow(sensorSplit, sensorRow, Split[sensorSplit].colorLowRow, Split[sensorSplit].ccForLowRowX);
+  }
+
+  // send out the MIDI CCs
+  midiSendControlChange(Split[sensorSplit].ccForLowRowX, x, Split[sensorSplit].midiChanMain);
+  if (y != SHRT_MAX) {
+    midiSendControlChange(Split[sensorSplit].ccForLowRowY, y, Split[sensorSplit].midiChanMain);
+  }
+  midiSendControlChange(Split[sensorSplit].ccForLowRowZ, z, Split[sensorSplit].midiChanMain);
 }
 
 void handleLowRowRestrike() {
@@ -216,11 +292,12 @@ void lowRowStart() {
       lowRowBendActive[sensorSplit] = true;
       startLowRowContinuousExpression();
       break;
-    case lowRowCC1:
-      lowRowCC1Active[sensorSplit] = true;
+    case lowRowCCX:
+      lowRowCCXActive[sensorSplit] = true;
       startLowRowContinuousExpression();
       break;
     case lowRowCCXYZ:
+      lowRowCCXYZActive[sensorSplit] = true;
       startLowRowContinuousExpression();
       break;
   }
@@ -260,7 +337,7 @@ void lowRowStop() {
       break;
     case lowRowArpeggiator:
     case lowRowBend:
-    case lowRowCC1:
+    case lowRowCCX:
     case lowRowCCXYZ:
       if (sensorCell().velocity) {
         // handle taking over an already active touch, the highest already active touch wins
@@ -286,16 +363,21 @@ void lowRowStop() {
               lowRowBendActive[sensorSplit] = false;
               preSendPitchBend(sensorSplit, 0);
               break;
-            case lowRowCC1:
-              // reset CC 1 since no low row touch is active anymore
-              lowRowCC1Active[sensorSplit] = false;
-              preSendControlChange(sensorSplit, 1, 0);
+            case lowRowCCX:
+              lowRowCCXActive[sensorSplit] = false;
+              if (Split[sensorSplit].lowRowCCXBehavior == lowRowCCHold) {
+                // reset CC for lowRowX since no low row touch is active anymore
+                midiSendControlChange(Split[sensorSplit].ccForLowRow, 0, Split[sensorSplit].midiChanMain);
+              }
               break;
             case lowRowCCXYZ:
-              // reset CCs 16,17,18 since no low row touch is active anymore
-              midiSendControlChange(16, 0, Split[sensorSplit].midiChanMain);
-              midiSendControlChange(17, 0, Split[sensorSplit].midiChanMain);
-              midiSendControlChange(18, 0, Split[sensorSplit].midiChanMain);
+              lowRowCCXYZActive[sensorSplit] = false;
+              if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCHold) {
+                // reset CCs for lowRowXYZ since no low row touch is active anymore
+                midiSendControlChange(Split[sensorSplit].ccForLowRowX, 0, Split[sensorSplit].midiChanMain);
+                midiSendControlChange(Split[sensorSplit].ccForLowRowY, 0, Split[sensorSplit].midiChanMain);
+                midiSendControlChange(Split[sensorSplit].ccForLowRowZ, 0, Split[sensorSplit].midiChanMain);
+              }
               break;
           }
 
@@ -314,6 +396,10 @@ inline boolean isLowRowBendActive(byte split) {
   return lowRowBendActive[split];
 }
 
-inline boolean isLowRowCC1Active(byte split) {
-  return lowRowCC1Active[split];
+inline boolean isLowRowCCXActive(byte split) {
+  return lowRowCCXActive[split];
+}
+
+inline boolean isLowRowCCXYZActive(byte split) {
+  return lowRowCCXYZActive[split];
 }

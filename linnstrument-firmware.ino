@@ -348,6 +348,8 @@ enum DisplayMode {
   displayCCForY,
   displayCCForZ,
   displayCCForFader,
+  displayLowRowCCXConfig,
+  displayLowRowCCXYZConfig,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -396,8 +398,13 @@ enum LowRowMode {
   lowRowStrum,
   lowRowArpeggiator,
   lowRowBend,
-  lowRowCC1,
+  lowRowCCX,
   lowRowCCXYZ
+};
+
+enum LowRowCCBehavior {
+  lowRowCCHold = 0,
+  lowRowCCFader = 1
 };
 
 enum MidiMode {
@@ -449,6 +456,12 @@ struct SplitSettings {
   byte colorNoteon;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
+  byte lowRowCCXBehavior;              // see LowRowCCBehavior values
+  unsigned short ccForLowRow;          // 0-127
+  byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;         // 0-99
+  unsigned short ccForLowRowY;         // 0-99
+  unsigned short ccForLowRowZ;         // 0-99
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
@@ -685,6 +698,9 @@ int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message
 short audienceMessageLength = 0;                    // the length in pixels of the audience message to edit
+
+byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
+byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
 

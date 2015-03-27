@@ -22,6 +22,8 @@ displayBendRange            ; custom bend range selection for X expression
 displayCCForY               : custom CC number selection for Y expression
 displayCCForZ               : custom CC number selection for Z expression
 displayCCForFader           : custom CC number selection for a CC fader
+displayLowRowCCXConfig      : custom CC number selection and behavior for LowRow in CCX mode
+displayLowRowCCXYZConfig    : custom CC number selection and behavior for LowRow in CCXYZ mode
 displaySensorLoZ            : sensor low Z sensitivity selection
 displaySensorFeatherZ       : sensor feather Z sensitivity selection
 displaySensorRangeZ         : max Z sensor range selection
@@ -99,6 +101,12 @@ void updateDisplay() {
     break;
   case displayCCForFader:
     paintCCForFaderDisplay(Global.currentPerSplit);
+    break;
+  case displayLowRowCCXConfig:
+    paintLowRowCCXConfigDisplay(Global.currentPerSplit);
+    break;
+  case displayLowRowCCXYZConfig:
+    paintLowRowCCXYZConfigDisplay(Global.currentPerSplit);
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -196,21 +204,33 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
       for (byte col = leftEdge; col < rightEdge; ++col) {
         paintNormalDisplayCell(split, col, row);
       }
+
+      if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
+        if (Split[split].lowRowMode == lowRowCCX && Split[split].lowRowCCXBehavior == lowRowCCFader) {
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow);
+        }
+        if (Split[split].lowRowMode == lowRowCCXYZ && Split[split].lowRowCCXYZBehavior == lowRowCCFader) {
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRowX);
+        }
+      }
     }
+
     performContinuousTasks(micros());
   }
 }
 
 void paintCCFaderDisplayRow(byte split, byte row) {
+  paintCCFaderDisplayRow(split, row, Split[split].colorMain, Split[split].ccForFader[row]);
+}
+
+void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader) {
   byte faderLeft, faderLength;
   determineFaderBoundaries(split, faderLeft, faderLength);
-
-  unsigned short ccForFader = Split[split].ccForFader[row];
 
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
       if (ccFaderValues[split][ccForFader] > 0) {
-        setLed(faderLeft, row, Split[split].colorMain, cellOn);
+        setLed(faderLeft, row, color, cellOn);
       }
       else {
         clearLed(faderLeft, row);
@@ -225,7 +245,7 @@ void paintCCFaderDisplayRow(byte split, byte row) {
         clearLed(col, row);
       }
       else {
-        setLed(col, row, Split[split].colorMain, cellOn);
+        setLed(col, row, color, cellOn);
       }
     }
   }
@@ -284,8 +304,15 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
     // if the low row is anything but normal, set it to the appropriate color
     if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
-      colour = Split[split].colorLowRow;
-      cellDisplay = cellOn;
+      if (Split[split].lowRowMode == lowRowCCX && Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader ||
+          Split[split].lowRowMode == lowRowCCXYZ && Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+        colour = COLOR_BLACK;
+        cellDisplay = cellOff;
+      }
+      else {
+        colour = Split[split].colorLowRow;
+        cellDisplay = cellOn;
+      }
     }
   }
 
@@ -460,7 +487,7 @@ void paintPerSplitDisplay(byte side) {
     case lowRowBend:
       setLed(13, 6, Split[side].colorMain, cellOn);
       break;
-    case lowRowCC1:
+    case lowRowCCX:
       setLed(13, 5, Split[side].colorMain, cellOn);
       break;
     case lowRowCCXYZ:
@@ -554,49 +581,100 @@ void paintCCForFaderDisplay(byte side) {
   paintSplitNumericDataDisplay(side, Split[side].ccForFader[currentEditedCCFader[side]]);
 }
 
+void paintLowRowCCXConfigDisplay(byte side) {
+  clearDisplay();
+  switch (lowRowCCXConfigState) {
+    case 1:
+      switch (Split[Global.currentPerSplit].lowRowCCXBehavior) {
+        case lowRowCCHold:
+          bigfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
+          break;
+        case lowRowCCFader:
+          bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
+          break;
+      }
+      break;
+    case 0:
+      paintSplitNumericDataDisplay(side, Split[side].ccForLowRow);
+      break;
+    }
+}
+
+void paintLowRowCCXYZConfigDisplay(byte side) {
+  clearDisplay();
+  switch (lowRowCCXYZConfigState) {
+    case 3:
+      switch (Split[Global.currentPerSplit].lowRowCCXYZBehavior) {
+        case lowRowCCHold:
+          bigfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
+          break;
+        case lowRowCCFader:
+          bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
+          break;
+      }
+      break;
+    case 2:
+      bigfont_draw_string(0, 0, "X", Split[side].colorMain, true);
+      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowX, 1);
+      break;
+    case 1:
+      bigfont_draw_string(0, 0, "Y", Split[side].colorMain, true);
+      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowY, 1);
+      break;
+    case 0:
+      bigfont_draw_string(0, 0, "Z", Split[side].colorMain, true);
+      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowZ, 1);
+      break;
+  }
+}
+
 void paintSensorLoZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorLoZ);
+  paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0);
 }
 
 void paintSensorFeatherZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorFeatherZ);
+  paintNumericDataDisplay(globalColor, Device.sensorFeatherZ, 0);
 }
 
 void paintSensorRangeZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorRangeZ);
+  paintNumericDataDisplay(globalColor, Device.sensorRangeZ, 0);
 }
 
 void paintSplitNumericDataDisplay(byte side, byte value) {
-  paintShowSplitSelection(side);
-  paintNumericDataDisplay(Split[side].colorMain, value);
+  paintSplitNumericDataDisplay(side, value, 0);
 }
 
-void paintNumericDataDisplay(byte color, unsigned short value) {
+void paintSplitNumericDataDisplay(byte side, byte value, byte offset) {
+  paintShowSplitSelection(side);
+  paintNumericDataDisplay(Split[side].colorMain, value, offset);
+}
+
+void paintNumericDataDisplay(byte color, unsigned short value, byte offset) {
   char str[10];
   char* format;
-  byte offset;
+  byte pos;
 
   if (value < 100) {
     format = "%2d";
-    offset = 5;
+    pos = 5;
   }
   else if (value >= 100 && value < 200) {
     // Handle the "1" character specially, to get the spacing right
     smallfont_draw_string(0, 0, "1", color, false);
     value -= 100;
     format = "%02d";     // to make sure a leading zero is included
-    offset = 5;
+    pos = 5;
   }
   else {
     format = "%-d";
-    offset = 0;
+    pos = 0;
   }
 
   snprintf(str, sizeof(str), format, value);
-  smallfont_draw_string(offset, 0, str, color, false);
+  smallfont_draw_string(pos+offset, 0, str, color, false);
 }
 
 // draw a horizontal line to indicate volume for a particular side

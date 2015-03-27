@@ -454,6 +454,12 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
   t->colorNoteon = s->colorNoteon;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = lowRowCCHold;
+  t->ccForLowRow = 1;
+  t->lowRowCCXYZBehavior = lowRowCCHold;
+  t->ccForLowRowX = 16;
+  t->ccForLowRowY = 17;
+  t->ccForLowRowZ = 18;
   t->transposeOctave = s->transposeOctave;
   t->transposePitch = s->transposePitch;
   t->transposeLights = s->transposeLights;
@@ -513,6 +519,12 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
   t->colorNoteon = s->colorNoteon;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = lowRowCCHold;
+  t->ccForLowRow = 1;
+  t->lowRowCCXYZBehavior = lowRowCCHold;
+  t->ccForLowRowX = 16;
+  t->ccForLowRowY = 17;
+  t->ccForLowRowZ = 18;
   t->transposeOctave = s->transposeOctave;
   t->transposePitch = s->transposePitch;
   t->transposeLights = s->transposeLights;

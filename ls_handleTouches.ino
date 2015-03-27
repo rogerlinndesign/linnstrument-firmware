@@ -364,37 +364,43 @@ void handleNewTouch() {
       }
 
       break;
-    case displayPerSplit:                                          // it's a change to one of the Split settings
+    case displayPerSplit:
       handlePerSplitSettingNewTouch();
       break;
-    case displayPreset:                                            // it's a preset change
+    case displayPreset:
       handlePresetNewTouch();
       break;
-    case displayBendRange:                                         // it's a bend range change
+    case displayBendRange:
       handleBendRangeNewTouch();
       break;
-    case displayCCForY:                                            // it's a CC for Y change
+    case displayCCForY:
       handleCCForYNewTouch();
       break;
-    case displayCCForZ:                                            // it's a CC for Z change
+    case displayCCForZ:
       handleCCForZNewTouch();
       break;
-    case displayCCForFader:                                        // it's a CC for fader change
+    case displayCCForFader:
       handleCCForFaderNewTouch();
       break;
-    case displaySensorLoZ:                                         // it's a sensor low Z change
+    case displayLowRowCCXConfig:
+      handleLowRowCCXConfigNewTouch();
+      break;
+    case displayLowRowCCXYZConfig:
+      handleLowRowCCXYZConfigNewTouch();
+      break;
+    case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
-    case displaySensorFeatherZ:                                    // it's a sensor feather Z change
+    case displaySensorFeatherZ:
       handleSensorFeatherZNewTouch();
       break;
-    case displaySensorRangeZ:                                      // it's a sensor Z range change
+    case displaySensorRangeZ:
       handleSensorRangeZNewTouch();
       break;
-    case displayOctaveTranspose:                                   // it's a transpose change
+    case displayOctaveTranspose:
       handleOctaveTransposeNewTouch();
       break;
-    case displayGlobal:                                            // it's a change to one of the global settings
+    case displayGlobal:
     case displayGlobalWithTempo:
       handleGlobalSettingNewTouch();
       break;
@@ -591,10 +597,8 @@ void handleXYZupdate() {
     valueY = handleYExpression();
   }
 
-  // update the low row state unless this was a new low row touch, which is handled by lowRowStart()
-  if (!newVelocity || !isLowRow()) {
-    handleLowRowState(valueX, valueY, valueZ);
-  }
+  // update the low row state
+  handleLowRowState(newVelocity, valueX, valueY, valueZ);
 
   // the volume fader has its own operation mode
   if (displayMode == displayVolume) {
@@ -644,7 +648,7 @@ void handleXYZupdate() {
       // if X-axis movements are enabled and it's a candidate for
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueX != INVALID_DATA &&
-          isXExpressiveCell() && Split[sensorSplit].sendX && !isLowRowBendActive(sensorSplit)) {
+          Split[sensorSplit].sendX && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
         int pitch = valueX;
         if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
           pitch = 0;
@@ -655,8 +659,7 @@ void handleXYZupdate() {
       // if Y-axis movements are enabled and it's a candidate for
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueY != INVALID_DATA &&
-          isYExpressiveCell() && Split[sensorSplit].sendY &&
-          (!isLowRowCC1Active(sensorSplit) || Split[sensorSplit].ccForY != 1)) {
+          Split[sensorSplit].sendY && isYExpressiveCell()) {
         preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
       }
     }
@@ -998,6 +1001,12 @@ void handleTouchRelease() {
     case displayCCForFader:
       handleCCForFaderRelease();
       return;
+    case displayLowRowCCXConfig:
+      handleLowRowCCXConfigRelease();
+      break;
+    case displayLowRowCCXYZConfig:
+      handleLowRowCCXYZConfigRelease();
+      break;
     case displaySensorLoZ:
       handleSensorLoZRelease();
       return;

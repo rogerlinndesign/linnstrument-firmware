@@ -297,6 +297,12 @@ void initializePresetSettings() {
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
+        p.split[s].lowRowCCXBehavior = lowRowCCHold;
+        p.split[s].ccForLowRow = 1;
+        p.split[s].lowRowCCXYZBehavior = lowRowCCHold;
+        p.split[s].ccForLowRowX = 16;
+        p.split[s].ccForLowRowY = 17;
+        p.split[s].ccForLowRowZ = 18;
         p.split[s].transposeOctave = 0;
         p.split[s].transposePitch = 0;
         p.split[s].transposeLights = 0;
@@ -634,6 +640,10 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
   return false;
 }
 
+boolean isCellPastHoldWait() {
+  return sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY;
+}
+
 void handlePerSplitSettingNewTouch() {
   // start tracking the touch duration to be able to enable hold functionality
   sensorCell().lastTouch = millis();
@@ -800,12 +810,6 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorRow == 6) {
       Split[Global.currentPerSplit].lowRowMode = lowRowBend;
     }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowCC1;
-    }
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
-    }
 
   } else if (sensorCol == 14) {
 
@@ -831,34 +835,61 @@ void handlePerSplitSettingNewTouch() {
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (sensorCol == 14 && sensorRow == 6) {
+  if (sensorCol == 13 && sensorRow == 4 ||
+      sensorCol == 13 && sensorRow == 5 ||
+      sensorCol == 14 && sensorRow == 6) {
     setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
   }
 }
 
 void handlePerSplitSettingHold() {
-  if (sensorCol == 14 && sensorRow == 6 &&
-      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+  if (isCellPastHoldWait()) {
     sensorCell().lastTouch = 0;
 
-    // initialize the touch-slide interface
-    resetNumericDataChange();
-
-    // switch to edit audience message
-    setDisplayMode(displayCCForFader);
-
-    // show the editing mode
-    updateDisplay();
+    if (sensorCol == 13 && sensorRow == 5) {
+      lowRowCCXConfigState = 1;
+      resetNumericDataChange();
+      setDisplayMode(displayLowRowCCXConfig);
+      updateDisplay();
+    }
+    else if (sensorCol == 13 && sensorRow == 4) {
+      lowRowCCXYZConfigState = 3;
+      resetNumericDataChange();
+      setDisplayMode(displayLowRowCCXYZConfig);
+      updateDisplay();
+    }
+    else if (sensorCol == 14 && sensorRow == 6) {
+      resetNumericDataChange();
+      setDisplayMode(displayCCForFader);
+      updateDisplay();
+    }
   }
 }
 
 void handlePerSplitSettingRelease() {
-  if (sensorCol == 14 && sensorRow == 6 &&
-      ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
-    Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
-    if (Split[Global.currentPerSplit].ccFaders) {
-      Split[Global.currentPerSplit].arpeggiator = false;
-      Split[Global.currentPerSplit].strum = false;
+  if (sensorCol == 13) {
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].lowRowMode == lowRowCCX && sensorRow == 5 ||
+        Split[Global.currentPerSplit].lowRowMode == lowRowCCXYZ && sensorRow == 4) {
+      resetDisplay = cellOn;
+    }
+    
+    if (ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, resetDisplay)) {
+      if (sensorRow == 5) {
+        Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
+      }
+      else if (sensorRow == 4) {
+        Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
+      }
+    }
+  }
+  else if (sensorCol == 14 && sensorRow == 6) {
+    if (ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
+      Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
+      if (Split[Global.currentPerSplit].ccFaders) {
+        Split[Global.currentPerSplit].arpeggiator = false;
+        Split[Global.currentPerSplit].strum = false;
+      }
     }
   }
 
@@ -929,8 +960,7 @@ void startPresetLEDBlink(byte p, byte color) {
 void handlePresetHold() {
   if (sensorCol == NUMCOLS-2 &&
       sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
-      sensorCell().lastTouch != 0 &&
-      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+      isCellPastHoldWait()) {
     // store to the selected preset
     byte preset = sensorRow-2;
     storeSettingsToPreset(preset);
@@ -944,7 +974,7 @@ void handlePresetHold() {
 
 void applyMidiPreset() {
   byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendPreset(midiPreset[Global.currentPerSplit], chan);         // Send the MIDI program change message
+  midiSendPreset(midiPreset[Global.currentPerSplit], chan);
 }
 
 void handlePresetRelease() {
@@ -1019,6 +1049,46 @@ void handleCCForFaderRelease() {
   if (sensorCol < NUMCOLS-1) {
     handleNumericDataReleaseCol(true);
   }
+}
+
+void handleLowRowCCXConfigNewTouch() {
+  switch (lowRowCCXConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, true);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(lowRowCCXConfigState, 0, 1, true);
+}
+
+void handleLowRowCCXConfigRelease() {
+  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
+}
+
+void handleLowRowCCXYZConfigNewTouch() {
+  switch (lowRowCCXYZConfigState) {
+    case 3:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, true);
+      break;
+    case 2:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 99, false);
+      break;
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 99, false);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 99, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3, true);
+}
+
+void handleLowRowCCXYZConfigRelease() {
+  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
 }
 
 void handleSensorLoZNewTouch() {
@@ -1179,7 +1249,6 @@ void handleTempoNewTouch() {
 void changeUserFirmwareMode(boolean active) {
   if (userFirmwareActive == active) return;
 
-  sensorCell().lastTouch = 0;
   controlButton = -1;
   userFirmwareActive = active;
 
@@ -1516,40 +1585,43 @@ void changeMidiIO(byte where) {
 
 void handleGlobalSettingHold() {
 
-  // handle switch to/from User Firmware Mode
-  if (sensorCol == 16 && sensorRow == 2 && cell(16, 0).touched == untouchedCell &&
-      sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
-    changeUserFirmwareMode(!userFirmwareActive);
-  }
-
-  if (sensorRow == 7 && sensorCell().lastTouch != 0 &&
-      calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY) {
+  if (isCellPastHoldWait()) {
     sensorCell().lastTouch = 0;
 
-    // initialize the touch-slide interface
-    resetNumericDataChange();
-
-    // switch to edit audience message
-    setDisplayMode(displayEditAudienceMessage);
-
-    // set the information of the edited message
-    audienceMessageOffset = 0;
-    audienceMessageToEdit = sensorCol - 1;
-
-    // fill in all 30 spaces of the message
-    int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
-    if (strl < 30) {
-      for (byte ch = strl; ch < 30; ++ch) {
-        Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
-      }
+    // handle switch to/from User Firmware Mode
+    if (sensorCol == 16 && sensorRow == 2 &&
+      // ensure that this is not a reset operation instead
+      cell(16, 0).touched == untouchedCell) {
+      changeUserFirmwareMode(!userFirmwareActive);
     }
-    Device.audienceMessages[audienceMessageToEdit][30] = '\0';
 
-    // calculate the length of the message to edit
-    audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
+    if (sensorRow == 7) {
 
-    // show the editing mode
-    updateDisplay();
+      // initialize the touch-slide interface
+      resetNumericDataChange();
+
+      // switch to edit audience message
+      setDisplayMode(displayEditAudienceMessage);
+
+      // set the information of the edited message
+      audienceMessageOffset = 0;
+      audienceMessageToEdit = sensorCol - 1;
+
+      // fill in all 30 spaces of the message
+      int strl = strlen(Device.audienceMessages[audienceMessageToEdit]);
+      if (strl < 30) {
+        for (byte ch = strl; ch < 30; ++ch) {
+          Device.audienceMessages[audienceMessageToEdit][ch] = ' ';
+        }
+      }
+      Device.audienceMessages[audienceMessageToEdit][30] = '\0';
+
+      // calculate the length of the message to edit
+      audienceMessageLength = font_width_string(Device.audienceMessages[audienceMessageToEdit], &bigFont) - NUMCOLS;
+
+      // show the editing mode
+      updateDisplay();
+    }
   }
 }
 
