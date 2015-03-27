@@ -598,7 +598,9 @@ void handleXYZupdate() {
   }
 
   // update the low row state
-  handleLowRowState(newVelocity, valueX, valueY, valueZ);
+  if (!userFirmwareActive) {
+    handleLowRowState(newVelocity, valueX, valueY, valueZ);
+  }
 
   // the volume fader has its own operation mode
   if (displayMode == displayVolume) {

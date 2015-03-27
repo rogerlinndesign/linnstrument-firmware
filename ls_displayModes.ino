@@ -205,7 +205,7 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
         paintNormalDisplayCell(split, col, row);
       }
 
-      if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
+      if (!userFirmwareActive && row == 0 && Split[split].lowRowMode != lowRowNormal) {
         if (Split[split].lowRowMode == lowRowCCX && Split[split].lowRowCCXBehavior == lowRowCCFader) {
           paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow);
         }
