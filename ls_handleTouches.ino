@@ -725,7 +725,7 @@ void handleNewNote(signed char notenum) {
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
   // send the note on
-  if (!isArpeggiatorEnabled(sensorSplit) && !isStrummedSplit(sensorSplit)) {
+  if (!isArpeggiatorEnabled(sensorSplit)) {
     midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
   }
 
