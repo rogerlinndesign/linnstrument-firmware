@@ -1062,7 +1062,7 @@ void handleLowRowCCXConfigNewTouch() {
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 127, false);
       break;
   }
-  handleNumericDataNewTouchRow(lowRowCCXConfigState, 0, 1, true);
+  handleNumericDataNewTouchRow(lowRowCCXConfigState, 0, 1);
 }
 
 void handleLowRowCCXConfigRelease() {
@@ -1085,7 +1085,7 @@ void handleLowRowCCXYZConfigNewTouch() {
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 99, false);
       break;
   }
-  handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3, true);
+  handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3);
 }
 
 void handleLowRowCCXYZConfigRelease() {
@@ -1694,7 +1694,7 @@ void handleEditAudienceMessageNewTouch() {
   int characterPosition = constrain(sensorCol - audienceMessageOffset, 0, INT_MAX) / 6;
   int characterIndex = constrain(characterPosition, 0, textLength - 1);
   if (characterPosition <= 30) {
-    handleNumericDataNewTouchRow(Device.audienceMessages[audienceMessageToEdit][characterIndex], ' ', '~', true);
+    handleNumericDataNewTouchRow(Device.audienceMessages[audienceMessageToEdit][characterIndex], ' ', '~');
   }
 }
 

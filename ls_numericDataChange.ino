@@ -149,8 +149,8 @@ void handleNumericDataReleaseCol(boolean handleSplitSelection) {
   numericDataReleaseColTime = micros();
 }
 
-boolean handleNumericDataNewTouchRow(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
-  unsigned short newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum, useFineChanges);
+boolean handleNumericDataNewTouchRow(unsigned short &currentData, unsigned short minimum, unsigned short maximum) {
+  unsigned short newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum);
   if (newData != currentData) {
     currentData = newData;
     updateDisplay();
@@ -160,8 +160,8 @@ boolean handleNumericDataNewTouchRow(unsigned short &currentData, unsigned short
   return false;
 }
 
-boolean handleNumericDataNewTouchRow(byte &currentData, byte minimum, byte maximum, boolean useFineChanges) {
-  byte newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum, useFineChanges);
+boolean handleNumericDataNewTouchRow(byte &currentData, byte minimum, byte maximum) {
+  byte newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum);
   if (newData != currentData) {
     currentData = newData;
     updateDisplay();
@@ -171,8 +171,8 @@ boolean handleNumericDataNewTouchRow(byte &currentData, byte minimum, byte maxim
   return false;
 }
 
-boolean handleNumericDataNewTouchRow(char &currentData, char minimum, char maximum, boolean useFineChanges) {
-  char newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum, useFineChanges);
+boolean handleNumericDataNewTouchRow(char &currentData, char minimum, char maximum) {
+  char newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum);
   if (newData != currentData) {
     currentData = newData;
     updateDisplay();
@@ -182,8 +182,8 @@ boolean handleNumericDataNewTouchRow(char &currentData, char minimum, char maxim
   return false;
 }
 
-boolean handleNumericDataNewTouchRow(short &currentData, short minimum, short maximum, boolean useFineChanges) {
-  short newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum, useFineChanges);
+boolean handleNumericDataNewTouchRow(short &currentData, short minimum, short maximum) {
+  short newData = handleNumericDataNewTouchRowRaw(currentData, minimum, maximum);
   if (newData != currentData) {
     currentData = newData;
     updateDisplay();
@@ -193,7 +193,7 @@ boolean handleNumericDataNewTouchRow(short &currentData, short minimum, short ma
   return false;
 }
 
-int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, boolean useFineChanges) {
+int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum) {
   unsigned long now = micros();
 
   // If there are no rows down, reset so that things are
@@ -227,7 +227,10 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum, b
         increment = 2;
       }
 
-      if (useFineChanges && abs(numericDataChangeRow - sensorRow) <= 3) {
+      if (abs(numericDataChangeRow - sensorRow) <= 1) {
+        increment = 0;
+      }
+      else if (abs(numericDataChangeRow - sensorRow) <= 3) {
         increment = 1;
       }
 
