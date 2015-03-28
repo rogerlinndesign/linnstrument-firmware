@@ -157,42 +157,60 @@ void modeLoopManufacturingTest() {
   TouchState previousTouch = sensorCell().touched;
   sensorCell().refreshZ();
 
-  unsigned short threshold = Device.sensorLoZ + 127;
+  unsigned short threshold = Device.sensorLoZ + 384;
 
   // highlight the touches
   if (previousTouch != touchedCell && sensorCell().currentRawZ > threshold) {
-    sensorCell().touched = touchedCell;
+    cellTouched(touchedCell);
 
     byte color = COLOR_OFF;
     switch (sensorRow)
     {
       case 0:
       case 1:
-        color = COLOR_RED;
+        color = COLOR_YELLOW;
         break;
       case 2:
+        color = COLOR_MAGENTA;
+        break;
       case 3:
-        color = COLOR_GREEN;
+        color = COLOR_CYAN;
         break;
       case 4:
       case 5:
         color = COLOR_BLUE;
         break;
       case 6:
+        color = COLOR_GREEN;
+        break;
       case 7:
-        color = COLOR_CYAN;
+        color = COLOR_RED;
         break;
     }
 
-    for (int row = sensorRow % 2; row < NUMROWS; row += 2) {
-      setLed(sensorCol, row, color, cellOn);
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        setLed(col, row, color, cellOn);
+      }
     }
   }
   else if (previousTouch != untouchedCell && sensorCell().currentRawZ <= threshold) {
-    sensorCell().touched = untouchedCell;
+    cellTouched(untouchedCell);
 
-    for (int row = sensorRow % 2; row < NUMROWS; row += 2) {
-      clearLed(sensorCol, row);
+    boolean hasTouches = false;
+    for (int r = 0; r < NUMROWS; ++r) {
+      if (colsInRowsTouched[r]) {
+        hasTouches = true;
+        break;
+      }
+    }
+    
+    if (!hasTouches) {
+      for (byte col = 0; col < NUMCOLS; ++col) {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          clearLed(col, row);
+        }
+      }
     }
   }
 
