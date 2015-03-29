@@ -1038,6 +1038,9 @@ void handleTouchRelease() {
   // mark this cell as no longer touched
   cellTouched(untouchedCell);
 
+  // release open strings if no touches are down anymore
+  handleOpenStringsRelease();
+
   // if touch release is in column 0, it's a command key release so handle it
   if (sensorCol == 0 &&
       // user firmware mode only handles the global settings command button
@@ -1174,9 +1177,6 @@ void handleTouchRelease() {
   sensorCell().vcount = 0;
 
   sensorCell().clearSensorData();
-
-  // release open strings if no touches are down anymore
-  handleOpenStringsRelease();
 }
 
 void handleOpenStringsRelease() {
