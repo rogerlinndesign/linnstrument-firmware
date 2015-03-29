@@ -8,26 +8,6 @@ These functions handle the CC faders for each split
 
 #define CC_FADER_NUMBER_OFFSET 1
 
-boolean hasTouchInSplitOnRow(byte split, byte row) {
-  if (colsInRowsTouched[row]) {
-    // if split is not active and there a touch on the row, it's obviously in the current split
-    if (!splitActive) {
-      return true;
-    }
-
-    // determine which columns need to be active in the touched row for this to be considered
-    // part of either split
-    if (split == LEFT && (colsInRowsTouched[row] & ((int32_t)(1 << Global.splitPoint) - 1))) {
-      return true;
-    }
-    if (split == RIGHT && (colsInRowsTouched[row] & ~((int32_t)(1 << Global.splitPoint) - 1))) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 void handleFaderTouch(boolean newVelocity) {
   if (sensorCell().velocity) {
     unsigned short ccForFader = Split[sensorSplit].ccForFader[sensorRow];

@@ -197,15 +197,7 @@ void modeLoopManufacturingTest() {
   else if (previousTouch != untouchedCell && sensorCell().currentRawZ <= threshold) {
     cellTouched(untouchedCell);
 
-    boolean hasTouches = false;
-    for (int r = 0; r < NUMROWS; ++r) {
-      if (colsInRowsTouched[r]) {
-        hasTouches = true;
-        break;
-      }
-    }
-    
-    if (!hasTouches) {
+    if (cellsTouched == 0) {
       for (byte col = 0; col < NUMCOLS; ++col) {
         for (byte row = 0; row < NUMROWS; ++row) {
           clearLed(col, row);

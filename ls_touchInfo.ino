@@ -184,6 +184,15 @@ void initializeTouchInfo() {
   for (byte row = 0; row < NUMROWS; ++row) {
     colsInRowsTouched[row] = 0;
   }
+
+  cellsTouched = 0;
+
+  // Initialize the virtual touch info
+  for (byte row = 0; row < NUMROWS; ++row) {
+    virtualTouchInfo[row].split = 0;
+    virtualTouchInfo[row].note = -1;
+    virtualTouchInfo[row].channel = -1;
+  }
 }
 
 // Calculate the velocity value by providing pressure (z) data.
@@ -479,4 +488,14 @@ void TouchInfo::clearSensorData() {
   pendingReleaseCount = 0;
   velSumY = 0;
   velSumXY = 0;
+}
+
+boolean VirtualTouchInfo::hasNote() {
+  return note != -1 && channel != -1;
+}
+
+void VirtualTouchInfo::clearData() {
+  split = 0;
+  note = -1;
+  channel = -1;
 }

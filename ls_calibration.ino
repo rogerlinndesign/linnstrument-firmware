@@ -256,7 +256,9 @@ boolean handleCalibrationRelease() {
 
           Device.calibrated = true;
 
+#ifdef DEBUG_ENABLED
           debugCalibration();
+#endif
 
           // automatically turn off serial mode when the calibration has been performed
           // immediately after the first boot since a firmware upgrade, this is to compensate
@@ -271,8 +273,12 @@ boolean handleCalibrationRelease() {
           clearDisplay();
           bigfont_draw_string(6, 0, "OK", globalColor, false);
           delayUsec(500000);
+
           storeSettings();
-          
+                    
+          initializeCalibrationSamples();
+          initializeTouchInfo();
+
           setDisplayMode(displayNormal);
           controlButton = -1;
           clearLed(0, GLOBAL_SETTINGS_ROW);

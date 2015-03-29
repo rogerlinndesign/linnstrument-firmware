@@ -275,10 +275,22 @@ struct TouchInfo {
   unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
   unsigned long velSumXY;
 };
-TouchInfo touchInfo[NUMCOLS][NUMROWS];   // store as much touch information instances as there are cells
+TouchInfo touchInfo[NUMCOLS][NUMROWS];       // store as much touch information instances as there are cells
 
-int32_t rowsInColsTouched[NUMCOLS];      // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
-int32_t colsInRowsTouched[NUMROWS];      // to makes it possible to quickly identify square formations that generate phantom presses
+int32_t rowsInColsTouched[NUMCOLS];          // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
+int32_t colsInRowsTouched[NUMROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
+unsigned short cellsTouched;                 // counts the number of active touches on cells
+
+struct VirtualTouchInfo {
+  boolean hasNote();                         // check if a MIDI note is active for this touch
+  void clearData();                          // clear the virtual touch data
+
+  byte split;                                // the split this virtual touch belongs to
+  byte velocity;                             // velocity from 0 to 127
+  signed char note;                          // note from 0 to 127
+  signed char channel;                       // channel from 1 to 16
+};
+VirtualTouchInfo virtualTouchInfo[NUMROWS];  // store as much touch virtual instances as there are rows, this is used for simulating strumming open strings
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -631,6 +643,7 @@ const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 // convenience macros to easily access the cells with touch information
 #define sensorCell()               touchInfo[sensorCol][sensorRow]
 #define cell(col, row)             touchInfo[col][row]
+#define virtualCell()              virtualTouchInfo[sensorRow]
 
 // calculate the difference between now and a previous timestamp, taking a possible single overflow into account
 #define calcTimeDelta(now, last)   (now < last ? now + ~last : now - last)

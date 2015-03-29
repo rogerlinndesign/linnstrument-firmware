@@ -16,12 +16,24 @@ void cellTouched(byte col, byte row, TouchState state) {
   // phantom key presses without having to evaluate every cell on the board
   if (state != untouchedCell &&
       state != transferCell) {
+    // keep track of how many cells are currently touched
+    if (!(rowsInColsTouched[col] & (int32_t)(1 << row))) {
+      cellsTouched++;
+    }
+
+    // flip the bits to indicate that this cell is now touched
     rowsInColsTouched[col] |= (int32_t)(1 << row);
     colsInRowsTouched[row] |= (int32_t)(1 << col);
   }
   // if the state is untouched, turn off the appropriate bit in the
   // bitmasks that track the touched cells
   else {
+    // keep track of how many cells are currently touched
+    if ((rowsInColsTouched[col] & (int32_t)(1 << row))) {
+      cellsTouched--;
+    }
+
+    // flip the bits to indicate that this cell is now untouched
     rowsInColsTouched[col] &= ~(int32_t)(1 << row);
     colsInRowsTouched[row] &= ~(int32_t)(1 << col);
   }
@@ -272,6 +284,26 @@ byte countTouchesInColumn() {
   return count;
 }
 
+boolean hasTouchInSplitOnRow(byte split, byte row) {
+  if (colsInRowsTouched[row]) {
+    // if split is not active and there's a touch on the row, it's obviously in the current split
+    if (!splitActive) {
+      return true;
+    }
+
+    // determine which columns need to be active in the touched row for this to be considered
+    // part of either split
+    if (split == LEFT && (colsInRowsTouched[row] & ((int32_t)(1 << Global.splitPoint) - 1))) {
+      return true;
+    }
+    if (split == RIGHT && (colsInRowsTouched[row] & ~((int32_t)(1 << Global.splitPoint) - 1))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void handleSlideTransferCandidate(byte siblingCol) {
   // if the pressure gets higher than adjacent cell, the slide is transitioning over
   if (isReadyForSlideTransfer(siblingCol)) {
@@ -420,7 +452,7 @@ short cellTransposedNote() {
 }
 
 short transposedNote(byte split, byte col, byte row) {
-  return getNoteNumber(col, row) - Split[split].transposeLights + Split[split].transposePitch;
+  return getNoteNumber(split, col, row) - Split[split].transposeLights + Split[split].transposePitch;
 }
 
 // Check if the currently scanned cell is a focused cell
@@ -467,17 +499,17 @@ boolean isZExpressiveCell() {
   }
 }
 
-byte takeChannel() {
-  switch (Split[sensorSplit].midiMode)
+byte takeChannel(byte split) {
+  switch (Split[split].midiMode)
   {
     case channelPerNote:
     {
-      return splitChannels[sensorSplit].take();
+      return splitChannels[split].take();
     }
 
     case channelPerRow:
     {
-      byte channel = Split[sensorSplit].midiChanPerRow + sensorRow;
+      byte channel = Split[split].midiChanPerRow + sensorRow;
       if (channel > 16) {
         channel -= 16;
       }
@@ -486,7 +518,7 @@ byte takeChannel() {
 
     case oneChannel:
     {
-      return Split[sensorSplit].midiChanMain;
+      return Split[split].midiChanMain;
     }
   }
 }
@@ -673,32 +705,63 @@ void handleSplitStrum() {
   // of the strum touch itself
   int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(1 << sensorCol);
 
-  // now we check each touched column in the row of the current sensor
-  // we gradually flip the touched bits to zero until they're all turned off
-  // this allows us to loop only over the touched columns, and none other
-  while (colsInSensorRowTouched) {
-    // we use the ARM Cortex-M3 instruction that reports the leading bit zeros of any number
-    // we determine that the left-most bit is that is turned on by substracting the leading zero
-    // count from the bitdepth of a 32-bit int
-
-    byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
-    TouchInfo& cell = cell(touchedCol, sensorRow);
-    if (cell.hasNote()) {
-      // use the velocity of the strum touch
-      cell.velocity = cell(sensorCol, sensorRow).velocity;
-
-      // retrigger the MIDI note
-      byte split = getSplitOf(touchedCol);
-      midiSendNoteOff(split, cell.note, cell.channel);
-      midiSendNoteOn(split, cell.note, cell.velocity, cell.channel);
+  // handle open strings by checking if no cells are touched in the strummed split,
+  // this corresponds to checking of a fret is pushed down on a string, in which case is can't be open
+  if (!hasTouchInSplitOnRow(otherSplit(), sensorRow)) {
+    // if a note is already playing for this open string, turn it off so that the exact same note
+    // can be played, but with a different velocity
+    if (virtualCell().hasNote()) {
+      midiSendNoteOff(virtualCell().split, virtualCell().note, virtualCell().channel);
+    }
+    // since no note was already playing, determined what the note details are
+    else {
+      virtualCell().split = otherSplit();
+      virtualCell().note = transposedNote(virtualCell().split, splitLeftEdge(virtualCell().split), sensorRow);
+      virtualCell().channel = takeChannel(virtualCell().split);
     }
 
-    colsInSensorRowTouched &= ~(1 << touchedCol);
+    // use the velocity of the strum touch
+    virtualCell().velocity = cell(sensorCol, sensorRow).velocity;
+
+    // reset pitch bend only in channel per note mode when no low row bend is active,
+    // other MIDI nodes are never resetting the pitch bend for open strings since these
+    // can never be a focused cell for expression
+    if (Split[virtualCell().split].midiMode == channelPerNote && !isLowRowBendActive(virtualCell().split)) {
+      preSendPitchBend(virtualCell().split, 0, virtualCell().channel);
+    }
+
+    // send a new MIDI note
+    midiSendNoteOn(virtualCell().split, virtualCell().note, virtualCell().velocity, virtualCell().channel);
+  }
+  // handle fretted strings
+  else {
+    // now we check each touched column in the row of the current sensor
+    // we gradually flip the touched bits to zero until they're all turned off
+    // this allows us to loop only over the touched columns, and none other
+    while (colsInSensorRowTouched) {
+      // we use the ARM Cortex-M3 instruction that reports the leading bit zeros of any number
+      // we determine that the left-most bit is that is turned on by substracting the leading zero
+      // count from the bitdepth of a 32-bit int
+
+      byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
+      TouchInfo& cell = cell(touchedCol, sensorRow);
+      if (cell.hasNote()) {
+        // use the velocity of the strum touch
+        cell.velocity = cell(sensorCol, sensorRow).velocity;
+
+        // retrigger the MIDI note
+        byte split = getSplitOf(touchedCol);
+        midiSendNoteOff(split, cell.note, cell.channel);
+        midiSendNoteOn(split, cell.note, cell.velocity, cell.channel);
+      }
+
+      colsInSensorRowTouched &= ~(1 << touchedCol);
+    }
   }
 }
 
 boolean isStrummedSplit(byte split) {
-  return splitActive && Split[RIGHT-split].strum;
+  return splitActive && Split[otherSplit(split)].strum;
 }
 
 boolean isStrummingSplit(byte split) {
@@ -706,7 +769,7 @@ boolean isStrummingSplit(byte split) {
 }
 
 void handleNewNote(signed char notenum) {
-  byte channel = takeChannel();
+  byte channel = takeChannel(sensorSplit);
   sensorCell().note = notenum;
   sensorCell().channel = channel;
   sensorCell().octaveOffset = Split[sensorSplit].transposeOctave;
@@ -943,9 +1006,9 @@ short handleYExpression() {
   return FXD_TO_INT(fxdAveragedTimbre);
 }
 
-void releaseChannel(byte channel) {
-  if (Split[sensorSplit].midiMode == channelPerNote) {
-    splitChannels[sensorSplit].release(channel);
+void releaseChannel(byte split, byte channel) {
+  if (Split[split].midiMode == channelPerNote) {
+    splitChannels[split].release(channel);
   }
 }
 
@@ -1098,7 +1161,7 @@ void handleTouchRelease() {
       setFocusCellToLatest(sensorSplit, sensorCell().channel);
     }
 
-    releaseChannel(sensorCell().channel);
+    releaseChannel(sensorSplit, sensorCell().channel);
 
     // Reset all this cell's musical data
     sensorCell().clearMusicalData();
@@ -1111,6 +1174,23 @@ void handleTouchRelease() {
   sensorCell().vcount = 0;
 
   sensorCell().clearSensorData();
+
+  // release open strings if no touches are down anymore
+  handleOpenStringsRelease();
+}
+
+void handleOpenStringsRelease() {
+  if (cellsTouched == 0) {
+    // turn off all the notes of sounding open strings since no touches are active at all anymore
+    for (byte row = 0; row < NUMROWS; ++row) {
+      if (virtualTouchInfo[row].hasNote()) {
+        midiSendNoteOff(virtualTouchInfo[row].split, virtualTouchInfo[row].note, virtualTouchInfo[row].channel);
+
+        releaseChannel(virtualTouchInfo[row].split, virtualTouchInfo[row].channel);
+        virtualTouchInfo[row].clearData();
+      }
+    }
+  }
 }
 
 // nextSensorCell:
@@ -1157,15 +1237,14 @@ inline void nextSensorCell() {
 
 // getNoteNumber:
 // computes MIDI note number from current row, column, row offset, octave button and transposition amount
-byte getNoteNumber(byte col, byte row) {
+byte getNoteNumber(byte split, byte col, byte row) {
   byte notenum = 0;
-  byte sp = getSplitOf(col);
 
   short offset, lowest;
-  determineNoteOffsetAndLowest(sp, row, offset, lowest);
+  determineNoteOffsetAndLowest(split, row, offset, lowest);
 
   // return the computed note based on the selected rowOffset
-  notenum = lowest + (row * offset) + (col - 1) + Split[sp].transposeOctave;
+  notenum = lowest + (row * offset) + (col - 1) + Split[split].transposeOctave;
 
   return notenum;
 }
@@ -1243,6 +1322,21 @@ void setFocusCellToLatest(byte sp, byte channel) {
     focus(sp, channel).col = 0;   // column 0 are the control keys, so this combination can never be true for playing keys
     focus(sp, channel).row = 0;
   }
+}
+
+inline byte otherSplit() {
+  return RIGHT-sensorSplit;
+}
+
+inline byte otherSplit(byte split) {
+  return RIGHT-split;
+}
+
+inline byte splitLeftEdge(byte split) {
+  if (split == LEFT) {
+    return 0;
+  }
+  return Global.splitPoint - 1;
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
