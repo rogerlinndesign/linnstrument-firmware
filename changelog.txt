@@ -1,12 +1,18 @@
 v1.2.0:
 
-  * First experimental version of User Firmware Mode
+  * Added support for configurable MIDI CC numbers for each split's CC Faders by holding down the
+    CC Faders cell in per-split settings
+  * Added support for configuring LowRow CC numbers as well as a new Fader mode that is absolute and sticky.
+  * Changed split CC Faders to send out over the main channel only, instead of all the playing channels.
+  * Enabled playing notes on strummed split
+  * Added open strings support for split strumming
   * New approach to pitch hold quantization so that it's more fine-grained and can be faster. It now also
     exponentially corrects based on the movement speed instead of linearly, which feels more natural.
   * Improvements to low power mode to make it consume less, be more robust and slightly more responsive.
   * Added detection for settings corruption that might occur when unplugging right at the moment when
     LinnStrument is storing settings. A global reset will automatically be formed in this case with an
     appropriate warning message.
+  * Support for User Firmware Mode, explained in user_firmware_mode.txt
 
 v1.1.3:
 
