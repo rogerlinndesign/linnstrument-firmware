@@ -1334,9 +1334,9 @@ inline byte otherSplit(byte split) {
 
 inline byte splitLeftEdge(byte split) {
   if (split == LEFT) {
-    return 0;
+    return 1;
   }
-  return Global.splitPoint - 1;
+  return Global.splitPoint;
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
