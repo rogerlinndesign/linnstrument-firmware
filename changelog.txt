@@ -14,6 +14,8 @@ v1.1.3:
     exclusive between medium and fast, and requiring two cells to be pressed for the slow setting.
   * Made incoming MIDI messages on splits with ChannelPerRow mode active only highlight the exact cells that match
     based on the channel information.
+  * Fixed bug where settings where not stored after doing a reset through the Global Settings Actions
+  * Improved manufacturing test procedure.
 
 v1.1.2
 
