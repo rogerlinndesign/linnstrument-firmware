@@ -107,6 +107,10 @@ char* OSVersion = "120.";
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
+// Differences for low power mode
+#define LOWPOWER_LED_REFRESH      250   // accelerate led refresh so that they can be lit only half of the time
+#define LOWPOWER_MIDI_DECIMATION  12    // use a decimation rate of 12 ms in low power mode
+
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_LO_Z        230                 // lowest acceptable raw Z value to start a touch
 #define DEFAULT_SENSOR_FEATHER_Z   120                 // lowest acceptable raw Z value to continue a touch
@@ -697,6 +701,9 @@ byte lightSettings = LIGHTS_MAIN;                   // determines which Lights a
 
 boolean userFirmwareActive = false;                 // indicates whether user firmware mode is active or not
 boolean userFirmwareSlideMode[NUMROWS];             // indicates whether slide mode is on for a particular row
+boolean userFirmwareXActive[NUMROWS];               // indicates whether X data is on for a particular row
+boolean userFirmwareYActive[NUMROWS];               // indicates whether Y data is on for a particular row
+boolean userFirmwareZActive[NUMROWS];               // indicates whether Z data is on for a particular row
 
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
@@ -778,8 +785,8 @@ boolean switchPressAtStartup(byte switchRow) {
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
-    ledRefreshInterval = 250;       // accelerate led refresh so that they can be lit only half of the time
-    midiDecimateRate = 12;          // set decimation rate to 12 ms
+    ledRefreshInterval = LOWPOWER_LED_REFRESH;
+    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
   }
 }
 

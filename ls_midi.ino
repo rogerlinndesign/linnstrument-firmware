@@ -251,6 +251,26 @@ void handleMidiInput(unsigned long now) {
                 userFirmwareSlideMode[midiChannel] = midiData2;
               }
               break;
+            case 10:
+              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+                userFirmwareXActive[midiChannel] = midiData2;
+              }
+              break;
+            case 11:
+              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+                userFirmwareYActive[midiChannel] = midiData2;
+              }
+              break;
+            case 12:
+              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+                userFirmwareZActive[midiChannel] = midiData2;
+              }
+              break;
+            case 13:
+              if (userFirmwareActive && (!Device.operatingLowPower || midiData2 > LOWPOWER_MIDI_DECIMATION)) {
+                midiDecimateRate = midiData2;
+              }
+              break;
             case 20:
               if (midiData2 < NUMCOLS) {
                 midiCellColCC = midiData2;

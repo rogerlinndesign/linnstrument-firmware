@@ -650,10 +650,12 @@ void handleXYZupdate() {
       // don't send expression data for the control switches
       if (sensorCol != 0) {
         // Z-axis movements are encoded using Poly Pressure with the note as the column and the channel as the row
-        midiSendPolyPressure(sensorCell().note, valueZ, sensorCell().channel);
+        if (userFirmwareZActive[sensorRow]) {
+          midiSendPolyPressure(sensorCell().note, valueZ, sensorCell().channel);
+        }
 
         // X-axis movements are encoded in 14-bit with MIDI CC 0-25 / 32-57 as the column and the channel as the row
-        if (valueX != INVALID_DATA) {
+        if (userFirmwareXActive[sensorRow] && valueX != INVALID_DATA) {
           short positionX = valueX + sensorCell().initialReferenceX;
 
           // compensate for the -85 offset at the left side since 0 is positioned at the center of the left-most cell
@@ -663,7 +665,7 @@ void handleXYZupdate() {
         }
 
         // Y-axis movements are encoded using MIDI CC 64-89 as the column and the channel as the row
-        if (valueY != INVALID_DATA) {
+        if (userFirmwareYActive[sensorRow] && valueY != INVALID_DATA) {
           midiSendControlChange(sensorCol+64, valueY, sensorCell().channel);
         }
       }

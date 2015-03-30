@@ -1260,6 +1260,17 @@ void changeUserFirmwareMode(boolean active) {
   if (active) {
     for (byte r = 0; r < NUMROWS; ++r) {
       userFirmwareSlideMode[r] = false;
+      userFirmwareXActive[r] = false;
+      userFirmwareYActive[r] = false;
+      userFirmwareZActive[r] = false;
+    }
+  }
+  else {
+    if (Device.operatingLowPower) {
+      midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
+    }
+    else {
+      midiDecimateRate = 5;
     }
   }
 

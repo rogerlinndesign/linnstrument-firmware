@@ -29,6 +29,10 @@ CC Number   Used for
 -------------------------------------------------------------------------------------------------------------
 1-8         Change the position of the CC faders, the split is determined by its active MIDI mode channels
 9           Configure User Firmware X-axis row slide, the channel specifies the row (0: disable, 1: enable)
+10          Configure User Firmware X-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+11          Configure User Firmware Y-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+12          Configure User Firmware Z-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+13          Configure User Firmware MIDI decimation rate in milliseconds (default 5 ms, minimum 12 ms in low power mode)
 20          Column coordinate for cell color change with CC 22 (starts from 0)
 21          Row coordinate for cell color change with CC 22 (starts from 0)
 22          Change the color of the cell with the provided column and row coordinates
