@@ -9,14 +9,17 @@ API to control LEDs for user feedback of the custom functionalities through MIDI
 
 
 Activating User Firmware Mode
------------------------------
+=============================
 
-User Mode can be activated by sending LinnStrument the value 1 for MIDI NRPN  245 on any MIDI channel, sending value 0
+User Mode can be activated by sending LinnStrument the value 1 for MIDI NRPN 245 on any MIDI channel, sending value 0
 will turn it off. When User Mode is active, all standard firmware features will be disabled and all LEDs will be turned
 off, except for the Global Settings panel. This panel will only have settings available for Velocity Sensitivity,
 Pressure Sensitivity, MIDI I/O and Actions, the others will be disabled. When the Global Settings panel is active, no
-User Mode nor LED control features will be active. When User Mode is active, the OS Update light in Global Settings and
-the Global Settings switch itself will be lit yellow.
+User Mode nor LED control features will be active. When User Mode is active, the Global Settings switch will be lit
+yellow.
+
+By default only Cell Presses will be active in User Firmware mode, 3D Touch Data data can be activated for each axis and
+for each row individually (see below).
 
 By holding OS Update in Global Settings for half a second when User Mode is active, the user can manually turn off User
 Mode and return to the standard firmware mode. When this happens, LinnStrument will send out MIDI NRPN 245 on channel 9
@@ -29,7 +32,7 @@ the appropriate lights and the configure X-axis slide mode if that's required.
 
 
 Cell Presses
-------------
+============
 
 In User Mode, cell presses are tied to a coordinate system using MIDI channels and notes. The rows correspond to
 channels 1 to 8 with the bottom row being 1, and the columns correspond to the MIDI notes 0 to 25 with the control
@@ -40,7 +43,7 @@ velocity 0.
 
 
 3D Touch Data
--------------
+=============
 
 The X, Y and Z data are sent out over MIDI CC messages. X data is global in range, meaning that 0 starts at the left
 edge of LinnStrument and the maximum value is at the right edge. Y and Z data have their own 0-max range for each cell.
@@ -48,6 +51,10 @@ edge of LinnStrument and the maximum value is at the right edge. Y and Z data ha
 The scheme below has been selected to provide direct access to the expression data of each individual cell, but also to
 make user mode somewhat useful as a plain MIDI device with 200 expressive 3D controllers. The X data is sent out in 14
 bit by using standard MSB/LSB pairs.
+
+To enable X data, send MIDI CC message 10 with value 1 to Channels 1 to 8, corresponding to the rows.
+Sending value 0 instead will disable X data for a row. The same applies to Y and Z data, using MIDI CC messages 11 and 12
+respectively.
 
 Z data is sent as Polyphonic Pressure message over channels 1 to 8, which again correspond to the rows. Similarly to the
 note on message, the Polyphonic Pressure notes 0 to 25, correspond to the columns. The values range from 0 to 127, with
@@ -60,6 +67,19 @@ to 25 to receive more precise X data. The 14-bit range from the left edge to the
 Y data is sent over channels 1 to 8, corresponding to the rows. The columns correspond to MIDI CC messages 64 to 89. The
 values range from 0 to 127, from the bottom edge to the top edge of a cell. X-axis Slide Mode
 
+
+Data decimation
+===============
+
+Given the amount of data that LinnStrument sends out, it's possible to overload low powered or older receiving devices.
+Turning on MIDI data decimation will increase the time interval between data updates, by default this feature is
+disabled. Data decimation can be enabled by sending MIDI CC message 13 to LinnStrument, the value corresponds to the
+number of milliseconds between data updates.
+
+
+Slide Mode
+==========
+
 A unique feature of LinnStrument is to be able to smoothly slide across cells in the same row. It's impossible to
 achieve this level of smoothness by combining received User Mode MIDI messages, so there's a special mode that can be
 enabled for each row so that it tracks pitch slides across cells like the low row in the standard firmware mode.
@@ -71,12 +91,43 @@ of the cell that is released during a slide transition will have the slide targe
 slide transition Note Off message will always occur after the Note On message. The combination of these messages allows
 software to perfectly track slides as they occur.
 
-To enable per-row slide mode, send MIDI NRPN message 9 with value 1 to Channels 1 to 8, corresponding to the rows.
+To enable per-row slide mode, send MIDI CC message 9 with value 1 to Channels 1 to 8, corresponding to the rows.
 Sending value 0 instead will disable slide mode for a row.
 
 
+MIDI Message Summary
+====================
+
+Outgoing MIDI messages:
+-----------------------
+
+Note On                    Cell Down,    Note Number: Column,  Channel: Row,  Velocity: Pressure Velocity
+Note Off                   Cell Up,      Note Number: Column,  Channel: Row,  Velocity: unused
+Polyphonic Pressure        Z data,       Note Number: Column,  Channel: Row,      Data: Per Cell Z Position
+CC 0-25                    X data,         CC Number: Column,  Channel: Row,      Data: Global X Position MSB
+CC 32-57                   X data,      CC Number-32: Column,  Channel: Row,      Data: Global X Position LSB
+CC 64-89                   Y data,      CC Number-64: Column,  Channel: Row,      Data: Per Cell Y Position
+CC 119                     Cell Slide,                         Channel: Row,      Data: Transitioning Column
+ - After CC 119 Note On    Target Cell,  Note Number: Column,  Channel: Row,  Velocity: First Slide Cell's Velocity
+ - After CC 119 Note Off   Source Cell,  Note Number: Column,  Channel: Row,  Velocity: Slide Target Column
+
+Configuration MIDI messages:
+----------------------------
+
+NRPN 245    Enabling/disabling User Firmware mode (0: disable, 1: enable)
+CC 9        Configure User Firmware X-axis row slide, the channel specifies the row (0: disable, 1: enable)
+CC 10       Configure User Firmware X-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+CC 11       Configure User Firmware Y-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+CC 12       Configure User Firmware Z-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+CC 13       Configure User Firmware MIDI decimation rate in milliseconds (minimum 12 ms in low power mode)
+CC 20       Column coordinate for cell color change with CC 22 (starts from 0)
+CC 21       Row coordinate for cell color change with CC 22 (starts from 0)
+CC 22       Change the color of the cell with the provided column and row coordinates
+            see color value table in midi.txt, 7+: default color
+
+
 Examples
---------
+========
 
 In practice a single cell press could result in messages like this in non-slide mode:
 
