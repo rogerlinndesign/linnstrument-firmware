@@ -1257,20 +1257,19 @@ void changeUserFirmwareMode(boolean active) {
   initializeLedsLayer(LED_LAYER_CUSTOM2);
   clearDisplay();
 
+  if (Device.operatingLowPower) {
+    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
+  }
+  else {
+    midiDecimateRate = 0;
+  }
+
   if (active) {
     for (byte r = 0; r < NUMROWS; ++r) {
       userFirmwareSlideMode[r] = false;
       userFirmwareXActive[r] = false;
       userFirmwareYActive[r] = false;
       userFirmwareZActive[r] = false;
-    }
-  }
-  else {
-    if (Device.operatingLowPower) {
-      midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
-    }
-    else {
-      midiDecimateRate = 5;
     }
   }
 
