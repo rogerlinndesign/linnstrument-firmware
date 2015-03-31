@@ -1083,8 +1083,7 @@ void showMainMidiChannel(byte side) {
 }
 
 void showPerRowMidiChannel(byte side) {
-  setMidiChannelLed(Split[side].midiChanPerRow, Split[side].colorMain);
-  for (byte i = 1; i < 8; ++i) {
+  for (byte i = 0; i < 8; ++i) {
     setMidiChannelLed(Split[side].midiChanPerRow + i, Split[side].colorMain);
   }
 }
