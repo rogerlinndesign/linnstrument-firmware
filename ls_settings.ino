@@ -1256,6 +1256,7 @@ void changeUserFirmwareMode(boolean active) {
 
   initializeLedsLayer(LED_LAYER_CUSTOM2);
   clearDisplay();
+  clearSwitches();
 
   if (Device.operatingLowPower) {
     midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
