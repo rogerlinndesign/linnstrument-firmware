@@ -10,7 +10,7 @@ Arduino IDE. Note that there are different files for each IDE version:
  * UARTClass.cpp
  * UARTClass.h
 
-The are for 1.5.x only:
+These are for 1.5.x only:
 
  * USARTClass.cpp
  * USARTClass.h
@@ -24,6 +24,15 @@ On MacOSX this is located inside the Arduino.app:
 On the Terminal, this command should copy them all to the right location in
 one go, make sure that the 'arduino_fixes' directory is your current directory
 first:
+
+For 1.6.3:
+
+  First install the required packages for the Arduino SAM Boards through the Arduino IDE board manager.
+  These packages will be located in your home directory, for instance on MacOSX:
+  $HOME/Library/Arduino15/packages/arduino/
+
+  Now issue the following command:
+  cp -v 1.6.3/*ART* $HOME/Library/Arduino15/packages/arduino/hardware/sam/1.6.3/cores/arduino/
 
 For 1.6.0:
 
