@@ -531,6 +531,7 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
   t->ccFaders = s->ccFaders;
   t->arpeggiator = s->arpeggiator;
   t->strum = s->strum;
+  t->mpe = false;
 }
 
 void copyPresetSettingsV2ToSettingsV5(void *target, void *source) {

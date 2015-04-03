@@ -277,11 +277,11 @@ void initializePresetSettings() {
 
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
-        p.split[s].midiMode = oneChannel;
         for (byte chan = 0; chan < 16; ++chan) {
           focusCell[s][chan].col = 0;
           focusCell[s][chan].row = 0;
         }
+        p.split[s].midiMode = oneChannel;
         p.split[s].bendRange = 2;
         p.split[s].sendX = true;
         p.split[s].sendY = true;
@@ -309,6 +309,7 @@ void initializePresetSettings() {
         p.split[s].arpeggiator = false;
         p.split[s].ccFaders = false;
         p.split[s].strum = false;
+        p.split[s].mpe = false;
     }
 
     // initialize values that differ between the keyboard splits
@@ -533,6 +534,11 @@ void handleControlButtonRelease() {
 
     case GLOBAL_SETTINGS_ROW:                                // global settings button released
       if (displayMode == displayReset) {
+        // ensure that MPE is actively disabled before resetting
+        disableMpe(LEFT);
+        disableMpe(RIGHT);
+
+        // reset all values to default
         reset();
       }
       // fallthrough is on purpose
@@ -575,15 +581,32 @@ void handleControlButtonRelease() {
   }
 }
 
-void toggleChannel(byte chan) {                          // chan value is 1-16
+// chan value is 1-16
+void toggleChannel(byte chan) {
   switch (midiChannelSelect)
   {
     case MIDICHANNEL_MAIN:
-      Split[Global.currentPerSplit].midiChanMain = chan;
+      // in MPE mode the only valid main channels are 1 and 16
+      if (!Split[Global.currentPerSplit].mpe || chan == 1 || chan == 16) {
+        Split[Global.currentPerSplit].midiChanMain = chan;
+
+        // adapt the per-note MPE channels based on the new main channel
+        if (Split[Global.currentPerSplit].mpe) {
+          activateMpeChannels(Global.currentPerSplit, Split[Global.currentPerSplit].midiChanMain, countMpePolyphonny(Global.currentPerSplit));
+        }
+      }
       break;
 
     case MIDICHANNEL_PERNOTE:
-      Split[Global.currentPerSplit].midiChanSet[chan-1] = !Split[Global.currentPerSplit].midiChanSet[chan-1];
+      if (Split[Global.currentPerSplit].mpe) {
+        // in MPE mode, channels can only be a contiguous range starting from the channel next to the main channel
+        if (chan != Split[Global.currentPerSplit].midiChanMain) {
+          activateMpeChannels(Global.currentPerSplit, Split[Global.currentPerSplit].midiChanMain, abs(Split[Global.currentPerSplit].midiChanMain-chan));
+        }
+      }
+      else {
+        Split[Global.currentPerSplit].midiChanSet[chan-1] = !Split[Global.currentPerSplit].midiChanSet[chan-1];
+      }
       break;
 
     case MIDICHANNEL_PERROW:
@@ -613,6 +636,86 @@ void updateSplitMidiChannels(byte sp) {
       splitChannels[sp].clear();
       break;
     }
+  }
+}
+
+byte countMpePolyphonny(byte split) {
+  if (!Split[split].mpe) {
+    return 0;
+  }
+
+  byte result = 0;
+  for (byte c = 0; c < 16; ++c) {
+    if (Split[split].midiChanSet[c]) {
+      result++;
+    }
+  }
+
+  return result;
+}
+
+boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
+  // only accept valid channel configurations
+  if ((mainChannel != 1 && mainChannel != 16) ||
+      polyphony > 15) {
+    return false;
+  }
+
+  Split[split].midiMode = channelPerNote;
+
+  // reset the per note channels
+  for (byte c = 0; c < 16; ++c) {
+    Split[split].midiChanSet[c] = false;
+  }
+
+  // set up the main channel
+  Split[split].midiChanMain = mainChannel;
+
+  // set up the per note channels
+  short channelOffset = 0;
+  if (mainChannel == 16) {
+    channelOffset = 15-polyphony-1;
+  }
+
+  for (short c = 1; c <= polyphony; ++c) {
+    Split[split].midiChanSet[c+channelOffset] = true;
+  }
+
+  // notify that MPE is on
+  midiSendMpeState(mainChannel, polyphony);
+
+  return true;
+}
+
+void configureStandardMpeExpression(byte split) {
+  Split[split].bendRange = 24;
+  Split[split].expressionForY = timbreCC;
+  Split[split].ccForY = 74;
+  Split[split].expressionForZ = loudnessChannelPressure;
+
+  midiSendMpePitchBendRange(split);
+}
+
+void enableMpe(byte split, byte mainChannel, byte polyphony) {
+  Split[split].mpe = true;
+  if (activateMpeChannels(split, mainChannel, polyphony)) {
+    configureStandardMpeExpression(split);
+  }
+}
+
+void disableMpe(byte split) {
+  if (Split[split].mpe) {
+    Split[split].mpe = false;
+    midiSendMpeState(Split[split].midiChanMain, 0);
+  }
+}
+
+void setSplitMpeMode(byte split, boolean enabled) {
+  if (enabled) {
+    enableMpe(split, split == LEFT ? 1 : 16, 7);
+  }
+  else {
+    disableMpe(split);
   }
 }
 
@@ -653,6 +756,8 @@ void handlePerSplitSettingNewTouch() {
     // This column of 3 cells lets you select the mode of channel selection
     if (sensorRow >= 5 && sensorRow <= 7) {
       Split[Global.currentPerSplit].midiMode = 7 - sensorRow;    // values are 0, 1, 2
+
+      setSplitMpeMode(Global.currentPerSplit, false);
     }
 
     updateSplitMidiChannels(Global.currentPerSplit);
@@ -836,7 +941,8 @@ void handlePerSplitSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   if (displayMode == displayPerSplit) {
-    if (sensorCol == 13 && sensorRow == 4 ||
+    if (sensorCol == 1  && sensorRow == 6 ||
+        sensorCol == 13 && sensorRow == 4 ||
         sensorCol == 13 && sensorRow == 5 ||
         sensorCol == 14 && sensorRow == 6) {
       setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
@@ -848,7 +954,11 @@ void handlePerSplitSettingHold() {
   if (isCellPastHoldWait()) {
     sensorCell().lastTouch = 0;
 
-    if (sensorCol == 13 && sensorRow == 5) {
+    if (sensorCol == 1 && sensorRow == 6) {
+      setSplitMpeMode(Global.currentPerSplit, true);
+      updateDisplay();
+    }
+    else if (sensorCol == 13 && sensorRow == 5) {
       lowRowCCXConfigState = 1;
       resetNumericDataChange();
       setDisplayMode(displayLowRowCCXConfig);
@@ -869,7 +979,18 @@ void handlePerSplitSettingHold() {
 }
 
 void handlePerSplitSettingRelease() {
-  if (sensorCol == 13) {
+  if (sensorCol == 1 && sensorRow == 6) {
+    byte resetColor = Split[sensorSplit].colorMain;
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].midiMode == channelPerNote) {
+      resetDisplay = cellOn;
+    }
+    if (Split[Global.currentPerSplit].mpe) {
+      resetColor = Split[sensorSplit].colorAccent;
+    }
+    ensureCellBeforeHoldWait(resetColor, resetDisplay);
+  }
+  else if (sensorCol == 13) {
     CellDisplay resetDisplay = cellOff;
     if (Split[Global.currentPerSplit].lowRowMode == lowRowCCX && sensorRow == 5 ||
         Split[Global.currentPerSplit].lowRowMode == lowRowCCXYZ && sensorRow == 4) {

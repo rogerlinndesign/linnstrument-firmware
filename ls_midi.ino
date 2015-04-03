@@ -28,6 +28,8 @@ int32_t fxd4MidiTempoAverage = fxd4CurrentTempo;           // the current averag
 byte midiClockMessageCount = 0;                            // the number of MIDI clock messages we've received, from 1 to 24, with 0 meaning none has been received yet
 unsigned long midiClockLedOn = 0;                          // indicates when the MIDI clock led was turned on
 
+byte lastRpnMsb = 127;
+byte lastRpnLsb = 127;
 byte lastNrpnMsb = 127;
 byte lastNrpnLsb = 127;
 byte lastDataMsb = 0;
@@ -224,9 +226,10 @@ void handleMidiInput(unsigned long now) {
         {
           switch (midiData1) {
             case 6:
-              // if an NRPN parameter was selected, start constituting the data
+              // if an NRPN or RPN parameter was selected, start constituting the data
               // otherwise control the fader of MIDI CC 6
-              if (lastNrpnMsb != 127 && lastNrpnLsb != 127) {
+              if ((lastRpnMsb != 127 || lastRpnLsb != 127) ||
+                  (lastNrpnMsb != 127 || lastNrpnLsb != 127)) {
                 lastDataMsb = midiData2;
                 break;
               }
@@ -299,18 +302,50 @@ void handleMidiInput(unsigned long now) {
               }
               break;
             case 38:
-              if (lastNrpnMsb != 127 && lastNrpnLsb != 127) {
+              if (lastRpnMsb != 127 || lastRpnLsb != 127) {
+                lastDataLsb = midiData2;
+                receivedRpn((lastRpnMsb<<7)+lastRpnLsb, (lastDataMsb<<7)+lastDataLsb);
+                break;
+              }
+              if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
                 lastDataLsb = midiData2;
                 receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb);
                 break;
               }
+            case 98:
+              lastNrpnLsb = midiData2;
+              break;
             case 99:
-            case 101:
               lastNrpnMsb = midiData2;
               break;
-            case 98:
             case 100:
-              lastNrpnLsb = midiData2;
+              lastRpnLsb = midiData2;
+              // resetting RPN numbers also resets NRPN numbers
+              if (lastRpnLsb == 127 && lastRpnMsb == 127) {
+                lastNrpnLsb = 127;
+                lastNrpnMsb = 127;
+              }
+              break;
+            case 101:
+              lastRpnMsb = midiData2;
+              break;
+            case 127:
+              // support for activating MPE mode with the standard MPE message
+              if (midiChannel == 0 || midiChannel == 15) {
+                byte split = LEFT;
+                if (midiChannel == 15) {
+                  split = RIGHT;
+                }
+
+                if (midiData2 == 0) {
+                  disableMpe(split);
+                }
+                else {
+                  enableMpe(split, midiChannel + 1, midiData2);
+                }
+
+                updateDisplay();
+              }
               break;
           }
         }
@@ -356,6 +391,18 @@ inline boolean inRange(int value, int lower, int upper) {
   return value >= lower && value <= upper;
 }
 
+void receivedRpn(int parameter, int value) {
+  switch (parameter) {
+    // Pitch Bend Sensitivity
+    case 0:
+      Split[LEFT].bendRange = constrain(value, 1, 96);
+      Split[RIGHT].bendRange = constrain(value, 1, 96);
+      break;
+  }
+
+  updateDisplay();
+}
+
 void receivedNrpn(int parameter, int value) {
   byte split = LEFT;
   if (parameter >= 100 && parameter < 200) {
@@ -368,18 +415,24 @@ void receivedNrpn(int parameter, int value) {
     case 0:
       if (inRange(value, 0, 2)) {
         Split[split].midiMode = value;
+        // ensure MPE is turned off
+        disableMpe(split);
       }
       break;
     // Split MIDI Main Channel
     case 1:
       if (inRange(value, 1, 16)) {
         Split[split].midiChanMain = value;
+        // ensure MPE is turned off
+        disableMpe(split);
       }
     // Split MIDI Per Note Channels
     case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
     case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17:
       if (inRange(value, 0, 1)) {
         Split[split].midiChanSet[parameter-2] = value;
+        // ensure MPE is turned off
+        disableMpe(split);
       }
       break;
     // Split MIDI Per Row Lowest Channel
@@ -1447,5 +1500,15 @@ void midiSendNRPN(unsigned short number, unsigned short value, byte channel) {
     queueMidiMessage(MIDIControlChange, 38, valueLsb, channel);
     queueMidiMessage(MIDIControlChange, 101, 127, channel);
     queueMidiMessage(MIDIControlChange, 100, 127, channel);
+  }
+}
+
+void midiSendMpeState(byte mainChannel, byte polyphony) {
+  midiSendControlChange(127, polyphony, mainChannel, true);
+}
+
+void midiSendMpePitchBendRange(byte split) {
+  if (Split[split].mpe && Split[split].bendRange == 24) {
+    midiSendNRPN(0, Split[split].bendRange, Split[split].midiChanMain);
   }
 }

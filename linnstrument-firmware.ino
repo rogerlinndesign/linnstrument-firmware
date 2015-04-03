@@ -484,6 +484,7 @@ struct SplitSettings {
   boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
   boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
   boolean strum;                       // true when this split strums the touches of the other split
+  boolean mpe;                         // true when MPE is active for this split
 };
 SplitSettings Split[NUMSPLITS];
 
@@ -790,6 +791,15 @@ void applyLowPowerMode() {
   }
 }
 
+void applyMpeMode() {
+  for (byte s = 0; s < NUMSPLITS; ++s) {
+    if (Split[s].mpe) {
+      midiSendMpeState(Split[s].midiChanMain, countMpePolyphonny(s));
+      midiSendMpePitchBendRange(s);
+    }
+  }
+}
+
 void setup() {
   //*************************************************************************************************************************************************
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
@@ -909,7 +919,9 @@ void setup() {
       storeSettings();
     }
 
-    applyLowPowerMode();    
+    applyLowPowerMode();
+
+    applyMpeMode();
 
     // update the display for the last state
     updateDisplay();

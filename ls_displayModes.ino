@@ -337,14 +337,24 @@ void paintPerSplitDisplay(byte side) {
   switch (Split[side].midiMode)
   {
     case oneChannel:
+    {
       setLed(1, 7, Split[side].colorMain, cellOn);
       break;
+    }
     case channelPerNote:
-      setLed(1, 6, Split[side].colorMain, cellOn);
+    {
+      byte cellColor = Split[side].colorMain;
+      if (Split[side].mpe) {
+        cellColor = Split[side].colorAccent;
+      }
+      setLed(1, 6, cellColor, cellOn);
       break;
+    }
     case channelPerRow:
+    {
       setLed(1, 5, Split[side].colorMain, cellOn);
       break;
+    }
   }
 
   switch (midiChannelSelect)
@@ -1068,7 +1078,8 @@ void paintEditAudienceMessage() {
   bigfont_draw_string(audienceMessageOffset, 0, Device.audienceMessages[audienceMessageToEdit], Split[LEFT].colorMain, true, false, Split[LEFT].colorAccent);
 }
 
-void setMidiChannelLed(byte chan, byte color) {                       // chan value is 1-16
+// chan value is 1-16
+void setMidiChannelLed(byte chan, byte color) {
     if (chan > 16) {
       chan -= 16;
     }
@@ -1091,7 +1102,11 @@ void showPerRowMidiChannel(byte side) {
 // light per-split midi mode and multi midi channel lights
 void showPerNoteMidiChannels(byte side) {
   for (byte chan = 1; chan <= 16; ++chan) {
-    if (Split[side].midiChanSet[chan-1]) {
+    // use accent color to show that in MPE mode the main channel is special
+    if (Split[side].mpe && chan == Split[side].midiChanMain) {
+      setMidiChannelLed(chan, Split[side].colorAccent);
+    }
+    else if (Split[side].midiChanSet[chan-1]) {
       setMidiChannelLed(chan, Split[side].colorMain);
     }
   }
