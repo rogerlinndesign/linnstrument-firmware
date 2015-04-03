@@ -735,6 +735,11 @@ void setup() {
   /*!!*/  pinMode(35, OUTPUT);
   /*!!*/  digitalWrite(35, HIGH);
   /*!!*/
+  /*!!*/  // Enabled DIN MIDI output first since otherwise the DIN output will have a continuous stream of junk data if USB would be active from the
+  /*!!*/  // startup of the LinnStrument
+  /*!!*/  pinMode(36, OUTPUT);
+  /*!!*/  digitalWrite(36, LOW);                             // set to use DIN jack
+  /*!!*/
   /*!!*/  // Initialize output pin 36 (din/USB) and set it HIGH for USB operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO USB MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!
   /*!!*/  pinMode(36, OUTPUT);
@@ -842,7 +847,7 @@ void setup() {
       storeSettings();
     }
 
-    applyLowPowerMode();    
+    applyLowPowerMode();
 
     // update the display for the last state
     updateDisplay();
