@@ -226,7 +226,7 @@ void handleMidiInput(unsigned long now) {
             case 6:
               // if an NRPN parameter was selected, start constituting the data
               // otherwise control the fader of MIDI CC 6
-              if (lastNrpnMsb != 127 && lastNrpnLsb != 127) {
+              if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
                 lastDataMsb = midiData2;
                 break;
               }
@@ -267,7 +267,7 @@ void handleMidiInput(unsigned long now) {
               }
               break;
             case 38:
-              if (lastNrpnMsb != 127 && lastNrpnLsb != 127) {
+              if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
                 lastDataLsb = midiData2;
                 receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb);
                 break;
