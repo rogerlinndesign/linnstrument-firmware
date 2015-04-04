@@ -213,11 +213,11 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_SUSTAIN:
-      preSendControlChange(split, 64, 127);
+      preSendSustain(split, 127);
       break;
 
     case ASSIGNED_CC_65:
-      preSendControlChange(split, 65, 127);
+      preSendPortamento(split, 127);
       break;
 
     case ASSIGNED_ALTSPLIT:
@@ -265,11 +265,11 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_SUSTAIN:
-      preSendControlChange(split, 64, 0);
+      preSendSustain(split, 0);
       break;
 
     case ASSIGNED_CC_65:
-      preSendControlChange(split, 65, 0);
+      preSendPortamento(split, 0);
       break;
 
     case ASSIGNED_ARPEGGIATOR:

@@ -145,7 +145,12 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
             case lowRowBend:
             {
               if (pitchBend != SHRT_MAX) {
-                preSendPitchBend(sensorSplit, pitchBend);
+                if (Split[sensorSplit].mpe) {
+                  midiSendPitchBend(scalePitch(sensorSplit, pitchBend), Split[sensorSplit].midiChanMain);
+                }
+                else {
+                  preSendPitchBend(sensorSplit, pitchBend);
+                }
               }
               break;
             }
@@ -361,7 +366,12 @@ void lowRowStop() {
             case lowRowBend:
               // reset the pitchbend since no low row touch is active anymore
               lowRowBendActive[sensorSplit] = false;
-              preSendPitchBend(sensorSplit, 0);
+              if (Split[sensorSplit].mpe) {
+                midiSendPitchBend(0, Split[sensorSplit].midiChanMain);
+              }
+              else {
+                preSendPitchBend(sensorSplit, 0);
+              }
               break;
             case lowRowCCX:
               lowRowCCXActive[sensorSplit] = false;

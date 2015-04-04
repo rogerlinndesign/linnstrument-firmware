@@ -1145,7 +1145,21 @@ void midiSendVolume(byte v, byte channel) {
 }
 
 void preSendSustain(byte split, byte v) {
-  preSendControlChange(split, 64, v);
+  if (Split[split].mpe) {
+    midiSendControlChange(64, v, Split[split].midiChanMain);
+  }
+  else {
+    preSendControlChange(split, 64, v);
+  }
+}
+
+void preSendPortamento(byte split, byte v) {
+  if (Split[split].mpe) {
+    midiSendControlChange(65, v, Split[split].midiChanMain);
+  }
+  else {
+    preSendControlChange(split, 65, v);
+  }
 }
 
 void preSendControlChange(byte split, byte controlnum, byte v) {
