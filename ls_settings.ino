@@ -947,10 +947,14 @@ void handlePerSplitSettingNewTouch() {
     if (sensorCol == 1  && sensorRow == 6) {
       setLed(sensorCol, sensorRow, Split[sensorSplit].mpe ? Split[sensorSplit].colorAccent : Split[sensorSplit].colorMain, cellSlowPulse);
     }
-    else if (sensorCol == 13 && sensorRow == 4 ||      
-             sensorCol == 13 && sensorRow == 5 ||
-             sensorCol == 14 && sensorRow == 6) {
-      setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
+    else if (sensorCol == 13 && sensorRow == 5) {
+      setLed(sensorCol, sensorRow, getLowRowCCXColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 13 && sensorRow == 4) {
+      setLed(sensorCol, sensorRow, getLowRowCCXYZColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 14 && sensorRow == 6) {
+      setLed(sensorCol, sensorRow, getCCFadersColor(sensorSplit), cellSlowPulse);
     }
   }
 }
@@ -1005,17 +1009,19 @@ void handlePerSplitSettingRelease() {
       resetDisplay = cellOn;
     }
     
-    if (ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, resetDisplay)) {
-      if (sensorRow == 5) {
+    if (sensorRow == 5) {
+      if (ensureCellBeforeHoldWait(getLowRowCCXColor(sensorSplit), resetDisplay)) {
         Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
       }
-      else if (sensorRow == 4) {
+    }
+    else if (sensorRow == 4) {
+      if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(sensorSplit), resetDisplay)) {
         Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
       }
     }
   }
   else if (sensorCol == 14 && sensorRow == 6) {
-    if (ensureCellBeforeHoldWait(Split[sensorSplit].colorMain, (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
+    if (ensureCellBeforeHoldWait(getCCFadersColor(sensorSplit), (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
       Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
       if (Split[Global.currentPerSplit].ccFaders) {
         Split[Global.currentPerSplit].arpeggiator = false;

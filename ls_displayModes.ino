@@ -502,10 +502,10 @@ void paintPerSplitDisplay(byte side) {
       setLed(13, 6, Split[side].colorMain, cellOn);
       break;
     case lowRowCCX:
-      setLed(13, 5, Split[side].colorMain, cellOn);
+      setLed(13, 5, getLowRowCCXColor(side), cellOn);
       break;
     case lowRowCCXYZ:
-      setLed(13, 4, Split[side].colorMain, cellOn);
+      setLed(13, 4, getLowRowCCXYZColor(side), cellOn);
       break;
   }
 
@@ -516,7 +516,7 @@ void paintPerSplitDisplay(byte side) {
 
   // set CC faders
   if (Split[side].ccFaders == true)  {
-    setLed(14, 6, Split[side].colorMain, cellOn);
+    setLed(14, 6, getCCFadersColor(side), cellOn);
   }
 
   // set strum
@@ -526,6 +526,39 @@ void paintPerSplitDisplay(byte side) {
 
   // set "show split" led
   paintShowSplitSelection(side);
+}
+
+byte getLowRowCCXColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].ccForLowRow != 1) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getLowRowCCXYZColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].ccForLowRowX != 16) {
+    color = Split[side].colorAccent;
+  }
+  if (Split[side].ccForLowRowY != 17) {
+    color = Split[side].colorAccent;
+  }
+  if (Split[side].ccForLowRowZ != 18) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getCCFadersColor(byte side) {
+  byte color = Split[side].colorMain;
+  for (byte f = 0; f < 8; ++f) {
+    if (Split[side].ccForFader[f] != f+1) {
+      color = Split[side].colorAccent;
+      break;
+    }
+  }
+  return color;
 }
 
 // paint one of the two leds that indicate which split is being controlled
