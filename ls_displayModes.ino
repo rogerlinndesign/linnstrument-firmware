@@ -845,7 +845,12 @@ void paintSwitchAssignment(byte mode) {
       lightLed(8, 1);
       break;
     case ASSIGNED_CC_65:
-      lightLed(9, 1);
+      if (Global.ccForSwitch == 65) {
+        lightLed(9, 1);
+      }
+      else {
+        setLed(9, 1, COLOR_CYAN, cellOn);
+      }
       break;
     case ASSIGNED_ARPEGGIATOR:
       lightLed(8, 0);
