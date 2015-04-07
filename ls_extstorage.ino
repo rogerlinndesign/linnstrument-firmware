@@ -549,6 +549,7 @@ void copyPresetSettingsV2ToSettingsV5(void *target, void *source) {
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
     memcpy(t->preset[p].global.switchBothSplits, s->preset[p].global.switchBothSplits, sizeof(boolean)*4);
+    t->preset[p].global.ccForSwitch = 65;
     t->preset[p].global.midiIO = s->preset[p].global.midiIO;
     t->preset[p].global.arpDirection = s->preset[p].global.arpDirection;
     t->preset[p].global.arpTempo = s->preset[p].global.arpTempo;

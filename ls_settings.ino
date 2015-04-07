@@ -243,7 +243,7 @@ void initializePresetSettings() {
     g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
 
-    // initialize switch assignments
+    // initialize switch settings
     g.switchAssignment[SWITCH_FOOT_L] = ASSIGNED_ARPEGGIATOR;
     g.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
     g.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
@@ -252,6 +252,7 @@ void initializePresetSettings() {
     g.switchBothSplits[SWITCH_FOOT_R] = false;
     g.switchBothSplits[SWITCH_SWITCH_1] = false;
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
+    g.ccForSwitch = 65;
 
     // initialize accentNotes array. Starting with only C within each octave highlighted
     g.accentNotes[0] = true;
@@ -1214,6 +1215,14 @@ void handleLowRowCCXYZConfigRelease() {
   handleNumericDataReleaseRow(true);
 }
 
+void handleCCForSwitchConfigNewTouch() {
+  handleNumericDataNewTouchCol(Global.ccForSwitch, 0, 127, false);
+}
+
+void handleCCForSwitchConfigRelease() {
+  handleNumericDataReleaseCol(true);
+}
+
 void handleSensorLoZNewTouch() {
   handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
 }
@@ -1588,9 +1597,6 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 8 && sensorRow == 1) {
       Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
     }
-    else if (sensorCol == 9 && sensorRow == 1) {
-      Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
-    }
     else if (sensorCol == 8 && sensorRow == 0) {
       Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
     }
@@ -1707,7 +1713,8 @@ void handleGlobalSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
-    if (sensorRow == 7 && sensorCol <= 16 ||
+    if (sensorCol == 9  && sensorRow == 1 ||
+        sensorCol <= 16 && sensorRow == 7 ||
         sensorCol == 16 && sensorRow == 2) {
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
@@ -1728,6 +1735,12 @@ void handleGlobalSettingHold() {
 
   if (isCellPastHoldWait()) {
     sensorCell().lastTouch = 0;
+
+    if (sensorCol == 9 && sensorRow == 1) {
+      resetNumericDataChange();
+      setDisplayMode(displayCCForSwitch);
+      updateDisplay();
+    }
 
     // handle switch to/from User Firmware Mode
     if (sensorCol == 16 && sensorRow == 2 &&
@@ -1778,6 +1791,11 @@ void handleGlobalSettingRelease() {
         playPromoAnimation();
       }
     }
+  }
+
+  if (sensorCol == 9 && sensorRow == 1 &&
+      ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
+    Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
   }
 
   // Toggle UPDATE OS value

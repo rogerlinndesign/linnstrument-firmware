@@ -1153,12 +1153,12 @@ void preSendSustain(byte split, byte v) {
   }
 }
 
-void preSendPortamento(byte split, byte v) {
+void preSendSwitchCC65(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(65, v, Split[split].midiChanMain);
+    midiSendControlChange(Global.ccForSwitch, v, Split[split].midiChanMain);
   }
   else {
-    preSendControlChange(split, 65, v);
+    preSendControlChange(split, Global.ccForSwitch, v);
   }
 }
 

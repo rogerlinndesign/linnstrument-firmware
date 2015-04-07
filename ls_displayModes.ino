@@ -24,6 +24,7 @@ displayCCForZ               : custom CC number selection for Z expression
 displayCCForFader           : custom CC number selection for a CC fader
 displayLowRowCCXConfig      : custom CC number selection and behavior for LowRow in CCX mode
 displayLowRowCCXYZConfig    : custom CC number selection and behavior for LowRow in CCXYZ mode
+displayCCForSwitch          : custom CC number selection and behavior for Switches in CC65 mode
 displaySensorLoZ            : sensor low Z sensitivity selection
 displaySensorFeatherZ       : sensor feather Z sensitivity selection
 displaySensorRangeZ         : max Z sensor range selection
@@ -107,6 +108,9 @@ void updateDisplay() {
     break;
   case displayLowRowCCXYZConfig:
     paintLowRowCCXYZConfigDisplay(Global.currentPerSplit);
+    break;
+  case displayCCForSwitch:
+    paintCCForSwitchConfigDisplay();
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -636,6 +640,11 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
       paintSplitNumericDataDisplay(side, Split[side].ccForLowRowZ, 1);
       break;
   }
+}
+
+void paintCCForSwitchConfigDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Global.ccForSwitch, 0);
 }
 
 void paintSensorLoZDisplay() {

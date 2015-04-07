@@ -420,6 +420,9 @@ void handleNewTouch() {
     case displayLowRowCCXYZConfig:
       handleLowRowCCXYZConfigNewTouch();
       break;
+    case displayCCForSwitch:
+      handleCCForSwitchConfigNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -1105,6 +1108,9 @@ void handleTouchRelease() {
       break;
     case displayLowRowCCXYZConfig:
       handleLowRowCCXYZConfigRelease();
+      break;
+    case displayCCForSwitch:
+      handleCCForSwitchConfigRelease();
       break;
     case displaySensorLoZ:
       handleSensorLoZRelease();

@@ -224,7 +224,7 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_CC_65:
-      preSendPortamento(split, 127);
+      preSendSwitchCC65(split, 127);
       break;
 
     case ASSIGNED_ALTSPLIT:
@@ -280,7 +280,7 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
       break;
 
     case ASSIGNED_CC_65:
-      preSendPortamento(split, 0);
+      preSendSwitchCC65(split, 0);
       break;
 
     case ASSIGNED_ARPEGGIATOR:
