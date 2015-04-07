@@ -822,6 +822,10 @@ void setNoteLights(boolean* notelights) {
 
 void paintSwitchAssignment(byte mode) {
   switch (mode) {
+    case ASSIGNED_AUTO_OCTAVE:
+      lightLed(8, 2);
+      lightLed(9, 2);
+      break;
     case ASSIGNED_OCTAVE_DOWN:
       lightLed(8, 2);
       break;

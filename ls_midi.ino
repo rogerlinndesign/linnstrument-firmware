@@ -719,25 +719,25 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Switch 1 Assignment
     case 228:
-      if (inRange(value, 0, 5)) {
+      if (inRange(value, 0, 6)) {
         Global.switchAssignment[3] = value;
       }
       break;
     // Global Switch 2 Assignment
     case 229:
-      if (inRange(value, 0, 5)) {
+      if (inRange(value, 0, 6)) {
         Global.switchAssignment[2] = value;
       }
       break;
     // Global Foot Left Assignment
     case 230:
-      if (inRange(value, 0, 5)) {
+      if (inRange(value, 0, 6)) {
         Global.switchAssignment[0] = value;
       }
       break;
     // Global Foot Right Assignment
     case 231:
-      if (inRange(value, 0, 5)) {
+      if (inRange(value, 0, 6)) {
         Global.switchAssignment[1] = value;
       }
       break;

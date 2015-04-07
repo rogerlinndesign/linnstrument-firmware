@@ -108,7 +108,8 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
 
   // foot switches have no hold or toggle havior based on time, but rather based on function
   if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
-    if (assignment == ASSIGNED_SUSTAIN || assignment == ASSIGNED_CC_65 || assignment == ASSIGNED_ARPEGGIATOR) {
+    if (assignment == ASSIGNED_AUTO_OCTAVE || assignment == ASSIGNED_SUSTAIN ||
+        assignment == ASSIGNED_CC_65 || assignment == ASSIGNED_ARPEGGIATOR) {
       isHeld = true;
     }
     else {
@@ -158,6 +159,7 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
         break;
 
       // these assignments can be toggle on or off visually
+      case ASSIGNED_AUTO_OCTAVE:
       case ASSIGNED_SUSTAIN:
       case ASSIGNED_CC_65:
       case ASSIGNED_ARPEGGIATOR:
@@ -204,6 +206,11 @@ void switchTransposeOctave(byte split, int interval) {
 void performSwitchAssignmentOn(byte assignment, byte split) {
   switch (assignment)
   {
+    case ASSIGNED_AUTO_OCTAVE:
+      // reset the note number that is used for the interval
+      latestNoteNumberForAutoOctave = -1;
+      break;
+
     case ASSIGNED_OCTAVE_DOWN:
       switchTransposeOctave(split, -12);
       break;
@@ -249,6 +256,7 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
       switchTransposeOctave(split, -12);
       break;
 
+    case ASSIGNED_AUTO_OCTAVE:
     case ASSIGNED_SUSTAIN:
     case ASSIGNED_CC_65:
     case ASSIGNED_ARPEGGIATOR:
@@ -264,6 +272,9 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
 void performSwitchAssignmentOff(byte assignment, byte split) {
   switch (assignment)
   {
+    case ASSIGNED_AUTO_OCTAVE:
+      break;
+
     case ASSIGNED_SUSTAIN:
       preSendSustain(split, 0);
       break;

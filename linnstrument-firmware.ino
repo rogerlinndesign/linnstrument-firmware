@@ -162,6 +162,7 @@ char* OSVersion = "120.";
 #define ASSIGNED_CC_65        3
 #define ASSIGNED_ARPEGGIATOR  4
 #define ASSIGNED_ALTSPLIT     5
+#define ASSIGNED_AUTO_OCTAVE  6
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1
@@ -687,7 +688,7 @@ signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to 
 
 unsigned long lastSwitchPress[4];
 boolean switchState[4][NUMSPLITS];
-byte switchTargetEnabled[6][NUMSPLITS];             // 6 targets, we keep track of them individually for each split and how many times they're active
+byte switchTargetEnabled[7][NUMSPLITS];             // 7 targets, we keep track of them individually for each split and how many times they're active
 boolean footSwitchState[2];                         // holds the last read footswitch state, so that we only react on state changes of the input signal
 boolean footSwitchOffState[2];                      // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
 unsigned long prevFootSwitchTimerCount;             // time interval (in microseconds) between foot switch reads
@@ -715,6 +716,7 @@ byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep trac
 unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
 int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
+int latestNoteNumberForAutoOctave = -1;             // keep track of the latest note number that was generated to use for auto octave switching
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message

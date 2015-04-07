@@ -611,6 +611,32 @@ void handleXYZupdate() {
     else if (handleNotes) {
       short notenum = cellTransposedNote();
 
+      // if there was a previous note and automatic octave switching is enabled,
+      // check if the conditions are met to change the octave up or down while playing
+      if (latestNoteNumberForAutoOctave != -1 && switchTargetEnabled[ASSIGNED_AUTO_OCTAVE][sensorSplit] > 0) {
+        short octaveChange = 0;
+
+        // if the previous note was at least a perfect fifth lower, transpose one octave down
+        // since the arpeggio would be in a downward movement
+        if (notenum - latestNoteNumberForAutoOctave >= 7) {
+          octaveChange = -12;
+        }
+        // if the previous note was at least a perfect fifth higher, transpose one octave up
+        // since the arpeggio would be in a upward movement
+        else if (notenum - latestNoteNumberForAutoOctave <= -7) {
+          octaveChange = 12;
+        }
+
+        // apply the automatic octave change and adapt the note number
+        if (octaveChange != 0) {
+          Split[sensorSplit].transposeOctave = constrain(Split[sensorSplit].transposeOctave + octaveChange, -60, 60);
+          notenum += octaveChange;
+
+          // switching octaves might turn off some note cells since they fall outside of the MIDI note range
+          updateDisplay();
+        }
+      }
+
       // if the note number is outside of MIDI range, don't start it
       if (notenum >= 0 && notenum <= 127) {
         handleNewNote(notenum);
@@ -798,6 +824,9 @@ void handleNewNote(signed char notenum) {
   if (Split[sensorSplit].colorNoteon) {
     highlightPossibleNoteCells(sensorSplit, sensorCell().note);
   }
+
+  // keep track of the last note number
+  latestNoteNumberForAutoOctave = notenum;
 }
 
 void handleNewUserFirmwareTouch() {

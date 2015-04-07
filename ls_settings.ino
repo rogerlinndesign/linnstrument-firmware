@@ -1574,7 +1574,12 @@ void handleGlobalSettingNewTouch() {
     }
 
     // set the switch targets
-    if      (sensorCol == 8 && sensorRow == 2) {
+    if      (sensorRow == 2 &&
+             ((sensorCol == 8 && cell(9, sensorRow).touched != untouchedCell) ||
+              (sensorCol == 9 && cell(8, sensorRow).touched != untouchedCell))) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+    }
+    else if (sensorCol == 8 && sensorRow == 2) {
       Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
     }
     else if (sensorCol == 9 && sensorRow == 2) {
