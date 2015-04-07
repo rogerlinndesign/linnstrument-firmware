@@ -758,7 +758,9 @@ void handlePerSplitSettingNewTouch() {
     if (sensorRow >= 5 && sensorRow <= 7) {
       Split[Global.currentPerSplit].midiMode = 7 - sensorRow;    // values are 0, 1, 2
 
-      setSplitMpeMode(Global.currentPerSplit, false);
+      if (sensorRow != 6) {
+        setSplitMpeMode(Global.currentPerSplit, false);
+      }
     }
 
     updateSplitMidiChannels(Global.currentPerSplit);
@@ -942,10 +944,12 @@ void handlePerSplitSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   if (displayMode == displayPerSplit) {
-    if (sensorCol == 1  && sensorRow == 6 ||
-        sensorCol == 13 && sensorRow == 4 ||
-        sensorCol == 13 && sensorRow == 5 ||
-        sensorCol == 14 && sensorRow == 6) {
+    if (sensorCol == 1  && sensorRow == 6) {
+      setLed(sensorCol, sensorRow, Split[sensorSplit].mpe ? Split[sensorSplit].colorAccent : Split[sensorSplit].colorMain, cellSlowPulse);
+    }
+    else if (sensorCol == 13 && sensorRow == 4 ||      
+             sensorCol == 13 && sensorRow == 5 ||
+             sensorCol == 14 && sensorRow == 6) {
       setLed(sensorCol, sensorRow, Split[sensorSplit].colorMain, cellSlowPulse);
     }
   }
@@ -989,7 +993,10 @@ void handlePerSplitSettingRelease() {
     if (Split[Global.currentPerSplit].mpe) {
       resetColor = Split[sensorSplit].colorAccent;
     }
-    ensureCellBeforeHoldWait(resetColor, resetDisplay);
+
+    if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
+      setSplitMpeMode(Global.currentPerSplit, false);
+    }
   }
   else if (sensorCol == 13) {
     CellDisplay resetDisplay = cellOff;
@@ -1035,7 +1042,8 @@ boolean handleShowSplit() {
     if (sensorCol == 15) {
       newSplit = LEFT;
       hit = true;
-    } else if (sensorCol == 16) {
+    }
+    else if (sensorCol == 16) {
       newSplit = RIGHT;
       hit = true;
     }
