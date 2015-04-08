@@ -308,6 +308,15 @@ void handleSlideTransferCandidate(byte siblingCol) {
   // if the pressure gets higher than adjacent cell, the slide is transitioning over
   if (isReadyForSlideTransfer(siblingCol)) {
     transferFromSameRowCell(siblingCol);
+ 
+    // if a slide transfer happened, but the pitch hold was still quantized, reset the
+    // X rate and threshold exceed count so that the real X position will be used as soon as
+    // the transfer cell is active, this makes the onset of slides from a stationary position
+    // smoother when quantize hold is on
+    if (fxdRateXThreshold[sensorSplit] - sensorCell().fxdRateX > 0) {
+      sensorCell().fxdRateX = fxdRateXThreshold[sensorSplit];
+      sensorCell().fxdRateCountX = 0;
+    }
 
     if (userFirmwareActive) {
       // if user firmware is active, we implement a particular transition scheme to allow touches to be tracked over MIDI
