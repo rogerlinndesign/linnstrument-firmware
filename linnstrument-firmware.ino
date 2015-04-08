@@ -431,6 +431,13 @@ enum MidiMode {
   channelPerRow
 };
 
+enum BendRangeOption {
+  bendRange2,
+  bendRange3,
+  bendRange12,
+  bendRange24
+};
+
 enum PitchCorrectHoldSpeed {
   pitchCorrectHoldOff = 0,
   pitchCorrectHoldMedium = 1,
@@ -441,13 +448,14 @@ enum PitchCorrectHoldSpeed {
 enum TimbreExpression {
   timbrePolyPressure,
   timbreChannelPressure,
-  timbreCC
+  timbreCC1,
+  timbreCC74,
 };
 
 enum LoudnessExpression {
   loudnessPolyPressure,
   loudnessChannelPressure,
-  loudnessCC
+  loudnessCC11
 };
 
 // per-split settings
@@ -456,7 +464,8 @@ struct SplitSettings {
   byte midiChanMain;                   // main midi channel, 1 to 16
   byte midiChanPerRow;                 // per-row midi channel, 1 to 16
   boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
-  byte bendRange;                      // 1 - 96
+  BendRangeOption bendRangeOption;     // see BendRangeOption
+  byte customBendRange;                // 1 - 96
   boolean sendX;                       // true to send continuous X, false if not
   boolean sendY;                       // true to send continuous Y, false if not
   boolean sendZ;                       // true to send continuous Z, false if not
@@ -464,10 +473,10 @@ struct SplitSettings {
   byte pitchCorrectHold;               // See PitchCorrectHoldSpeed values
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
-  unsigned short ccForY;               // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
-  unsigned short ccForZ;               // 0-127
+  unsigned short customCCForZ;         // 0-127
   unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
@@ -729,6 +738,7 @@ byte lowRowCCXYZConfigState = 3;                    // the last state of the adv
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
 
+
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
 void setLed(byte col, byte row, byte color, CellDisplay disp);
@@ -740,6 +750,7 @@ void setDisplayMode(DisplayMode mode);
 void exitDisplayMode(DisplayMode mode);
 
 void applyPresetSettings(PresetSettings& preset);
+void applyBendRange(SplitSettings& target, byte bendRange);
 
 void cellTouched(TouchState state);
 void cellTouched(byte col, byte row, TouchState state);

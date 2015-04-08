@@ -395,8 +395,8 @@ void receivedRpn(int parameter, int value) {
   switch (parameter) {
     // Pitch Bend Sensitivity
     case 0:
-      Split[LEFT].bendRange = constrain(value, 1, 96);
-      Split[RIGHT].bendRange = constrain(value, 1, 96);
+      applyBendRange(Split[LEFT], constrain(value, 1, 96));
+      applyBendRange(Split[RIGHT], constrain(value, 1, 96));
       break;
   }
 
@@ -444,7 +444,7 @@ void receivedNrpn(int parameter, int value) {
     // Split MIDI Bend Range
     case 19:
       if (inRange(value, 1, 96)) {
-        Split[split].bendRange = value;
+        applyBendRange(Split[split], value);
       }
       break;
     // Split Send X
@@ -481,7 +481,10 @@ void receivedNrpn(int parameter, int value) {
     // Split MIDI CC For Y
     case 25:
       if (inRange(value, 0, 127)) {
-        Split[split].ccForY = value;
+        if (Split[split].expressionForY == timbreCC1 && value != 1) {
+          Split[split].expressionForY == timbreCC74;
+        }
+        Split[split].customCCForY = value;
       }
       break;
     // Split Relative Y
@@ -505,7 +508,7 @@ void receivedNrpn(int parameter, int value) {
     // Split MIDI CC For Z
     case 29:
       if (inRange(value, 0, 127)) {
-        Split[split].ccForZ = value;
+        Split[split].customCCForZ = value;
       }
       break;
     // Split Color Main
@@ -588,10 +591,18 @@ void receivedNrpn(int parameter, int value) {
       if (inRange(value, 0, 2)) {
         Split[split].expressionForY = (TimbreExpression)value;
         if (Split[split].expressionForY == timbrePolyPressure) {
-          Split[split].ccForY = 128;
+          Split[split].customCCForY = 128;
         }
         else if (Split[split].expressionForY == timbreChannelPressure) {
-          Split[split].ccForY = 129;
+          Split[split].customCCForY = 129;
+        }
+        else {
+          if (Split[split].customCCForY == 1) {
+            Split[split].expressionForY = timbreCC1;
+          }
+          else {
+            Split[split].expressionForY = timbreCC74;
+          }
         }
       }
       break;
@@ -951,9 +962,32 @@ unsigned long lastMomentMidiPB[16];
 unsigned long lastMomentMidiAT[16];
 unsigned long lastMomentMidiPP[16*128];
 
+inline byte getBendRange(byte split) {
+  byte bendRange = 0;
+
+  switch (Split[split].bendRangeOption) {
+    case bendRange2:
+      bendRange = 2;
+      break;
+    case bendRange3:
+      bendRange = 3;
+      break;
+    case bendRange12:
+      bendRange = 12;
+      break;
+    case bendRange24:
+      bendRange = Split[split].customBendRange;
+      break;
+  }
+
+  return bendRange;
+}
+
 int scalePitch(byte split, int pitchValue) {
+  byte bendRange = getBendRange(split);
+
   // Adapt for bend range
-  switch(Split[split].bendRange)
+  switch(bendRange)
   {
     // pure integer math cases
     case 1:
@@ -965,14 +999,14 @@ int scalePitch(byte split, int pitchValue) {
     case 12:
     case 16:
     case 24:
-      pitchValue = pitchValue * (48 / Split[split].bendRange);
+      pitchValue = pitchValue * (48 / bendRange);
       break;
     // no calculations needed
     case 48:
       break;
     // others need fixed point decimal math
     default:
-      pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(Split[split].bendRange))));
+      pitchValue = FXD_TO_INT(FXD_MUL(FXD_FROM_INT(pitchValue), FXD_DIV(FXD_FROM_INT(48), FXD_FROM_INT(bendRange))));
       break;
   }
 
@@ -1032,19 +1066,26 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
       midiSendAfterTouch(yValue, channel);
       break;
 
-    case timbreCC:
+    default:
+    {
+      byte ccForY;
+      if (Split[split].expressionForY == timbreCC1) {
+        ccForY = 1;
+      }
+      else {
+        ccForY = Split[split].customCCForY;
+      }
       // if the low row is down, only send the CC for Y if it's not being sent by the low row already
       if ((!isLowRowCCXActive(split) ||
-            Split[split].expressionForY != timbreCC ||
-            Split[split].ccForY != Split[split].ccForLowRow) &&
+            ccForY != Split[split].ccForLowRow) &&
           (!isLowRowCCXYZActive(split) ||
-            Split[split].expressionForY != timbreCC ||
-            (Split[split].ccForY != Split[split].ccForLowRowX &&
-             Split[split].ccForY != Split[split].ccForLowRowY &&
-             Split[split].ccForY != Split[split].ccForLowRowZ))) {
-          midiSendControlChange(Split[split].ccForY, yValue, channel);
+            (ccForY != Split[split].ccForLowRowX &&
+             ccForY != Split[split].ccForLowRowY &&
+             ccForY != Split[split].ccForLowRowZ))) {
+          midiSendControlChange(ccForY, yValue, channel);
       }
       break;
+    }
   }
 }
 
@@ -1060,15 +1101,15 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
       midiSendAfterTouch(pressureValue, channel);
       break;
 
-    case loudnessCC:
+    case loudnessCC11:
       // if the low row is down, only send the CC for Z if it's not being sent by the low row already
       if ((!isLowRowCCXActive(split) ||
-            Split[split].ccForZ != Split[split].ccForLowRow) &&
+            Split[split].customCCForZ != Split[split].ccForLowRow) &&
           (!isLowRowCCXYZActive(split) ||
-            (Split[split].ccForZ != Split[split].ccForLowRowX &&
-             Split[split].ccForZ != Split[split].ccForLowRowY &&
-             Split[split].ccForZ != Split[split].ccForLowRowZ))) {
-        midiSendControlChange(Split[split].ccForZ, pressureValue, channel);
+            (Split[split].customCCForZ != Split[split].ccForLowRowX &&
+             Split[split].customCCForZ != Split[split].ccForLowRowY &&
+             Split[split].customCCForZ != Split[split].ccForLowRowZ))) {
+        midiSendControlChange(Split[split].customCCForZ, pressureValue, channel);
       }
       break;
   }
@@ -1522,7 +1563,7 @@ void midiSendMpeState(byte mainChannel, byte polyphony) {
 }
 
 void midiSendMpePitchBendRange(byte split) {
-  if (Split[split].mpe && Split[split].bendRange == 24) {
-    midiSendNRPN(0, Split[split].bendRange, Split[split].midiChanMain);
+  if (Split[split].mpe && getBendRange(split) == 24) {
+    midiSendNRPN(0, 24, Split[split].midiChanMain);
   }
 }

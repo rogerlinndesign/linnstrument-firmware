@@ -347,11 +347,7 @@ void paintPerSplitDisplay(byte side) {
     }
     case channelPerNote:
     {
-      byte cellColor = Split[side].colorMain;
-      if (Split[side].mpe) {
-        cellColor = Split[side].colorAccent;
-      }
-      setLed(1, 6, cellColor, cellOn);
+      setLed(1, 6, getMpeColor(side), cellOn);
       break;
     }
     case channelPerRow:
@@ -377,22 +373,19 @@ void paintPerSplitDisplay(byte side) {
       break;
   }
 
-  switch (Split[side].bendRange)
+  switch (Split[side].bendRangeOption)
   {
-    case 2:
+    case bendRange2:
       setLed(7, 7, Split[side].colorMain, cellOn);
       break;
-    case 3:
+    case bendRange3:
       setLed(7, 6, Split[side].colorMain, cellOn);
       break;
-    case 12:
+    case bendRange12:
       setLed(7, 5, Split[side].colorMain, cellOn);
       break;
-    case 24:
-      setLed(7, 4, Split[side].colorMain, cellOn);
-      break;
-    default:
-      setLed(7, 3, Split[side].colorMain, cellOn);
+    case bendRange24:
+      setLed(7, 4, getBendRangeColor(side), cellOn);
       break;
   }
 
@@ -428,27 +421,17 @@ void paintPerSplitDisplay(byte side) {
   {
     case timbrePolyPressure:
     case timbreChannelPressure:
-      setLed(9, 3, Split[side].colorMain, cellOn);
+    case timbreCC74:
+      setLed(9, 5, getCCForYColor(side), cellOn);
       break;
-    case loudnessCC:
-      switch (Split[side].ccForY)
-      {
-        case 1:
-          setLed(9, 6, Split[side].colorMain, cellOn);
-          break;
-        case 74:
-          setLed(9, 5, Split[side].colorMain, cellOn);
-          break;
-        default:
-          setLed(9, 3, Split[side].colorMain, cellOn);
-          break;
-      }
+    case timbreCC1:
+      setLed(9, 6, Split[side].colorMain, cellOn);
       break;
   }
 
   if (Split[side].relativeY == true)
   {
-      setLed(9, 4, Split[side].colorMain, cellOn);
+    setLed(9, 4, Split[side].colorMain, cellOn);
   }
 
   // set Loudness/Z settings
@@ -464,13 +447,8 @@ void paintPerSplitDisplay(byte side) {
     case loudnessChannelPressure:
       setLed(10, 5, Split[side].colorMain, cellOn);
       break;
-    case loudnessCC:
-      if (Split[side].ccForZ == 11) {
-        setLed(10, 4, Split[side].colorMain, cellOn);
-      }
-      else {
-        setLed(10, 3, Split[side].colorMain, cellOn);
-      }
+    case loudnessCC11:
+      setLed(10, 4, getCCForZColor(side), cellOn);
       break;
   }
 
@@ -526,6 +504,38 @@ void paintPerSplitDisplay(byte side) {
 
   // set "show split" led
   paintShowSplitSelection(side);
+}
+
+byte getMpeColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].mpe) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getBendRangeColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].customBendRange != 24) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getCCForYColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].customCCForY != 74) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getCCForZColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].customCCForZ != 11) {
+    color = Split[side].colorAccent;
+  }
+  return color;
 }
 
 byte getLowRowCCXColor(byte side) {
@@ -590,32 +600,32 @@ void paintPresetDisplay(byte side) {
 
 void paintBendRangeDisplay(byte side) {
   clearDisplay();
-  paintSplitNumericDataDisplay(side, Split[side].bendRange);
+  paintSplitNumericDataDisplay(side, Split[side].customBendRange);
 }
 
 void paintCCForYDisplay(byte side) {
   clearDisplay();
-  if (Split[side].ccForY == 128) {
+  if (Split[side].customCCForY == 128) {
     smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
-  else if (Split[side].ccForY == 129) {
+  else if (Split[side].customCCForY == 129) {
     smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else {
-    paintSplitNumericDataDisplay(side, Split[side].ccForY);
+    paintSplitNumericDataDisplay(side, Split[side].customCCForY);
   }
 }
 
 void paintCCForZDisplay(byte side) {
   clearDisplay();
-  if (Split[side].expressionForZ != loudnessCC) {
+  if (Split[side].expressionForZ != loudnessCC11) {
     setDisplayMode(displayPerSplit);
     updateDisplay();
   }
   else {
-    paintSplitNumericDataDisplay(side, Split[side].ccForZ);
+    paintSplitNumericDataDisplay(side, Split[side].customCCForZ);
   }
 }
 

@@ -145,6 +145,24 @@ struct ConfigurationV2 configV2;
 /**************************************** Configuration V3 ***************************************/
 /* This is used by firmware v1.1.1-beta1, v1.1.1-beta2 and v1.1.1-beta3
 /*************************************************************************************************/
+struct GlobalSettingsV3 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  boolean mainNotes[12];                     // determines which notes receive "main" lights
+  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+};
 struct DeviceSettingsV3 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -160,7 +178,7 @@ struct DeviceSettingsV3 {
   boolean operatingLowPower;                 // whether low power mode is active or not
 };
 struct PresetSettingsV3 {
-  GlobalSettings global;
+  GlobalSettingsV3 global;
   SplitSettingsV2 split[NUMSPLITS];
 };
 struct ConfigurationV3 {
@@ -415,6 +433,7 @@ void copySettingsV1ToSettingsV5(void *target, void *source) {
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
     memcpy(t->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
+    t->preset[p].global.ccForSwitch = 65;
     t->preset[p].global.midiIO = g->midiIO;
     t->preset[p].global.arpDirection = g->arpDirection;
     t->preset[p].global.arpTempo = g->arpTempo;
@@ -436,18 +455,29 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
   t->midiChanMain = s->midiChanMain;
   t->midiChanPerRow = s->midiChanPerRow;
   memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
-  t->bendRange = s->bendRange;
+  applyBendRange(*t, s->bendRange);
   t->sendX = s->sendX;
   t->sendY = s->sendY;
   t->sendZ = s->sendZ;
   t->pitchCorrectQuantize = s->pitchCorrectQuantize;
   t->pitchCorrectHold = s->pitchCorrectHold;
   t->pitchResetOnRelease = s->pitchResetOnRelease;
-  t->expressionForY = timbreCC;
-  t->ccForY = s->ccForY;
+  if (s->ccForY == 1) {
+    t->expressionForY = timbreCC1;
+    t->customCCForY = 74;
+  }
+  else {
+    t->expressionForY = timbreCC74;
+    t->customCCForY = s->ccForY;
+  }
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
-  t->ccForZ = s->ccForZ;
+  if (t->expressionForZ == loudnessCC11) {
+    t->customCCForZ = s->ccForZ;
+  }
+  else {
+    t->customCCForZ = 11;
+  }
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -466,6 +496,7 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
   t->ccFaders = s->ccFaders;
   t->arpeggiator = s->arpeggiator;
   t->strum = s->strum;
+  t->mpe = false;
 }
 
 void copySettingsV2ToSettingsV5(void *target, void *source) {
@@ -501,18 +532,42 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
   t->midiChanMain = s->midiChanMain;
   t->midiChanPerRow = s->midiChanPerRow;
   memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
-  t->bendRange = s->bendRange;
+  applyBendRange(*t, s->bendRange);
   t->sendX = s->sendX;
   t->sendY = s->sendY;
   t->sendZ = s->sendZ;
   t->pitchCorrectQuantize = s->pitchCorrectQuantize;
   t->pitchCorrectHold = s->pitchCorrectHold;
   t->pitchResetOnRelease = s->pitchResetOnRelease;
-  t->expressionForY = s->expressionForY;
-  t->ccForY = s->ccForY;
+  switch (s->expressionForY) {
+    case timbrePolyPressure:
+      t->expressionForY = s->expressionForY;
+      t->customCCForY = 128;
+      break;
+    case timbreChannelPressure:
+      t->expressionForY = s->expressionForY;
+      t->customCCForY = 129;
+      break;
+    case timbreCC1:
+    case timbreCC74:
+      if (s->ccForY == 1) {
+        t->expressionForY = timbreCC1;
+        t->customCCForY = 74;
+      }
+      else {
+        t->expressionForY = timbreCC74;
+        t->customCCForY = s->ccForY;
+      }
+      break;
+  }
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
-  t->ccForZ = s->ccForZ;
+  if (t->expressionForZ == loudnessCC11) {
+    t->customCCForZ = s->ccForZ;
+  }
+  else {
+    t->customCCForZ = 11;
+  }
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -590,12 +645,33 @@ void copySettingsV3ToSettingsV5(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
+void copyGlobalSettingsV3ToSettingsV5(void *target, void *source) {
+  GlobalSettings *t = (GlobalSettings *)target;
+  GlobalSettingsV3 *s = (GlobalSettingsV3 *)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(boolean)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(boolean)*12);
+  t->rowOffset = s->rowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = 65;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+}
+
 void copyPresetSettingsV3ToSettingsV5(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV3 *s = (ConfigurationV3 *)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    memcpy(&t->preset[p].global, &s->preset[p].global, sizeof(GlobalSettings));
+    copyGlobalSettingsV3ToSettingsV5(&t->preset[p].global, &s->preset[p].global);
 
     copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
     copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
@@ -623,7 +699,7 @@ void copyPresetSettingsV4ToSettingsV5(void *target, void *source) {
   PresetSettings *t = (PresetSettings *)target;
   PresetSettingsV3 *s = (PresetSettingsV3 *)source;
 
-  memcpy(&t->global, &s->global, sizeof(GlobalSettings));
+  copyGlobalSettingsV3ToSettingsV5(&t->global, &s->global);
 
   copySplitSettingsV2ToSplitSettingsV5(&t->split[LEFT], &s->split[LEFT]);
   copySplitSettingsV2ToSplitSettingsV5(&t->split[RIGHT], &s->split[RIGHT]);

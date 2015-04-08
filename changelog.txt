@@ -1,26 +1,29 @@
 v1.2.0:
 
   * Added support for configurable MIDI CC numbers for each split's CC Faders by holding down the
-    CC Faders cell in per-split settings
+    CC Faders cell in per-split settings.
   * Added support for configuring LowRow CC numbers as well as a new Fader mode that is absolute and sticky.
+  * Added support for configuring Switch CC65 CC numbers by holding down the cell.
+  * Reworked custom Pitch Bend, Y-axis CC and Z-axis CC settings by removing them from row 5 and accessing them by
+    holding down the bottom-most cell. The value will now also be persisted when switching between other options.
   * Changed split CC Faders to send out over the main channel only, instead of all the playing channels.
-  * Enabled playing notes on strummed split
-  * Added open strings support for split strumming
+  * Enabled playing notes on strummed split.
+  * Added open strings support for split strumming.
+  * Added support for automated octave switching similar to GeoSynth by pressing both octave down and up in the
+    switch/pedal assignments.
   * New approach to pitch hold quantization so that it's more fine-grained and can be faster. It now also
     exponentially corrects based on the movement speed instead of linearly, which feels more natural.
+  * Pitch hold quantization settings now behave consistently with the rest of the UI but being mutually
+    exclusive between medium and fast, and requiring two cells to be pressed for the slow setting.
   * Improvements to low power mode to make it consume less, be more robust and slightly more responsive.
   * Added detection for settings corruption that might occur when unplugging right at the moment when
     LinnStrument is storing settings. A global reset will automatically be formed in this case with an
     appropriate warning message.
   * Support for User Firmware Mode, explained in user_firmware_mode.txt
-
-v1.1.3:
-
-  * Pitch hold quantization settings now behave consistently with the rest of the UI but being mutually
-    exclusive between medium and fast, and requiring two cells to be pressed for the slow setting.
+  * Support for Multidimensional Polyphonic Expression standard (MPE) in its current form (see http://bit.ly/mpe-spec)
   * Made incoming MIDI messages on splits with ChannelPerRow mode active only highlight the exact cells that match
     based on the channel information.
-  * Fixed bug where settings where not stored after doing a reset through the Global Settings Actions
+  * Fixed bug where settings where not stored after doing a reset through the Global Settings Actions.
   * Improved manufacturing test procedure.
 
 v1.1.2

@@ -283,18 +283,19 @@ void initializePresetSettings() {
           focusCell[s][chan].row = 0;
         }
         p.split[s].midiMode = oneChannel;
-        p.split[s].bendRange = 2;
+        p.split[s].bendRangeOption = bendRange2;
+        p.split[s].customBendRange = 24;
         p.split[s].sendX = true;
         p.split[s].sendY = true;
         p.split[s].sendZ = true;
         p.split[s].pitchCorrectQuantize = true;
         p.split[s].pitchCorrectHold = true;
         p.split[s].pitchResetOnRelease = false;
-        p.split[s].expressionForY = timbreCC;
-        p.split[s].ccForY = 74;
+        p.split[s].expressionForY = timbreCC74;
+        p.split[s].customCCForY = 74;
         p.split[s].relativeY = false;
         p.split[s].expressionForZ = loudnessPolyPressure;
-        p.split[s].ccForZ = 11;
+        p.split[s].customCCForZ = 11;
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
@@ -342,16 +343,16 @@ void initializePresetSettings() {
   // preset 0 is pre-programmed for one channel sounds from our Logic example file
   config.preset[0].split[LEFT].midiMode = oneChannel;
   config.preset[0].split[RIGHT].midiMode = oneChannel;
-  config.preset[0].split[LEFT].bendRange = 12;
-  config.preset[0].split[RIGHT].bendRange = 12;
+  config.preset[0].split[LEFT].bendRangeOption = bendRange12;
+  config.preset[0].split[RIGHT].bendRangeOption = bendRange12;
   config.preset[0].split[LEFT].expressionForZ = loudnessPolyPressure;
   config.preset[0].split[RIGHT].expressionForZ = loudnessPolyPressure;
 
   // preset 1 is pre-programmed for channel per note sounds from our Logic example file
   config.preset[1].split[LEFT].midiMode = channelPerNote;
   config.preset[1].split[RIGHT].midiMode = channelPerNote;
-  config.preset[1].split[LEFT].bendRange = 24;
-  config.preset[1].split[RIGHT].bendRange = 24;
+  config.preset[1].split[LEFT].bendRangeOption = bendRange24;
+  config.preset[1].split[RIGHT].bendRangeOption = bendRange24;
   config.preset[1].split[LEFT].expressionForZ = loudnessChannelPressure;
   config.preset[1].split[RIGHT].expressionForZ = loudnessChannelPressure;
   config.preset[1].split[LEFT].midiChanMain = 1;
@@ -407,6 +408,24 @@ void applyPitchCorrectHold() {
 
     fxdPitchHoldDuration[sp] = FXD_MAKE(pitchHoldDuration[sp]);
   }
+}
+
+void applyBendRange(SplitSettings& target, byte bendRange) {
+  switch (bendRange) {
+    case 2:
+      target.bendRangeOption = bendRange2;
+      break;
+    case 3:
+      target.bendRangeOption = bendRange3;
+      break;
+    case 12:
+      target.bendRangeOption = bendRange12;
+      break;
+    default:
+      target.bendRangeOption = bendRange24;
+      target.customBendRange = bendRange;
+      break;
+  }  
 }
 
 // Called to handle press events of the 8 control buttons
@@ -689,9 +708,10 @@ boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
 }
 
 void configureStandardMpeExpression(byte split) {
-  Split[split].bendRange = 24;
-  Split[split].expressionForY = timbreCC;
-  Split[split].ccForY = 74;
+  Split[split].bendRangeOption = bendRange24;
+  Split[split].customBendRange = 24;
+  Split[split].expressionForY = timbreCC74;
+  Split[split].customCCForY = 74;
   Split[split].expressionForZ = loudnessChannelPressure;
 
   midiSendMpePitchBendRange(split);
@@ -748,6 +768,18 @@ boolean isCellPastHoldWait() {
   return sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY;
 }
 
+void applyTimbreCC74(byte split) {
+  if (Split[split].customCCForY == 128) {
+    Split[split].expressionForY = timbrePolyPressure;
+  }
+  else if (Split[split].customCCForY == 129) {
+    Split[split].expressionForY = timbreChannelPressure;
+  }
+  else {
+    Split[split].expressionForY = timbreCC74;
+  }
+}
+
 void handlePerSplitSettingNewTouch() {
   // start tracking the touch duration to be able to enable hold functionality
   sensorCell().lastTouch = millis();
@@ -786,20 +818,17 @@ void handlePerSplitSettingNewTouch() {
   } else if (sensorCol == 7) {
     // BendRange setting
     if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].bendRange = 2;
+      Split[Global.currentPerSplit].bendRangeOption = bendRange2;
     }
     else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].bendRange = 3;
+      Split[Global.currentPerSplit].bendRangeOption = bendRange3;
     }
     else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].bendRange = 12;
-    }
+      Split[Global.currentPerSplit].bendRangeOption = bendRange12;
+    } 
     else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].bendRange = 24;
-    }
-    else if (sensorRow == 3) {
-      setDisplayMode(displayBendRange);
-    }
+      Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+    } 
 
   } else if (sensorCol == 8) {
 
@@ -844,18 +873,13 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].sendY = !Split[Global.currentPerSplit].sendY;
     }
     else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].ccForY = 1;            // use CC1 for y-axis
-      Split[Global.currentPerSplit].expressionForY = timbreCC;
+      Split[Global.currentPerSplit].expressionForY = timbreCC1;
     }
     else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].ccForY = 74;           // use CC74 for y-axis
-      Split[Global.currentPerSplit].expressionForY = timbreCC;
+      applyTimbreCC74(Global.currentPerSplit);
     }
     else if (sensorRow == 4) {
       Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
-    }
-    else if (sensorRow == 3) {
-      setDisplayMode(displayCCForY);
     }
 
   } else if (sensorCol == 10) {
@@ -871,12 +895,7 @@ void handlePerSplitSettingNewTouch() {
       Split[Global.currentPerSplit].expressionForZ = loudnessChannelPressure;
     }
     else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessCC;
-      Split[Global.currentPerSplit].ccForZ = 11;
-    }
-    else if (sensorRow == 3) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessCC;
-      setDisplayMode(displayCCForZ);
+      Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
     }
 
   } else if (sensorCol == 11) {
@@ -945,7 +964,16 @@ void handlePerSplitSettingNewTouch() {
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   if (displayMode == displayPerSplit) {
     if (sensorCol == 1  && sensorRow == 6) {
-      setLed(sensorCol, sensorRow, Split[sensorSplit].mpe ? Split[sensorSplit].colorAccent : Split[sensorSplit].colorMain, cellSlowPulse);
+      setLed(sensorCol, sensorRow, getMpeColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 7 && sensorRow == 4) {
+      setLed(sensorCol, sensorRow, getBendRangeColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 9 && sensorRow == 5) {
+      setLed(sensorCol, sensorRow, getCCForYColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 10 && sensorRow == 4) {
+      setLed(sensorCol, sensorRow, getCCForZColor(sensorSplit), cellSlowPulse);
     }
     else if (sensorCol == 13 && sensorRow == 5) {
       setLed(sensorCol, sensorRow, getLowRowCCXColor(sensorSplit), cellSlowPulse);
@@ -965,6 +993,21 @@ void handlePerSplitSettingHold() {
 
     if (sensorCol == 1 && sensorRow == 6) {
       setSplitMpeMode(Global.currentPerSplit, true);
+      updateDisplay();
+    }
+    else if (sensorCol == 7 && sensorRow == 4) {
+      resetNumericDataChange();
+      setDisplayMode(displayBendRange);
+      updateDisplay();
+    }
+    else if (sensorCol == 9 && sensorRow == 5) {
+      resetNumericDataChange();
+      setDisplayMode(displayCCForY);
+      updateDisplay();
+    }
+    else if (sensorCol == 10 && sensorRow == 4) {
+      resetNumericDataChange();
+      setDisplayMode(displayCCForZ);
       updateDisplay();
     }
     else if (sensorCol == 13 && sensorRow == 5) {
@@ -989,17 +1032,42 @@ void handlePerSplitSettingHold() {
 
 void handlePerSplitSettingRelease() {
   if (sensorCol == 1 && sensorRow == 6) {
-    byte resetColor = Split[sensorSplit].colorMain;
     CellDisplay resetDisplay = cellOff;
     if (Split[Global.currentPerSplit].midiMode == channelPerNote) {
       resetDisplay = cellOn;
     }
-    if (Split[Global.currentPerSplit].mpe) {
-      resetColor = Split[sensorSplit].colorAccent;
-    }
 
-    if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
+    if (ensureCellBeforeHoldWait(getMpeColor(Global.currentPerSplit), resetDisplay)) {
       setSplitMpeMode(Global.currentPerSplit, false);
+    }
+  }
+  else if (sensorCol == 7 && sensorRow == 4) {
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].bendRangeOption == bendRange24) {
+      resetDisplay = cellOn;
+    }
+    if (ensureCellBeforeHoldWait(getBendRangeColor(Global.currentPerSplit), resetDisplay)) {
+      Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+    }
+  }
+  else if (sensorCol == 9 && sensorRow == 5) {
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].expressionForY == timbrePolyPressure ||
+        Split[Global.currentPerSplit].expressionForY == timbreChannelPressure ||
+        Split[Global.currentPerSplit].expressionForY == timbreCC74) {
+      resetDisplay = cellOn;
+    }
+    if (ensureCellBeforeHoldWait(getCCForYColor(Global.currentPerSplit), resetDisplay)) {
+      applyTimbreCC74(Global.currentPerSplit);
+    }
+  }
+  else if (sensorCol == 10 && sensorRow == 4) {
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].expressionForZ == loudnessCC11) {
+      resetDisplay = cellOn;
+    }
+    if (ensureCellBeforeHoldWait(getCCForZColor(Global.currentPerSplit), resetDisplay)) {
+      Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
     }
   }
   else if (sensorCol == 13) {
@@ -1010,18 +1078,22 @@ void handlePerSplitSettingRelease() {
     }
     
     if (sensorRow == 5) {
-      if (ensureCellBeforeHoldWait(getLowRowCCXColor(sensorSplit), resetDisplay)) {
+      if (ensureCellBeforeHoldWait(getLowRowCCXColor(Global.currentPerSplit), resetDisplay)) {
         Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
       }
     }
     else if (sensorRow == 4) {
-      if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(sensorSplit), resetDisplay)) {
+      if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(Global.currentPerSplit), resetDisplay)) {
         Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
       }
     }
   }
   else if (sensorCol == 14 && sensorRow == 6) {
-    if (ensureCellBeforeHoldWait(getCCFadersColor(sensorSplit), (CellDisplay)Split[Global.currentPerSplit].ccFaders)) {
+    CellDisplay resetDisplay = cellOff;
+    if (Split[Global.currentPerSplit].ccFaders) {
+      resetDisplay = cellOn;
+    }
+    if (ensureCellBeforeHoldWait(getCCFadersColor(Global.currentPerSplit), resetDisplay)) {
       Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
       if (Split[Global.currentPerSplit].ccFaders) {
         Split[Global.currentPerSplit].arpeggiator = false;
@@ -1140,7 +1212,7 @@ void handlePresetRelease() {
 }
 
 void handleBendRangeNewTouch() {
-  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].bendRange, 1, 96, false);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].customBendRange, 1, 96, false);
 }
 
 void handleBendRangeRelease() {
@@ -1148,15 +1220,19 @@ void handleBendRangeRelease() {
 }
 
 void handleCCForYNewTouch() {
-  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForY, 0, 129, false);
-  if (Split[Global.currentPerSplit].ccForY == 128) {
-    Split[Global.currentPerSplit].expressionForY = timbrePolyPressure;
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].customCCForY, 0, 129, false);
+  applyCustomCCForY(Global.currentPerSplit);
+}
+
+void applyCustomCCForY(byte split) {
+  if (Split[split].customCCForY == 128) {
+    Split[split].expressionForY = timbrePolyPressure;
   }
-  else if (Split[Global.currentPerSplit].ccForY == 129) {
-    Split[Global.currentPerSplit].expressionForY = timbreChannelPressure;
+  else if (Split[split].customCCForY == 129) {
+    Split[split].expressionForY = timbreChannelPressure;
   }
   else {
-    Split[Global.currentPerSplit].expressionForY = timbreCC;
+    Split[split].expressionForY = timbreCC74;
   }
 }
 
@@ -1165,7 +1241,7 @@ void handleCCForYRelease() {
 }
 
 void handleCCForZNewTouch() {
-  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForZ, 0, 127, false);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].customCCForZ, 0, 127, false);
 }
 
 void handleCCForZRelease() {
