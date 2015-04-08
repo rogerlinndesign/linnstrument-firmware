@@ -121,14 +121,14 @@ char* OSVersion = "120.";
 
 // Pitch correction behavior
 #define PITCH_CORRECT_HOLD_SAMPLES_FAST    80
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4800
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4200
 #define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
 
 // Threshold below which the average rate of change of X is considered 'stationary'
 #define RATEX_THRESHOLD_FAST    3.5
-#define RATEX_THRESHOLD_MEDIUM  2.0
+#define RATEX_THRESHOLD_MEDIUM  2.2
 #define RATEX_THRESHOLD_SLOW    1.5
-#define RATEX_THRESHOLD_DEFAULT 2.0
+#define RATEX_THRESHOLD_DEFAULT 2.2
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
