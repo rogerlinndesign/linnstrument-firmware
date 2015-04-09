@@ -1007,6 +1007,10 @@ void handleQuantizeHoldForOtherCells() {
         }
       }
     }
+    // ensure that the LEDs are refreshed still to avoid flickering when there are lots of fingers down
+    if (row % 4 == 0) {
+      checkRefreshLedColumn(micros());
+    }
   }
 }
 
