@@ -1187,7 +1187,7 @@ void midiSendVolume(byte v, byte channel) {
 
 void preSendSustain(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(64, v, Split[split].midiChanMain);
+    midiSendControlChange(64, v, Split[split].midiChanMain, true);
   }
   else {
     preSendControlChange(split, 64, v);
@@ -1196,7 +1196,7 @@ void preSendSustain(byte split, byte v) {
 
 void preSendSwitchCC65(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitch, v, Split[split].midiChanMain);
+    midiSendControlChange(Global.ccForSwitch, v, Split[split].midiChanMain, true);
   }
   else {
     preSendControlChange(split, Global.ccForSwitch, v);
@@ -1210,7 +1210,7 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
     {
       for (byte ch = 0; ch < 16; ++ch) {
         if (Split[split].midiChanSet[ch]) {
-          midiSendControlChange(controlnum, v, ch+1);
+          midiSendControlChange(controlnum, v, ch+1, true);
         }
       }
       break;
@@ -1223,14 +1223,14 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
         if (ch > 16) {
           ch -= 16;
         }
-        midiSendControlChange(controlnum, v, ch);
+        midiSendControlChange(controlnum, v, ch, true);
       }
       break;
     }
 
     case oneChannel:
     {
-      midiSendControlChange(controlnum, v, Split[split].midiChanMain);
+      midiSendControlChange(controlnum, v, Split[split].midiChanMain, true);
       break;
     }
   }
