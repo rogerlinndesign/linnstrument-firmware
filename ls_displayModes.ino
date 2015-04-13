@@ -16,6 +16,7 @@ displaySplitPoint           : split point
 displayGlobal               : global settings
 displayGlobalWithTempo      : global settings with tempo
 displayOsVersion            : version number of the OS
+displayOsVersionSUb         : sub-version number of the OS
 displayCalibration          : calibration process
 displayReset                : global reset confirmation and wait for touch release
 displayBendRange            ; custom bend range selection for X expression
@@ -74,6 +75,9 @@ void updateDisplay() {
     break;
   case displayOsVersion:
     paintOSVersionDisplay();
+    break;
+  case displayOsVersionBuild:
+    paintOSVersionBuildDisplay();
     break;
   case displayVolume:
     paintVolumeDisplay(Global.currentPerSplit);
@@ -587,6 +591,13 @@ void paintOSVersionDisplay() {
 
   byte color = Split[LEFT].colorMain;
   smallfont_draw_string(0, 0, OSVersion, color);
+}
+
+void paintOSVersionBuildDisplay() {
+  clearDisplay();
+
+  byte color = Split[LEFT].colorAccent;
+  smallfont_draw_string(0, 0, OSVersionBuild, color);
 }
 
 // paint the current preset number for a particular side, in large block characters

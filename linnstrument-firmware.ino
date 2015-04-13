@@ -55,6 +55,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 /******************************************** CONSTANTS ******************************************/
 
 char* OSVersion = "120.";
+char* OSVersionBuild = ".018";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -359,6 +360,7 @@ enum DisplayMode {
   displayGlobal,
   displayGlobalWithTempo,
   displayOsVersion,
+  displayOsVersionBuild,
   displayCalibration,
   displayReset,
   displayBendRange,

@@ -448,6 +448,14 @@ void handleNewTouch() {
     case displayGlobalWithTempo:
       handleGlobalSettingNewTouch();
       break;
+    case displayOsVersion:
+      setDisplayMode(displayOsVersionBuild);
+      updateDisplay();
+      break;
+    case displayOsVersionBuild:
+      setDisplayMode(displayOsVersion);
+      updateDisplay();
+      break;
     case displayCalibration:
       initVelocity();
       break;
