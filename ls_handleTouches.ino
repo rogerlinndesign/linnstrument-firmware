@@ -1013,11 +1013,12 @@ void handleQuantizeHoldForOtherCells() {
           }
           preSendPitchBend(split, pitch, cell(col, row).channel);
         }
+        
+        // ensure that the LEDs are refreshed still to avoid flickering when there are lots of fingers down
+        if (row % 4 == 0 && colsInRowTouched == 0) {
+          performContinuousTasks(micros());
+        }
       }
-    }
-    // ensure that the LEDs are refreshed still to avoid flickering when there are lots of fingers down
-    if (row % 4 == 0) {
-      checkRefreshLedColumn(micros());
     }
   }
 }
