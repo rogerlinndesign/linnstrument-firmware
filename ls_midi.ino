@@ -1142,13 +1142,13 @@ void initializeLastMidiTracking() {
 }
 
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
-    param1 &= 0x7F;
-    param2 &= 0x7F;
-    midiOutQueue.push((byte)type | (channel & 0x0F));
-    midiOutQueue.push(param1);
-    if (type != MIDIProgramChange && type != MIDIChannelPressure) {
-      midiOutQueue.push(param2);
-    }
+  param1 &= 0x7F;
+  param2 &= 0x7F;
+  midiOutQueue.push((byte)type | (channel & 0x0F));
+  midiOutQueue.push(param1);
+  if (type != MIDIProgramChange && type != MIDIChannelPressure) {
+    midiOutQueue.push(param2);
+  }
 }
 
 void handlePendingMidi(unsigned long now) {
