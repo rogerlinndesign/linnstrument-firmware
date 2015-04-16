@@ -661,6 +661,7 @@ void paintLowRowCCXConfigDisplay(byte side) {
           bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
           break;
       }
+      paintShowSplitSelection(side);
       break;
     case 0:
       paintSplitNumericDataDisplay(side, Split[side].ccForLowRow);
@@ -680,6 +681,7 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
           bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
           break;
       }
+      paintShowSplitSelection(side);
       break;
     case 2:
       bigfont_draw_string(0, 0, "X", Split[side].colorMain, true);
