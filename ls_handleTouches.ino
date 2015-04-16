@@ -675,8 +675,10 @@ void handleXYZupdate() {
     valueY = handleYExpression();
   }
 
-  // update the low row state
-  if (!userFirmwareActive) {
+  // update the low row state, but not for the low row cells themselves when there's a new velocity
+  // this is handled in lowRowStart, and immediately calling handleLowRowState will wrongly handle the
+  // low row state transitions
+  if ((!newVelocity || !isLowRow()) && !userFirmwareActive) {
     handleLowRowState(newVelocity, valueX, valueY, valueZ);
   }
 
