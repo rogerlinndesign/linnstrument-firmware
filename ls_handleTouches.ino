@@ -979,6 +979,10 @@ short handleQuantizeHoldCorrection(byte split, byte col, byte row) {
   if (fxdRateDiff > 0) {
     if (cell(col, row).fxdRateCountX < fxdPitchHoldDuration[split]) {
       cell(col, row).fxdRateCountX += fxdRateDiff;
+      
+      if (cell(col, row).fxdRateCountX > fxdPitchHoldDuration[split]) {
+        cell(col, row).fxdRateCountX = fxdPitchHoldDuration[split];
+      }
 
       // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
       if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
