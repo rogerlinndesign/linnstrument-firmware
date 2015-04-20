@@ -15,11 +15,6 @@ For the Y values, it simply measures the top and bottom extremes for cells in 5 
 calculate for each cell the ratio that converts this to usable CC values.
 ***************************************************************************************************/
 
-const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
-const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
-
-const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
-
 // these are default starting points for uncalibrated LinnStruments, might need tweaking
 const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_FROM_INT(188);
 const int32_t CALX_DEFAULT_FIRST_CELL = FXD_FROM_INT(248);

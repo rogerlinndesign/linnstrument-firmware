@@ -121,15 +121,15 @@ char* OSVersionBuild = ".019";
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Pitch correction behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    80
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  4200
-#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    32000
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    4
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
 
 // Threshold below which the average rate of change of X is considered 'stationary'
-#define RATEX_THRESHOLD_FAST    3.5
-#define RATEX_THRESHOLD_MEDIUM  2.2
-#define RATEX_THRESHOLD_SLOW    1.5
-#define RATEX_THRESHOLD_DEFAULT 2.2
+#define RATEX_THRESHOLD_FAST    2.2
+#define RATEX_THRESHOLD_MEDIUM  2.0
+#define RATEX_THRESHOLD_SLOW    1.6
+#define RATEX_THRESHOLD_DEFAULT 2.0
 
 #define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
@@ -249,7 +249,6 @@ struct TouchInfo {
   short currentRawX;                         // last raw X value of each cell
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
-  int32_t fxdLastMovedX;                     // the fixed precision version of the last moved X for performance improvement
   int32_t fxdRateX;                          // the averaged rate of change of the X values
   int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
@@ -656,6 +655,11 @@ const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
 const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
 const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 
+const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
+const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
+
+const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
+
 
 /*************************************** CONVENIENCE MACROS **************************************/
 
@@ -1040,8 +1044,6 @@ inline void modeLoopPerformance() {
       sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
-
-    handleQuantizeHoldForOtherCells();
   }
 
   performContinuousTasks(micros());

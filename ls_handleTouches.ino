@@ -118,9 +118,8 @@ boolean hasImpossibleX() {             // checks whether the calibrated X is out
 void transferFromSameRowCell(byte col) {
   sensorCell().initialX = cell(col, sensorRow).initialX;
   sensorCell().initialReferenceX = cell(col, sensorRow).initialReferenceX;  
-  sensorCell().quantizationOffsetX = cell(col, sensorRow).quantizationOffsetX;  
+  sensorCell().quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
   sensorCell().lastMovedX = cell(col, sensorRow).lastMovedX;
-  sensorCell().fxdLastMovedX = cell(col, sensorRow).fxdLastMovedX;
   sensorCell().fxdRateX = cell(col, sensorRow).fxdRateX;
   sensorCell().fxdRateCountX = cell(col, sensorRow).fxdRateCountX;  
   sensorCell().initialY = cell(col, sensorRow).initialY;
@@ -137,7 +136,6 @@ void transferFromSameRowCell(byte col) {
   cell(col, sensorRow).initialReferenceX = 0;
   cell(col, sensorRow).quantizationOffsetX = 0;
   cell(col, sensorRow).lastMovedX = 0;
-  cell(col, sensorRow).fxdLastMovedX = 0;
   cell(col, sensorRow).fxdRateX = 0;
   cell(col, sensorRow).fxdRateCountX = 0;
   cell(col, sensorRow).initialY = -1;
@@ -161,9 +159,8 @@ void transferFromSameRowCell(byte col) {
 void transferToSameRowCell(byte col) {
   cell(col, sensorRow).initialX = sensorCell().initialX;
   cell(col, sensorRow).initialReferenceX = sensorCell().initialReferenceX;
-  cell(col, sensorRow).quantizationOffsetX = sensorCell().quantizationOffsetX;
+  cell(col, sensorRow).quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
   cell(col, sensorRow).lastMovedX = sensorCell().lastMovedX;
-  cell(col, sensorRow).fxdLastMovedX = sensorCell().fxdLastMovedX;
   cell(col, sensorRow).fxdRateX = sensorCell().fxdRateX;
   cell(col, sensorRow).fxdRateCountX = sensorCell().fxdRateCountX;
   cell(col, sensorRow).initialY = sensorCell().initialY;
@@ -180,7 +177,6 @@ void transferToSameRowCell(byte col) {
   sensorCell().initialReferenceX = 0;
   sensorCell().quantizationOffsetX = 0;
   sensorCell().lastMovedX = 0;
-  sensorCell().fxdLastMovedX = 0;
   sensorCell().fxdRateX = 0;
   sensorCell().fxdRateCountX = 0;
   sensorCell().initialY = -1;
@@ -612,7 +608,6 @@ void handleXYZupdate() {
   if (newVelocity) {
     sensorCell().lastTouch = millis();
     sensorCell().lastMovedX = 0;
-    sensorCell().fxdLastMovedX = 0;
     sensorCell().shouldRefreshX = true;
     sensorCell().initialX = -1;
     sensorCell().quantizationOffsetX = 0;
@@ -929,14 +924,34 @@ short handleXExpression() {
   }
 
   // calculate the distance from the initial X position
-  // if pitch quantize is on, the first X position becomes the center point and considered 0
   if (!userFirmwareActive && Split[sensorSplit].pitchCorrectQuantize) {
-    movedX = calibratedX - sensorCell().initialX + sensorCell().quantizationOffsetX;
+    movedX = calibratedX - (sensorCell().initialReferenceX + sensorCell().quantizationOffsetX);
+
+    // if a quantization offset is active, ensure that movement on that cell will never exceed half the cell width
+    // as soon as a finger transits to an adjacent cell during a slide, the quantization offset will be set to 0 and
+    // fingers will track in absolute positions
+    // this ensures that disregarding where you place your finger with pitch quantize on, target slides will always result
+    // in the same absolute X position
+    if (sensorCell().quantizationOffsetX != 0) {
+      int32_t fxdQuantRefDist = FXD_FROM_INT(calibratedX - sensorCell().quantizationOffsetX) - Device.calRows[sensorCol][0].fxdReferenceX;
+      if (fxdQuantRefDist > 0) {
+        if (fxdQuantRefDist > CALX_HALF_UNIT) {
+          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist - CALX_HALF_UNIT));
+        }
+      }
+      else {
+        if (abs(fxdQuantRefDist) > CALX_HALF_UNIT) {
+          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist + CALX_HALF_UNIT));
+        }
+      }
+    }
   }
   // otherwise we use the intended centerpoint based on the calibration
   else {
     movedX = calibratedX - sensorCell().initialReferenceX;
   }
+
+  short result = INVALID_DATA;
 
   // calculate how much change there was since the last X update
   short deltaX = abs(movedX - sensorCell().lastMovedX);
@@ -952,81 +967,46 @@ short handleXExpression() {
 
     // remember the last X movement
     sensorCell().lastMovedX = movedX;
-    sensorCell().fxdLastMovedX = FXD_FROM_INT(movedX);
 
     // if pitch quantize on hold is disabled, just output the current touch pitch
     if (userFirmwareActive || Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
-      return movedX;
+      result = movedX;
     }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
     else {
-      return handleQuantizeHoldCorrection(sensorSplit, sensorCol, sensorRow);
-    }
-  }
-
-  return INVALID_DATA;
-}
-
-short handleQuantizeHoldCorrection(byte split, byte col, byte row) {
-  int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[split] - cell(col, row).fxdRateCountX, fxdPitchHoldDuration[split]);
-  int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
-  int32_t fxdQuantizedDistance = Device.calRows[col][0].fxdReferenceX - FXD_FROM_INT(cell(col, row).initialReferenceX);
-  
-  int32_t fxdInterpolatedX = FXD_MUL(cell(col, row).fxdLastMovedX, fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
-
-  // keep track of how many times the X changement rate drops below the threshold or above
-  int32_t fxdRateDiff = fxdRateXThreshold[split] - cell(col, row).fxdRateX;
-  if (fxdRateDiff > 0) {
-    if (cell(col, row).fxdRateCountX < fxdPitchHoldDuration[split]) {
-      cell(col, row).fxdRateCountX += fxdRateDiff;
+      int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[sensorSplit] - sensorCell().fxdRateCountX, fxdPitchHoldDuration[sensorSplit]);
+      if (fxdMovedRatio > FXD_CONST_1) fxdMovedRatio = FXD_CONST_1;
+      int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
+      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
-      if (cell(col, row).fxdRateCountX > fxdPitchHoldDuration[split]) {
-        cell(col, row).fxdRateCountX = fxdPitchHoldDuration[split];
-      }
+      int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
 
-      // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-      if (cell(col, row).fxdRateCountX >= fxdPitchHoldDuration[split]) {
-        cell(col, row).quantizationOffsetX = cell(col, row).initialX - (cell(col, row).currentCalibratedX - FXD_TO_INT(fxdQuantizedDistance));
-      }
-    }
-  }
-  else if (cell(col, row).fxdRateCountX > 0) {
-    cell(col, row).fxdRateCountX -= FXD_CONST_1;
-  }
-
-  return FXD_TO_INT(fxdInterpolatedX);
-}
-
-void handleQuantizeHoldForOtherCells() {
-  for (byte row = 0; row < NUMROWS; ++row) {
-    int32_t colsInRowTouched = colsInRowsTouched[row];
-    while (colsInRowTouched) {
-      byte col = 31 - __builtin_clz(colsInRowTouched);
-      // turn the left-most active bit off, to continue the iteration over the touched rows
-      colsInRowTouched &= ~(int32_t)(1 << col);
-
-      if (col != sensorCol && row != sensorRow) {
-        byte split = getSplitOf(col);
-
-        if (Split[split].sendX &&
-            Split[split].pitchCorrectHold != pitchCorrectHoldOff &&
-            !isLowRowBendActive(split) &&
-            cell(col, row).hasNote() &&
-            isXExpressiveCell(col, row)) {
-          short pitch = handleQuantizeHoldCorrection(split, col, row);
-          if (severalTouchesForMidiChannel(split, col, row)) {
-            pitch = 0;
+      // keep track of how many times the X changement rate drops below the threshold or above
+      int32_t fxdRateDiff = fxdRateXThreshold[sensorSplit] - sensorCell().fxdRateX;
+      if (fxdRateDiff > 0) {
+        if (sensorCell().fxdRateCountX < fxdPitchHoldDuration[sensorSplit]) {
+          sensorCell().fxdRateCountX += fxdRateDiff;
+          
+          // ensure that the rate count can never exceed the pitch hold duration
+          if (sensorCell().fxdRateCountX > fxdPitchHoldDuration[sensorSplit]) {
+            sensorCell().fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
           }
-          preSendPitchBend(split, pitch, cell(col, row).channel);
-        }
-        
-        // ensure that the LEDs are refreshed still to avoid flickering when there are lots of fingers down
-        if (row % 4 == 0 && colsInRowTouched == 0) {
-          performContinuousTasks(micros());
+
+          // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
+          if (sensorCell().fxdRateCountX >= fxdPitchHoldDuration[sensorSplit]) {
+            sensorCell().quantizationOffsetX = calibratedX - FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
+          }
         }
       }
+      else if (sensorCell().fxdRateCountX > 0) {
+        sensorCell().fxdRateCountX -= FXD_CONST_1;
+      }
+
+      result = FXD_TO_INT(fxdInterpolatedX);
     }
   }
+
+  return result;
 }
 
 const int32_t MAX_VALUE_Y = FXD_FROM_INT(127);

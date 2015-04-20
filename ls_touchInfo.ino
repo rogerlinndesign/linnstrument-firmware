@@ -289,10 +289,11 @@ inline void TouchInfo::refreshX() {
       // store the initial X position
       initialX = currentCalibratedX;
       
-      quantizationOffsetX = 0;
+      // if pitch quantize is on, the first X position becomes the center point and considered 0
+      quantizationOffsetX = currentCalibratedX - initialReferenceX;
+      
       fxdRateX = 0;
       lastMovedX = 0;
-      fxdLastMovedX = 0;
     }
   }
 }
@@ -472,7 +473,6 @@ void TouchInfo::clearSensorData() {
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;
-  fxdLastMovedX = 0;
   fxdRateX = 0;
   fxdRateCountX = 0;
   shouldRefreshX = true;
