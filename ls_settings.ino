@@ -382,7 +382,7 @@ void applyPitchCorrectHold() {
     switch (Split[sp].pitchCorrectHold) {
       case pitchCorrectHoldOff:
       {
-        pitchHoldDuration[sp] = 0;
+        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_DEFAULT;
         fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_DEFAULT);
         break;
       }

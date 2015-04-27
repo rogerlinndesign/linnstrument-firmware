@@ -927,12 +927,12 @@ short handleXExpression() {
   if (!userFirmwareActive && Split[sensorSplit].pitchCorrectQuantize) {
     movedX = calibratedX - (sensorCell().initialReferenceX + sensorCell().quantizationOffsetX);
 
-    // if a quantization offset is active, ensure that movement on that cell will never exceed half the cell width
+    // if initial quantize offset and quantize hold are active, ensure that movement on that cell will never exceed half the cell width
     // as soon as a finger transits to an adjacent cell during a slide, the quantization offset will be set to 0 and
     // fingers will track in absolute positions
     // this ensures that disregarding where you place your finger with pitch quantize on, target slides will always result
     // in the same absolute X position
-    if (sensorCell().quantizationOffsetX != 0) {
+    if (Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff && sensorCell().quantizationOffsetX != 0) {
       int32_t fxdQuantRefDist = FXD_FROM_INT(calibratedX - sensorCell().quantizationOffsetX) - Device.calRows[sensorCol][0].fxdReferenceX;
       if (fxdQuantRefDist > 0) {
         if (fxdQuantRefDist > CALX_HALF_UNIT) {
@@ -981,28 +981,30 @@ short handleXExpression() {
       
       int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
 
-      // keep track of how many times the X changement rate drops below the threshold or above
-      int32_t fxdRateDiff = fxdRateXThreshold[sensorSplit] - sensorCell().fxdRateX;
-      if (fxdRateDiff > 0) {
-        if (sensorCell().fxdRateCountX < fxdPitchHoldDuration[sensorSplit]) {
-          sensorCell().fxdRateCountX += fxdRateDiff;
-          
-          // ensure that the rate count can never exceed the pitch hold duration
-          if (sensorCell().fxdRateCountX > fxdPitchHoldDuration[sensorSplit]) {
-            sensorCell().fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
-          }
+      result = FXD_TO_INT(fxdInterpolatedX);
+    }
 
-          // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-          if (sensorCell().fxdRateCountX >= fxdPitchHoldDuration[sensorSplit]) {
+    // keep track of how many times the X changement rate drops below the threshold or above
+    int32_t fxdRateDiff = fxdRateXThreshold[sensorSplit] - sensorCell().fxdRateX;
+    if (fxdRateDiff > 0) {
+      if (sensorCell().fxdRateCountX < fxdPitchHoldDuration[sensorSplit]) {
+        sensorCell().fxdRateCountX += fxdRateDiff;
+        
+        // ensure that the rate count can never exceed the pitch hold duration
+        if (sensorCell().fxdRateCountX > fxdPitchHoldDuration[sensorSplit]) {
+          sensorCell().fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
+        }
+
+        // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
+        if (sensorCell().fxdRateCountX >= fxdPitchHoldDuration[sensorSplit]) {
+          if (Split[sensorSplit].pitchCorrectQuantize && Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff) {
             sensorCell().quantizationOffsetX = calibratedX - FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
           }
         }
       }
-      else if (sensorCell().fxdRateCountX > 0) {
-        sensorCell().fxdRateCountX -= FXD_CONST_1;
-      }
-
-      result = FXD_TO_INT(fxdInterpolatedX);
+    }
+    else if (sensorCell().fxdRateCountX > 0) {
+      sensorCell().fxdRateCountX -= FXD_CONST_1;
     }
   }
 

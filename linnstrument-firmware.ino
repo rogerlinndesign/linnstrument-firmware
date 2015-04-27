@@ -124,6 +124,7 @@ char* OSVersionBuild = ".019";
 #define PITCH_CORRECT_HOLD_SAMPLES_FAST    4
 #define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
 #define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
+#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 24
 
 // Threshold below which the average rate of change of X is considered 'stationary'
 #define RATEX_THRESHOLD_FAST    2.2
