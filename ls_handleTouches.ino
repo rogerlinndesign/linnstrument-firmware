@@ -976,6 +976,7 @@ short handleXExpression() {
     else {
       int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[sensorSplit] - sensorCell().fxdRateCountX, fxdPitchHoldDuration[sensorSplit]);
       if (fxdMovedRatio > FXD_CONST_1) fxdMovedRatio = FXD_CONST_1;
+      else if (fxdMovedRatio < 0)      fxdMovedRatio = 0;
       int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
       int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell().initialReferenceX);
       
@@ -989,14 +990,12 @@ short handleXExpression() {
     if (fxdRateDiff > 0) {
       if (sensorCell().fxdRateCountX < fxdPitchHoldDuration[sensorSplit]) {
         sensorCell().fxdRateCountX += fxdRateDiff;
-        
-        // ensure that the rate count can never exceed the pitch hold duration
-        if (sensorCell().fxdRateCountX > fxdPitchHoldDuration[sensorSplit]) {
-          sensorCell().fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
-        }
 
         // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
         if (sensorCell().fxdRateCountX >= fxdPitchHoldDuration[sensorSplit]) {
+          // ensure that the rate count can never exceed the pitch hold duration
+          sensorCell().fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
+
           if (Split[sensorSplit].pitchCorrectQuantize && Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff) {
             sensorCell().quantizationOffsetX = calibratedX - FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
           }
@@ -1005,6 +1004,10 @@ short handleXExpression() {
     }
     else if (sensorCell().fxdRateCountX > 0) {
       sensorCell().fxdRateCountX -= FXD_CONST_1;
+
+      if (sensorCell().fxdRateCountX < 0) {
+        sensorCell().fxdRateCountX = 0;
+      }
     }
   }
 
