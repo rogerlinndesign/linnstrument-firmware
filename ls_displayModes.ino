@@ -755,18 +755,12 @@ void paintNumericDataDisplay(byte color, unsigned short value, byte offset) {
 // draw a horizontal line to indicate volume for a particular side
 void paintVolumeDisplay(byte side) {
   clearDisplay();
-  
-  doublePerSplit = false;  
-
-  int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[side][6], 1, 24);
-
-  for (byte col = 25; col >= 1; --col) {
-    if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT <= fxdFaderPosition) {
-      setLed(col, 5, Split[side].colorMain, cellOn);
-    }
-  }
-
+  paintVolumeDisplayRow(side);
   paintShowSplitSelection(side);
+}
+
+void paintVolumeDisplayRow(byte side) {
+  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, Split[side].ccForFader[5]);
 }
 
 void paintOctaveTransposeDisplay(byte side) {

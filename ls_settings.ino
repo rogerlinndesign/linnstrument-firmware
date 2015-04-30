@@ -1345,11 +1345,14 @@ void handleVolumeNewTouch(boolean newVelocity) {
 
   short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
   if (value >= 0) {
+    short previous = ccFaderValues[Global.currentPerSplit][6];
     ccFaderValues[Global.currentPerSplit][6] = value;
 
     byte chan = Split[Global.currentPerSplit].midiChanMain;
     midiSendVolume(value, chan);     // Send the MIDI volume controller message
-    updateDisplay();
+    if (previous != value) {
+      paintVolumeDisplayRow(sensorSplit);
+    }
   }
 }
 
