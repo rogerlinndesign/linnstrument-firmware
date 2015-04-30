@@ -40,12 +40,7 @@ inline short readX() {                                // returns the raw X value
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
   delayUsec(250);                                     // delay required after setting analog switches for stable X read. This needs further research
-  short raw = spiAnalogRead();
-  #ifdef APRIL_2014_PROTOTYPE
-  raw = 4095 - raw;
-  #endif
-
-  return raw;                                        // return the raw X value
+  return spiAnalogRead();
 }
 
 // readY:
@@ -55,12 +50,7 @@ inline short readY() {                                // returns a value of 0-12
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
   delayUsec(35);                                      // delay required after setting analog switches for stable Y read. Requires further research
-  short raw = spiAnalogRead();
-  #ifdef APRIL_2014_PROTOTYPE
-  raw = 4095 - raw;
-  #endif
-
-  return raw;
+  return spiAnalogRead();
 }
 
 // readZ:
@@ -133,11 +123,6 @@ inline short spiAnalogRead() {
 inline void selectSensorCell(byte col,             // column to be addressed by analog switches
                              byte row,             // row to be addressed by analog switches
                              byte switchCode) {    // set analog switches to read X (0), Y (1) or Z (2)
-  #ifdef APRIL_2014_PROTOTYPE
-  col = (NUMCOLS-1) - col;                         // debug: for Apr 2014 prototypes, this corrects for reverse column layout
-  row = (NUMROWS-1) - row;                         // debug: for Apr 2014 prototypes, this corrects for reverse row layout
-  #endif
-
   // first set lower 5 bits of MSB to specified column
   byte msb = col;                                 // set MSB of SPI value to column
   if ((col & 16) == 0) msb = col | B00100000;     // if column address 4 is 0, set bit 5 of MSB (inverted state of bit 4) to 1

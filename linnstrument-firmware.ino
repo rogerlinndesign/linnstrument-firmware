@@ -66,9 +66,6 @@ char* OSVersionBuild = ".019";
 // benefit from our no-delay serial write improvements
 #define PATCHED_ARDUINO_SERIAL_WRITE
 
-// Uncomment this to use the code for the April 2014 board prototypes
-// #define APRIL_2014_PROTOTYPE
-
 // Uncomment to immediately start X, Y, or Z frame debugging when the LinnStrument launches
 // This is useful when having to inspect the sensor data without being able to
 // use the switches to change the active settings
