@@ -760,7 +760,7 @@ void paintVolumeDisplay(byte side) {
 }
 
 void paintVolumeDisplayRow(byte side) {
-  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, Split[side].ccForFader[5]);
+  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, 7);
 }
 
 void paintOctaveTransposeDisplay(byte side) {

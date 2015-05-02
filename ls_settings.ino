@@ -369,7 +369,7 @@ void initializePresetSettings() {
     for (byte c = 0; c < 128; ++c) {
       ccFaderValues[s][c] = 0;
     }
-    ccFaderValues[s][6] = 63;
+    ccFaderValues[s][7] = 63;
     currentEditedCCFader[s] = 0;
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
@@ -1345,8 +1345,8 @@ void handleVolumeNewTouch(boolean newVelocity) {
 
   short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
   if (value >= 0) {
-    short previous = ccFaderValues[Global.currentPerSplit][6];
-    ccFaderValues[Global.currentPerSplit][6] = value;
+    short previous = ccFaderValues[Global.currentPerSplit][7];
+    ccFaderValues[Global.currentPerSplit][7] = value;
 
     byte chan = Split[Global.currentPerSplit].midiChanMain;
     midiSendVolume(value, chan);     // Send the MIDI volume controller message
