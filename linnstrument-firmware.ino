@@ -510,6 +510,7 @@ struct DeviceSettings {
   boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
 };
 DeviceSettings Device;
 

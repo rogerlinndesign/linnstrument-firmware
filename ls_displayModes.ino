@@ -248,12 +248,24 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
   else {
     int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][ccForFader], faderLeft, faderLength);
 
-    for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
-      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
-        clearLed(col, row);
+    if (Device.leftHanded) {
+      for (byte col = faderLeft; col <= faderLength + faderLeft; ++col ) {
+        if (Device.calRows[col][0].fxdReferenceX + CALX_HALF_UNIT < fxdFaderPosition) {
+          clearLed(col, row);
+        }
+        else {
+          setLed(col, row, color, cellOn);
+        }
       }
-      else {
-        setLed(col, row, color, cellOn);
+    }
+    else {
+      for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+        if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+          clearLed(col, row);
+        }
+        else {
+          setLed(col, row, color, cellOn);
+        }
       }
     }
   }
@@ -1008,6 +1020,10 @@ void paintGlobalSettingsDisplay() {
       case 13:      // guitar tuning
         lightLed(6, 3);
         break;
+    }
+
+    if (Device.leftHanded) {
+      lightLed(5, 4);
     }
 
     // This code assumes that switchSelect values are the same as the row numbers

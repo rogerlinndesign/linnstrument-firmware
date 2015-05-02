@@ -420,6 +420,7 @@ void copySettingsV1ToSettingsV5(void *target, void *source) {
   t->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
+  t->device.leftHanded = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -516,6 +517,7 @@ void copySettingsV2ToSettingsV5(void *target, void *source) {
   t->device.promoAnimationAtStartup = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
+  t->device.leftHanded = false;
   initializeAudienceMessages();
 
   copyPresetSettingsV2ToSettingsV5(t, s);
@@ -636,6 +638,7 @@ void copySettingsV3ToSettingsV5(void *target, void *source) {
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   memcpy(t->device.audienceMessages, s->device.audienceMessages, sizeof(char)*(16 * 31));
+  t->device.leftHanded = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     copyPresetSettingsV3ToSettingsV5(t, s);
@@ -688,6 +691,7 @@ void copySettingsV4ToSettingsV5(void *target, void *source) {
   t->device = s->device;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
+  t->device.leftHanded = false;
 
   copyPresetSettingsV4ToSettingsV5(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {

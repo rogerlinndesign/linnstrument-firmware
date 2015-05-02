@@ -207,6 +207,7 @@ void initializeDeviceSettings() {
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
+  config.device.leftHanded = false;
 
   initializeAudienceMessages();
 }
@@ -1610,8 +1611,12 @@ void handleGlobalSettingNewTouch() {
 
   if (!userFirmwareActive) {
 
+    // togle left handed mode
+    if (sensorCol == 5 && sensorRow == 4) {
+      Device.leftHanded = !Device.leftHanded;
+    }
     // handle tempo change
-    if (sensorRow >= 4 && sensorRow != 7) {
+    else if (sensorRow >= 4 && sensorRow != 7) {
       handleTempoNewTouch();
     }
 

@@ -99,6 +99,9 @@ byte calculateFaderValue(short x, byte faderLeft, byte faderLength) {
   int32_t fxdFaderRange = FXD_MUL(FXD_FROM_INT(faderLength), CALX_FULL_UNIT);
   int32_t fxdFaderPosition = FXD_FROM_INT(x) - Device.calRows[faderLeft][0].fxdReferenceX;
   int32_t fxdFaderRatio = FXD_DIV(fxdFaderPosition, fxdFaderRange);
+  if (Device.leftHanded) {
+    fxdFaderRatio = FXD_CONST_1 - fxdFaderRatio;
+  }
   int32_t fxdFaderValue = FXD_MUL(FXD_CONST_127, fxdFaderRatio);
   return constrain(FXD_TO_INT(fxdFaderValue), 0, 127);
 }
@@ -106,6 +109,9 @@ byte calculateFaderValue(short x, byte faderLeft, byte faderLength) {
 int32_t fxdCalculateFaderPosition(byte value, byte faderLeft, byte faderLength) {
   int32_t fxdFaderRange = FXD_MUL(FXD_FROM_INT(faderLength), CALX_FULL_UNIT);
   int32_t fxdFaderRatio = FXD_DIV(FXD_FROM_INT(value), FXD_CONST_127);
+  if (Device.leftHanded) {
+    fxdFaderRatio = FXD_CONST_1 - fxdFaderRatio;
+  }
   int32_t fxdFaderPosition = FXD_MUL(fxdFaderRange, fxdFaderRatio) + Device.calRows[faderLeft][0].fxdReferenceX;
   return fxdFaderPosition;
 }

@@ -132,7 +132,11 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          short xDelta = constrain((sensorCell().calibratedX() - sensorCell().initialX) >> 3, 0, 127);
+          short xDeltaFull = sensorCell().calibratedX() - sensorCell().initialX;
+          if (Device.leftHanded) {
+            xDeltaFull = -1 * xDeltaFull;
+          }
+          short xDelta = constrain(xDeltaFull >> 3, 0, 127);
           short xPosition = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
 
           switch (Split[sensorSplit].lowRowMode)

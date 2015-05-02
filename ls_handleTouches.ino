@@ -667,6 +667,9 @@ void handleXYZupdate() {
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
     valueX = handleXExpression();
+    if (Device.leftHanded) {
+      valueX = -1 * valueX;
+    }
     valueY = handleYExpression();
   }
 
@@ -1294,7 +1297,12 @@ byte getNoteNumber(byte split, byte col, byte row) {
   determineNoteOffsetAndLowest(split, row, offset, lowest);
 
   // return the computed note based on the selected rowOffset
-  notenum = lowest + (row * offset) + (col - 1) + Split[split].transposeOctave;
+  short noteCol = col;
+  if (Device.leftHanded) {
+    noteCol = (NUMCOLS - col);
+  }
+
+  notenum = lowest + (row * offset) + noteCol - 1 + Split[split].transposeOctave;
 
   return notenum;
 }
