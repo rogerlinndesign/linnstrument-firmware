@@ -41,7 +41,9 @@ void handleFaderTouch(boolean newVelocity) {
       // if a new touch happens on the same row that is further down the row, make it
       // take over the touch
       if (newVelocity) {
-        for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+        for (byte col = Device.leftHanded ? faderLeft : faderLength + faderLeft;
+             Device.leftHanded ? col <= faderLength + faderLeft : col >= faderLeft;
+             Device.leftHanded ? ++col : --col) {
           if (col != sensorCol && cell(col, sensorRow).velocity) {
             transferFromSameRowCell(col);
             return;
@@ -74,7 +76,9 @@ void handleFaderRelease() {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
     if (faderLength > 0) {
-      for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+      for (byte col = Device.leftHanded ? faderLeft : faderLength + faderLeft;
+           Device.leftHanded ? col <= faderLength + faderLeft : col >= faderLeft;
+           Device.leftHanded ? ++col : --col) {
         if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
           transferToSameRowCell(col);
           break;

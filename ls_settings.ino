@@ -1361,7 +1361,9 @@ void handleVolumeNewTouch(boolean newVelocity) {
     // if a new touch happens on the same row that is further down the row, make it
     // take over the touch
     if (newVelocity) {
-      for (byte col = NUMCOLS - 1; col >= 1; --col ) {
+      for (byte col = Device.leftHanded ? 1 : NUMCOLS - 1;
+           Device.leftHanded ? col <= NUMCOLS - 1 : col >= 1;
+           Device.leftHanded ? ++col : --col) {
         if (col != sensorCol && cell(col, sensorRow).velocity) {
           transferFromSameRowCell(col);
           return;
@@ -1392,7 +1394,9 @@ void handleVolumeRelease() {
 
   // if another touch is already down on the same row, make it take over the
   if (sensorCell().velocity) {
-    for (byte col = NUMCOLS - 1; col >= 1; --col ) {
+    for (byte col = Device.leftHanded ? 1 : NUMCOLS - 1;
+         Device.leftHanded ? col <= NUMCOLS - 1 : col >= 1;
+         Device.leftHanded ? ++col : --col) {
       if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
         transferToSameRowCell(col);
         break;
