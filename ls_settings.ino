@@ -1344,21 +1344,54 @@ void handleVolumeNewTouch(boolean newVelocity) {
     return;
   }
 
-  short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
-  if (value >= 0) {
-    short previous = ccFaderValues[Global.currentPerSplit][7];
-    ccFaderValues[Global.currentPerSplit][7] = value;
+  if (sensorCell().velocity) {
+    if (cellsTouched) {
+      for (int r = 0; r < NUMROWS; ++r) {
+        if (r != sensorRow && (colsInRowsTouched[r] & ~(1 << sensorCol)) != 0) {
+          cellTouched(ignoredCell);
+          return;
+        }
+      }
+    }
 
-    byte chan = Split[Global.currentPerSplit].midiChanMain;
-    midiSendVolume(value, chan);     // Send the MIDI volume controller message
-    if (previous != value) {
-      paintVolumeDisplayRow(sensorSplit);
+    if (newVelocity) {
+      for (byte col = NUMCOLS - 1; col >= 1; --col ) {
+        if (col != sensorCol && cell(col, sensorRow).velocity) {
+          transferFromSameRowCell(col);
+          return;
+        }
+      }
+    }
+
+    short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
+
+    if (value >= 0) {
+      short previous = ccFaderValues[Global.currentPerSplit][7];
+      ccFaderValues[Global.currentPerSplit][7] = value;
+
+      byte chan = Split[Global.currentPerSplit].midiChanMain;
+      midiSendVolume(value, chan);     // Send the MIDI volume controller message
+      if (previous != value) {
+        paintVolumeDisplayRow(sensorSplit);
+      }
     }
   }
 }
 
 void handleVolumeRelease() {
-  handleShowSplit();  // see if one of the "Show Split" cells have been hit
+  // see if one of the "Show Split" cells have been hit
+  if (handleShowSplit()) {
+    return;
+  }
+
+  if (sensorCell().velocity) {
+    for (byte col = NUMCOLS - 1; col >= 1; --col ) {
+      if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
+        transferToSameRowCell(col);
+        break;
+      }
+    }
+  }
 }
 
 void handleOctaveTransposeNewTouch() {

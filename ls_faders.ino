@@ -38,6 +38,8 @@ void handleFaderTouch(boolean newVelocity) {
     }
     // otherwise it's a real fader and we calculate the value based on its position
     else {
+      // if a new touch happens on the same row that is further down the row, make it
+      // take over the touch
       if (newVelocity) {
         for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
           if (col != sensorCol && cell(col, sensorRow).velocity) {
@@ -67,6 +69,7 @@ void handleFaderTouch(boolean newVelocity) {
 }
 
 void handleFaderRelease() {
+  // if another touch is already down on the same row, make it take over the touch
   if (sensorCell().velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
