@@ -1345,6 +1345,10 @@ void handleVolumeNewTouch(boolean newVelocity) {
   }
 
   if (sensorCell().velocity) {
+    // if a touch is already down, only consider new touches from the same row
+    // this allows the volume slider to be used anywhere on the surface and
+    // for it to be 'played' with multiple touches on the same row without
+    // interference from other rows
     if (cellsTouched) {
       for (int r = 0; r < NUMROWS; ++r) {
         if (r != sensorRow && (colsInRowsTouched[r] & ~(1 << sensorCol)) != 0) {
@@ -1354,6 +1358,8 @@ void handleVolumeNewTouch(boolean newVelocity) {
       }
     }
 
+    // if a new touch happens on the same row that is further down the row, make it
+    // take over the touch
     if (newVelocity) {
       for (byte col = NUMCOLS - 1; col >= 1; --col ) {
         if (col != sensorCol && cell(col, sensorRow).velocity) {
@@ -1384,6 +1390,7 @@ void handleVolumeRelease() {
     return;
   }
 
+  // if another touch is already down on the same row, make it take over the
   if (sensorCell().velocity) {
     for (byte col = NUMCOLS - 1; col >= 1; --col ) {
       if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
