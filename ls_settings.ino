@@ -1361,9 +1361,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
     // if a new touch happens on the same row that is further down the row, make it
     // take over the touch
     if (newVelocity) {
-      for (byte col = Device.leftHanded ? 1 : NUMCOLS - 1;
-           Device.leftHanded ? col <= NUMCOLS - 1 : col >= 1;
-           Device.leftHanded ? ++col : --col) {
+      for (byte col = NUMCOLS - 1; col >= 1; --col) {
         if (col != sensorCol && cell(col, sensorRow).velocity) {
           transferFromSameRowCell(col);
           return;
@@ -1394,9 +1392,7 @@ void handleVolumeRelease() {
 
   // if another touch is already down on the same row, make it take over the
   if (sensorCell().velocity) {
-    for (byte col = Device.leftHanded ? 1 : NUMCOLS - 1;
-         Device.leftHanded ? col <= NUMCOLS - 1 : col >= 1;
-         Device.leftHanded ? ++col : --col) {
+    for (byte col = NUMCOLS - 1; col >= 1; --col) {
       if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
         transferToSameRowCell(col);
         break;
@@ -1655,13 +1651,14 @@ void handleGlobalSettingNewTouch() {
 
   if (!userFirmwareActive) {
 
-    // togle left handed mode
-    if (sensorCol == 5 && sensorRow == 4) {
-      Device.leftHanded = !Device.leftHanded;
-    }
     // handle tempo change
-    else if (sensorRow >= 4 && sensorRow != 7) {
+    if (sensorRow >= 4 && sensorRow != 7) {
       handleTempoNewTouch();
+    }
+
+    // toggle left handed mode
+    if (sensorCol == 1 && sensorRow == 3) {
+      Device.leftHanded = !Device.leftHanded;
     }
 
     // select Scale Notes or Accent Notes

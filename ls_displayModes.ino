@@ -248,24 +248,12 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
   else {
     int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][ccForFader], faderLeft, faderLength);
 
-    if (Device.leftHanded) {
-      for (byte col = faderLeft; col <= faderLength + faderLeft; ++col ) {
-        if (Device.calRows[col][0].fxdReferenceX + CALX_HALF_UNIT < fxdFaderPosition) {
-          clearLed(col, row);
-        }
-        else {
-          setLed(col, row, color, cellOn);
-        }
+    for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
+      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+        clearLed(col, row);
       }
-    }
-    else {
-      for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
-        if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
-          clearLed(col, row);
-        }
-        else {
-          setLed(col, row, color, cellOn);
-        }
+      else {
+        setLed(col, row, color, cellOn);
       }
     }
   }
@@ -983,6 +971,10 @@ void paintGlobalSettingsDisplay() {
 
   if (!userFirmwareActive) {
 
+    if (Device.leftHanded) {
+      lightLed(1, 3);
+    }
+
     switch (lightSettings) {
       case LIGHTS_MAIN:
         lightLed(1, 0);
@@ -1020,10 +1012,6 @@ void paintGlobalSettingsDisplay() {
       case 13:      // guitar tuning
         lightLed(6, 3);
         break;
-    }
-
-    if (Device.leftHanded) {
-      lightLed(5, 4);
     }
 
     // This code assumes that switchSelect values are the same as the row numbers
