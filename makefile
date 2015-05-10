@@ -2,5 +2,5 @@ linnstrument:
 	/Applications/Arduino.app/Contents/MacOS/JavaApplicationStub -v --verify /Development/linnstrument-firmware/linnstrument-firmware.ino
 
 upload:
-	cp /Development/linnstrument/build/linnstrument.build/Debug/linnstrument.build/linnstrument-firmware.cpp.bin /Development/linnstrument/Updater/
-	open /Development/linnstrument/Updater/LinnStrument\ Updater.app/
+	cp /Development/Linnstrument-XCode/build/linnstrument.build/Debug/linnstrument.build/linnstrument-firmware.cpp.bin /Development/Linnstrument-XCode/Updater/
+	open /Development/Linnstrument-XCode/Updater/LinnStrument\ Updater.app/

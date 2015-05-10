@@ -569,6 +569,8 @@ struct GlobalSettings {
 };
 GlobalSettings Global;
 
+#define ARCGUITAR (Global.rowOffset == 14)
+
 struct PresetSettings {
   GlobalSettings global;
   SplitSettings split[NUMSPLITS];

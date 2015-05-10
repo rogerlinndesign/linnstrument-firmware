@@ -724,7 +724,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Row Offset
     case 227:
-      if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13) {
+      if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || value == 14) {
         Global.rowOffset = value;
       }
       break;

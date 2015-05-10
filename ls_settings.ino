@@ -1664,6 +1664,9 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 6 && sensorRow == 3) {
       Global.rowOffset = 13;      // guitar
     }
+    else if (sensorCol == 6 && sensorRow == 4) {
+      Global.rowOffset = 14;      // guitar ARC
+    }
 
     // select which switch is being controlled/displayed
     if (sensorCol == 7 && sensorRow < 4) {
