@@ -51,11 +51,18 @@ void applySerialMode() {
 }
 
 void initializeStorage() {
-  firstTimeBoot = (dueFlashStorage.read(0) != 0);         // See if this is the first time we've executed.
-                                                          // When new code is loaded into the Due, this will be non-zero.
-  if (firstTimeBoot) {
-    switchSerialMode(true);                               // Start in serial mode after OS upgrade to be able to receive the settings
-    config.device.serialMode = true;
+  byte bootblock = dueFlashStorage.read(0);
+
+  if (bootblock != 0) {                                   // See if we need to boot from scratch
+    if (bootblock == 255) {                               // When a new firmware is uploaded, the first flash byte will be 255
+      switchSerialMode(true);                             // Start in serial mode after OS upgrade to be able to receive the settings
+      config.device.serialMode = true;
+      firstTimeBoot = true;
+    }
+    else {
+      switchSerialMode(false);                            // Start in MIDI mode for all other bootblock values
+      config.device.serialMode = false;
+    }
 
     writeSettingsToFlash();                               // Store the initial default settings
 
@@ -169,7 +176,7 @@ void loadSettings() {
     clearDisplay();
     small_scroll_text("     SETTINGS RESET, SORRY ...", globalColor);
 
-    dueFlashStorage.write(0, 1);
+    dueFlashStorage.write(0, 253);
     initializeStorage();
   }
 }
@@ -431,6 +438,15 @@ void applyBendRange(SplitSettings& target, byte bendRange) {
 
 // Called to handle press events of the 8 control buttons
 void handleControlButtonNewTouch() {
+  // if we're in the startup phase after a global reset
+  // a new press on a control button terminates the global reset state
+  // and makes sure that startup control button combination is reset
+  if (globalReset) {
+    globalReset = false;
+    cellTouched(0, 0, untouchedCell);
+    cellTouched(0, 2, untouchedCell);
+  }
+
   // only allow one control button to be pressed at the same time
   // this prevents phantom presses to occur for the control buttons
   // this is not detectable with the regular phantom press algorithm
@@ -536,6 +552,13 @@ void handleControlButtonNewTouch() {
 
 // Called to handle release events of the 8 control buttons
 void handleControlButtonRelease() {
+  // unless we pressed a new control button, no control button releases in global reset
+  // phase will be taken into account, this is needed to allow users to release the
+  // control button startup combination without leaving calibration mode
+  if (globalReset) {
+    return;
+  }
+
   if (sensorRow != SWITCH_1_ROW &&
       sensorRow != SWITCH_2_ROW) {                                          // don't allow simultaneous control buttons except for the switches
 

@@ -682,6 +682,7 @@ boolean setupDone = false;                          // indicates whether the set
 
 signed char debugLevel = -1;                        // level of debug messages that should be printed
 boolean firstTimeBoot = false;                      // this will be true when the LinnStrument booted up the first time after a firmware upgrade
+boolean globalReset = false;                        // this will be true when the LinnStrument was just globally reset
 unsigned long lastReset;                            // the last time a reset was started
 
 byte globalColor = COLOR_BLUE;                      // color for global, split point and transpose settings
@@ -865,7 +866,8 @@ void setup() {
   /*!!*/  if (switchPressAtStartup(0)) {
   /*!!*/    // if the global settings and switch 2 buttons are pressed at startup, the LinnStrument will do a global reset
   /*!!*/    if (switchPressAtStartup(2)) {
-  /*!!*/      dueFlashStorage.write(0, 1);
+  /*!!*/      globalReset = true;
+  /*!!*/      dueFlashStorage.write(0, 254);
   /*!!*/    }
   /*!!*/    // if only the global settings button is pressed at startup, activatate firmware upgrade mode
   /*!!*/    else {
@@ -896,6 +898,12 @@ void setup() {
   initializeCalibrationData();
 
   reset();
+
+  // ensure that the switches that are pressed down for the global reset at boot are not taken into account any further
+  if (globalReset) {
+    cellTouched(0, 0, touchedCell);
+    cellTouched(0, 2, touchedCell);
+  }
 
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
