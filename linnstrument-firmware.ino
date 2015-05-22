@@ -247,6 +247,7 @@ struct TouchInfo {
   short currentRawX;                         // last raw X value of each cell
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
+  short lastValueX;                          // the last calculated X value based on the current settings
   int32_t fxdRateX;                          // the averaged rate of change of the X values
   int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X

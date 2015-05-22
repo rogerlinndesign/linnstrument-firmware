@@ -608,6 +608,7 @@ void handleXYZupdate() {
   if (newVelocity) {
     sensorCell().lastTouch = millis();
     sensorCell().lastMovedX = 0;
+    sensorCell().lastValueX = INVALID_DATA;
     sensorCell().shouldRefreshX = true;
     sensorCell().initialX = -1;
     sensorCell().quantizationOffsetX = 0;
@@ -670,6 +671,7 @@ void handleXYZupdate() {
     if (Device.leftHanded) {
       valueX = -1 * valueX;
     }
+    sensorCell().lastValueX = valueX;
     valueY = handleYExpression();
   }
 
@@ -731,10 +733,66 @@ void handleXYZupdate() {
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueX != INVALID_DATA &&
           Split[sensorSplit].sendX && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+
         int pitch = valueX;
+
+        // if there are several touches for the same MIDI channel (for instance in one channel mode)
+        // we average the X values to have only one global X value for those touches
         if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
-          pitch = 0;
+
+          // start with the current sensor's pitch and note
+          int highestNotePitch = valueX;
+          signed char highestNote = sensorCell().note;
+
+          // start with the current sensor's X value
+          long averagePitch = valueX;
+          byte averageDivider = 1;
+
+          // iterate over all the rows
+          for (byte row = 0; row < NUMROWS; ++row) {
+
+            // exclude the current sensor for the rest of the logic, we already
+            // took it into account
+            int32_t colsInRowTouched = colsInRowsTouched[row];
+            if (row == sensorRow) {
+              colsInRowTouched = colsInRowTouched & ~(1 << sensorCol);
+            }
+
+            // continue while there are touched columns in the row
+            while (colsInRowTouched) {
+              byte touchedCol = 31 - __builtin_clz(colsInRowTouched);
+              
+              // add the X value of the cell to the average that's being calculated if the cell
+              // is on the same channel
+              if (cell(touchedCol, row).touched == touchedCell &&
+                  cell(touchedCol, row).lastValueX != INVALID_DATA &&
+                  cell(touchedCol, row).channel == sensorCell().channel) {
+
+                if (cell(touchedCol, row).note >= highestNote) {
+                  highestNote = cell(touchedCol, row).note;
+                  highestNotePitch = cell(touchedCol, row).lastValueX;
+                }
+
+                averagePitch += cell(touchedCol, row).lastValueX;
+                averageDivider++;
+              }
+              // exclude the cell we just processed by flipping its bit
+              colsInRowTouched &= ~(1 << touchedCol);
+            }
+          }
+
+          // calculate the average pitch of the notes that exclude the highest note
+          averagePitch = (averagePitch - highestNotePitch) / (averageDivider - 1);
+
+          // use the pitch that has the most influence
+          if (abs(highestNotePitch) > abs(averagePitch)) {
+            pitch = highestNotePitch;
+          }
+          else {
+            pitch = averagePitch;
+          }
         }
+
         preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
       }
 
@@ -790,7 +848,6 @@ void handleSplitStrum() {
       // we use the ARM Cortex-M3 instruction that reports the leading bit zeros of any number
       // we determine that the left-most bit is that is turned on by substracting the leading zero
       // count from the bitdepth of a 32-bit int
-
       byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
       TouchInfo& cell = cell(touchedCol, sensorRow);
       if (cell.hasNote()) {

@@ -294,6 +294,7 @@ inline void TouchInfo::refreshX() {
       
       fxdRateX = 0;
       lastMovedX = 0;
+      lastValueX = INVALID_DATA;
     }
   }
 }
@@ -473,6 +474,7 @@ void TouchInfo::clearSensorData() {
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;
+  lastValueX = INVALID_DATA;
   fxdRateX = 0;
   fxdRateCountX = 0;
   shouldRefreshX = true;
