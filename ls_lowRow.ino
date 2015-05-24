@@ -295,14 +295,19 @@ void lowRowStart() {
       break;
     case lowRowBend:
       lowRowBendActive[sensorSplit] = true;
+      resetLastMidiPitchBend(Split[sensorSplit].midiChanMain);
       startLowRowContinuousExpression();
       break;
     case lowRowCCX:
       lowRowCCXActive[sensorSplit] = true;
+      resetLastMidiCC(Split[sensorSplit].ccForLowRow, Split[sensorSplit].midiChanMain);
       startLowRowContinuousExpression();
       break;
     case lowRowCCXYZ:
       lowRowCCXYZActive[sensorSplit] = true;
+      resetLastMidiCC(Split[sensorSplit].ccForLowRowX, Split[sensorSplit].midiChanMain);
+      resetLastMidiCC(Split[sensorSplit].ccForLowRowY, Split[sensorSplit].midiChanMain);
+      resetLastMidiCC(Split[sensorSplit].ccForLowRowZ, Split[sensorSplit].midiChanMain);
       startLowRowContinuousExpression();
       break;
   }

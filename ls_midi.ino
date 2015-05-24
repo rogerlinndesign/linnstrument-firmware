@@ -1118,6 +1118,16 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
   }
 }
 
+void resetLastMidiCC(byte controlnum, byte channel) {
+  lastValueMidiCC[channel * controlnum] = 0xFF;
+  lastMomentMidiCC[channel * controlnum] = 0;
+}
+
+void resetLastMidiPitchBend(byte channel) {
+  lastValueMidiPB[channel] = 0x7FFF;
+  lastMomentMidiPB[channel] = 0;
+}
+
 void initializeLastMidiTracking() {
   // Initialize the arrays that track the latest MIDI values by setting all entries
   // to invalid MIDI values. This ensures that the first messages will always be sent.
