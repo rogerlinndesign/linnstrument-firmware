@@ -215,6 +215,7 @@ NRPN   Value   Description
 243    0-3     Global Settings Preset Load
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 245    0-1     User Firmware Mode (0: Off, 1: On)
+246    0-1     Global Left Handed Operation (0: Off, 1: On)
 
 Color Values
 ============

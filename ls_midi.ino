@@ -836,6 +836,14 @@ void receivedNrpn(int parameter, int value) {
         changeUserFirmwareMode(value);
       }
       break;
+    // Left Handed Operation Active
+    case 246:
+      if (inRange(value, 0, 1)) {
+        Device.leftHanded = value;
+        completelyRefreshLeds();
+        updateDisplay();
+      }
+      break;
   }
 
   updateDisplay();
