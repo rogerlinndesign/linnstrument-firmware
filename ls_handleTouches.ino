@@ -822,7 +822,7 @@ void handleSplitStrum() {
     // since no note was already playing, determined what the note details are
     else {
       virtualCell().split = otherSplit();
-      virtualCell().note = transposedNote(virtualCell().split, splitLeftEdge(virtualCell().split), sensorRow);
+      virtualCell().note = transposedNote(virtualCell().split, splitLowestEdge(virtualCell().split), sensorRow);
       virtualCell().channel = takeChannel(virtualCell().split);
     }
 
@@ -1447,11 +1447,19 @@ inline byte otherSplit(byte split) {
   return RIGHT-split;
 }
 
-inline byte splitLeftEdge(byte split) {
-  if (split == LEFT) {
-    return 1;
+inline byte splitLowestEdge(byte split) {
+  if (Device.leftHanded) {
+    if (split == RIGHT) {
+      return NUMCOLS - 1;
+    }
+    return Global.splitPoint - 1;
   }
-  return Global.splitPoint;
+  else {
+    if (split == LEFT) {
+      return 1;
+    }
+    return Global.splitPoint;
+  }
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
