@@ -1401,7 +1401,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
       byte chan = Split[Global.currentPerSplit].midiChanMain;
       midiSendVolume(value, chan);     // Send the MIDI volume controller message
       if (previous != value) {
-        paintVolumeDisplayRow(sensorSplit);
+        paintVolumeDisplayRow(Global.currentPerSplit);
       }
     }
   }

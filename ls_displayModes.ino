@@ -199,9 +199,12 @@ void paintNormalDisplay() {
 }
 
 void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
+  byte faderLeft, faderLength;
+  determineFaderBoundaries(split, faderLeft, faderLength);
+
   for (byte row = 0; row < NUMROWS; ++row) {
     if (Split[split].ccFaders) {
-      paintCCFaderDisplayRow(split, row);
+      paintCCFaderDisplayRow(split, row, faderLeft, faderLength);
     }
     else if (isStrummingSplit(split)) {
       for (byte col = leftEdge; col < rightEdge; ++col) {
@@ -215,10 +218,10 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
 
       if (!userFirmwareActive && row == 0 && Split[split].lowRowMode != lowRowNormal) {
         if (Split[split].lowRowMode == lowRowCCX && Split[split].lowRowCCXBehavior == lowRowCCFader) {
-          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow);
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow, faderLeft, faderLength);
         }
         if (Split[split].lowRowMode == lowRowCCXYZ && Split[split].lowRowCCXYZBehavior == lowRowCCFader) {
-          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRowX);
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRowX, faderLeft, faderLength);
         }
       }
     }
@@ -227,14 +230,11 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
   }
 }
 
-void paintCCFaderDisplayRow(byte split, byte row) {
-  paintCCFaderDisplayRow(split, row, Split[split].colorMain, Split[split].ccForFader[row]);
+void paintCCFaderDisplayRow(byte split, byte row, byte faderLeft, byte faderLength) {
+  paintCCFaderDisplayRow(split, row, Split[split].colorMain, Split[split].ccForFader[row], faderLeft, faderLength);
 }
 
-void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader) {
-  byte faderLeft, faderLength;
-  determineFaderBoundaries(split, faderLeft, faderLength);
-
+void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader, byte faderLeft, byte faderLength) {
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
       if (ccFaderValues[split][ccForFader] > 0) {
@@ -760,7 +760,7 @@ void paintVolumeDisplay(byte side) {
 }
 
 void paintVolumeDisplayRow(byte side) {
-  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, 7);
+  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, 7, 1, 24);
 }
 
 void paintOctaveTransposeDisplay(byte side) {
