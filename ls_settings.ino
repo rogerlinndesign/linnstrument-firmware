@@ -188,6 +188,8 @@ void applyPresetSettings(PresetSettings& preset) {
 
   focusedSplit = Global.currentPerSplit;
   applyPitchCorrectHold();
+  applyLimitsForY();
+  applyLimitsForZ();
 
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
@@ -210,7 +212,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 5;
+  config.device.version = 6;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
@@ -300,9 +302,13 @@ void initializePresetSettings() {
         p.split[s].pitchCorrectHold = true;
         p.split[s].pitchResetOnRelease = false;
         p.split[s].expressionForY = timbreCC74;
+        p.split[s].minForY = 0;
+        p.split[s].maxForY = 127;
         p.split[s].customCCForY = 74;
         p.split[s].relativeY = false;
         p.split[s].expressionForZ = loudnessPolyPressure;
+        p.split[s].minForZ = 0;
+        p.split[s].maxForZ = 127;
         p.split[s].customCCForZ = 11;
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
@@ -373,6 +379,8 @@ void initializePresetSettings() {
 
   // initialize runtime data
   applyPitchCorrectHold();
+  applyLimitsForY();
+  applyLimitsForZ();
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 128; ++c) {
       ccFaderValues[s][c] = 0;
@@ -434,6 +442,20 @@ void applyBendRange(SplitSettings& target, byte bendRange) {
       target.customBendRange = bendRange;
       break;
   }  
+}
+
+void applyLimitsForY() {
+  for (byte sp = 0; sp < NUMSPLITS; ++sp) {
+    int32_t fxd_range = FXD_FROM_INT(Split[sp].maxForY - Split[sp].minForY);
+    fxdLimitsForYRatio[sp] = FXD_DIV(fxd_range, FXD_CONST_127);
+  }
+}
+
+void applyLimitsForZ() {
+  for (byte sp = 0; sp < NUMSPLITS; ++sp) {
+    int32_t fxd_range = FXD_FROM_INT(Split[sp].maxForZ - Split[sp].minForZ);
+    fxdLimitsForZRatio[sp] = FXD_DIV(fxd_range, FXD_CONST_127);
+  }
 }
 
 // Called to handle press events of the 8 control buttons
@@ -894,7 +916,7 @@ void handlePerSplitSettingNewTouch() {
 
     // Timbre/Y settings
     if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].sendY = !Split[Global.currentPerSplit].sendY;
+      // handled in release
     }
     else if (sensorRow == 6) {
       Split[Global.currentPerSplit].expressionForY = timbreCC1;
@@ -910,7 +932,7 @@ void handlePerSplitSettingNewTouch() {
 
     // Loudness/Z settings
     if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].sendZ = !Split[Global.currentPerSplit].sendZ;
+      // handled in release
     }
     else if (sensorRow == 6) {
       Split[Global.currentPerSplit].expressionForZ = loudnessPolyPressure;
@@ -993,8 +1015,14 @@ void handlePerSplitSettingNewTouch() {
     else if (sensorCol == 7 && sensorRow == 4) {
       setLed(sensorCol, sensorRow, getBendRangeColor(sensorSplit), cellSlowPulse);
     }
+    else if (sensorCol == 9 && sensorRow == 7) {
+      setLed(sensorCol, sensorRow, getLimitsForYColor(sensorSplit), cellSlowPulse);
+    }
     else if (sensorCol == 9 && sensorRow == 5) {
       setLed(sensorCol, sensorRow, getCCForYColor(sensorSplit), cellSlowPulse);
+    }
+    else if (sensorCol == 10 && sensorRow == 7) {
+      setLed(sensorCol, sensorRow, getLimitsForZColor(sensorSplit), cellSlowPulse);
     }
     else if (sensorCol == 10 && sensorRow == 4) {
       setLed(sensorCol, sensorRow, getCCForZColor(sensorSplit), cellSlowPulse);
@@ -1024,9 +1052,19 @@ void handlePerSplitSettingHold() {
       setDisplayMode(displayBendRange);
       updateDisplay();
     }
+    else if (sensorCol == 9 && sensorRow == 7) {
+      resetNumericDataChange();
+      setDisplayMode(displayLimitsForY);
+      updateDisplay();
+    }
     else if (sensorCol == 9 && sensorRow == 5) {
       resetNumericDataChange();
       setDisplayMode(displayCCForY);
+      updateDisplay();
+    }
+    else if (sensorCol == 10 && sensorRow == 7) {
+      resetNumericDataChange();
+      setDisplayMode(displayLimitsForZ);
       updateDisplay();
     }
     else if (sensorCol == 10 && sensorRow == 4) {
@@ -1074,6 +1112,12 @@ void handlePerSplitSettingRelease() {
       Split[Global.currentPerSplit].bendRangeOption = bendRange24;
     }
   }
+  else if (sensorCol == 9 && sensorRow == 7) {
+    CellDisplay resetDisplay = Split[Global.currentPerSplit].sendY ? cellOn : cellOff;
+    if (ensureCellBeforeHoldWait(getLimitsForYColor(Global.currentPerSplit), resetDisplay)) {
+      Split[Global.currentPerSplit].sendY = !Split[Global.currentPerSplit].sendY;
+    }
+  }
   else if (sensorCol == 9 && sensorRow == 5) {
     CellDisplay resetDisplay = cellOff;
     if (Split[Global.currentPerSplit].expressionForY == timbrePolyPressure ||
@@ -1083,6 +1127,12 @@ void handlePerSplitSettingRelease() {
     }
     if (ensureCellBeforeHoldWait(getCCForYColor(Global.currentPerSplit), resetDisplay)) {
       applyTimbreCC74(Global.currentPerSplit);
+    }
+  }
+  else if (sensorCol == 10 && sensorRow == 7) {
+    CellDisplay resetDisplay = Split[Global.currentPerSplit].sendZ ? cellOn : cellOff;
+    if (ensureCellBeforeHoldWait(getLimitsForZColor(Global.currentPerSplit), resetDisplay)) {
+      Split[Global.currentPerSplit].sendZ = !Split[Global.currentPerSplit].sendZ;
     }
   }
   else if (sensorCol == 10 && sensorRow == 4) {
@@ -1151,8 +1201,19 @@ boolean handleShowSplit() {
     }
 
     if (hit && !doublePerSplit) {
-      Global.currentPerSplit = newSplit;
-      focusedSplit = newSplit;
+      // if we're in sub-menus of the per-split settings and the active split cell is tapped again
+      // it goes back to the main per-split settings menu
+      if (Global.currentPerSplit == newSplit) {
+        if (displayMode != displayVolume && displayMode != displayOctaveTranspose) {
+          setDisplayMode(displayPerSplit);
+        }
+      }
+      // otherwise switch the split for the currently active panel
+      else {
+        Global.currentPerSplit = newSplit;
+        focusedSplit = newSplit;
+      }
+      resetNumericDataChange();
       updateDisplay();
     }
   }
@@ -1243,6 +1304,23 @@ void handleBendRangeRelease() {
   handleNumericDataReleaseCol(true);
 }
 
+void handleLimitsForYNewTouch() {
+  switch (limitsForYConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForY, 0, 127, true);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForY, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForYConfigState, 0, 1);
+}
+
+void handleLimitsForYRelease() {
+  handleNumericDataReleaseCol(true);
+  applyLimitsForY();
+}
+
 void handleCCForYNewTouch() {
   handleNumericDataNewTouchCol(Split[Global.currentPerSplit].customCCForY, 0, 129, false);
   applyCustomCCForY(Global.currentPerSplit);
@@ -1262,6 +1340,23 @@ void applyCustomCCForY(byte split) {
 
 void handleCCForYRelease() {
   handleNumericDataReleaseCol(true);
+}
+
+void handleLimitsForZNewTouch() {
+  switch (limitsForZConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForZ, 0, 127, true);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForZ, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForZConfigState, 0, 1);
+}
+
+void handleLimitsForZRelease() {
+  handleNumericDataReleaseCol(true);
+  applyLimitsForZ();
 }
 
 void handleCCForZNewTouch() {
@@ -1312,13 +1407,13 @@ void handleLowRowCCXYZConfigNewTouch() {
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, true);
       break;
     case 2:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 127, false);
       break;
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 127, false);
       break;
     case 0:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 127, false);
       break;
   }
   handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3);

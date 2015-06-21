@@ -71,7 +71,6 @@ struct ConfigurationV1 {
   SplitSettingsV1 left;
   SplitSettingsV1 right;
 };
-struct ConfigurationV1 configV1;
 /**************************************** Configuration V2 ***************************************/
 /* This is used by firmware v1.1.0
 /*************************************************************************************************/
@@ -141,7 +140,6 @@ struct ConfigurationV2 {
   DeviceSettingsV2 device;
   PresetSettingsV2 preset[NUMPRESETS];
 };
-struct ConfigurationV2 configV2;
 /**************************************** Configuration V3 ***************************************/
 /* This is used by firmware v1.1.1-beta1, v1.1.1-beta2 and v1.1.1-beta3
 /*************************************************************************************************/
@@ -185,7 +183,6 @@ struct ConfigurationV3 {
   DeviceSettingsV3 device;
   PresetSettingsV3 preset[NUMPRESETS];
 };
-struct ConfigurationV3 configV3;
 /**************************************** Configuration V4 ***************************************/
 /* This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
 /*************************************************************************************************/
@@ -194,7 +191,75 @@ struct ConfigurationV4 {
   PresetSettingsV3 settings;
   PresetSettingsV3 preset[NUMPRESETS];
 };
-struct ConfigurationV4 configV4;
+/**************************************** Configuration V5 ***************************************/
+/* This is used by firmware v1.2.0-beta1, v1.2.0-beta2 and v1.2.0
+/*************************************************************************************************/
+struct GlobalSettingsV4 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  boolean mainNotes[12];                     // determines which notes receive "main" lights
+  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitch;                // 0-127
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+};
+struct SplitSettingsV3 {
+  byte midiMode;                       // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                   // main midi channel, 1 to 16
+  byte midiChanPerRow;                 // per-row midi channel, 1 to 16
+  boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  BendRangeOption bendRangeOption;     // see BendRangeOption
+  byte customBendRange;                // 1 - 96
+  boolean sendX;                       // true to send continuous X, false if not
+  boolean sendY;                       // true to send continuous Y, false if not
+  boolean sendZ;                       // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
+  byte pitchCorrectHold;               // See PitchCorrectHoldSpeed values
+  boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;     // the expression that should be used for timbre
+  unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
+  LoudnessExpression expressionForZ;   // the expression that should be used for loudness
+  unsigned short customCCForZ;         // 0-127
+  unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
+  byte colorMain;                      // color for non-accented cells
+  byte colorAccent;                    // color for accented cells
+  byte colorNoteon;                    // color for played notes
+  byte colorLowRow;                    // color for low row if on
+  byte lowRowMode;                     // see LowRowMode values
+  byte lowRowCCXBehavior;              // see LowRowCCBehavior values
+  unsigned short ccForLowRow;          // 0-127
+  byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;         // 0-127
+  unsigned short ccForLowRowY;         // 0-127
+  unsigned short ccForLowRowZ;         // 0-127
+  signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;         // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                       // true when this split strums the touches of the other split
+  boolean mpe;                         // true when MPE is active for this split
+};
+struct PresetSettingsV4 {
+  GlobalSettingsV4 global;
+  SplitSettingsV3 split[NUMSPLITS];
+};
+struct ConfigurationV5 {
+  DeviceSettings device;
+  PresetSettingsV4 settings;
+  PresetSettingsV4 preset[NUMPRESETS];
+};
 /*************************************************************************************************/
 
 // Handshake codes for settings transfer
@@ -211,6 +276,99 @@ enum linnCommands {
 };
 
 byte codePos = 0;
+
+boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
+  boolean result = false;
+
+  byte settingsVersion = buff2[0];
+
+  // if the stored version is newer than what this firmware supports, resort to default settings
+  if (settingsVersion > config.device.version) {
+    result = false;
+  }
+  else {
+    void *targetConfig = NULL;
+    void (*copySettingsFunction)(void *target, void *source) = NULL;
+
+    switch (settingsVersion) {
+      // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
+      case 1:
+        if (confSize == sizeof(ConfigurationV1)) {
+          targetConfig = new ConfigurationV1();
+          copySettingsFunction = &copySettingsV1ToSettingsV6;
+        }
+        break;
+      // this is the v2 of the configuration configuration, apply it if the size is right
+      case 2:
+        if (confSize == sizeof(ConfigurationV2)) {
+          targetConfig = new ConfigurationV2();
+          copySettingsFunction = &copySettingsV2ToSettingsV6;
+        }
+        break;
+      // this is the v3 of the configuration configuration, apply it if the size is right
+      case 3:
+        if (confSize == sizeof(ConfigurationV3)) {
+          targetConfig = new ConfigurationV3();
+          copySettingsFunction = &copySettingsV3ToSettingsV6;
+        }
+        break;
+      // this is the v4 of the configuration configuration, apply it if the size is right
+      case 4:
+        if (confSize == sizeof(ConfigurationV4)) {
+          targetConfig = new ConfigurationV4();
+          copySettingsFunction = &copySettingsV4ToSettingsV6;
+        }
+        break;
+      // this is the v5 of the configuration configuration, apply it if the size is right
+      case 5:
+        if (confSize == sizeof(ConfigurationV5)) {
+          targetConfig = new ConfigurationV5();
+          copySettingsFunction = &copySettingsV5ToSettingsV6;
+        }
+        break;
+      // this is the v6 of the configuration configuration, apply it if the size is right
+      case 6:
+        if (confSize == sizeof(Configuration)) {
+          memcpy(&config, buff2, confSize);
+          result = true;
+        }
+        break;
+      default:
+        result = false;
+        break;
+    }
+
+    // if a target config and a copy settings fuction were set, use them to transform the old settings into the new
+    if (targetConfig && copySettingsFunction) {
+      memcpy(targetConfig, buff2, confSize);
+
+      byte currentVersion = config.device.version;
+      copySettingsFunction(&config, targetConfig);
+      config.device.version = currentVersion;
+
+      switch (settingsVersion) {
+        case 1:
+          delete ((ConfigurationV1*)targetConfig);
+          break;
+        case 2:
+          delete ((ConfigurationV2*)targetConfig);
+          break;
+        case 3:
+          delete ((ConfigurationV3*)targetConfig);
+          break;
+        case 4:
+          delete ((ConfigurationV4*)targetConfig);
+          break;
+        case 5:
+          delete ((ConfigurationV5*)targetConfig);
+          break;
+      }
+      result = true;
+    }
+  }
+
+  return result;
+}
 
 void handleExtStorage() {
   // if no serial data is available, return
@@ -301,53 +459,7 @@ void handleExtStorage() {
           lastMoment = millis();
         }
 
-        boolean settingsApplied = false;
-        byte settingsVersion = buff2[0];
-        // if the stored version is newer than what this firmware supports, resort to default settings
-        if (settingsVersion > config.device.version) {
-          settingsApplied = false;
-        }
-        // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
-        else if (settingsVersion == 1 && confSize == sizeof(ConfigurationV1)) {
-          memcpy(&configV1, buff2, confSize);
-
-          byte currentVersion = config.device.version;
-          copySettingsV1ToSettingsV5(&config, &configV1);
-          config.device.version = currentVersion;
-          settingsApplied = true;
-        }
-        // this is the v2 of the configuration configuration, apply it if the size is right
-        else if (settingsVersion == 2 && confSize == sizeof(ConfigurationV2)) {
-          memcpy(&configV2, buff2, confSize);
-
-          byte currentVersion = config.device.version;
-          copySettingsV2ToSettingsV5(&config, &configV2);
-          config.device.version = currentVersion;
-          settingsApplied = true;
-        }
-        // this is the v3 of the configuration configuration, apply it if the size is right
-        else if (settingsVersion == 3 && confSize == sizeof(ConfigurationV3)) {
-          memcpy(&configV3, buff2, confSize);
-
-          byte currentVersion = config.device.version;
-          copySettingsV3ToSettingsV5(&config, &configV3);
-          config.device.version = currentVersion;
-          settingsApplied = true;
-        }
-        // this is the v4 of the configuration configuration, apply it if the size is right
-        else if (settingsVersion == 4 && confSize == sizeof(ConfigurationV4)) {
-          memcpy(&configV4, buff2, confSize);
-
-          byte currentVersion = config.device.version;
-          copySettingsV4ToSettingsV5(&config, &configV4);
-          config.device.version = currentVersion;
-          settingsApplied = true;
-        }
-        // this is the v5 of the configuration configuration, apply it if the size is right
-        else if (settingsVersion == 5 && confSize == sizeof(Configuration)) {
-          memcpy(&config, buff2, confSize);
-          settingsApplied = true;
-        }
+        boolean settingsApplied = upgradeConfigurationSettings(confSize, buff2);
 
         // activate the retrieved settings
         if (settingsApplied) {
@@ -405,7 +517,7 @@ void handleExtStorage() {
   }
 }
 
-void copySettingsV1ToSettingsV5(void *target, void *source) {
+void copySettingsV1ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV1 *s = (ConfigurationV1 *)source;
   GlobalSettingsV1 *g = &(s->global);
@@ -440,15 +552,15 @@ void copySettingsV1ToSettingsV5(void *target, void *source) {
     t->preset[p].global.arpTempo = g->arpTempo;
     t->preset[p].global.arpOctave = g->arpOctave;
 
-    copySplitSettingsV1ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->left);
-    copySplitSettingsV1ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->right);
+    copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->left);
+    copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->right);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
+void copySplitSettingsV1ToSplitSettingsV6(void *target, void *source) {
   SplitSettings *t = (SplitSettings *)target;
   SplitSettingsV1 *s = (SplitSettingsV1 *)source;
 
@@ -471,6 +583,8 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
     t->expressionForY = timbreCC74;
     t->customCCForY = s->ccForY;
   }
+  t->minForY = 0;
+  t->maxForY = 127;
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
   if (t->expressionForZ == loudnessCC11) {
@@ -479,6 +593,8 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
   else {
     t->customCCForZ = 11;
   }
+  t->minForZ = 0;
+  t->maxForZ = 127;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -500,7 +616,7 @@ void copySplitSettingsV1ToSplitSettingsV5(void *target, void *source) {
   t->mpe = false;
 }
 
-void copySettingsV2ToSettingsV5(void *target, void *source) {
+void copySettingsV2ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV2 *s = (ConfigurationV2 *)source;
 
@@ -520,13 +636,13 @@ void copySettingsV2ToSettingsV5(void *target, void *source) {
   t->device.leftHanded = false;
   initializeAudienceMessages();
 
-  copyPresetSettingsV2ToSettingsV5(t, s);
+  copyPresetSettingsV2ToSettingsV6(t, s);
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
+void copySplitSettingsV2ToSplitSettingsV6(void *target, void *source) {
   SplitSettings *t = (SplitSettings *)target;
   SplitSettingsV2 *s = (SplitSettingsV2 *)source;
 
@@ -562,6 +678,8 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
       }
       break;
   }
+  t->minForY = 0;
+  t->maxForY = 127;
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
   if (t->expressionForZ == loudnessCC11) {
@@ -570,6 +688,8 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
   else {
     t->customCCForZ = 11;
   }
+  t->minForZ = 0;
+  t->maxForZ = 127;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -591,7 +711,7 @@ void copySplitSettingsV2ToSplitSettingsV5(void *target, void *source) {
   t->mpe = false;
 }
 
-void copyPresetSettingsV2ToSettingsV5(void *target, void *source) {
+void copyPresetSettingsV2ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV2 *s = (ConfigurationV2 *)source;
 
@@ -612,15 +732,15 @@ void copyPresetSettingsV2ToSettingsV5(void *target, void *source) {
     t->preset[p].global.arpTempo = s->preset[p].global.arpTempo;
     t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
 
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV3ToSettingsV5(void *target, void *source) {
+void copySettingsV3ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV3 *s = (ConfigurationV3 *)source;
 
@@ -641,14 +761,14 @@ void copySettingsV3ToSettingsV5(void *target, void *source) {
   t->device.leftHanded = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV3ToSettingsV5(t, s);
+    copyPresetSettingsV3ToSettingsV6(t, s);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copyGlobalSettingsV3ToSettingsV5(void *target, void *source) {
+void copyGlobalSettingsV3ToSettingsV6(void *target, void *source) {
   GlobalSettings *t = (GlobalSettings *)target;
   GlobalSettingsV3 *s = (GlobalSettingsV3 *)source;
 
@@ -669,22 +789,22 @@ void copyGlobalSettingsV3ToSettingsV5(void *target, void *source) {
   t->arpOctave = s->arpOctave;
 }
 
-void copyPresetSettingsV3ToSettingsV5(void *target, void *source) {
+void copyPresetSettingsV3ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV3 *s = (ConfigurationV3 *)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyGlobalSettingsV3ToSettingsV5(&t->preset[p].global, &s->preset[p].global);
+    copyGlobalSettingsV3ToSettingsV6(&t->preset[p].global, &s->preset[p].global);
 
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV5(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV4ToSettingsV5(void *target, void *source) {
+void copySettingsV4ToSettingsV6(void *target, void *source) {
   Configuration *t = (Configuration *)target;
   ConfigurationV4 *s = (ConfigurationV4 *)source;
 
@@ -693,18 +813,111 @@ void copySettingsV4ToSettingsV5(void *target, void *source) {
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
 
-  copyPresetSettingsV4ToSettingsV5(&t->settings, &s->settings);
+  copyPresetSettingsV4ToSettingsV6(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV4ToSettingsV5(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV4ToSettingsV6(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyPresetSettingsV4ToSettingsV5(void *target, void *source) {
+void copyPresetSettingsV4ToSettingsV6(void *target, void *source) {
   PresetSettings *t = (PresetSettings *)target;
   PresetSettingsV3 *s = (PresetSettingsV3 *)source;
 
-  copyGlobalSettingsV3ToSettingsV5(&t->global, &s->global);
+  copyGlobalSettingsV3ToSettingsV6(&t->global, &s->global);
 
-  copySplitSettingsV2ToSplitSettingsV5(&t->split[LEFT], &s->split[LEFT]);
-  copySplitSettingsV2ToSplitSettingsV5(&t->split[RIGHT], &s->split[RIGHT]);
+  copySplitSettingsV2ToSplitSettingsV6(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV2ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
 }
+
+void copySettingsV5ToSettingsV6(void *target, void *source) {
+  Configuration *t = (Configuration *)target;
+  ConfigurationV5 *s = (ConfigurationV5 *)source;
+
+  t->device = s->device;
+  t->device.serialMode = true;
+  t->device.operatingLowPower = false;
+  t->device.leftHanded = s->device.leftHanded;
+
+  copyPresetSettingsV5ToSettingsV6(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV5ToSettingsV6(&t->preset[p], &s->preset[p]);
+  }
+}
+
+void copyPresetSettingsV5ToSettingsV6(void *target, void *source) {
+  PresetSettings *t = (PresetSettings *)target;
+  PresetSettingsV4 *s = (PresetSettingsV4 *)source;
+
+  copyGlobalSettingsV4ToSettingsV6(&t->global, &s->global);
+
+  copySplitSettingsV3ToSplitSettingsV6(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV3ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
+}
+
+void copyGlobalSettingsV4ToSettingsV6(void *target, void *source) {
+  GlobalSettings *t = (GlobalSettings *)target;
+  GlobalSettingsV4 *s = (GlobalSettingsV4 *)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(boolean)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(boolean)*12);
+  t->rowOffset = s->rowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = s->ccForSwitch;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+}
+
+void copySplitSettingsV3ToSplitSettingsV6(void *target, void *source) {
+  SplitSettings *t = (SplitSettings *)target;
+  SplitSettingsV3 *s = (SplitSettingsV3 *)source;
+
+  t->midiMode = s->midiMode;
+  t->midiChanMain = s->midiChanMain;
+  t->midiChanPerRow = s->midiChanPerRow;
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
+  t->bendRangeOption = s->bendRangeOption;
+  t->customBendRange = s->customBendRange;
+  t->sendX = s->sendX;
+  t->sendY = s->sendY;
+  t->sendZ = s->sendZ;
+  t->pitchCorrectQuantize = s->pitchCorrectQuantize;
+  t->pitchCorrectHold = s->pitchCorrectHold;
+  t->pitchResetOnRelease = s->pitchResetOnRelease;
+  t->expressionForY = s->expressionForY;
+  t->customCCForY = s->customCCForY;
+  t->minForY = 0;
+  t->maxForY = 127;
+  t->relativeY = s->relativeY;
+  t->expressionForZ = s->expressionForZ;
+  t->customCCForZ = s->customCCForZ;
+  t->minForZ = 0;
+  t->maxForZ = 127;
+  memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
+  t->colorMain = s->colorMain;
+  t->colorAccent = s->colorAccent;
+  t->colorNoteon = s->colorNoteon;
+  t->colorLowRow = s->colorLowRow;
+  t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = s->lowRowCCXBehavior;
+  t->ccForLowRow = s->ccForLowRow;
+  t->lowRowCCXYZBehavior = s->lowRowCCXYZBehavior;
+  t->ccForLowRowX = s->ccForLowRowX;
+  t->ccForLowRowY = s->ccForLowRowY;
+  t->ccForLowRowZ = s->ccForLowRowZ;
+  t->transposeOctave = s->transposeOctave;
+  t->transposePitch = s->transposePitch;
+  t->transposeLights = s->transposeLights;
+  t->ccFaders = s->ccFaders;
+  t->arpeggiator = s->arpeggiator;
+  t->strum = s->strum;
+  t->mpe = s->mpe;
+}
+

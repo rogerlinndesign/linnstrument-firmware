@@ -410,8 +410,14 @@ void handleNewTouch() {
     case displayBendRange:
       handleBendRangeNewTouch();
       break;
+    case displayLimitsForY:
+      handleLimitsForYNewTouch();
+      break;
     case displayCCForY:
       handleCCForYNewTouch();
+      break;
+    case displayLimitsForZ:
+      handleLimitsForZNewTouch();
       break;
     case displayCCForZ:
       handleCCForZNewTouch();
@@ -726,6 +732,9 @@ void handleXYZupdate() {
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+        if (newVelocity) {
+          preResetLastLoudness(sensorSplit, sensorCell().note, sensorCell().channel);
+        }
         preSendLoudness(sensorSplit, valueZ, sensorCell().note, sensorCell().channel);
       }
 
@@ -793,6 +802,9 @@ void handleXYZupdate() {
           }
         }
 
+        if (newVelocity) {
+          resetLastMidiPitchBend(sensorCell().channel);
+        }
         preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
       }
 
@@ -800,6 +812,9 @@ void handleXYZupdate() {
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueY != INVALID_DATA &&
           Split[sensorSplit].sendY && isYExpressiveCell()) {
+        if (newVelocity) {
+          preResetLastTimbre(sensorSplit, sensorCell().note, sensorCell().channel);
+        }
         preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
       }
     }
@@ -1167,8 +1182,14 @@ void handleTouchRelease() {
     case displayBendRange:
       handleBendRangeRelease();
       return;
+    case displayLimitsForY:
+      handleLimitsForYRelease();
+      return;
     case displayCCForY:
       handleCCForYRelease();
+      return;
+    case displayLimitsForZ:
+      handleLimitsForZRelease();
       return;
     case displayCCForZ:
       handleCCForZRelease();

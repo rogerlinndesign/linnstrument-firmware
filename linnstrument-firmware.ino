@@ -362,7 +362,9 @@ enum DisplayMode {
   displayCalibration,
   displayReset,
   displayBendRange,
+  displayLimitsForY,
   displayCCForY,
+  displayLimitsForZ,
   displayCCForZ,
   displayCCForFader,
   displayLowRowCCXConfig,
@@ -474,9 +476,13 @@ struct SplitSettings {
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
   unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;              // 0-127
+  unsigned short maxForY;              // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short customCCForZ;         // 0-127
+  unsigned short minForZ;              // 0-127
+  unsigned short maxForZ;              // 0-127
   unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
@@ -486,9 +492,9 @@ struct SplitSettings {
   byte lowRowCCXBehavior;              // see LowRowCCBehavior values
   unsigned short ccForLowRow;          // 0-127
   byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
-  unsigned short ccForLowRowX;         // 0-99
-  unsigned short ccForLowRowY;         // 0-99
-  unsigned short ccForLowRowZ;         // 0-99
+  unsigned short ccForLowRowX;         // 0-127
+  unsigned short ccForLowRowY;         // 0-127
+  unsigned short ccForLowRowZ;         // 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
@@ -740,6 +746,11 @@ byte audienceMessageToEdit = 0;                     // the audience message to e
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message
 short audienceMessageLength = 0;                    // the length in pixels of the audience message to edit
 
+int32_t fxdLimitsForYRatio[NUMSPLITS];              // the ratio to convert the full range of Y into the range applied by the limits
+int32_t fxdLimitsForZRatio[NUMSPLITS];              // the ratio to convert the full range of Z into the range applied by the limits
+
+byte limitsForYConfigState = 1;                     // the last state of the Y value limit configuration, this counts down to go to further pages
+byte limitsForZConfigState = 1;                     // the last state of the Z value limit configuration, this counts down to go to further pages
 byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
 byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
 

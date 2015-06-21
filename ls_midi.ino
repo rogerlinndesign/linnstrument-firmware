@@ -674,20 +674,48 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI CC For LowRow XYZ X
     case 51:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowX = value;
       }
       break;
     // Split MIDI CC For LowRow XYZ Y
     case 52:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowY = value;
       }
       break;
     // Split MIDI CC For LowRow XYZ Z
     case 53:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowZ = value;
+      }
+      break;
+    // Split Minimum CC Value For Y
+    case 54:
+      if (inRange(value, 0, 127)) {
+        Split[split].minForY = value;
+        applyLimitsForY();
+      }
+      break;
+    // Split Maximum CC Value For Y
+    case 55:
+      if (inRange(value, 0, 127)) {
+        Split[split].maxForY = value;
+        applyLimitsForY();
+      }
+      break;
+    // Split Minimum CC Value For Z
+    case 56:
+      if (inRange(value, 0, 127)) {
+        Split[split].minForZ = value;
+        applyLimitsForZ();
+      }
+      break;
+    // Split Maximum CC Value For Z
+    case 57:
+      if (inRange(value, 0, 127)) {
+        Split[split].maxForZ = value;
+        applyLimitsForZ();
       }
       break;
     // Global Split Active
@@ -1065,8 +1093,45 @@ void preSendPitchBend(byte split, int pitchValue, byte channel) {
   midiSendPitchBend(scalePitch(split, pitchValue), channel);    // Send the bend amount as a difference from bend center (8192)
 }
 
+// Calculate the real value if custom limits are set
+byte applyLimits(byte value, byte minValue, byte maxValue, int32_t ratio) {
+  if (minValue != 0 || maxValue != 127) {
+    value = minValue + FXD_TO_INT(FXD_MUL(FXD_FROM_INT(value), ratio));
+  }
+
+  return value;
+}
+
+void preResetLastTimbre(byte split, byte note, byte channel) {
+  switch(Split[split].expressionForY)
+  {
+    case timbrePolyPressure:
+      resetLastMidiPolyPressure(note, channel);
+      break;
+
+    case timbreChannelPressure:
+      resetLastMidiAfterTouch(channel);
+      break;
+
+    default:
+    {
+      byte ccForY;
+      if (Split[split].expressionForY == timbreCC1) {
+        ccForY = 1;
+      }
+      else {
+        ccForY = Split[split].customCCForY;
+      }
+      resetLastMidiCC(ccForY, channel);
+      break;
+    }
+  }
+}
+
 // Called to send Y-axis movements
 void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
+  yValue = applyLimits(yValue, Split[split].minForY, Split[split].maxForY, fxdLimitsForYRatio[split]);
+
   switch(Split[split].expressionForY)
   {
     case timbrePolyPressure:
@@ -1100,8 +1165,27 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
   }
 }
 
+void preResetLastLoudness(byte split, byte note, byte channel) {
+  switch(Split[split].expressionForZ)
+  {
+    case loudnessPolyPressure:
+      resetLastMidiPolyPressure(note, channel);
+      break;
+
+    case loudnessChannelPressure:
+      resetLastMidiAfterTouch(channel);
+      break;
+
+    case loudnessCC11:
+      resetLastMidiCC(Split[split].customCCForZ, channel);
+      break;
+  }
+}
+
 // Called to send Z message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
 void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
+  pressureValue = applyLimits(pressureValue, Split[split].minForZ, Split[split].maxForZ, fxdLimitsForZRatio[split]);
+
   switch(Split[split].expressionForZ)
   {
     case loudnessPolyPressure:
@@ -1124,6 +1208,16 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
       }
       break;
   }
+}
+
+void resetLastMidiPolyPressure(byte note, byte channel) {
+  lastValueMidiPP[channel * note] = 0xFF;
+  lastMomentMidiPP[channel * note] = 0;
+}
+
+void resetLastMidiAfterTouch(byte channel) {
+  lastValueMidiAT[channel] = 0xFF;
+  lastMomentMidiAT[channel] = 0;
 }
 
 void resetLastMidiCC(byte controlnum, byte channel) {
@@ -1310,7 +1404,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
 
   unsigned long now = millis();
   // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
-  short index = controlnum + 128*channel;
+  short index = controlnum * channel;
   if (!always && controlnum < 120 && controlnum != 64) {
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
@@ -1345,8 +1439,8 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = controlMsb + 128*channel;
-  short indexLsb = controlLsb + 128*channel;
+  short indexMsb = controlMsb * channel;
+  short indexLsb = controlLsb * channel;
 
   if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
   if (controlval != 0 &&
@@ -1526,7 +1620,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = millis();
-  short index = notenum + 128*channel;
+  short index = notenum * channel;
   if (lastValueMidiPP[index] == value) return;
   if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
   lastValueMidiPP[index] = value;

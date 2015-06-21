@@ -112,9 +112,13 @@ NRPN   Value   Description
 48     0-1     Split Left LowRow X Behavior (0: Hold, 1: Fader)
 49     0-127   Split Left MIDI CC For LowRow X
 50     0-1     Split Left LowRow XYZ Behavior (0: Hold, 1: Fader)
-51     0-99    Split Left MIDI CC For LowRow XYZ X
-52     0-99    Split Left MIDI CC For LowRow XYZ Y
-53     0-99    Split Left MIDI CC For LowRow XYZ Z
+51     0-127   Split Left MIDI CC For LowRow XYZ X
+52     0-127   Split Left MIDI CC For LowRow XYZ Y
+53     0-127   Split Left MIDI CC For LowRow XYZ Z
+54     0-127   Split Left Minimum CC Value For Y
+55     0-127   Split Left Maximum CC Value For Y
+56     0-127   Split Left Minimum CC Value For Z
+57     0-127   Split Left Maximum CC Value For Z
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -166,9 +170,13 @@ NRPN   Value   Description
 148    0-1     Split Right LowRow X Behavior (0: Hold, 1: Fader)
 149    0-127   Split Right MIDI CC For LowRow X
 150    0-1     Split Right LowRow XYZ Behavior (0: Hold, 1: Fader)
-151    0-99    Split Right MIDI CC For LowRow XYZ X
-152    0-99    Split Right MIDI CC For LowRow XYZ Y
-153    0-99    Split Right MIDI CC For LowRow XYZ Z
+151    0-127   Split Right MIDI CC For LowRow XYZ X
+152    0-127   Split Right MIDI CC For LowRow XYZ Y
+153    0-127   Split Right MIDI CC For LowRow XYZ Z
+154    0-127   Split Right Minimum CC Value For Y
+155    0-127   Split Right Maximum CC Value For Y
+156    0-127   Split Right Minimum CC Value For Z
+157    0-127   Split Right Maximum CC Value For Z
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column
