@@ -254,15 +254,15 @@ static Character small_0 = { 4,
   " 00 "
   "    " };
 
-static Character small_1 = { 4,
-  "    "
-  "  0 "
-  " 00 "
-  "  0 "
-  "  0 "
-  "  0 "
-  " 000"
-  "    " };
+static Character small_1 = { 2,
+  "  "
+  " 0"
+  "00"
+  " 0"
+  " 0"
+  " 0"
+  " 0"
+  "  " };
 
 static Character small_2 = { 4,
   "    "

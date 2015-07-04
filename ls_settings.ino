@@ -1222,6 +1222,14 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
+  if ((sensorCol == 1 && sensorRow == 7 && midiPreset[Global.currentPerSplit] < 127) ||
+      (sensorCol == 1 && sensorRow == 6 && midiPreset[Global.currentPerSplit] > 0)) {
+    midiPreset[Global.currentPerSplit] += (sensorRow == 7 ? 1 : -1);
+    lastControlPress[PRESET_ROW] = millis() - SWITCH_HOLD_DELAY;
+    applyMidiPreset();
+    updateDisplay();
+  }
+
   // don't change presets on the row that has the split selection
   if (sensorRow == 7) {
     return;

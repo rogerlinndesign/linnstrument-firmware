@@ -627,6 +627,8 @@ void paintOSVersionBuildDisplay() {
 // paint the current preset number for a particular side, in large block characters
 void paintPresetDisplay(byte side) {
   clearDisplay();
+  setLed(1, 7, COLOR_GREEN, cellOn);
+  setLed(1, 6, COLOR_RED, cellOn);
   for (byte p = 0; p < NUMPRESETS; ++p) {
     setLed(NUMCOLS-2, p+2, globalColor, cellOn);
   }
@@ -792,7 +794,7 @@ void paintNumericDataDisplay(byte color, unsigned short value, byte offset, bool
       condfont_draw_string(offset, 0, "1", color, false);
     }
     else {
-      smallfont_draw_string(offset, 0, "1", color, false);
+      smallfont_draw_string(offset + 2, 0, "1", color, false);
     }
     value -= 100;
     format = "%02d";     // to make sure a leading zero is included
