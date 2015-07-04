@@ -148,6 +148,7 @@ char* OSVersionBuild = ".020";
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
 #define LIGHTS_ACCENT  1
+#define LIGHTS_ACTIVE  2
 
 // The values of SWITCH_ here MUST be the same as the row numbers of the cells used to set them.
 #define SWITCH_FOOT_L    0
@@ -561,8 +562,9 @@ struct GlobalSettings {
 
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
-  boolean mainNotes[12];                     // determines which notes receive "main" lights
-  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values

@@ -740,14 +740,24 @@ void receivedNrpn(int parameter, int value) {
     case 203: case 204: case 205: case 206: case 207: case 208:
     case 209: case 210: case 211: case 212: case 213: case 214:
       if (inRange(value, 0, 1)) {
-        Global.mainNotes[parameter-203] = value;
+        if (value) {
+          Global.mainNotes[Global.activeNotes] |= 1 << parameter-203;
+        }
+        else {
+          Global.mainNotes[Global.activeNotes] &= ~(1 << parameter-203);
+        }
       }
       break;
     // Global Accent Note Lights
     case 215: case 216: case 217: case 218: case 219: case 220:
     case 221: case 222: case 223: case 224: case 225: case 226:
       if (inRange(value, 0, 1)) {
-        Global.accentNotes[parameter-215] = value;
+        if (value) {
+          Global.accentNotes[Global.activeNotes] |= 1 << parameter-215;
+        }
+        else {
+          Global.accentNotes[Global.activeNotes] &= ~(1 << parameter-215);
+        }
       }
       break;
     // Global Row Offset
@@ -868,6 +878,14 @@ void receivedNrpn(int parameter, int value) {
     case 246:
       if (inRange(value, 0, 1)) {
         Device.leftHanded = value;
+        completelyRefreshLeds();
+        updateDisplay();
+      }
+      break;
+    // Active note lights preset
+    case 247:
+      if (inRange(value, 0, 11)) {
+        Global.activeNotes = value;
         completelyRefreshLeds();
         updateDisplay();
       }
@@ -1539,7 +1557,7 @@ void midiSendNoteOffForAllTouches(byte split) {
 
   while (note != -1) {
     midiSendNoteOff(split, note, channel);
-    NoteEntry *entry = noteTouchMapping[split].getNoteEntry(note, channel);
+    NoteEntry* entry = noteTouchMapping[split].getNoteEntry(note, channel);
     if (entry == NULL) {
       note = -1;
     }

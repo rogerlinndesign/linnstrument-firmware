@@ -235,14 +235,130 @@ void initializeDeviceSensorSettings() {
   config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
+void initializeNoteLights(GlobalSettings& g) {
+    g.activeNotes = 0;
+
+    // initialize accentNotes array. Starting with only C within each octave highlighted
+    for (byte count = 0; count < 12; ++count) {
+      g.accentNotes[count] = 1;
+    }
+
+    // initialize mainNotes array (all off).
+    for (byte count = 0; count < 12; ++count) {
+      g.mainNotes[count] = 0;
+    }
+
+    // Major
+    g.mainNotes[0] |= 1 << 0;
+    g.mainNotes[0] |= 1 << 2;
+    g.mainNotes[0] |= 1 << 4;
+    g.mainNotes[0] |= 1 << 5;
+    g.mainNotes[0] |= 1 << 7;
+    g.mainNotes[0] |= 1 << 9;
+    g.mainNotes[0] |= 1 << 11;
+
+    // Natural minor
+    g.mainNotes[1] |= 1 << 0;
+    g.mainNotes[1] |= 1 << 2;
+    g.mainNotes[1] |= 1 << 3;
+    g.mainNotes[1] |= 1 << 5;
+    g.mainNotes[1] |= 1 << 7;
+    g.mainNotes[1] |= 1 << 8;
+    g.mainNotes[1] |= 1 << 10;
+
+    // Harmonic minor
+    g.mainNotes[2] |= 1 << 0;
+    g.mainNotes[2] |= 1 << 2;
+    g.mainNotes[2] |= 1 << 3;
+    g.mainNotes[2] |= 1 << 5;
+    g.mainNotes[2] |= 1 << 7;
+    g.mainNotes[2] |= 1 << 8;
+    g.mainNotes[2] |= 1 << 11;
+
+    // Major Pentatonic
+    g.mainNotes[3] |= 1 << 0;
+    g.mainNotes[3] |= 1 << 2;
+    g.mainNotes[3] |= 1 << 4;
+    g.mainNotes[3] |= 1 << 7;
+    g.mainNotes[3] |= 1 << 9;
+
+    // Minor Pentatonic
+    g.mainNotes[4] |= 1 << 0;
+    g.mainNotes[4] |= 1 << 3;
+    g.mainNotes[4] |= 1 << 5;
+    g.mainNotes[4] |= 1 << 7;
+    g.mainNotes[4] |= 1 << 10;
+
+    // Major Blues
+    g.mainNotes[5] |= 1 << 0;
+    g.mainNotes[5] |= 1 << 3;
+    g.mainNotes[5] |= 1 << 4;
+    g.mainNotes[5] |= 1 << 7;
+    g.mainNotes[5] |= 1 << 9;
+    g.mainNotes[5] |= 1 << 10;
+
+    // Minor Blues
+    g.mainNotes[6] |= 1 << 0;
+    g.mainNotes[6] |= 1 << 3;
+    g.mainNotes[6] |= 1 << 5;
+    g.mainNotes[6] |= 1 << 6;
+    g.mainNotes[6] |= 1 << 7;
+    g.mainNotes[6] |= 1 << 10;
+
+    // Diminished
+    g.mainNotes[7] |= 1 << 0;
+    g.mainNotes[7] |= 1 << 2;
+    g.mainNotes[7] |= 1 << 3;
+    g.mainNotes[7] |= 1 << 5;
+    g.mainNotes[7] |= 1 << 6;
+    g.mainNotes[7] |= 1 << 8;
+    g.mainNotes[7] |= 1 << 9;
+    g.mainNotes[7] |= 1 << 11;
+
+    // Whole Tone
+    g.mainNotes[8] |= 1 << 0;
+    g.mainNotes[8] |= 1 << 2;
+    g.mainNotes[8] |= 1 << 4;
+    g.mainNotes[8] |= 1 << 6;
+    g.mainNotes[8] |= 1 << 8;
+    g.mainNotes[8] |= 1 << 10;
+
+    // Spanish (Phrygian Dominant)
+    g.mainNotes[9] |= 1 << 0;
+    g.mainNotes[9] |= 1 << 1;
+    g.mainNotes[9] |= 1 << 4;
+    g.mainNotes[9] |= 1 << 5;
+    g.mainNotes[9] |= 1 << 7;
+    g.mainNotes[9] |= 1 << 8;
+    g.mainNotes[9] |= 1 << 10;
+
+    // Gypsy (Hungarian Minor)
+    g.mainNotes[10] |= 1 << 0;
+    g.mainNotes[10] |= 1 << 2;
+    g.mainNotes[10] |= 1 << 3;
+    g.mainNotes[10] |= 1 << 6;
+    g.mainNotes[10] |= 1 << 7;
+    g.mainNotes[10] |= 1 << 8;
+    g.mainNotes[10] |= 1 << 10;
+
+    // Arabic (Major Locrian)
+    g.mainNotes[11] |= 1 << 0;
+    g.mainNotes[11] |= 1 << 2;
+    g.mainNotes[11] |= 1 << 4;
+    g.mainNotes[11] |= 1 << 5;
+    g.mainNotes[11] |= 1 << 6;
+    g.mainNotes[11] |= 1 << 8;
+    g.mainNotes[11] |= 1 << 10;
+}
+
 void initializePresetSettings() {
   splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
     presetBlinkStart[n] = 0;
 
-    PresetSettings &p = config.preset[n];
-    GlobalSettings &g = p.global;
+    PresetSettings& p = config.preset[n];
+    GlobalSettings& g = p.global;
 
     g.splitPoint = 12;
     g.currentPerSplit = LEFT;
@@ -264,23 +380,7 @@ void initializePresetSettings() {
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
     g.ccForSwitch = 65;
 
-    // initialize accentNotes array. Starting with only C within each octave highlighted
-    g.accentNotes[0] = true;
-    for (byte count = 1; count < 12; ++count) {
-      g.accentNotes[count] = false;
-    }
-
-    // initialize mainNotes array (all off).
-    for (byte count = 0; count < 12; ++count) {
-      g.mainNotes[count] = false;
-    }
-    g.mainNotes[0] = true;
-    g.mainNotes[2] = true;
-    g.mainNotes[4] = true;
-    g.mainNotes[5] = true;
-    g.mainNotes[7] = true;
-    g.mainNotes[9] = true;
-    g.mainNotes[11] = true;
+    initializeNoteLights(g);
 
     g.arpDirection = ArpUp;
     g.arpTempo = ArpSixteenth;
@@ -1586,13 +1686,21 @@ void handleSplitPointNewTouch() {
 }
 
 // This manages the toggling of the note light cells (columns 2-4 and rows 0-3)
-void toggleNoteLights(boolean* notelights) {
+void toggleNoteLights(int& notelights) {
   if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
     return;
   }
 
   byte light = sensorCol-2 + (sensorRow*3);
-  notelights[light] = !notelights[light];
+  notelights ^= 1 << light;
+}
+
+void setActiveNoteLights() {
+  if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
+    return;
+  }
+
+  Global.activeNotes = sensorCol-2 + (sensorRow*3);
 }
 
 boolean isArpeggiatorTempoTriplet() {
@@ -1793,6 +1901,7 @@ void handleGlobalSettingNewTouch() {
       {
         case LIGHTS_MAIN:
         case LIGHTS_ACCENT:
+        case LIGHTS_ACTIVE:
           lightSettings = sensorRow;
           break;
       }
@@ -1803,11 +1912,13 @@ void handleGlobalSettingNewTouch() {
       switch (lightSettings)
       {
         case LIGHTS_MAIN:
-          toggleNoteLights(Global.mainNotes);
+          toggleNoteLights(Global.mainNotes[Global.activeNotes]);
           break;
         case LIGHTS_ACCENT:
-          toggleNoteLights(Global.accentNotes);
+          toggleNoteLights(Global.accentNotes[Global.activeNotes]);
           break;
+        case LIGHTS_ACTIVE:
+          setActiveNoteLights();
       }
     }
 

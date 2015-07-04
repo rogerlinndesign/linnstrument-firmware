@@ -307,13 +307,13 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     byte octaveNote = abs(displayedNote % 12);
 
     // first paint all cells in split to its background color
-    if (Global.mainNotes[octaveNote]) {
+    if (Global.mainNotes[Global.activeNotes] & (1 << octaveNote)) {
       colour = Split[split].colorMain;
       cellDisplay = cellOn;
     }
 
     // then paint only notes marked as Accent notes with Accent color
-    if (Global.accentNotes[octaveNote]) {
+    if (Global.accentNotes[Global.activeNotes] & (1 << octaveNote)) {
       colour = Split[split].colorAccent;
       cellDisplay = cellOn;
     }
@@ -930,11 +930,22 @@ void paintTranspose(byte color, byte row, short transpose) {
   }
 }
 
-void setNoteLights(boolean* notelights) {
+void displayNoteLights(int notelights) {
   for (byte row = 0; row < 4; ++row) {
     for (byte col = 0; col < 3; ++col) {
       byte light = col + (row * 3);
-      if (notelights[light]) {
+      if (notelights & 1 << light) {
+        lightLed(2+col, row);
+      }
+    }
+  }
+}
+
+void displayActiveNotes() {
+  for (byte row = 0; row < 4; ++row) {
+    for (byte col = 0; col < 3; ++col) {
+      byte light = col + (row * 3);
+      if (light == Global.activeNotes) {
         lightLed(2+col, row);
       }
     }
@@ -1040,11 +1051,15 @@ void paintGlobalSettingsDisplay() {
     switch (lightSettings) {
       case LIGHTS_MAIN:
         lightLed(1, 0);
-        setNoteLights(Global.mainNotes);
+        displayNoteLights(Global.mainNotes[Global.activeNotes]);
         break;
       case LIGHTS_ACCENT:
         lightLed(1, 1);
-        setNoteLights(Global.accentNotes);
+        displayNoteLights(Global.accentNotes[Global.activeNotes]);
+        break;
+      case LIGHTS_ACTIVE:
+        lightLed(1, 2);
+        displayActiveNotes();
         break;
     }
 

@@ -287,8 +287,8 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
     result = false;
   }
   else {
-    void *targetConfig = NULL;
-    void (*copySettingsFunction)(void *target, void *source) = NULL;
+    void* targetConfig = NULL;
+    void (*copySettingsFunction)(void* target, void* source) = NULL;
 
     switch (settingsVersion) {
       // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
@@ -517,10 +517,10 @@ void handleExtStorage() {
   }
 }
 
-void copySettingsV1ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV1 *s = (ConfigurationV1 *)source;
-  GlobalSettingsV1 *g = &(s->global);
+void copySettingsV1ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV1* s = (ConfigurationV1*)source;
+  GlobalSettingsV1* g = &(s->global);
 
   t->device.version = g->version;
   memcpy(t->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
@@ -538,8 +538,7 @@ void copySettingsV1ToSettingsV6(void *target, void *source) {
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = g->splitPoint;
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
-    memcpy(t->preset[p].global.mainNotes, g->mainNotes, sizeof(boolean)*12);
-    memcpy(t->preset[p].global.accentNotes, g->accentNotes, sizeof(boolean)*12);
+    copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
@@ -560,9 +559,9 @@ void copySettingsV1ToSettingsV6(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV1ToSplitSettingsV6(void *target, void *source) {
-  SplitSettings *t = (SplitSettings *)target;
-  SplitSettingsV1 *s = (SplitSettingsV1 *)source;
+void copySplitSettingsV1ToSplitSettingsV6(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV1* s = (SplitSettingsV1*)source;
 
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;
@@ -616,9 +615,9 @@ void copySplitSettingsV1ToSplitSettingsV6(void *target, void *source) {
   t->mpe = false;
 }
 
-void copySettingsV2ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV2 *s = (ConfigurationV2 *)source;
+void copySettingsV2ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV2* s = (ConfigurationV2*)source;
 
   t->device.version = s->device.version;
   memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
@@ -642,9 +641,9 @@ void copySettingsV2ToSettingsV6(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV2ToSplitSettingsV6(void *target, void *source) {
-  SplitSettings *t = (SplitSettings *)target;
-  SplitSettingsV2 *s = (SplitSettingsV2 *)source;
+void copySplitSettingsV2ToSplitSettingsV6(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV2* s = (SplitSettingsV2*)source;
 
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;
@@ -711,15 +710,14 @@ void copySplitSettingsV2ToSplitSettingsV6(void *target, void *source) {
   t->mpe = false;
 }
 
-void copyPresetSettingsV2ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV2 *s = (ConfigurationV2 *)source;
+void copyPresetSettingsV2ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV2* s = (ConfigurationV2*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = s->preset[p].global.splitPoint;
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
-    memcpy(t->preset[p].global.mainNotes, s->preset[p].global.mainNotes, sizeof(boolean)*12);
-    memcpy(t->preset[p].global.accentNotes, s->preset[p].global.accentNotes, sizeof(boolean)*12);
+    copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
     t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
@@ -740,9 +738,9 @@ void copyPresetSettingsV2ToSettingsV6(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV3ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV3 *s = (ConfigurationV3 *)source;
+void copySettingsV3ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV3* s = (ConfigurationV3*)source;
 
   t->device.version = s->device.version;
   memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
@@ -768,14 +766,13 @@ void copySettingsV3ToSettingsV6(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copyGlobalSettingsV3ToSettingsV6(void *target, void *source) {
-  GlobalSettings *t = (GlobalSettings *)target;
-  GlobalSettingsV3 *s = (GlobalSettingsV3 *)source;
+void copyGlobalSettingsV3ToSettingsV6(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV3* s = (GlobalSettingsV3*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  memcpy(t->mainNotes, s->mainNotes, sizeof(boolean)*12);
-  memcpy(t->accentNotes, s->accentNotes, sizeof(boolean)*12);
+  copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->pressureSensitivity = s->pressureSensitivity;
@@ -789,9 +786,9 @@ void copyGlobalSettingsV3ToSettingsV6(void *target, void *source) {
   t->arpOctave = s->arpOctave;
 }
 
-void copyPresetSettingsV3ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV3 *s = (ConfigurationV3 *)source;
+void copyPresetSettingsV3ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV3* s = (ConfigurationV3*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     copyGlobalSettingsV3ToSettingsV6(&t->preset[p].global, &s->preset[p].global);
@@ -804,9 +801,9 @@ void copyPresetSettingsV3ToSettingsV6(void *target, void *source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV4ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV4 *s = (ConfigurationV4 *)source;
+void copySettingsV4ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV4* s = (ConfigurationV4*)source;
 
   t->device = s->device;
   t->device.serialMode = true;
@@ -819,9 +816,9 @@ void copySettingsV4ToSettingsV6(void *target, void *source) {
   }
 }
 
-void copyPresetSettingsV4ToSettingsV6(void *target, void *source) {
-  PresetSettings *t = (PresetSettings *)target;
-  PresetSettingsV3 *s = (PresetSettingsV3 *)source;
+void copyPresetSettingsV4ToSettingsV6(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV3* s = (PresetSettingsV3*)source;
 
   copyGlobalSettingsV3ToSettingsV6(&t->global, &s->global);
 
@@ -829,9 +826,9 @@ void copyPresetSettingsV4ToSettingsV6(void *target, void *source) {
   copySplitSettingsV2ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copySettingsV5ToSettingsV6(void *target, void *source) {
-  Configuration *t = (Configuration *)target;
-  ConfigurationV5 *s = (ConfigurationV5 *)source;
+void copySettingsV5ToSettingsV6(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV5* s = (ConfigurationV5*)source;
 
   t->device = s->device;
   t->device.serialMode = true;
@@ -844,9 +841,9 @@ void copySettingsV5ToSettingsV6(void *target, void *source) {
   }
 }
 
-void copyPresetSettingsV5ToSettingsV6(void *target, void *source) {
-  PresetSettings *t = (PresetSettings *)target;
-  PresetSettingsV4 *s = (PresetSettingsV4 *)source;
+void copyPresetSettingsV5ToSettingsV6(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV4* s = (PresetSettingsV4*)source;
 
   copyGlobalSettingsV4ToSettingsV6(&t->global, &s->global);
 
@@ -854,14 +851,27 @@ void copyPresetSettingsV5ToSettingsV6(void *target, void *source) {
   copySplitSettingsV3ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copyGlobalSettingsV4ToSettingsV6(void *target, void *source) {
-  GlobalSettings *t = (GlobalSettings *)target;
-  GlobalSettingsV4 *s = (GlobalSettingsV4 *)source;
+void copyGlobalSettingsNoteLightsToSettingsV6(GlobalSettings* t, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
+  initializeNoteLights(*t);
+  t->mainNotes[0] = 0;
+  t->accentNotes[0] = 0;
+  for (byte n = 0; n < 12; ++n) {
+    if (sourceMainNotes[n]) {
+      t->mainNotes[0] |= 1 << n;
+    }
+    if (sourceAccentNotes[n]) {
+      t->accentNotes[0] |= 1 << n;
+    }
+  }
+}
+
+void copyGlobalSettingsV4ToSettingsV6(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV4* s = (GlobalSettingsV4*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  memcpy(t->mainNotes, s->mainNotes, sizeof(boolean)*12);
-  memcpy(t->accentNotes, s->accentNotes, sizeof(boolean)*12);
+  copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->pressureSensitivity = s->pressureSensitivity;
@@ -875,9 +885,9 @@ void copyGlobalSettingsV4ToSettingsV6(void *target, void *source) {
   t->arpOctave = s->arpOctave;
 }
 
-void copySplitSettingsV3ToSplitSettingsV6(void *target, void *source) {
-  SplitSettings *t = (SplitSettings *)target;
-  SplitSettingsV3 *s = (SplitSettingsV3 *)source;
+void copySplitSettingsV3ToSplitSettingsV6(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV3* s = (SplitSettingsV3*)source;
 
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;

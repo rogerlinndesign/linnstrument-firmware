@@ -230,7 +230,7 @@ boolean calcVelocity(unsigned short z) {
     // when the number of samples are reached, calculate the final velocity
     if (sensorCell().vcount == VELOCITY_SAMPLES) {
       int scale;
-      const short *curve;
+      const short* curve;
       switch (Global.velocitySensitivity) {
         case velocityHigh:
           scale = VELOCITY_SCALE_HIGH;
