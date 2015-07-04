@@ -851,7 +851,9 @@ void copyPresetSettingsV5ToSettingsV6(void* target, void* source) {
   copySplitSettingsV3ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copyGlobalSettingsNoteLightsToSettingsV6(GlobalSettings* t, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
+void copyGlobalSettingsNoteLightsToSettingsV6(void* target, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
+  GlobalSettings* t = (GlobalSettings*)target;
+
   initializeNoteLights(*t);
   t->mainNotes[0] = 0;
   t->accentNotes[0] = 0;

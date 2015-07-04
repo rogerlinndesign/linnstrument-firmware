@@ -763,6 +763,7 @@ unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the 
 
 void setLed(byte col, byte row, byte color, CellDisplay disp);
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
+void initializeNoteLights(GlobalSettings& g);
 
 boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay);
 
