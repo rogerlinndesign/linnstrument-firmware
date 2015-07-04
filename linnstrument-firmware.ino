@@ -1011,12 +1011,6 @@ void setup() {
 
 /******************************* MAIN LOOP *****************************/
 
-// loop:
-// Main execution loop for LinnStrument OS
-// Read Z (pressure) for each of the 200 row/column intersections. If a cell is touched, send Note On messages and also read
-// continuous Z, X and Y (if each is enabled), and send resulting continuous MIDI messages. After each cell rad, check the timer
-// and refresh the next LED column and read foot switches as necessary.
-
 void loop() {
   // the default musical performance mode
   if (operatingMode == modePerformance) {
