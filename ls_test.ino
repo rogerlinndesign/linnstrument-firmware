@@ -157,44 +157,44 @@ void modeLoopManufacturingTest() {
   TouchState previousTouch = sensorCell().touched;
   sensorCell().refreshZ();
 
-  unsigned short threshold = Device.sensorLoZ + 384;
-
   // highlight the touches
-  if (previousTouch != touchedCell && sensorCell().currentRawZ > threshold) {
+  if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {
     cellTouched(touchedCell);
 
-    byte color = COLOR_OFF;
-    switch (sensorRow)
-    {
-      case 0:
-      case 1:
-        color = COLOR_YELLOW;
-        break;
-      case 2:
-        color = COLOR_MAGENTA;
-        break;
-      case 3:
-        color = COLOR_CYAN;
-        break;
-      case 4:
-      case 5:
-        color = COLOR_BLUE;
-        break;
-      case 6:
-        color = COLOR_GREEN;
-        break;
-      case 7:
-        color = COLOR_RED;
-        break;
-    }
+    if (sensorCol == 0) {
+      byte color = COLOR_OFF;
+      switch (sensorRow)
+      {
+        case 0:
+        case 1:
+          color = COLOR_YELLOW;
+          break;
+        case 2:
+          color = COLOR_MAGENTA;
+          break;
+        case 3:
+          color = COLOR_CYAN;
+          break;
+        case 4:
+        case 5:
+          color = COLOR_BLUE;
+          break;
+        case 6:
+          color = COLOR_GREEN;
+          break;
+        case 7:
+          color = COLOR_RED;
+          break;
+      }
 
-    for (byte col = 0; col < NUMCOLS; ++col) {
-      for (byte row = 0; row < NUMROWS; ++row) {
-        setLed(col, row, color, cellOn);
+      for (byte col = 0; col < NUMCOLS; ++col) {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          setLed(col, row, color, cellOn);
+        }
       }
     }
   }
-  else if (previousTouch != untouchedCell && sensorCell().currentRawZ <= threshold) {
+  else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch()) {
     cellTouched(untouchedCell);
 
     if (cellsTouched == 0) {
@@ -204,6 +204,31 @@ void modeLoopManufacturingTest() {
         }
       }
     }
+  }
+
+  if (sensorCol != 0 && sensorCell().touched != untouchedCell) {
+    byte pressure = sensorCell().pressureZ;
+    int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(pressure), FXD_CONST_127), FXD_FROM_INT(NUMCOLS-2))) + 1;
+      
+    for (byte c = 1; c < NUMCOLS; ++c) {
+      if (c <= pressureColumn) {
+        setLed(c, 0, COLOR_GREEN, cellOn);
+      }
+      else {
+        clearLed(c, 0);
+      }
+    }
+  }
+
+  if (rowsInColsTouched[0] == 0) {
+    lightLed(4, 1);
+    lightLed(4, 6);
+    lightLed(10, 1);
+    lightLed(10, 6);
+    lightLed(16, 1);
+    lightLed(16, 6);
+    lightLed(22, 1);
+    lightLed(22, 6);
   }
 
   unsigned long now = micros();

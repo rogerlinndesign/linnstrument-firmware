@@ -923,9 +923,21 @@ void setup() {
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
 
+  // perform some initialization
+  initializeCalibrationSamples();
+  initializeStorage();
+  applyConfiguration();
+
+  for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
+    secretSwitch[ss] = false;
+  }
+
   // detect if test mode is active by holding down the per-split button at startup
   if (switchPressAtStartup(7)) {
     operatingMode = modeManufacturingTest;
+
+    Global.velocitySensitivity = velocityLow;
+    Global.pressureSensitivity = pressureLow;
 
     // Disable serial mode
     digitalWrite(35, LOW);
@@ -948,17 +960,6 @@ void setup() {
     clearDisplay();
     setDisplayMode(displayNormal);
     setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
-
-    // perform some initialization
-    initializeCalibrationSamples();
-
-    initializeStorage();
-
-    applyConfiguration();
-
-    for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
-      secretSwitch[ss] = false;
-    }
 
     // detect if low power mode is toggled by holding down the octave/transpose button at startup
     if (switchPressAtStartup(4)) {
