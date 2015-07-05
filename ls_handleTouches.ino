@@ -145,7 +145,7 @@ void transferFromSameRowCell(byte col) {
   cell(col, sensorRow).channel = -1;
   cell(col, sensorRow).octaveOffset = 0;
   cell(col, sensorRow).fxdPrevPressure = 0;
-  cell(col, sensorRow).fxdPrevTimbre = 0;
+  cell(col, sensorRow).fxdPrevTimbre = FXD_CONST_255;
   cell(col, sensorRow).velocity = 0;
   // do not reset vcount!
 
@@ -186,7 +186,7 @@ void transferToSameRowCell(byte col) {
   sensorCell().channel = -1;
   sensorCell().octaveOffset = 0;
   sensorCell().fxdPrevPressure = 0;
-  sensorCell().fxdPrevTimbre = 0;
+  sensorCell().fxdPrevTimbre = FXD_CONST_255;
   sensorCell().velocity = 0;
   // do not reset vcount!
 
@@ -1089,11 +1089,6 @@ short handleXExpression() {
   return result;
 }
 
-const int32_t MAX_VALUE_Y = FXD_FROM_INT(127);
-const int32_t SLEW_DIVIDER_Y = FXD_FROM_INT(26);
-const int32_t BASE_SLEW_Y = FXD_FROM_INT(2);
-const int32_t MIN_SLEW_Y = FXD_FROM_INT(3);
-
 short handleYExpression() {
   sensorCell().refreshY();
 
@@ -1105,24 +1100,19 @@ short handleYExpression() {
     preferredTimbre = sensorCell().currentCalibratedY;
   }
 
-  // base slew rate for Y is 2
-  int32_t slewRate = BASE_SLEW_Y;
-
   // the faster we move horizontally, the slower the slew rate becomes,
   // if we're holding still the timbre changes are almost instant, if we're moving faster they are averaged out
-  slewRate += sensorCell().fxdRateX;
+  int32_t slewRate = FXD_CONST_1 + sensorCell().fxdRateX;
 
-  // average the Y movements in reverse relation to the pressure, the harder you press, the less averaged they are
-  slewRate += FXD_DIV(MAX_VALUE_Y - sensorCell().fxdPrevPressure, SLEW_DIVIDER_Y);
-
-  // never use an Y slew rate below 3
-  if (slewRate < MIN_SLEW_Y) {
-    slewRate = MIN_SLEW_Y;
+  int32_t fxdAveragedTimbre;
+  if (sensorCell().fxdPrevTimbre == FXD_CONST_255) {
+    fxdAveragedTimbre = FXD_FROM_INT(preferredTimbre);
   }
-
-  int32_t fxdAveragedTimbre = sensorCell().fxdPrevTimbre;
-  fxdAveragedTimbre += FXD_DIV(FXD_FROM_INT(preferredTimbre), slewRate);
-  fxdAveragedTimbre -= FXD_DIV(sensorCell().fxdPrevTimbre, slewRate);
+  else {
+    fxdAveragedTimbre = sensorCell().fxdPrevTimbre;
+    fxdAveragedTimbre += FXD_DIV(FXD_FROM_INT(preferredTimbre), slewRate);
+    fxdAveragedTimbre -= FXD_DIV(sensorCell().fxdPrevTimbre, slewRate);
+  }
   sensorCell().fxdPrevTimbre = fxdAveragedTimbre;
 
   return FXD_TO_INT(fxdAveragedTimbre);

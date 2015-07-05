@@ -172,7 +172,7 @@ void initializeTouchInfo() {
       cell(col, row).channel = -1;
       cell(col, row).octaveOffset = 0;
       cell(col, row).fxdPrevPressure = 0;
-      cell(col, row).fxdPrevTimbre = 0;
+      cell(col, row).fxdPrevTimbre = FXD_CONST_255;
       cell(col, row).clearPhantoms();
     }
   }
@@ -464,7 +464,7 @@ void TouchInfo::clearMusicalData() {
   channel = -1;
   octaveOffset = 0;
   fxdPrevPressure = 0;
-  fxdPrevTimbre = 0;
+  fxdPrevTimbre = FXD_CONST_255;
 }
 
 void TouchInfo::clearSensorData() {

@@ -39,7 +39,7 @@ inline short readX() {                                // returns the raw X value
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
-  delayUsec(250);                                     // delay required after setting analog switches for stable X read. This needs further research
+  delayUsec(250);                                     // delay required after setting analog switches for stable X read
   return spiAnalogRead();
 }
 
@@ -49,14 +49,14 @@ inline short readY() {                                // returns a value of 0-12
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
-  delayUsec(35);                                      // delay required after setting analog switches for stable Y read. Requires further research
+  delayUsec(200);                                     // delay required after setting analog switches for stable Y read
   return spiAnalogRead();
 }
 
 // readZ:
 // Reads Z value at current cell
-inline unsigned short readZ() {                              // returns the raw Z value
-  selectSensorCell(sensorCol, sensorRow, READ_Z);            // set analog switches to current cell in touch sensor and read Z
+inline unsigned short readZ() {                       // returns the raw Z value
+  selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
   // prevent phantom reads when vertically adjacent cells are pressed
   if (sensorCol == 0) {
     delayUsec(24);

@@ -662,6 +662,7 @@ const int32_t FXD_CONST_2 = FXD_FROM_INT(2);
 const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
 const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
 const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
+const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
 
 const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
 const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
