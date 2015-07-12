@@ -977,11 +977,6 @@ void setup() {
     updateDisplay();
   }
 
-  // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Device.promoAnimationAtStartup) {
-    playPromoAnimation();
-  }
-
 #ifdef DISPLAY_XFRAME_AT_LAUNCH
   #define DEBUG_ENABLED
   Device.serialMode = true;
@@ -1007,6 +1002,11 @@ void setup() {
 #endif
 
   setupDone = true;
+
+  // if the promo animation was running last time the LinnStrument was on, start it up automatically
+  if (Device.promoAnimationAtStartup) {
+    playPromoAnimation();
+  }
 }
 
 
