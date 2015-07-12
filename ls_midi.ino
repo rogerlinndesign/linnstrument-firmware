@@ -1345,7 +1345,6 @@ void handlePendingMidi(unsigned long now) {
     if (messageIndex == 4) {
       messageIndex = 0;
       lastChannel = 0;
-      lastType = 0;
     }
   }
 }
