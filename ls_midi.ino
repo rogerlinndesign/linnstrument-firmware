@@ -1275,43 +1275,93 @@ void initializeLastMidiTracking() {
 }
 
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
-  param1 &= 0x7F;
-  param2 &= 0x7F;
-  midiOutQueue.push((byte)type | (channel & 0x0F));
-  midiOutQueue.push(param1);
-  if (type != MIDIProgramChange && type != MIDIChannelPressure) {
-    midiOutQueue.push(param2);
-  }
+  // we always queue four bytes and will process them as MIDI messages in the handlePendingMidi
+  midiOutQueue.push(channel & 0x0F);
+  midiOutQueue.push((byte)type);
+  midiOutQueue.push(param1 & 0x7F);
+  midiOutQueue.push(param2 & 0x7F);
 }
 
 void handlePendingMidi(unsigned long now) {
-  // when in low power mode only send one MIDI byte every 150 microseconds
-  if (Device.operatingLowPower) {
-    static unsigned long lastEnvoy = 0;
-    if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
-      sendNextMidiOutputByte();
-      lastEnvoy = now;
+  static unsigned long lastEnvoy = 0;
+  static byte messageIndex = 0;
+  static byte lastChannel = 0;
+  static byte lastType = 0;
+
+  if (!midiOutQueue.empty()) {
+    // the first queued byte is always the MIDI channel
+    if (messageIndex == 0) {
+      lastChannel = midiOutQueue.pop();
+      messageIndex++;
     }
-  }
-  else {
-    if (!midiOutQueue.empty()) {
-      sendNextMidiOutputByte();
+    // the others will constitute the actual MIDI message
+    else {
+      byte nextByte = midiOutQueue.peek();
+
+      // always insert a 2 ms delay around MIDI note off boundaries
+      unsigned long additionalInterval = 0;
+      if (messageIndex == 1 &&
+          (nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
+        additionalInterval = 2000;
+      }
+
+      // if the time between now and the last MIDI byte exceeds the required interval, process it
+      if (calcTimeDelta(now, lastEnvoy) >= midiMinimumInterval + additionalInterval) {
+        // construct the correct MIDI byte that needs to be sent
+        byte midiByte;
+        if (messageIndex == 1) {
+          midiByte = nextByte | lastChannel;
+        }
+        else {
+          midiByte = nextByte;
+        }
+
+        // try to send the MIDI message byte
+        if (sendNextMidiOutputByte(midiByte)) {
+          // keep track of the last MIDI message type that was successfully sent
+          if (messageIndex == 1) {
+            lastType = nextByte;
+          }
+
+          // remove the sent byte from the queue and keep track of the message sequence
+          midiOutQueue.pop();
+          messageIndex++;
+
+          // in case of program change and channel pressure, the MIDI message length is one shorter,
+          // so automatically remove the fourth byte from the queue since it's unused
+          if (messageIndex == 3 &&
+              (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
+            midiOutQueue.pop();
+            messageIndex++;
+          }
+        }
+
+        // update the last time a MIDI byte was attempted to be sent
+        lastEnvoy = now;
+      }
+    }
+
+    // each time four bytes have been processed from the queue, start a new MIDI message
+    if (messageIndex == 4) {
+      messageIndex = 0;
+      lastChannel = 0;
+      lastType = 0;
     }
   }
 }
 
 // send a MIDI message byte using the most appropriate method, the return value
-// indicates whether a next message can be sent immediately afterwards
-boolean sendNextMidiOutputByte() {
+// indicates whether the byte was sent successfully
+boolean sendNextMidiOutputByte(byte b) {
 #ifdef PATCHED_ARDUINO_SERIAL_WRITE
-  if (Serial.write(midiOutQueue.peek(), false) > 0) {
-    midiOutQueue.pop();
+  if (Serial.write(b, false) > 0) {
     return true;
   }
-#else
-  Serial.write(midiOutQueue.pop());
-#endif
   return false;
+#else
+  Serial.write(b);
+  return true;
+#endif
 }
 
 void midiSendVolume(byte v, byte channel) {
