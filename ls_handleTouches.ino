@@ -75,7 +75,7 @@ boolean severalTouchesForMidiChannel(byte split, byte col, byte row) {
   return false;
 }
 
-const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(7);
+const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(5);
 
 boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
