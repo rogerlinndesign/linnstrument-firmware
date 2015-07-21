@@ -2,3 +2,4 @@
 *.swo
 *~
 build/*
+linnstrument-firmware.sublime-*
