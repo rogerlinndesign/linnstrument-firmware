@@ -1298,11 +1298,12 @@ void handlePendingMidi(unsigned long now) {
     else {
       byte nextByte = midiOutQueue.peek();
 
-      // always insert a 2 ms delay around MIDI note off boundaries
+      // always insert a 1 ms delay around MIDI note on and note off boundaries
       unsigned long additionalInterval = 0;
       if (messageIndex == 1 &&
-          (nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
-        additionalInterval = 2000;
+          (nextByte == MIDINoteOn || lastType == MIDINoteOn ||
+           nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
+        additionalInterval = 1000;
       }
 
       // if the time between now and the last MIDI byte exceeds the required interval, process it
