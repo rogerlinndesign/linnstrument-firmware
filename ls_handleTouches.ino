@@ -44,21 +44,12 @@ void cellTouched(byte col, byte row, TouchState state) {
 
 // Re-initialize the velocity detection
 void initVelocity() {
+  sensorCell().velPreviousZ = 0;
   sensorCell().velSumY = 0;
   sensorCell().velSumXY = 0;
 
   sensorCell().vcount = 0;
   sensorCell().velocity = 0;
-}
-
-byte calcPreferredVelocity(byte velocity) {
-  // determine the preferred velocity based on the sensitivity settings
-  if (Global.velocitySensitivity == velocityFixed) {
-    return 96;
-  }
-  else {
-    return constrain(velocity, 1, 127);
-  }
 }
 
 #define TRANSFER_SLIDE_PROXIMITY 100

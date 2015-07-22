@@ -220,15 +220,28 @@ inline byte scale1016to127(int v, boolean allowZero) {
 }
 
 boolean calcVelocity(unsigned short z) {
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
+  if (sensorCell().vcount < VELOCITY_SAMPLES_DBL) {
+
+    // we use the Z values in two passed, so that each sample point in the linear regression
+    // algorithm is the maximum of two measurements, this stabilizes the velocity calculation
+    if (sensorCell().vcount % 2 == 0) {
+      sensorCell().velPreviousZ = z;
+      sensorCell().vcount++;
+      return false;
+    }
+
+    // calculate the maximum of the two pressure samples
+    z = max(sensorCell().velPreviousZ, z);
+    sensorCell().velPreviousZ = 0;
+
     // calculate the linear regression sums that are variable with the pressure
     sensorCell().velSumY += z;
-    sensorCell().velSumXY += (sensorCell().vcount + VELOCITY_ZERO_POINTS) * z;
+    sensorCell().velSumXY += ((sensorCell().vcount >> 1) + VELOCITY_ZERO_POINTS) * z;
 
     sensorCell().vcount++;
 
     // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES) {
+    if (sensorCell().vcount == VELOCITY_SAMPLES_DBL) {
       int scale;
       const short* curve;
       switch (Global.velocitySensitivity) {
@@ -257,6 +270,20 @@ boolean calcVelocity(unsigned short z) {
   }
 
   return false;
+}
+
+byte calcPreferredVelocity(byte velocity) {
+  // determine the preferred velocity based on the sensitivity settings
+  if (Global.velocitySensitivity == velocityFixed) {
+    return 96;
+  }
+  else {
+    return constrain(velocity, 1, 127);
+  }
+}
+
+boolean TouchInfo::isCalculatingVelocity() {
+  return sensorCell().vcount > 0 && sensorCell().vcount < VELOCITY_SAMPLES_DBL;
 }
 
 void TouchInfo::shouldRefreshData() {
@@ -330,7 +357,7 @@ short TouchInfo::rawZ() {
 
 inline boolean TouchInfo::isMeaningfulTouch() {
   refreshZ();
-  return velocityZ > 0 || pressureZ > 0;
+  return velocityZ > 0 && pressureZ > 0;
 }
 
 inline boolean TouchInfo::isStableYTouch() {    
@@ -420,10 +447,6 @@ inline void TouchInfo::refreshZ() {
   }
 }
 
-boolean TouchInfo::isCalculatingVelocity() {
-  return sensorCell().vcount > 0 && sensorCell().vcount < VELOCITY_SAMPLES;
-}
-
 boolean TouchInfo::hasNote() {
   return note != -1 && channel != -1;
 }
@@ -488,6 +511,7 @@ void TouchInfo::clearSensorData() {
   pressureZ = 0;
   shouldRefreshZ = true;
   pendingReleaseCount = 0;
+  velPreviousZ = 0;
   velSumY = 0;
   velSumXY = 0;
 }
