@@ -1301,7 +1301,7 @@ void handlePendingMidi(unsigned long now) {
       // always insert a 1 ms delay around MIDI note on and note off boundaries
       unsigned long additionalInterval = 0;
       if (messageIndex == 1 &&
-          (nextByte == MIDINoteOn || lastType == MIDINoteOn ||
+          (lastType == MIDINoteOn ||
            nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
         additionalInterval = 1000;
       }
