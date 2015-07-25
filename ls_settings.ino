@@ -430,7 +430,8 @@ void initializePresetSettings() {
 
     // initialize values that differ between the keyboard splits
     p.split[LEFT].midiChanMain = 1;
-    for (byte chan = 0; chan < 8; ++chan) {
+    p.split[LEFT].midiChanSet[0] = false;
+    for (byte chan = 1; chan < 8; ++chan) {
       p.split[LEFT].midiChanSet[chan] = true;
     }
     for (byte chan = 8; chan < 16; ++chan) {
@@ -441,13 +442,14 @@ void initializePresetSettings() {
     p.split[LEFT].colorNoteon = COLOR_RED;
     p.split[LEFT].lowRowMode = lowRowNormal;
 
-    p.split[RIGHT].midiChanMain = 2;
+    p.split[RIGHT].midiChanMain = 15;
     for (byte chan = 0; chan < 8; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = false;
     }
-    for (byte chan = 8; chan < 16; ++chan) {
+    for (byte chan = 8; chan < 15; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = true;
     }
+    p.split[RIGHT].midiChanSet[15] = false;
     p.split[RIGHT].midiChanPerRow = 9;
     p.split[RIGHT].colorMain = COLOR_BLUE;
     p.split[RIGHT].colorNoteon = COLOR_MAGENTA;
