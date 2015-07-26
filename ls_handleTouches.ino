@@ -425,6 +425,9 @@ void handleNewTouch() {
     case displayCCForSwitch:
       handleCCForSwitchConfigNewTouch();
       break;
+    case displayLimitsForVelocity:
+      handleLimitsForVelocityNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -1186,6 +1189,9 @@ void handleTouchRelease() {
       break;
     case displayCCForSwitch:
       handleCCForSwitchConfigRelease();
+      break;
+    case displayLimitsForVelocity:
+      handleLimitsForVelocityRelease();
       break;
     case displaySensorLoZ:
       handleSensorLoZRelease();

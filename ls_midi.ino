@@ -890,6 +890,19 @@ void receivedNrpn(int parameter, int value) {
         updateDisplay();
       }
       break;
+    // Global MIDI CC For Switch CC65
+    case 248:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitch = value;
+      }
+      break;
+    // Global Minimum Value For Velocity
+    case 249:
+      if (inRange(value, 0, 127)) {
+        Global.minForVelocity = value;
+        applyLimitsForVelocity();
+      }
+      break;
   }
 
   updateDisplay();

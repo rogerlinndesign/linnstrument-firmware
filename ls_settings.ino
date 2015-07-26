@@ -190,6 +190,7 @@ void applyPresetSettings(PresetSettings& preset) {
   applyPitchCorrectHold();
   applyLimitsForY();
   applyLimitsForZ();
+  applyLimitsForVelocity();
 
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
@@ -365,6 +366,7 @@ void initializePresetSettings() {
 
     g.rowOffset = 5;
     g.velocitySensitivity = velocityMedium;
+    g.minForVelocity = DEFAULT_MIN_VELOCITY;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
@@ -483,6 +485,7 @@ void initializePresetSettings() {
   applyPitchCorrectHold();
   applyLimitsForY();
   applyLimitsForZ();
+  applyLimitsForVelocity();
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 128; ++c) {
       ccFaderValues[s][c] = 0;
@@ -558,6 +561,11 @@ void applyLimitsForZ() {
     int32_t fxd_range = FXD_FROM_INT(Split[sp].maxForZ - Split[sp].minForZ);
     fxdLimitsForZRatio[sp] = FXD_DIV(fxd_range, FXD_CONST_127);
   }
+}
+
+void applyLimitsForVelocity() {
+  fxdMinVelOffset = FXD_FROM_INT(Global.minForVelocity * 8);
+  fxdMinVelRatio = FXD_DIV(FXD_CONST_1016 - fxdMinVelOffset, FXD_CONST_1016);
 }
 
 // Called to handle press events of the 8 control buttons
@@ -1542,6 +1550,15 @@ void handleCCForSwitchConfigRelease() {
   handleNumericDataReleaseCol(true);
 }
 
+void handleLimitsForVelocityNewTouch() {
+  handleNumericDataNewTouchCol(Global.minForVelocity, 0, 127, false);
+}
+
+void handleLimitsForVelocityRelease() {
+  handleNumericDataReleaseCol(true);
+  applyLimitsForVelocity();
+}
+
 void handleSensorLoZNewTouch() {
   handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
 }
@@ -2091,9 +2108,14 @@ void handleGlobalSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
-    if (sensorCol == 9  && sensorRow == 1 ||
-        sensorCol <= 16 && sensorRow == 7 ||
-        sensorCol == 16 && sensorRow == 2) {
+    if (sensorCol == 9  && sensorRow == 1) {
+      setLed(sensorCol, sensorRow, getSwitchCC65Color(), cellSlowPulse);
+    }
+    else if (sensorCol == 10 && (sensorRow == 0 || sensorRow == 1 || sensorRow == 2)) {
+      setLed(sensorCol, sensorRow, getVelocityColor(), cellSlowPulse);
+    }
+    else if (sensorCol <= 16 && sensorRow == 7 ||
+             sensorCol == 16 && sensorRow == 2) {
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
   }
@@ -2119,15 +2141,18 @@ void handleGlobalSettingHold() {
       setDisplayMode(displayCCForSwitch);
       updateDisplay();
     }
-
+    else if (sensorCol == 10 && (sensorRow == 0 || sensorRow == 1 || sensorRow == 2)) {
+      resetNumericDataChange();
+      setDisplayMode(displayLimitsForVelocity);
+      updateDisplay();
+    }
     // handle switch to/from User Firmware Mode
-    if (sensorCol == 16 && sensorRow == 2 &&
+    else if (sensorCol == 16 && sensorRow == 2 &&
       // ensure that this is not a reset operation instead
       cell(16, 0).touched == untouchedCell) {
       changeUserFirmwareMode(!userFirmwareActive);
     }
-
-    if (sensorRow == 7) {
+    else if (sensorRow == 7) {
 
       // initialize the touch-slide interface
       resetNumericDataChange();

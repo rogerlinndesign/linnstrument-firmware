@@ -195,6 +195,8 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 #define VELOCITY_SCALE_MEDIUM  34
 #define VELOCITY_SCALE_HIGH    38
 
+#define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
+
 
 /****************************************** TOUCH TRACKING ***************************************/
 
@@ -376,6 +378,7 @@ enum DisplayMode {
   displayLowRowCCXConfig,
   displayLowRowCCXYZConfig,
   displayCCForSwitch,
+  displayLimitsForVelocity,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -572,6 +575,7 @@ struct GlobalSettings {
   int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 0-127
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
@@ -668,6 +672,7 @@ const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
 const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
 const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
+const int32_t FXD_CONST_1016 = FXD_FROM_INT(1016);
 
 const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
 const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
@@ -701,6 +706,7 @@ boolean globalReset = false;                        // this will be true when th
 unsigned long lastReset;                            // the last time a reset was started
 
 byte globalColor = COLOR_BLUE;                      // color for global, split point and transpose settings
+byte globalAltColor = COLOR_CYAN;                   // alternate color for global, split point and transpose settings
 
 boolean changedSplitPoint = false;                  // reflects whether the split point was changed
 boolean splitButtonDown = false;                    // reflects state of Split button
@@ -757,6 +763,9 @@ short audienceMessageLength = 0;                    // the length in pixels of t
 
 int32_t fxdLimitsForYRatio[NUMSPLITS];              // the ratio to convert the full range of Y into the range applied by the limits
 int32_t fxdLimitsForZRatio[NUMSPLITS];              // the ratio to convert the full range of Z into the range applied by the limits
+
+int32_t fxdMinVelOffset;                            // the offset to apply to the velocity values
+int32_t fxdMinVelRatio;                             // the ratio to convert the full range of velocity into the range applied by the limits
 
 byte limitsForYConfigState = 1;                     // the last state of the Y value limit configuration, this counts down to go to further pages
 byte limitsForZConfigState = 1;                     // the last state of the Z value limit configuration, this counts down to go to further pages

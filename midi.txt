@@ -225,6 +225,8 @@ NRPN   Value   Description
 245    0-1     User Firmware Mode (0: Off, 1: On)
 246    0-1     Global Left Handed Operation (0: Off, 1: On)
 247    0-11    Global Active Note Lights Preset
+248    0-127   Global MIDI CC For Switch CC65
+249    0-127   Global Minimum Value For Velocity
 
 Color Values
 ============

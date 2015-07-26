@@ -28,6 +28,7 @@ displayCCForFader           : custom CC number selection for a CC fader
 displayLowRowCCXConfig      : custom CC number selection and behavior for LowRow in CCX mode
 displayLowRowCCXYZConfig    : custom CC number selection and behavior for LowRow in CCXYZ mode
 displayCCForSwitch          : custom CC number selection and behavior for Switches in CC65 mode
+displayLimitsForVelocity    : min value selection for velocity
 displaySensorLoZ            : sensor low Z sensitivity selection
 displaySensorFeatherZ       : sensor feather Z sensitivity selection
 displaySensorRangeZ         : max Z sensor range selection
@@ -123,6 +124,9 @@ void updateDisplay() {
     break;
   case displayCCForSwitch:
     paintCCForSwitchConfigDisplay();
+    break;
+  case displayLimitsForVelocity:
+    paintLimitsForVelocityDisplay();
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -759,6 +763,13 @@ void paintCCForSwitchConfigDisplay() {
   paintNumericDataDisplay(globalColor, Global.ccForSwitch, 0, false);
 }
 
+void paintLimitsForVelocityDisplay() {
+  clearDisplay();
+
+  condfont_draw_string(0, 0, "L", globalColor, true);
+  paintNumericDataDisplay(globalColor, Global.minForVelocity, 4, true);
+}
+
 void paintSensorLoZDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0, false);
@@ -968,12 +979,7 @@ void paintSwitchAssignment(byte mode) {
       lightLed(8, 1);
       break;
     case ASSIGNED_CC_65:
-      if (Global.ccForSwitch == 65) {
-        lightLed(9, 1);
-      }
-      else {
-        setLed(9, 1, COLOR_CYAN, cellOn);
-      }
+      setLed(9, 1, getSwitchCC65Color(), cellOn);
       break;
     case ASSIGNED_ARPEGGIATOR:
       lightLed(8, 0);
@@ -1014,7 +1020,7 @@ void paintGlobalSettingsDisplay() {
 
   // This code assumes the velocitySensitivity and pressureSensitivity
   // values are equal to the LED rows.
-  lightLed(10, Global.velocitySensitivity);
+  setLed(10, Global.velocitySensitivity, getVelocityColor(), cellOn);
   lightLed(11, Global.pressureSensitivity);
 
   // Show the MIDI input/output configuration
@@ -1184,6 +1190,20 @@ if (displayMode == displayGlobalWithTempo) {
     }
   }
 #endif
+}
+
+byte getSwitchCC65Color() {
+  if (Global.ccForSwitch != 65) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getVelocityColor() {
+  if (Global.minForVelocity != DEFAULT_MIN_VELOCITY) {
+    return globalAltColor;
+  }
+  return globalColor;
 }
 
 void paintCalibrationDisplay() {

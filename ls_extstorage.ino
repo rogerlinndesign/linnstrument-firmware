@@ -541,6 +541,7 @@ void copySettingsV1ToSettingsV6(void* target, void* source) {
     copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
+    t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
@@ -720,6 +721,7 @@ void copyPresetSettingsV2ToSettingsV6(void* target, void* source) {
     copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
+    t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
@@ -775,6 +777,7 @@ void copyGlobalSettingsV3ToSettingsV6(void* target, void* source) {
   copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = 0;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -876,6 +879,7 @@ void copyGlobalSettingsV4ToSettingsV6(void* target, void* source) {
   copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = 0;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
