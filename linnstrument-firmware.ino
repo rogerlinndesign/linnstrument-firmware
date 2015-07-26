@@ -954,6 +954,8 @@ void setup() {
     operatingMode = modeManufacturingTest;
 
     Global.velocitySensitivity = velocityLow;
+    Global.minForVelocity = 0;
+    applyLimitsForVelocity();
     Global.pressureSensitivity = pressureLow;
 
     // Disable serial mode
