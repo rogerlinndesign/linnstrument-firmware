@@ -551,6 +551,7 @@ void copySettingsV1ToSettingsV6(void* target, void* source) {
     t->preset[p].global.arpDirection = g->arpDirection;
     t->preset[p].global.arpTempo = g->arpTempo;
     t->preset[p].global.arpOctave = g->arpOctave;
+    t->preset[p].global.sustainBehavior = sustainHold;
 
     copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->left);
     copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->right);
@@ -731,6 +732,7 @@ void copyPresetSettingsV2ToSettingsV6(void* target, void* source) {
     t->preset[p].global.arpDirection = s->preset[p].global.arpDirection;
     t->preset[p].global.arpTempo = s->preset[p].global.arpTempo;
     t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
+    t->preset[p].global.sustainBehavior = sustainHold;
 
     copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
     copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
@@ -787,6 +789,7 @@ void copyGlobalSettingsV3ToSettingsV6(void* target, void* source) {
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
   t->arpOctave = s->arpOctave;
+  t->sustainBehavior = sustainHold;
 }
 
 void copyPresetSettingsV3ToSettingsV6(void* target, void* source) {
@@ -889,6 +892,7 @@ void copyGlobalSettingsV4ToSettingsV6(void* target, void* source) {
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
   t->arpOctave = s->arpOctave;
+  t->sustainBehavior = sustainHold;
 }
 
 void copySplitSettingsV3ToSplitSettingsV6(void* target, void* source) {

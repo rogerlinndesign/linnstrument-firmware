@@ -388,6 +388,8 @@ void initializePresetSettings() {
     g.arpTempo = ArpSixteenth;
     g.arpOctave = 0;
 
+    g.sustainBehavior = sustainHold;
+
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
         for (byte chan = 0; chan < 16; ++chan) {

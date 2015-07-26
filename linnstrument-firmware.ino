@@ -565,6 +565,11 @@ enum ArpeggiatorDirection {
   ArpReplayAll
 };
 
+enum SustainBehavior {
+  sustainHold,
+  sustainLatch
+};
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
@@ -585,6 +590,7 @@ struct GlobalSettings {
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
 };
 GlobalSettings Global;
 
