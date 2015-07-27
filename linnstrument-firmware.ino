@@ -54,7 +54,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-char* OSVersion = "121.";
+char* OSVersion = "121";
 char* OSVersionBuild = ".020";
 
 // SPI addresses
