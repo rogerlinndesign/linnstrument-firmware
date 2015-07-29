@@ -1549,7 +1549,7 @@ void handleCCForSwitchConfigNewTouch() {
 }
 
 void handleCCForSwitchConfigRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
 }
 
 void handleLimitsForVelocityNewTouch() {
@@ -1557,7 +1557,7 @@ void handleLimitsForVelocityNewTouch() {
 }
 
 void handleLimitsForVelocityRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
   applyLimitsForVelocity();
 }
 
