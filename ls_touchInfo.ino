@@ -359,7 +359,7 @@ short TouchInfo::rawZ() {
 
 inline boolean TouchInfo::isMeaningfulTouch() {
   refreshZ();
-  return velocityZ > 0 && pressureZ > 0;
+  return velocityZ > 0 || pressureZ > 0;
 }
 
 inline boolean TouchInfo::isStableYTouch() {    
