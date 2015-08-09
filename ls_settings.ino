@@ -213,7 +213,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 6;
+  config.device.version = 7;
   config.device.serialMode = false;
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
@@ -367,6 +367,7 @@ void initializePresetSettings() {
     g.rowOffset = 5;
     g.velocitySensitivity = velocityMedium;
     g.minForVelocity = DEFAULT_MIN_VELOCITY;
+    g.maxForVelocity = DEFAULT_MAX_VELOCITY;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
@@ -567,7 +568,8 @@ void applyLimitsForZ() {
 
 void applyLimitsForVelocity() {
   fxdMinVelOffset = FXD_FROM_INT(Global.minForVelocity * 8);
-  fxdMinVelRatio = FXD_DIV(FXD_CONST_1016 - fxdMinVelOffset, FXD_CONST_1016);
+  int32_t fxd_maxVelOffset = FXD_CONST_1016 - FXD_FROM_INT(Global.maxForVelocity * 8);
+  fxdVelRatio = FXD_DIV(FXD_CONST_1016 - fxdMinVelOffset - fxd_maxVelOffset, FXD_CONST_1016);
 }
 
 // Called to handle press events of the 8 control buttons
@@ -1438,6 +1440,7 @@ void handleLimitsForYNewTouch() {
 
 void handleLimitsForYRelease() {
   handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
   applyLimitsForY();
 }
 
@@ -1476,6 +1479,7 @@ void handleLimitsForZNewTouch() {
 
 void handleLimitsForZRelease() {
   handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
   applyLimitsForZ();
 }
 
@@ -1553,11 +1557,20 @@ void handleCCForSwitchConfigRelease() {
 }
 
 void handleLimitsForVelocityNewTouch() {
-  handleNumericDataNewTouchCol(Global.minForVelocity, 0, 127, false);
+  switch (limitsForVelocityConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Global.minForVelocity, 0, 127, true);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Global.maxForVelocity, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForVelocityConfigState, 0, 1);
 }
 
 void handleLimitsForVelocityRelease() {
   handleNumericDataReleaseCol(false);
+  handleNumericDataReleaseRow(false);
   applyLimitsForVelocity();
 }
 

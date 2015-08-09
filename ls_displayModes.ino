@@ -686,7 +686,7 @@ void paintLimitsForZDisplay(byte side) {
       condfont_draw_string(0, 0, "H", Split[side].colorMain, true);
       paintSplitNumericDataDisplay(side, Split[side].maxForZ, 4, true);
       break;
-    }
+  }
 }
 
 void paintCCForZDisplay(byte side) {
@@ -766,8 +766,16 @@ void paintCCForSwitchConfigDisplay() {
 void paintLimitsForVelocityDisplay() {
   clearDisplay();
 
-  condfont_draw_string(0, 0, "L", globalColor, true);
-  paintNumericDataDisplay(globalColor, Global.minForVelocity, 4, true);
+  switch (limitsForVelocityConfigState) {
+    case 1:
+      condfont_draw_string(0, 0, "L", globalColor, true);
+      paintNumericDataDisplay(globalColor, Global.minForVelocity, 4, true);
+      break;
+    case 0:
+      condfont_draw_string(0, 0, "H", globalColor, true);
+      paintNumericDataDisplay(globalColor, Global.maxForVelocity, 4, true);
+      break;
+  }
 }
 
 void paintSensorLoZDisplay() {
@@ -1200,7 +1208,8 @@ byte getSwitchCC65Color() {
 }
 
 byte getVelocityColor() {
-  if (Global.minForVelocity != DEFAULT_MIN_VELOCITY) {
+  if (Global.minForVelocity != DEFAULT_MIN_VELOCITY ||
+      Global.maxForVelocity != DEFAULT_MAX_VELOCITY) {
     return globalAltColor;
   }
   return globalColor;

@@ -196,6 +196,7 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 #define VELOCITY_SCALE_HIGH    38
 
 #define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
+#define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
 
 
 /****************************************** TOUCH TRACKING ***************************************/
@@ -581,6 +582,7 @@ struct GlobalSettings {
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   unsigned short minForVelocity;             // 0-127
+  unsigned short maxForVelocity;             // 0-127
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
@@ -771,10 +773,11 @@ int32_t fxdLimitsForYRatio[NUMSPLITS];              // the ratio to convert the 
 int32_t fxdLimitsForZRatio[NUMSPLITS];              // the ratio to convert the full range of Z into the range applied by the limits
 
 int32_t fxdMinVelOffset;                            // the offset to apply to the velocity values
-int32_t fxdMinVelRatio;                             // the ratio to convert the full range of velocity into the range applied by the limits
+int32_t fxdVelRatio;                                // the ratio to convert the full range of velocity into the range applied by the limits
 
 byte limitsForYConfigState = 1;                     // the last state of the Y value limit configuration, this counts down to go to further pages
 byte limitsForZConfigState = 1;                     // the last state of the Z value limit configuration, this counts down to go to further pages
+byte limitsForVelocityConfigState = 1;              // the last state of the velocity value limit configuration, this counts down to go to further pages
 byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
 byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
 

@@ -903,6 +903,13 @@ void receivedNrpn(int parameter, int value) {
         applyLimitsForVelocity();
       }
       break;
+    // Global Maximum Value For Velocity
+    case 250:
+      if (inRange(value, 0, 127)) {
+        Global.maxForVelocity = value;
+        applyLimitsForVelocity();
+      }
+      break;
   }
 
   updateDisplay();

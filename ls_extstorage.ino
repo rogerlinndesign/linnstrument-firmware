@@ -260,6 +260,40 @@ struct ConfigurationV5 {
   PresetSettingsV4 settings;
   PresetSettingsV4 preset[NUMPRESETS];
 };
+/**************************************** Configuration V6 ***************************************/
+/* This is used by firmware v1.2.1 and 1.2.2
+/*************************************************************************************************/
+struct GlobalSettingsV5 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 0-127
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitch;                // 0-127
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+};
+struct PresetSettingsV5 {
+  GlobalSettingsV5 global;
+  SplitSettings split[NUMSPLITS];
+};
+struct ConfigurationV6 {
+  DeviceSettings device;
+  PresetSettingsV5 settings;
+  PresetSettingsV5 preset[NUMPRESETS];
+};
 /*************************************************************************************************/
 
 // Handshake codes for settings transfer
@@ -295,39 +329,46 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
       case 1:
         if (confSize == sizeof(ConfigurationV1)) {
           targetConfig = new ConfigurationV1();
-          copySettingsFunction = &copySettingsV1ToSettingsV6;
+          copySettingsFunction = &copySettingsV1ToSettingsV7;
         }
         break;
       // this is the v2 of the configuration configuration, apply it if the size is right
       case 2:
         if (confSize == sizeof(ConfigurationV2)) {
           targetConfig = new ConfigurationV2();
-          copySettingsFunction = &copySettingsV2ToSettingsV6;
+          copySettingsFunction = &copySettingsV2ToSettingsV7;
         }
         break;
       // this is the v3 of the configuration configuration, apply it if the size is right
       case 3:
         if (confSize == sizeof(ConfigurationV3)) {
           targetConfig = new ConfigurationV3();
-          copySettingsFunction = &copySettingsV3ToSettingsV6;
+          copySettingsFunction = &copySettingsV3ToSettingsV7;
         }
         break;
       // this is the v4 of the configuration configuration, apply it if the size is right
       case 4:
         if (confSize == sizeof(ConfigurationV4)) {
           targetConfig = new ConfigurationV4();
-          copySettingsFunction = &copySettingsV4ToSettingsV6;
+          copySettingsFunction = &copySettingsV4ToSettingsV7;
         }
         break;
       // this is the v5 of the configuration configuration, apply it if the size is right
       case 5:
         if (confSize == sizeof(ConfigurationV5)) {
           targetConfig = new ConfigurationV5();
-          copySettingsFunction = &copySettingsV5ToSettingsV6;
+          copySettingsFunction = &copySettingsV5ToSettingsV7;
         }
         break;
       // this is the v6 of the configuration configuration, apply it if the size is right
       case 6:
+        if (confSize == sizeof(ConfigurationV6)) {
+          targetConfig = new ConfigurationV5();
+          copySettingsFunction = &copySettingsV6ToSettingsV7;
+        }
+        break;
+      // this is the v7 of the configuration configuration, apply it if the size is right
+      case 7:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -517,7 +558,7 @@ void handleExtStorage() {
   }
 }
 
-void copySettingsV1ToSettingsV6(void* target, void* source) {
+void copySettingsV1ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV1* s = (ConfigurationV1*)source;
   GlobalSettingsV1* g = &(s->global);
@@ -538,10 +579,11 @@ void copySettingsV1ToSettingsV6(void* target, void* source) {
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = g->splitPoint;
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
-    copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, g->mainNotes, g->accentNotes);
+    copyGlobalSettingsNoteLightsToSettingsV7(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
+    t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
     t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
@@ -553,15 +595,15 @@ void copySettingsV1ToSettingsV6(void* target, void* source) {
     t->preset[p].global.arpOctave = g->arpOctave;
     t->preset[p].global.sustainBehavior = sustainHold;
 
-    copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->left);
-    copySplitSettingsV1ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->right);
+    copySplitSettingsV1ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->left);
+    copySplitSettingsV1ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->right);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV1ToSplitSettingsV6(void* target, void* source) {
+void copySplitSettingsV1ToSplitSettingsV7(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV1* s = (SplitSettingsV1*)source;
 
@@ -617,7 +659,7 @@ void copySplitSettingsV1ToSplitSettingsV6(void* target, void* source) {
   t->mpe = false;
 }
 
-void copySettingsV2ToSettingsV6(void* target, void* source) {
+void copySettingsV2ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV2* s = (ConfigurationV2*)source;
 
@@ -637,13 +679,13 @@ void copySettingsV2ToSettingsV6(void* target, void* source) {
   t->device.leftHanded = false;
   initializeAudienceMessages();
 
-  copyPresetSettingsV2ToSettingsV6(t, s);
+  copyPresetSettingsV2ToSettingsV7(t, s);
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV2ToSplitSettingsV6(void* target, void* source) {
+void copySplitSettingsV2ToSplitSettingsV7(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV2* s = (SplitSettingsV2*)source;
 
@@ -712,17 +754,18 @@ void copySplitSettingsV2ToSplitSettingsV6(void* target, void* source) {
   t->mpe = false;
 }
 
-void copyPresetSettingsV2ToSettingsV6(void* target, void* source) {
+void copyPresetSettingsV2ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV2* s = (ConfigurationV2*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = s->preset[p].global.splitPoint;
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
-    copyGlobalSettingsNoteLightsToSettingsV6(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
+    copyGlobalSettingsNoteLightsToSettingsV7(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
+    t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
     t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
@@ -734,15 +777,15 @@ void copyPresetSettingsV2ToSettingsV6(void* target, void* source) {
     t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
     t->preset[p].global.sustainBehavior = sustainHold;
 
-    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV3ToSettingsV6(void* target, void* source) {
+void copySettingsV3ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
 
@@ -763,23 +806,24 @@ void copySettingsV3ToSettingsV6(void* target, void* source) {
   t->device.leftHanded = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV3ToSettingsV6(t, s);
+    copyPresetSettingsV3ToSettingsV7(t, s);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copyGlobalSettingsV3ToSettingsV6(void* target, void* source) {
+void copyGlobalSettingsV3ToSettingsV7(void* target, void* source) {
   GlobalSettings* t = (GlobalSettings*)target;
   GlobalSettingsV3* s = (GlobalSettingsV3*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
+  copyGlobalSettingsNoteLightsToSettingsV7(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
+  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -792,22 +836,22 @@ void copyGlobalSettingsV3ToSettingsV6(void* target, void* source) {
   t->sustainBehavior = sustainHold;
 }
 
-void copyPresetSettingsV3ToSettingsV6(void* target, void* source) {
+void copyPresetSettingsV3ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyGlobalSettingsV3ToSettingsV6(&t->preset[p].global, &s->preset[p].global);
+    copyGlobalSettingsV3ToSettingsV7(&t->preset[p].global, &s->preset[p].global);
 
-    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV6(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV4ToSettingsV6(void* target, void* source) {
+void copySettingsV4ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV4* s = (ConfigurationV4*)source;
 
@@ -816,23 +860,23 @@ void copySettingsV4ToSettingsV6(void* target, void* source) {
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
 
-  copyPresetSettingsV4ToSettingsV6(&t->settings, &s->settings);
+  copyPresetSettingsV4ToSettingsV7(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV4ToSettingsV6(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV4ToSettingsV7(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyPresetSettingsV4ToSettingsV6(void* target, void* source) {
+void copyPresetSettingsV4ToSettingsV7(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV3* s = (PresetSettingsV3*)source;
 
-  copyGlobalSettingsV3ToSettingsV6(&t->global, &s->global);
+  copyGlobalSettingsV3ToSettingsV7(&t->global, &s->global);
 
-  copySplitSettingsV2ToSplitSettingsV6(&t->split[LEFT], &s->split[LEFT]);
-  copySplitSettingsV2ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
+  copySplitSettingsV2ToSplitSettingsV7(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV2ToSplitSettingsV7(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copySettingsV5ToSettingsV6(void* target, void* source) {
+void copySettingsV5ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV5* s = (ConfigurationV5*)source;
 
@@ -841,23 +885,23 @@ void copySettingsV5ToSettingsV6(void* target, void* source) {
   t->device.operatingLowPower = false;
   t->device.leftHanded = s->device.leftHanded;
 
-  copyPresetSettingsV5ToSettingsV6(&t->settings, &s->settings);
+  copyPresetSettingsV5ToSettingsV7(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV5ToSettingsV6(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV5ToSettingsV7(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyPresetSettingsV5ToSettingsV6(void* target, void* source) {
+void copyPresetSettingsV5ToSettingsV7(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV4* s = (PresetSettingsV4*)source;
 
-  copyGlobalSettingsV4ToSettingsV6(&t->global, &s->global);
+  copyGlobalSettingsV4ToSettingsV7(&t->global, &s->global);
 
-  copySplitSettingsV3ToSplitSettingsV6(&t->split[LEFT], &s->split[LEFT]);
-  copySplitSettingsV3ToSplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
+  copySplitSettingsV3ToSplitSettingsV7(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV3ToSplitSettingsV7(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copyGlobalSettingsNoteLightsToSettingsV6(void* target, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
+void copyGlobalSettingsNoteLightsToSettingsV7(void* target, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
   GlobalSettings* t = (GlobalSettings*)target;
 
   initializeNoteLights(*t);
@@ -873,16 +917,17 @@ void copyGlobalSettingsNoteLightsToSettingsV6(void* target, boolean* sourceMainN
   }
 }
 
-void copyGlobalSettingsV4ToSettingsV6(void* target, void* source) {
+void copyGlobalSettingsV4ToSettingsV7(void* target, void* source) {
   GlobalSettings* t = (GlobalSettings*)target;
   GlobalSettingsV4* s = (GlobalSettingsV4*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  copyGlobalSettingsNoteLightsToSettingsV6(t, s->mainNotes, s->accentNotes);
+  copyGlobalSettingsNoteLightsToSettingsV7(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
+  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -895,7 +940,7 @@ void copyGlobalSettingsV4ToSettingsV6(void* target, void* source) {
   t->sustainBehavior = sustainHold;
 }
 
-void copySplitSettingsV3ToSplitSettingsV6(void* target, void* source) {
+void copySplitSettingsV3ToSplitSettingsV7(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV3* s = (SplitSettingsV3*)source;
 
@@ -941,3 +986,51 @@ void copySplitSettingsV3ToSplitSettingsV6(void* target, void* source) {
   t->mpe = s->mpe;
 }
 
+void copySettingsV6ToSettingsV7(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV5* s = (ConfigurationV5*)source;
+
+  t->device = s->device;
+  t->device.serialMode = true;
+  t->device.operatingLowPower = false;
+  t->device.leftHanded = s->device.leftHanded;
+
+  copyPresetSettingsV6ToSettingsV7(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV6ToSettingsV7(&t->preset[p], &s->preset[p]);
+  }
+}
+
+void copyPresetSettingsV6ToSettingsV7(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV5* s = (PresetSettingsV5*)source;
+
+  copyGlobalSettingsV5ToSettingsV7(&t->global, &s->global);
+
+  t->split[LEFT] = s->split[LEFT];
+  t->split[RIGHT] = s->split[RIGHT];
+}
+
+void copyGlobalSettingsV5ToSettingsV7(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV5* s = (GlobalSettingsV5*)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
+  t->rowOffset = s->rowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = 0;
+  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = s->ccForSwitch;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+  t->sustainBehavior = s->sustainBehavior;
+}
