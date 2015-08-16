@@ -428,6 +428,9 @@ void handleNewTouch() {
     case displayLimitsForVelocity:
       handleLimitsForVelocityNewTouch();
       break;
+    case displayValueForFixedVelocity:
+      handleValueForFixedVelocityNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -1192,6 +1195,9 @@ void handleTouchRelease() {
       break;
     case displayLimitsForVelocity:
       handleLimitsForVelocityRelease();
+      break;
+    case displayValueForFixedVelocity:
+      handleValueForFixedVelocityRelease();
       break;
     case displaySensorLoZ:
       handleSensorLoZRelease();

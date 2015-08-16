@@ -898,16 +898,22 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Minimum Value For Velocity
     case 249:
-      if (inRange(value, 0, 127)) {
+      if (inRange(value, 1, 127)) {
         Global.minForVelocity = value;
         applyLimitsForVelocity();
       }
       break;
     // Global Maximum Value For Velocity
     case 250:
-      if (inRange(value, 0, 127)) {
+      if (inRange(value, 1, 127)) {
         Global.maxForVelocity = value;
         applyLimitsForVelocity();
+      }
+      break;
+    // Global Value For Fixed Velocity
+    case 251:
+      if (inRange(value, 1, 127)) {
+        Global.valueForFixedVelocity = value;
       }
       break;
   }

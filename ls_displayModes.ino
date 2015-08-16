@@ -7,33 +7,34 @@ There are 13 different display modes.
 
 These are the possible values of the global variable displayMode:
 
-displayNormal               : normal performance display
-displayPerSplit             : per-split settings (left or right split)
-displayPreset               : preset number
-displayVolume               : volume
-displayOctaveTranspose      : octave and transpose settings
-displaySplitPoint           : split point
-displayGlobal               : global settings
-displayGlobalWithTempo      : global settings with tempo
-displayOsVersion            : version number of the OS
-displayOsVersionSUb         : sub-version number of the OS
-displayCalibration          : calibration process
-displayReset                : global reset confirmation and wait for touch release
-displayBendRange            ; custom bend range selection for X expression
-displayLimitsForY           : min and max value selection for Y expression
-displayCCForY               : custom CC number selection for Y expression
-displayLimitsForZ           : min and max value selection for Z expression
-displayCCForZ               : custom CC number selection for Z expression
-displayCCForFader           : custom CC number selection for a CC fader
-displayLowRowCCXConfig      : custom CC number selection and behavior for LowRow in CCX mode
-displayLowRowCCXYZConfig    : custom CC number selection and behavior for LowRow in CCXYZ mode
-displayCCForSwitch          : custom CC number selection and behavior for Switches in CC65 mode
-displayLimitsForVelocity    : min value selection for velocity
-displaySensorLoZ            : sensor low Z sensitivity selection
-displaySensorFeatherZ       : sensor feather Z sensitivity selection
-displaySensorRangeZ         : max Z sensor range selection
-displayPromo                : display promotion animation
-displayEditAudienceMessage  : edit an audience message
+displayNormal                : normal performance display
+displayPerSplit              : per-split settings (left or right split)
+displayPreset                : preset number
+displayVolume                : volume
+displayOctaveTranspose       : octave and transpose settings
+displaySplitPoint            : split point
+displayGlobal                : global settings
+displayGlobalWithTempo       : global settings with tempo
+displayOsVersion             : version number of the OS
+displayOsVersionSUb          : sub-version number of the OS
+displayCalibration           : calibration process
+displayReset                 : global reset confirmation and wait for touch release
+displayBendRange             ; custom bend range selection for X expression
+displayLimitsForY            : min and max value selection for Y expression
+displayCCForY                : custom CC number selection for Y expression
+displayLimitsForZ            : min and max value selection for Z expression
+displayCCForZ                : custom CC number selection for Z expression
+displayCCForFader            : custom CC number selection for a CC fader
+displayLowRowCCXConfig       : custom CC number selection and behavior for LowRow in CCX mode
+displayLowRowCCXYZConfig     : custom CC number selection and behavior for LowRow in CCXYZ mode
+displayCCForSwitch           : custom CC number selection and behavior for Switches in CC65 mode
+displayLimitsForVelocity     : min and max value selection for velocity
+displayValueForFixedVelocity : value selection for fixed velocity
+displaySensorLoZ             : sensor low Z sensitivity selection
+displaySensorFeatherZ        : sensor feather Z sensitivity selection
+displaySensorRangeZ          : max Z sensor range selection
+displayPromo                 : display promotion animation
+displayEditAudienceMessage   : edit an audience message
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -127,6 +128,9 @@ void updateDisplay() {
     break;
   case displayLimitsForVelocity:
     paintLimitsForVelocityDisplay();
+    break;
+  case displayValueForFixedVelocity:
+    paintValueForFixedVelocityDisplay();
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -778,6 +782,11 @@ void paintLimitsForVelocityDisplay() {
   }
 }
 
+void paintValueForFixedVelocityDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Global.valueForFixedVelocity, 0, true);
+}
+
 void paintSensorLoZDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0, false);
@@ -1028,7 +1037,12 @@ void paintGlobalSettingsDisplay() {
 
   // This code assumes the velocitySensitivity and pressureSensitivity
   // values are equal to the LED rows.
-  setLed(10, Global.velocitySensitivity, getVelocityColor(), cellOn);
+  if (Global.velocitySensitivity == velocityFixed) {
+    setLed(10, Global.velocitySensitivity, getFixedVelocityColor(), cellOn);
+  }
+  else {
+    setLed(10, Global.velocitySensitivity, getVelocityColor(), cellOn);
+  }
   lightLed(11, Global.pressureSensitivity);
 
   // Show the MIDI input/output configuration
@@ -1213,6 +1227,13 @@ byte getSwitchCC65Color() {
 byte getVelocityColor() {
   if (Global.minForVelocity != DEFAULT_MIN_VELOCITY ||
       Global.maxForVelocity != DEFAULT_MAX_VELOCITY) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getFixedVelocityColor() {
+  if (Global.valueForFixedVelocity != DEFAULT_FIXED_VELOCITY) {
     return globalAltColor;
   }
   return globalColor;

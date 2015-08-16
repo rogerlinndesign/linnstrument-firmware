@@ -201,6 +201,7 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 #define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
 #define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
+#define DEFAULT_FIXED_VELOCITY 96   // default fixed velocity value
 
 
 /****************************************** TOUCH TRACKING ***************************************/
@@ -384,6 +385,7 @@ enum DisplayMode {
   displayLowRowCCXYZConfig,
   displayCCForSwitch,
   displayLimitsForVelocity,
+  displayValueForFixedVelocity,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -585,8 +587,9 @@ struct GlobalSettings {
   int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
-  unsigned short minForVelocity;             // 0-127
-  unsigned short maxForVelocity;             // 0-127
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
@@ -968,6 +971,7 @@ void setup() {
 
     Global.velocitySensitivity = velocityLow;
     Global.minForVelocity = 0;
+    Global.maxForVelocity = 127;
     applyLimitsForVelocity();
     Global.pressureSensitivity = pressureLow;
 

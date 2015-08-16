@@ -226,8 +226,9 @@ NRPN   Value   Description
 246    0-1     Global Left Handed Operation (0: Off, 1: On)
 247    0-11    Global Active Note Lights Preset
 248    0-127   Global MIDI CC For Switch CC65
-249    0-127   Global Minimum Value For Velocity
-250    0-127   Global Maximum Value For Velocity
+249    1-127   Global Minimum Value For Velocity
+250    1-127   Global Maximum Value For Velocity
+251    1-127   Global Value For Fixed Velocity
 
 Color Values
 ============

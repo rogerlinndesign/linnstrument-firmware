@@ -368,6 +368,7 @@ void initializePresetSettings() {
     g.velocitySensitivity = velocityMedium;
     g.minForVelocity = DEFAULT_MIN_VELOCITY;
     g.maxForVelocity = DEFAULT_MAX_VELOCITY;
+    g.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
@@ -1429,7 +1430,7 @@ void handleBendRangeRelease() {
 void handleLimitsForYNewTouch() {
   switch (limitsForYConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForY, 0, 127, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForY, 0, 127, false);
       break;
     case 0:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForY, 0, 127, false);
@@ -1468,7 +1469,7 @@ void handleCCForYRelease() {
 void handleLimitsForZNewTouch() {
   switch (limitsForZConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForZ, 0, 127, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForZ, 0, 127, false);
       break;
     case 0:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForZ, 0, 127, false);
@@ -1511,7 +1512,7 @@ void handleCCForFaderRelease() {
 void handleLowRowCCXConfigNewTouch() {
   switch (lowRowCCXConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, false);
       break;
     case 0:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 127, false);
@@ -1528,7 +1529,7 @@ void handleLowRowCCXConfigRelease() {
 void handleLowRowCCXYZConfigNewTouch() {
   switch (lowRowCCXYZConfigState) {
     case 3:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, false);
       break;
     case 2:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 127, false);
@@ -1559,10 +1560,10 @@ void handleCCForSwitchConfigRelease() {
 void handleLimitsForVelocityNewTouch() {
   switch (limitsForVelocityConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Global.minForVelocity, 0, 127, true);
+      handleNumericDataNewTouchCol(Global.minForVelocity, 1, 127, false);
       break;
     case 0:
-      handleNumericDataNewTouchCol(Global.maxForVelocity, 0, 127, false);
+      handleNumericDataNewTouchCol(Global.maxForVelocity, 1, 127, false);
       break;
   }
   handleNumericDataNewTouchRow(limitsForVelocityConfigState, 0, 1);
@@ -1572,6 +1573,14 @@ void handleLimitsForVelocityRelease() {
   handleNumericDataReleaseCol(false);
   handleNumericDataReleaseRow(false);
   applyLimitsForVelocity();
+}
+
+void handleValueForFixedVelocityNewTouch() {
+  handleNumericDataNewTouchCol(Global.valueForFixedVelocity, 1, 127, false);
+}
+
+void handleValueForFixedVelocityRelease() {
+  handleNumericDataReleaseCol(false);
 }
 
 void handleSensorLoZNewTouch() {
@@ -2169,6 +2178,9 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 10 && (sensorRow == 0 || sensorRow == 1 || sensorRow == 2)) {
       setLed(sensorCol, sensorRow, getVelocityColor(), cellSlowPulse);
     }
+    else if (sensorCol == 10 && sensorRow == 3) {
+      setLed(sensorCol, sensorRow, getFixedVelocityColor(), cellSlowPulse);
+    }
     else if (sensorCol <= 16 && sensorRow == 7 ||
              sensorCol == 16 && sensorRow == 2) {
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
@@ -2199,6 +2211,11 @@ void handleGlobalSettingHold() {
     else if (sensorCol == 10 && (sensorRow == 0 || sensorRow == 1 || sensorRow == 2)) {
       resetNumericDataChange();
       setDisplayMode(displayLimitsForVelocity);
+      updateDisplay();
+    }
+    else if (sensorCol == 10 && sensorRow == 3) {
+      resetNumericDataChange();
+      setDisplayMode(displayValueForFixedVelocity);
       updateDisplay();
     }
     // handle switch to/from User Firmware Mode

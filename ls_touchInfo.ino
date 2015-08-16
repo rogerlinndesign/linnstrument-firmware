@@ -277,7 +277,7 @@ boolean calcVelocity(unsigned short z) {
 byte calcPreferredVelocity(byte velocity) {
   // determine the preferred velocity based on the sensitivity settings
   if (Global.velocitySensitivity == velocityFixed) {
-    return 96;
+    return Global.valueForFixedVelocity;
   }
   else {
     return constrain(velocity, 1, 127);

@@ -584,6 +584,7 @@ void copySettingsV1ToSettingsV7(void* target, void* source) {
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
+    t->preset[p].global.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
@@ -766,6 +767,7 @@ void copyPresetSettingsV2ToSettingsV7(void* target, void* source) {
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
+    t->preset[p].global.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
     t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
@@ -824,6 +826,7 @@ void copyGlobalSettingsV3ToSettingsV7(void* target, void* source) {
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
+  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -928,6 +931,7 @@ void copyGlobalSettingsV4ToSettingsV7(void* target, void* source) {
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
+  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -1023,6 +1027,7 @@ void copyGlobalSettingsV5ToSettingsV7(void* target, void* source) {
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
+  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
