@@ -103,6 +103,10 @@ char* OSVersionBuild = ".022";
 #define COLOR_MAGENTA  6
 #define COLOR_BLACK    7
 
+// Special row offset values, for legacy reasons
+#define ROWOFFSET_NOOVERLAP  0x00
+#define ROWOFFSET_ZERO       0x7f
+
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
 // Differences for low power mode

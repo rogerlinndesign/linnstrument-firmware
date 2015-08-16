@@ -1079,7 +1079,7 @@ void paintGlobalSettingsDisplay() {
 
     switch (Global.rowOffset)
     {
-      case 0:        // no overlap
+      case ROWOFFSET_NOOVERLAP: // no overlap
         lightLed(5, 3);
         break;
       case 3:        // +3
@@ -1102,6 +1102,9 @@ void paintGlobalSettingsDisplay() {
         break;
       case 13:      // guitar tuning
         lightLed(6, 3);
+        break;
+      case ROWOFFSET_ZERO:
+        // no nothing
         break;
     }
 

@@ -1958,28 +1958,68 @@ void handleGlobalSettingNewTouch() {
 
     // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
     if      (sensorCol == 5 && sensorRow == 3) {
-      Global.rowOffset = 0;       // no overlap
+      if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = ROWOFFSET_NOOVERLAP;       // no overlap
+      }
     }
     else if (sensorCol == 5 && sensorRow == 0) {
-      Global.rowOffset = 3;
+      if (Global.rowOffset == 3) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 3;
+      }
     }
     else if (sensorCol == 6 && sensorRow == 0) {
-      Global.rowOffset = 4;
+      if (Global.rowOffset == 4) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 4;
+      }
     }
     else if (sensorCol == 5 && sensorRow == 1) {
-      Global.rowOffset = 5;
+      if (Global.rowOffset == 5) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 5;
+      }
     }
     else if (sensorCol == 6 && sensorRow == 1) {
-      Global.rowOffset = 6;
+      if (Global.rowOffset == 6) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 6;
+      }
     }
     else if (sensorCol == 5 && sensorRow == 2) {
-      Global.rowOffset = 7;
+      if (Global.rowOffset == 7) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 7;
+      }
     }
     else if (sensorCol == 6 && sensorRow == 2) {
-      Global.rowOffset = 12;      // octave
+      if (Global.rowOffset == 12) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 12;      // octave
+      }
     }
     else if (sensorCol == 6 && sensorRow == 3) {
-      Global.rowOffset = 13;      // guitar
+      if (Global.rowOffset == 13) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = 13;      // guitar
+      }
     }
 
     // select which switch is being controlled/displayed

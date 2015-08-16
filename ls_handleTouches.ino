@@ -1377,7 +1377,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
   lowest = LOWEST_NOTE;
 
   if (Global.rowOffset <= 12) {                       // if rowOffset is set to between 0 and 12..
-    if (offset == 0) {                                // no overlap mode
+    if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {    // no overlap mode
       byte lowCol, highCol;
       getSplitBoundaries(split, lowCol, highCol);
 
@@ -1391,12 +1391,14 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
       lowest -= 12;
     }
 
-  } else if (Global.rowOffset == 13) {                // if is rowOffset is set to guitar tuning...
+  } else if (Global.rowOffset == 13) {                // if rowOffset is set to guitar tuning...
     offset = 5;                                       // standard guitar offset is 5 semitones
 
     if (row >= 6) {                                   // except from row 6 onwards where it's shifted by one
       lowest -= 1;
     }
+  } else if (Global.rowOffset == ROWOFFSET_ZERO) {    // if rowOffset is set to zero...
+    offset = 0;
   }
 }
 
