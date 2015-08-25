@@ -1773,6 +1773,6 @@ void midiSendMpeState(byte mainChannel, byte polyphony) {
 
 void midiSendMpePitchBendRange(byte split) {
   if (Split[split].mpe && getBendRange(split) == 24) {
-    midiSendNRPN(0, 24, Split[split].midiChanMain);
+    midiSendNRPN(0, 24 << 7, Split[split].midiChanMain);
   }
 }
