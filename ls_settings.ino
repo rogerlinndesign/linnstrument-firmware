@@ -862,6 +862,8 @@ boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
     Split[split].midiChanSet[c+channelOffset] = true;
   }
 
+  updateSplitMidiChannels(split);
+
   // notify that MPE is on
   midiSendMpeState(mainChannel, polyphony);
 

@@ -658,7 +658,7 @@ void handleXYZupdate() {
 
       // if the note number is outside of MIDI range, don't start it
       if (notenum >= 0 && notenum <= 127) {
-        handleNewNote(notenum);
+        prepareNewNote(notenum);
       }
     }
   }
@@ -729,9 +729,6 @@ void handleXYZupdate() {
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-        if (newVelocity) {
-          preResetLastLoudness(sensorSplit, sensorCell().note, sensorCell().channel);
-        }
         preSendLoudness(sensorSplit, valueZ, sensorCell().note, sensorCell().channel);
       }
 
@@ -799,9 +796,6 @@ void handleXYZupdate() {
           }
         }
 
-        if (newVelocity) {
-          resetLastMidiPitchBend(sensorCell().channel);
-        }
         preSendPitchBend(sensorSplit, pitch, sensorCell().channel);
       }
 
@@ -809,10 +803,12 @@ void handleXYZupdate() {
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueY != INVALID_DATA &&
           Split[sensorSplit].sendY && isYExpressiveCell()) {
-        if (newVelocity) {
-          preResetLastTimbre(sensorSplit, sensorCell().note, sensorCell().channel);
-        }
         preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
+      }
+
+      // if this is a new velocity, send the note on after the first collection of expression data
+      if (newVelocity) {
+        sendNewNote();
       }
     }
   }
@@ -885,7 +881,7 @@ boolean isStrummingSplit(byte split) {
   return splitActive && Split[split].strum;
 }
 
-void handleNewNote(signed char notenum) {
+void prepareNewNote(signed char notenum) {
   byte channel = takeChannel(sensorSplit);
   sensorCell().note = notenum;
   sensorCell().channel = channel;
@@ -896,26 +892,39 @@ void handleNewNote(signed char notenum) {
   focused.col = sensorCol;
   focused.row = sensorRow;
 
-  // reset the pitch bend right before sending the note on
-  if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
-    preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+  // reset the pitch bend and pressure right before sending the note on
+  if (!userFirmwareActive) {
+    if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+      resetLastMidiPitchBend(sensorCell().channel);
+      preSendPitchBend(sensorSplit, 0, sensorCell().channel);
+    }
+    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+      preResetLastLoudness(sensorSplit, sensorCell().note, sensorCell().channel);
+      preSendLoudness(sensorSplit, 0, sensorCell().note, sensorCell().channel);
+    }
+    if (Split[sensorSplit].sendY && isYExpressiveCell() && Split[sensorSplit].relativeY) {
+      preResetLastTimbre(sensorSplit, sensorCell().note, sensorCell().channel);
+      preSendTimbre(sensorSplit, 64, sensorCell().note, sensorCell().channel);
+    }
   }
 
   // register the reverse mapping
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
-  // send the note on
-  if (!isArpeggiatorEnabled(sensorSplit)) {
-    midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
-  }
-
-  // highlight same notes of this is activated
+  // highlight the same notes if this is activated
   if (Split[sensorSplit].colorNoteon) {
     highlightPossibleNoteCells(sensorSplit, sensorCell().note);
   }
 
   // keep track of the last note number
   latestNoteNumberForAutoOctave = notenum;
+}
+
+void sendNewNote() {
+  // send the note on
+  if (!isArpeggiatorEnabled(sensorSplit)) {
+    midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+  }
 }
 
 void handleNewUserFirmwareTouch() {
@@ -1091,7 +1100,7 @@ short handleYExpression() {
 
   short preferredTimbre = INVALID_DATA;
   if (Split[sensorSplit].relativeY) {
-    preferredTimbre = constrain(64 + (sensorCell().currentCalibratedY - sensorCell().initialY ), 0, 127);
+    preferredTimbre = constrain(64 + (sensorCell().currentCalibratedY - sensorCell().initialY), 0, 127);
   }
   else {
     preferredTimbre = sensorCell().currentCalibratedY;
