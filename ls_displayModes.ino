@@ -30,6 +30,7 @@ displayLowRowCCXYZConfig     : custom CC number selection and behavior for LowRo
 displayCCForSwitch           : custom CC number selection and behavior for Switches in CC65 mode
 displayLimitsForVelocity     : min and max value selection for velocity
 displayValueForFixedVelocity : value selection for fixed velocity
+displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
 displaySensorLoZ             : sensor low Z sensitivity selection
 displaySensorFeatherZ        : sensor feather Z sensitivity selection
 displaySensorRangeZ          : max Z sensor range selection
@@ -131,6 +132,9 @@ void updateDisplay() {
     break;
   case displayValueForFixedVelocity:
     paintValueForFixedVelocityDisplay();
+    break;
+  case displayMinUSBMIDIInterval:
+    paintMinUSBMIDIIntervalDisplay();
     break;
   case displaySensorLoZ:
     paintSensorLoZDisplay();
@@ -787,6 +791,11 @@ void paintValueForFixedVelocityDisplay() {
   paintNumericDataDisplay(globalColor, Global.valueForFixedVelocity, 0, true);
 }
 
+void paintMinUSBMIDIIntervalDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Device.MinUSBMIDIInterval, 0, true);
+}
+
 void paintSensorLoZDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0, false);
@@ -1047,7 +1056,7 @@ void paintGlobalSettingsDisplay() {
 
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {
-    lightLed(15, 0);       // for MIDI over USB
+    setLed(15, 0, getMIDIUSBColor(), cellOn); // for MIDI over USB
   } else {
     lightLed(15, 1);       // for MIDI jacks
   }
@@ -1234,6 +1243,13 @@ byte getVelocityColor() {
 
 byte getFixedVelocityColor() {
   if (Global.valueForFixedVelocity != DEFAULT_FIXED_VELOCITY) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getMIDIUSBColor() {
+  if (Device.MinUSBMIDIInterval != DEFAULT_MIN_USB_MIDI_INTERVAL) {
     return globalAltColor;
   }
   return globalColor;

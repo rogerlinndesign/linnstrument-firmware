@@ -916,6 +916,12 @@ void receivedNrpn(int parameter, int value) {
         Global.valueForFixedVelocity = value;
       }
       break;
+    // Global Minimum Interval Between MIDI Bytes Over USB
+    case 252:
+      if (inRange(value, 0, 512)) {
+        Device.MinUSBMIDIInterval = value;
+      }
+      break;
   }
 
   updateDisplay();
@@ -1325,15 +1331,23 @@ void handlePendingMidi(unsigned long now) {
       byte nextByte = midiOutQueue.peek();
 
       // always insert a 1 ms delay around MIDI note on and note off boundaries
-      unsigned long additionalInterval = 0;
+      unsigned short additionalInterval = 0;
       if (messageIndex == 1 &&
           (lastType == MIDINoteOn ||
            nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
         additionalInterval = 2000;
       }
 
+      unsigned short midiInterval;
+      if (isMidiUsingDIN()) {
+        midiInterval = midiMinimumInterval + additionalInterval;
+      }
+      else {
+        midiInterval = midiMinimumUSBInterval + additionalInterval;     
+      }
+
       // if the time between now and the last MIDI byte exceeds the required interval, process it
-      if (calcTimeDelta(now, lastEnvoy) >= midiMinimumInterval + additionalInterval) {
+      if (calcTimeDelta(now, lastEnvoy) >= midiInterval) {
         // construct the correct MIDI byte that needs to be sent
         byte midiByte;
         if (messageIndex == 1) {
@@ -1361,10 +1375,10 @@ void handlePendingMidi(unsigned long now) {
             midiOutQueue.pop();
             messageIndex++;
           }
-        }
 
-        // update the last time a MIDI byte was attempted to be sent
-        lastEnvoy = now;
+          // update the last time a MIDI byte was attempted to be sent
+          lastEnvoy = now;
+        }
       }
     }
 

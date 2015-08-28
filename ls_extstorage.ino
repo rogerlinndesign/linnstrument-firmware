@@ -186,8 +186,22 @@ struct ConfigurationV3 {
 /**************************************** Configuration V4 ***************************************/
 /* This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
 /*************************************************************************************************/
+struct DeviceSettingsV4 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+};
 struct ConfigurationV4 {
-  DeviceSettings device;
+  DeviceSettingsV4 device;
   PresetSettingsV3 settings;
   PresetSettingsV3 preset[NUMPRESETS];
 };
@@ -256,7 +270,7 @@ struct PresetSettingsV4 {
   SplitSettingsV3 split[NUMSPLITS];
 };
 struct ConfigurationV5 {
-  DeviceSettings device;
+  DeviceSettingsV4 device;
   PresetSettingsV4 settings;
   PresetSettingsV4 preset[NUMPRESETS];
 };
@@ -290,7 +304,7 @@ struct PresetSettingsV5 {
   SplitSettings split[NUMSPLITS];
 };
 struct ConfigurationV6 {
-  DeviceSettings device;
+  DeviceSettingsV4 device;
   PresetSettingsV5 settings;
   PresetSettingsV5 preset[NUMPRESETS];
 };
@@ -858,15 +872,37 @@ void copySettingsV4ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV4* s = (ConfigurationV4*)source;
 
-  t->device = s->device;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
-  t->device.leftHanded = false;
+  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
 
   copyPresetSettingsV4ToSettingsV7(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
     copyPresetSettingsV4ToSettingsV7(&t->preset[p], &s->preset[p]);
   }
+}
+
+void copyDeviceSettingsV4ToSettingsV7(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV4* s = (DeviceSettingsV4*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  memcpy(t->calRows, s->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
+  memcpy(t->calCols, s->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  t->calibrated = s->calibrated;
+  t->MinUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->promoAnimationAtStartup = s->promoAnimationAtStartup;
+
+  for (byte msg = 0; msg < 16; ++msg) {
+    memset(t->audienceMessages[msg], '\0', sizeof(t->audienceMessages[msg]));
+    strncpy(t->audienceMessages[msg], s->audienceMessages[msg], 30);
+    t->audienceMessages[msg][30] = '\0';
+  }
+
+  t->operatingLowPower = false;
+  t->leftHanded = false;
 }
 
 void copyPresetSettingsV4ToSettingsV7(void* target, void* source) {
@@ -883,10 +919,7 @@ void copySettingsV5ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV5* s = (ConfigurationV5*)source;
 
-  t->device = s->device;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
-  t->device.leftHanded = s->device.leftHanded;
+  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
 
   copyPresetSettingsV5ToSettingsV7(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -994,10 +1027,7 @@ void copySettingsV6ToSettingsV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV5* s = (ConfigurationV5*)source;
 
-  t->device = s->device;
-  t->device.serialMode = true;
-  t->device.operatingLowPower = false;
-  t->device.leftHanded = s->device.leftHanded;
+  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
 
   copyPresetSettingsV6ToSettingsV7(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {

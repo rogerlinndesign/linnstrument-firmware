@@ -218,6 +218,7 @@ void initializeDeviceSettings() {
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
   config.device.leftHanded = false;
+  config.device.MinUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
 
   initializeAudienceMessages();
 }
@@ -1585,6 +1586,15 @@ void handleValueForFixedVelocityRelease() {
   handleNumericDataReleaseCol(false);
 }
 
+void handleMinUSBMIDIIntervalNewTouch() {
+  handleNumericDataNewTouchCol(Device.MinUSBMIDIInterval, 0, 512, false);
+}
+
+void handleMinUSBMIDIIntervalRelease() {
+  handleNumericDataReleaseCol(false);
+  applyMidiInterval();
+}
+
 void handleSensorLoZNewTouch() {
   handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
 }
@@ -2183,6 +2193,9 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 10 && sensorRow == 3) {
       setLed(sensorCol, sensorRow, getFixedVelocityColor(), cellSlowPulse);
     }
+    else if (sensorCol == 15 && sensorRow == 0) {
+      setLed(sensorCol, sensorRow, getMIDIUSBColor(), cellSlowPulse);
+    }
     else if (sensorCol <= 16 && sensorRow == 7 ||
              sensorCol == 16 && sensorRow == 2) {
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
@@ -2218,6 +2231,11 @@ void handleGlobalSettingHold() {
     else if (sensorCol == 10 && sensorRow == 3) {
       resetNumericDataChange();
       setDisplayMode(displayValueForFixedVelocity);
+      updateDisplay();
+    }
+    else if (sensorCol == 15 && sensorRow == 0) {
+      resetNumericDataChange();
+      setDisplayMode(displayMinUSBMIDIInterval);
       updateDisplay();
     }
     // handle switch to/from User Firmware Mode

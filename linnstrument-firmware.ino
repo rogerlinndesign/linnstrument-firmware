@@ -109,6 +109,10 @@ char* OSVersionBuild = ".022";
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
+#define DEFAULT_LED_REFRESH      500
+#define DEFAULT_MIDI_DECIMATION  0
+#define DEFAULT_MIDI_INTERVAL    0
+
 // Differences for low power mode
 #define LOWPOWER_LED_REFRESH      250   // accelerate led refresh so that they can be lit only half of the time
 #define LOWPOWER_MIDI_DECIMATION  12    // use a decimation rate of 12 ms in low power mode
@@ -183,7 +187,7 @@ char* OSVersionBuild = ".022";
 
 #define EDIT_MODE_HOLD_DELAY  1000
 
-#define MIN_MIDI_DELAY 0
+#define DEFAULT_MIN_USB_MIDI_INTERVAL  0
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -386,6 +390,7 @@ enum DisplayMode {
   displayCCForSwitch,
   displayLimitsForVelocity,
   displayValueForFixedVelocity,
+  displayMinUSBMIDIInterval,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -527,6 +532,7 @@ struct DeviceSettings {
   CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short MinUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
@@ -729,9 +735,9 @@ boolean splitButtonDown = false;                    // reflects state of Split b
 signed char controlButton = -1;                     // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
 
-unsigned long ledRefreshInterval = 500;             // LED timing
-unsigned long prevLedTimerCount;                    // timer for refreshing leds
-unsigned long prevGlobalSettingsDisplayTimerCount;  // timer for refreshing the global settings display
+unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
+unsigned long prevLedTimerCount;                         // timer for refreshing leds
+unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
@@ -763,14 +769,15 @@ boolean userFirmwareZActive[NUMROWS];               // indicates whether Z data 
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
 
-int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);      // the current tempo
-byte midiDecimateRate = 0;                          // by default no decimation
-unsigned long midiMinimumInterval = 0;              // minimum interval between sending two MIDI bytes
-byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
-unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
+int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);               // the current tempo
+byte midiDecimateRate = 0;                                   // by default no decimation
+unsigned long midiMinimumInterval = DEFAULT_MIDI_INTERVAL;   // minimum interval between sending two MIDI bytes
+unsigned long midiMinimumUSBInterval = midiMinimumInterval;  // minimum interval between sending two MIDI bytes over USB
+byte lastValueMidiNotesOn[NUMSPLITS][128][16];               // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+unsigned short pitchHoldDuration[NUMSPLITS];                 // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
-int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
-int latestNoteNumberForAutoOctave = -1;             // keep track of the latest note number that was generated to use for auto octave switching
+int32_t fxdRateXThreshold[NUMSPLITS];                        // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
+int latestNoteNumberForAutoOctave = -1;                      // keep track of the latest note number that was generated to use for auto octave switching
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message
@@ -858,6 +865,17 @@ void applyLowPowerMode() {
     midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
     midiMinimumInterval = LOWPOWER_MIDI_INTERVAL;
   }
+  else {
+    ledRefreshInterval = DEFAULT_LED_REFRESH;
+    midiDecimateRate = DEFAULT_MIDI_DECIMATION;
+    midiMinimumInterval = DEFAULT_MIDI_INTERVAL;
+  }
+
+  applyMidiInterval();
+}
+
+void applyMidiInterval() {
+  midiMinimumUSBInterval = max(Device.MinUSBMIDIInterval, midiMinimumInterval);
 }
 
 void applyMpeMode() {

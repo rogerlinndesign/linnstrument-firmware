@@ -431,6 +431,9 @@ void handleNewTouch() {
     case displayValueForFixedVelocity:
       handleValueForFixedVelocityNewTouch();
       break;
+    case displayMinUSBMIDIInterval:
+      handleMinUSBMIDIIntervalNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -1204,6 +1207,9 @@ void handleTouchRelease() {
       break;
     case displayLimitsForVelocity:
       handleLimitsForVelocityRelease();
+      break;
+    case displayMinUSBMIDIInterval:
+      handleMinUSBMIDIIntervalRelease();
       break;
     case displayValueForFixedVelocity:
       handleValueForFixedVelocityRelease();
