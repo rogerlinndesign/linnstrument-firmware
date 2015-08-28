@@ -1781,12 +1781,44 @@ void midiSendNRPN(unsigned short number, unsigned short value, byte channel) {
   }
 }
 
+void midiSendRPN(unsigned short number, unsigned short value, byte channel) {
+  number = constrain(number, 0, 0x3fff);
+  value = constrain(value, 0, 0x3fff);
+  channel = constrain(channel-1, 0, 15);
+
+  if (Device.serialMode) {
+#ifdef DEBUG_ENABLED
+    if (SWITCH_DEBUGMIDI) {
+      Serial.print("midiSendRPN number=");
+      Serial.print((int)number);
+      Serial.print(", value=");
+      Serial.print((int)value);
+      Serial.print(", channel=");
+      Serial.print((int)channel);
+      Serial.print("\n");
+    }
+#endif
+  } else {
+    unsigned numberMsb = (number & 0x3fff) >> 7;
+    unsigned numberLsb = number & 0x7f;
+    unsigned valueMsb = (value & 0x3fff) >> 7;
+    unsigned valueLsb = value & 0x7f;
+
+    queueMidiMessage(MIDIControlChange, 101, numberMsb, channel);
+    queueMidiMessage(MIDIControlChange, 100, numberLsb, channel);
+    queueMidiMessage(MIDIControlChange, 6, valueMsb, channel);
+    queueMidiMessage(MIDIControlChange, 38, valueLsb, channel);
+    queueMidiMessage(MIDIControlChange, 101, 127, channel);
+    queueMidiMessage(MIDIControlChange, 100, 127, channel);
+  }
+}
+
 void midiSendMpeState(byte mainChannel, byte polyphony) {
   midiSendControlChange(127, polyphony, mainChannel, true);
 }
 
 void midiSendMpePitchBendRange(byte split) {
   if (Split[split].mpe && getBendRange(split) == 24) {
-    midiSendNRPN(0, 24 << 7, Split[split].midiChanMain);
+    midiSendRPN(0, 24 << 7, Split[split].midiChanMain);
   }
 }
