@@ -61,11 +61,20 @@ inline unsigned short readZ() {                       // returns the raw Z value
   if (sensorCol == 0) {
     delayUsec(24);
   }
-  else {
+  // if there are active touches in the column, always use a settling time
+  else if (rowsInColsTouched[0]) {
     delayMicroseconds(11);
   }
 
-  short rawZ = 4095 - spiAnalogRead();                       // read raw Z value and invert it from (4095 - 0) to (0-4095)
+  // read raw Z value and invert it from (4095 - 0) to (0-4095)
+  short rawZ = 4095 - spiAnalogRead();
+
+  // if there are no active touches in the column, but the raw pressure without settling time exceeds the value 80,
+  // introduce a settling time to read the proper stabilized value
+  if (rowsInColsTouched[0] == 0 && rawZ > 80) {
+      delayMicroseconds(10);
+      rawZ = 4095 - spiAnalogRead();
+  }
 
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
