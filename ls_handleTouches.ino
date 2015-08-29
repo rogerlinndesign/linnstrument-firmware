@@ -905,9 +905,11 @@ void prepareNewNote(signed char notenum) {
       preResetLastLoudness(sensorSplit, sensorCell().note, sensorCell().channel);
       preSendLoudness(sensorSplit, 0, sensorCell().note, sensorCell().channel);
     }
-    if (Split[sensorSplit].sendY && isYExpressiveCell() && Split[sensorSplit].relativeY) {
+    if (Split[sensorSplit].sendY && isYExpressiveCell()) {
       preResetLastTimbre(sensorSplit, sensorCell().note, sensorCell().channel);
-      preSendTimbre(sensorSplit, 64, sensorCell().note, sensorCell().channel);
+      if (Split[sensorSplit].relativeY) {
+        preSendTimbre(sensorSplit, 64, sensorCell().note, sensorCell().channel);
+      }
     }
   }
 
