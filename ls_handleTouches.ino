@@ -808,11 +808,6 @@ void handleXYZupdate() {
           Split[sensorSplit].sendY && isYExpressiveCell()) {
         preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
       }
-
-      // if this is a new velocity, send the note on after the first collection of expression data
-      if (newVelocity) {
-        sendNewNote();
-      }
     }
   }
 }
@@ -915,6 +910,9 @@ void prepareNewNote(signed char notenum) {
 
   // register the reverse mapping
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
+
+  // send the note on
+  sendNewNote();
 
   // highlight the same notes if this is activated
   if (Split[sensorSplit].colorNoteon) {
