@@ -701,6 +701,11 @@ void handleXYZupdate() {
   }
   else if (handleNotes && sensorCell().hasNote()) {
     if (userFirmwareActive) {
+      // send the note on if this in a newly calculated velocity
+      if (newVelocity) {
+        sendNewNote();
+      }
+
       // don't send expression data for the control switches
       if (sensorCol != 0) {
         // Z-axis movements are encoded using Poly Pressure with the note as the column and the channel as the row
