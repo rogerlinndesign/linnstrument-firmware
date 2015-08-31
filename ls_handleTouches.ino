@@ -725,10 +725,6 @@ void handleXYZupdate() {
       }
     }
     else {
-      // after the initial velocity, new velocity values are continuously being calculated simply based
-      // on the Z data so that velocity can change during the arpeggiation
-      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);
-
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
@@ -808,6 +804,15 @@ void handleXYZupdate() {
           Split[sensorSplit].sendY && isYExpressiveCell()) {
         preSendTimbre(sensorSplit, valueY, sensorCell().note, sensorCell().channel);
       }
+
+      // send the note on if this in a newly calculated velocity
+      if (newVelocity) {
+        sendNewNote();
+      }
+
+      // after the initial velocity, new velocity values are continuously being calculated simply based
+      // on the Z data so that velocity can change during the arpeggiation
+      sensorCell().velocity = calcPreferredVelocity(sensorCell().velocityZ);      
     }
   }
 }
@@ -898,21 +903,14 @@ void prepareNewNote(signed char notenum) {
     }
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
       preResetLastLoudness(sensorSplit, sensorCell().note, sensorCell().channel);
-      preSendLoudness(sensorSplit, 0, sensorCell().note, sensorCell().channel);
     }
     if (Split[sensorSplit].sendY && isYExpressiveCell()) {
       preResetLastTimbre(sensorSplit, sensorCell().note, sensorCell().channel);
-      if (Split[sensorSplit].relativeY) {
-        preSendTimbre(sensorSplit, 64, sensorCell().note, sensorCell().channel);
-      }
     }
   }
 
   // register the reverse mapping
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
-
-  // send the note on
-  sendNewNote();
 
   // highlight the same notes if this is activated
   if (Split[sensorSplit].colorNoteon) {
