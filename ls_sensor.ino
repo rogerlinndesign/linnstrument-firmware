@@ -60,10 +60,10 @@ inline short readX(byte zPct) {                       // returns the raw X value
 
 // readY:
 // Reads Y value for current cell and returns a value of 0-127 within cell's y axis
-const short READY_FLATZONE = 25;
-const short READY_RANGE = 25;
+const short READY_FLATZONE = 30;
+const short READY_RANGE = 40;
 const short READY_MAX_DELAY = 200;
-const short READY_MIN_DELAY = 35;
+const short READY_MIN_DELAY = 60;
 const short READY_RANGE_DELAY = READY_MAX_DELAY - READY_MIN_DELAY;
 
 inline short readY(byte zPct) {                       // returns a value of 0-127 within cell's y axis
