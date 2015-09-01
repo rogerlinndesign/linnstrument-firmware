@@ -275,6 +275,7 @@ struct TouchInfo {
   boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
 
   short currentRawZ;                         // the raw Z value
+  byte percentRawZ;                          // percentage of Z compared to the raw offset and range
   boolean featherTouch;                      // indicates whether this is a feather touch
   byte velocityZ;                            // the Z value with velocity sensitivity
   byte pressureZ;                            // the Z value with pressure sensitivity

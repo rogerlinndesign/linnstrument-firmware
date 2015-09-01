@@ -306,7 +306,7 @@ short TouchInfo::calibratedX() {
 
 inline void TouchInfo::refreshX() {
   if (shouldRefreshX) {
-    currentRawX = readX();
+    currentRawX = readX(percentRawZ);
     currentCalibratedX = calculateCalibratedX(currentRawX);
     shouldRefreshX = false;
 
@@ -335,7 +335,7 @@ short TouchInfo::rawY() {
 
 inline void TouchInfo::refreshY() {
   if (shouldRefreshY) {
-    currentRawY = readY();
+    currentRawY = readY(percentRawZ);
     currentCalibratedY = calculateCalibratedY(currentRawY);
     shouldRefreshY = false;
 
@@ -435,6 +435,7 @@ inline void TouchInfo::refreshZ() {
     else {
         usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
     }
+    percentRawZ = (constrain(usableZ, 0, sensorRange) * 100) / sensorRange;
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -508,6 +509,7 @@ void TouchInfo::clearSensorData() {
   currentCalibratedY = 0;
   shouldRefreshY = true;
   currentRawZ = 0;
+  percentRawZ = 0;
   featherTouch = false;
   velocityZ = 0;
   pressureZ = 0;

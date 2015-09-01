@@ -35,21 +35,51 @@ const short Z_BIAS_MULTIPLIER_NOVEMBER = 860;
 
 // readX:
 // Reads raw X value at the currently addressed column and row
-inline short readX() {                                // returns the raw X value at the addressed cell
+const short READX_FLATZONE = 25;
+const short READX_RANGE = 25;
+const short READX_MAX_DELAY = 250;
+const short READX_MIN_DELAY = 150;
+const short READX_RANGE_DELAY = READX_MAX_DELAY - READX_MIN_DELAY;
+
+inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
-  delayUsec(250);                                     // delay required after setting analog switches for stable X read
+
+  short d;
+  if (zPct <= READX_FLATZONE) {
+    d = READX_MAX_DELAY;
+  }
+  else {
+    d = READX_MAX_DELAY - (READX_RANGE_DELAY * min(zPct - READX_FLATZONE, READX_RANGE) / READX_RANGE);
+  }
+
+  delayUsec(d);                                       // delay required after setting analog switches for stable X read
   return spiAnalogRead();
 }
 
 // readY:
 // Reads Y value for current cell and returns a value of 0-127 within cell's y axis
-inline short readY() {                                // returns a value of 0-127 within cell's y axis
+const short READY_FLATZONE = 25;
+const short READY_RANGE = 25;
+const short READY_MAX_DELAY = 200;
+const short READY_MIN_DELAY = 35;
+const short READY_RANGE_DELAY = READY_MAX_DELAY - READY_MIN_DELAY;
+
+inline short readY(byte zPct) {                       // returns a value of 0-127 within cell's y axis
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
-  delayUsec(200);                                     // delay required after setting analog switches for stable Y read
+
+  short d;
+  if (zPct <= READY_FLATZONE) {
+    d = READY_MAX_DELAY;
+  }
+  else {
+    d = READY_MAX_DELAY - (READY_RANGE_DELAY * min(zPct - READY_FLATZONE, READY_RANGE) / READY_RANGE);
+  }
+
+  delayUsec(d);                                       // delay required after setting analog switches for stable Y read
   return spiAnalogRead();
 }
 
