@@ -1330,20 +1330,12 @@ void handlePendingMidi(unsigned long now) {
     else {
       byte nextByte = midiOutQueue.peek();
 
-      // always insert a 1 ms delay around MIDI note on and note off boundaries
-      unsigned short additionalInterval = 0;
-      if (messageIndex == 1 &&
-          (lastType == MIDINoteOn ||
-           nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
-        additionalInterval = 2000;
-      }
-
       unsigned short midiInterval;
       if (isMidiUsingDIN()) {
-        midiInterval = midiMinimumInterval + additionalInterval;
+        midiInterval = midiMinimumInterval;
       }
       else {
-        midiInterval = midiMinimumUSBInterval + additionalInterval;     
+        midiInterval = midiMinimumUSBInterval;     
       }
 
       // if the time between now and the last MIDI byte exceeds the required interval, process it
