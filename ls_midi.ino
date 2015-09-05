@@ -50,6 +50,8 @@ void applyMidiIo() {
     Serial.begin(115200);    // set serial port at fastest speed 115200
     Serial.flush();          // clear the serial port
   }
+
+  applyMidiInterval();
 }
 
 void handleMidiInput(unsigned long now) {
@@ -270,8 +272,11 @@ void handleMidiInput(unsigned long now) {
               }
               break;
             case 13:
-              if (userFirmwareActive && (!Device.operatingLowPower || midiData2 > LOWPOWER_MIDI_DECIMATION)) {
-                midiDecimateRate = midiData2;
+              if (userFirmwareActive) {
+                unsigned long rate = midiData2 * 1000;
+                if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
+                  midiDecimateRate = rate;
+                }
               }
               break;
             case 20:
@@ -919,7 +924,7 @@ void receivedNrpn(int parameter, int value) {
     // Global Minimum Interval Between MIDI Bytes Over USB
     case 252:
       if (inRange(value, 0, 512)) {
-        Device.MinUSBMIDIInterval = value;
+        Device.minUSBMIDIInterval = value;
       }
       break;
   }
@@ -1330,16 +1335,8 @@ void handlePendingMidi(unsigned long now) {
     else {
       byte nextByte = midiOutQueue.peek();
 
-      unsigned short midiInterval;
-      if (isMidiUsingDIN()) {
-        midiInterval = midiMinimumInterval;
-      }
-      else {
-        midiInterval = midiMinimumUSBInterval;     
-      }
-
       // if the time between now and the last MIDI byte exceeds the required interval, process it
-      if (calcTimeDelta(now, lastEnvoy) >= midiInterval) {
+      if (calcTimeDelta(now, lastEnvoy) >= midiMinimumInterval) {
         // construct the correct MIDI byte that needs to be sent
         byte midiByte;
         if (messageIndex == 1) {
@@ -1502,7 +1499,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
   controlval = constrain(controlval, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
   short index = controlnum * channel;
   if (!always && controlnum < 120 && controlnum != 64) {
@@ -1533,7 +1530,7 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
   controlval = constrain(controlval, 0, 0x3fff);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
 
   // calculate the 14-bit msb and lsb
   unsigned msb = (controlval & 0x3fff) >> 7;
@@ -1654,7 +1651,7 @@ void midiSendPitchBend(int pitchval, byte channel) {
   unsigned int bend = constrain(pitchval + 8192, 0, 16383);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   if (lastValueMidiPB[channel] == bend) return;
   if (pitchval != 0 && calcTimeDelta(now, lastMomentMidiPB[channel]) <= midiDecimateRate) return;
   lastValueMidiPB[channel] = bend;
@@ -1696,7 +1693,7 @@ void midiSendAfterTouch(byte value, byte channel) {
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   if (lastValueMidiAT[channel] == value) return;
   if (value != 0 && calcTimeDelta(now, lastMomentMidiAT[channel]) <= midiDecimateRate) return;
   lastValueMidiAT[channel] = value;
@@ -1719,7 +1716,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   short index = notenum * channel;
   if (lastValueMidiPP[index] == value) return;
   if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;

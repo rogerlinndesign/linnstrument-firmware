@@ -889,7 +889,7 @@ void copyDeviceSettingsV4ToSettingsV7(void* target, void* source) {
   memcpy(t->calRows, s->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
   memcpy(t->calCols, s->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
   t->calibrated = s->calibrated;
-  t->MinUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
+  t->minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;

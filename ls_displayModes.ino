@@ -793,7 +793,7 @@ void paintValueForFixedVelocityDisplay() {
 
 void paintMinUSBMIDIIntervalDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.MinUSBMIDIInterval, 0, true);
+  paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
 }
 
 void paintSensorLoZDisplay() {
@@ -1249,7 +1249,7 @@ byte getFixedVelocityColor() {
 }
 
 byte getMIDIUSBColor() {
-  if (Device.MinUSBMIDIInterval != DEFAULT_MIN_USB_MIDI_INTERVAL) {
+  if (Device.minUSBMIDIInterval != DEFAULT_MIN_USB_MIDI_INTERVAL) {
     return globalAltColor;
   }
   return globalColor;

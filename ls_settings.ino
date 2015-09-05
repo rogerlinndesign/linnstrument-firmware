@@ -218,7 +218,7 @@ void initializeDeviceSettings() {
   config.device.promoAnimationAtStartup = false;
   config.device.operatingLowPower = false;
   config.device.leftHanded = false;
-  config.device.MinUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
+  config.device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
 
   initializeAudienceMessages();
 }
@@ -1587,7 +1587,7 @@ void handleValueForFixedVelocityRelease() {
 }
 
 void handleMinUSBMIDIIntervalNewTouch() {
-  handleNumericDataNewTouchCol(Device.MinUSBMIDIInterval, 0, 512, false);
+  handleNumericDataNewTouchCol(Device.minUSBMIDIInterval, 0, 512, false);
 }
 
 void handleMinUSBMIDIIntervalRelease() {
@@ -1811,12 +1811,7 @@ void changeUserFirmwareMode(boolean active) {
   clearDisplay();
   clearSwitches();
 
-  if (Device.operatingLowPower) {
-    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
-  }
-  else {
-    midiDecimateRate = 0;
-  }
+  applyMidiDecimationRate();
 
   if (active) {
     for (byte r = 0; r < NUMROWS; ++r) {

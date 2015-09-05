@@ -114,9 +114,9 @@ char* OSVersionBuild = ".022";
 #define DEFAULT_MIDI_INTERVAL    0
 
 // Differences for low power mode
-#define LOWPOWER_LED_REFRESH      250   // accelerate led refresh so that they can be lit only half of the time
-#define LOWPOWER_MIDI_DECIMATION  12    // use a decimation rate of 12 ms in low power mode
-#define LOWPOWER_MIDI_INTERVAL    150   // use a minimum interval of 150 microseconds between MIDI bytes in low power mode
+#define LOWPOWER_LED_REFRESH      250      // accelerate led refresh so that they can be lit only half of the time
+#define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
+#define LOWPOWER_MIDI_INTERVAL    150      // use a minimum interval of 150 microseconds between MIDI bytes in low power mode
 
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_LO_Z        230                 // lowest acceptable raw Z value to start a touch
@@ -533,7 +533,7 @@ struct DeviceSettings {
   CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
-  unsigned short MinUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
@@ -771,9 +771,8 @@ boolean animationActive = false;                    // indicates whether animati
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
 
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);               // the current tempo
-byte midiDecimateRate = 0;                                   // by default no decimation
+unsigned long midiDecimateRate = 0;                          // by default no decimation
 unsigned long midiMinimumInterval = DEFAULT_MIDI_INTERVAL;   // minimum interval between sending two MIDI bytes
-unsigned long midiMinimumUSBInterval = midiMinimumInterval;  // minimum interval between sending two MIDI bytes over USB
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];               // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 unsigned short pitchHoldDuration[NUMSPLITS];                 // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
@@ -863,20 +862,37 @@ void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
     ledRefreshInterval = LOWPOWER_LED_REFRESH;
-    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
-    midiMinimumInterval = LOWPOWER_MIDI_INTERVAL;
   }
   else {
     ledRefreshInterval = DEFAULT_LED_REFRESH;
-    midiDecimateRate = DEFAULT_MIDI_DECIMATION;
-    midiMinimumInterval = DEFAULT_MIDI_INTERVAL;
   }
 
   applyMidiInterval();
 }
 
 void applyMidiInterval() {
-  midiMinimumUSBInterval = max(Device.MinUSBMIDIInterval, midiMinimumInterval);
+  if (isMidiUsingDIN()) {
+    // 256 microseconds between bytes on Serial ports
+    midiMinimumInterval = 256;
+  }
+  else {
+    midiMinimumInterval = Device.minUSBMIDIInterval;
+  }
+
+  if (Device.operatingLowPower && midiMinimumInterval < LOWPOWER_MIDI_INTERVAL) {
+    midiMinimumInterval = LOWPOWER_MIDI_INTERVAL;
+  }
+
+  applyMidiDecimationRate();
+}
+
+void applyMidiDecimationRate() {
+  // usually 3 bytes in a MIDI message
+  midiDecimateRate = midiMinimumInterval * 3;
+
+  if (Device.operatingLowPower && midiDecimateRate < LOWPOWER_MIDI_DECIMATION) {
+    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
+  }
 }
 
 void applyMpeMode() {
