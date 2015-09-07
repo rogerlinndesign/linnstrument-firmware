@@ -1347,7 +1347,6 @@ byte scannedCells[201][2] = {
 };
 
 inline void nextSensorCell() {
-  static byte cellCount = 0;
   static byte controlRow = 0;
 
   // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking

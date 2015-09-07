@@ -211,6 +211,7 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 /****************************************** TOUCH TRACKING ***************************************/
 
 // Current cell in the scan routine
+byte cellCount = 0;                         // the number of the cell that's currently being processed
 byte sensorCol = 0;                         // currently read column in touch sensor
 byte sensorRow = 0;                         // currently read row in touch sensor
 byte sensorSplit = 0;                       // the split of the currently read touch sensor
@@ -1134,7 +1135,13 @@ inline void modeLoopPerformance() {
     }
   }
 
-  performContinuousTasks(micros());
+  // We're iterating so quickly, that it makes no sense to perform the continuous tasks
+  // at each sensor cell, only call this every three cells.
+  // Note that this is very much dependent on the speed of the main loop, if it slows down
+  // lights will start flickering and this ratio might have to be adapted.
+  if (cellCount % 3 == 0) {
+    performContinuousTasks(micros());
+  }
 
 #ifdef DEBUG_ENABLED
   if (SWITCH_XFRAME) displayXFrame();                            // Turn on secret switch to display the X value of all cells in grid at the end of each total surface scan
