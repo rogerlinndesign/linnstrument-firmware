@@ -109,11 +109,13 @@ char* OSVersionBuild = ".022";
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
+#define DEFAULT_MAINLOOP_DIVIDER 3
 #define DEFAULT_LED_REFRESH      500
 #define DEFAULT_MIDI_DECIMATION  0
 #define DEFAULT_MIDI_INTERVAL    0
 
 // Differences for low power mode
+#define LOWPOWER_MAINLOOP_DIVIDER 2        // increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
 #define LOWPOWER_LED_REFRESH      250      // accelerate led refresh so that they can be lit only half of the time
 #define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
 #define LOWPOWER_MIDI_INTERVAL    150      // use a minimum interval of 150 microseconds between MIDI bytes in low power mode
@@ -737,6 +739,7 @@ boolean splitButtonDown = false;                    // reflects state of Split b
 signed char controlButton = -1;                     // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
 
+byte mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;         // loop divider at which continuous tasks are ran
 unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
 unsigned long prevLedTimerCount;                         // timer for refreshing leds
 unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
@@ -862,9 +865,11 @@ boolean switchPressAtStartup(byte switchRow) {
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
+    mainLoopDivider = LOWPOWER_MAINLOOP_DIVIDER;
     ledRefreshInterval = LOWPOWER_LED_REFRESH;
   }
   else {
+    mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;
     ledRefreshInterval = DEFAULT_LED_REFRESH;
   }
 
@@ -1139,7 +1144,7 @@ inline void modeLoopPerformance() {
   // at each sensor cell, only call this every three cells.
   // Note that this is very much dependent on the speed of the main loop, if it slows down
   // lights will start flickering and this ratio might have to be adapted.
-  if (cellCount % 3 == 0) {
+  if (cellCount % mainLoopDivider == 0) {
     performContinuousTasks(micros());
   }
 
