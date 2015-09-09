@@ -670,6 +670,7 @@ void handleXYZupdate() {
   short valueX = INVALID_DATA;
   short valueY = INVALID_DATA;
   byte valueZ = handleZExpression();
+  performContinuousTasks(micros());
 
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
@@ -677,8 +678,13 @@ void handleXYZupdate() {
     if (Device.leftHanded) {
       valueX = -1 * valueX;
     }
+
+    performContinuousTasks(micros());
+
     sensorCell().lastValueX = valueX;
     valueY = handleYExpression();
+
+    performContinuousTasks(micros());
   }
 
   // update the low row state, but not for the low row cells themselves when there's a new velocity
