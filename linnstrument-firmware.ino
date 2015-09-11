@@ -129,10 +129,10 @@ char* OSVersionBuild = ".022";
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Pitch correction behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    4
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
-#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
-#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 24
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    8
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  48
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    350
+#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 48
 
 // Threshold below which the average rate of change of X is considered 'stationary'
 #define RATEX_THRESHOLD_FAST    2.2
