@@ -336,49 +336,49 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   }
   else {
     void* targetConfig = NULL;
-    void (*copySettingsFunction)(void* target, void* source) = NULL;
+    void (*copyConfigurationFunction)(void* target, void* source) = NULL;
 
     switch (settingsVersion) {
       // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
       case 1:
         if (confSize == sizeof(ConfigurationV1)) {
           targetConfig = new ConfigurationV1();
-          copySettingsFunction = &copySettingsV1ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV1;
         }
         break;
       // this is the v2 of the configuration configuration, apply it if the size is right
       case 2:
         if (confSize == sizeof(ConfigurationV2)) {
           targetConfig = new ConfigurationV2();
-          copySettingsFunction = &copySettingsV2ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV2;
         }
         break;
       // this is the v3 of the configuration configuration, apply it if the size is right
       case 3:
         if (confSize == sizeof(ConfigurationV3)) {
           targetConfig = new ConfigurationV3();
-          copySettingsFunction = &copySettingsV3ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV3;
         }
         break;
       // this is the v4 of the configuration configuration, apply it if the size is right
       case 4:
         if (confSize == sizeof(ConfigurationV4)) {
           targetConfig = new ConfigurationV4();
-          copySettingsFunction = &copySettingsV4ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV4;
         }
         break;
       // this is the v5 of the configuration configuration, apply it if the size is right
       case 5:
         if (confSize == sizeof(ConfigurationV5)) {
           targetConfig = new ConfigurationV5();
-          copySettingsFunction = &copySettingsV5ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV5;
         }
         break;
       // this is the v6 of the configuration configuration, apply it if the size is right
       case 6:
         if (confSize == sizeof(ConfigurationV6)) {
           targetConfig = new ConfigurationV5();
-          copySettingsFunction = &copySettingsV6ToSettingsV7;
+          copyConfigurationFunction = &copyConfigurationV6;
         }
         break;
       // this is the v7 of the configuration configuration, apply it if the size is right
@@ -394,11 +394,11 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
     }
 
     // if a target config and a copy settings fuction were set, use them to transform the old settings into the new
-    if (targetConfig && copySettingsFunction) {
+    if (targetConfig && copyConfigurationFunction) {
       memcpy(targetConfig, buff2, confSize);
 
       byte currentVersion = config.device.version;
-      copySettingsFunction(&config, targetConfig);
+      copyConfigurationFunction(&config, targetConfig);
       config.device.version = currentVersion;
 
       switch (settingsVersion) {
@@ -572,7 +572,7 @@ void handleExtStorage() {
   }
 }
 
-void copySettingsV1ToSettingsV7(void* target, void* source) {
+void copyConfigurationV1(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV1* s = (ConfigurationV1*)source;
   GlobalSettingsV1* g = &(s->global);
@@ -593,7 +593,7 @@ void copySettingsV1ToSettingsV7(void* target, void* source) {
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = g->splitPoint;
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
-    copyGlobalSettingsNoteLightsToSettingsV7(&t->preset[p].global, g->mainNotes, g->accentNotes);
+    copyGlobalSettingsNoteLights(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
@@ -610,15 +610,15 @@ void copySettingsV1ToSettingsV7(void* target, void* source) {
     t->preset[p].global.arpOctave = g->arpOctave;
     t->preset[p].global.sustainBehavior = sustainHold;
 
-    copySplitSettingsV1ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->left);
-    copySplitSettingsV1ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->right);
+    copySplitSettingsV1(&t->preset[p].split[LEFT], &s->left);
+    copySplitSettingsV1(&t->preset[p].split[RIGHT], &s->right);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV1ToSplitSettingsV7(void* target, void* source) {
+void copySplitSettingsV1(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV1* s = (SplitSettingsV1*)source;
 
@@ -674,7 +674,7 @@ void copySplitSettingsV1ToSplitSettingsV7(void* target, void* source) {
   t->mpe = false;
 }
 
-void copySettingsV2ToSettingsV7(void* target, void* source) {
+void copyConfigurationV2(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV2* s = (ConfigurationV2*)source;
 
@@ -694,13 +694,13 @@ void copySettingsV2ToSettingsV7(void* target, void* source) {
   t->device.leftHanded = false;
   initializeAudienceMessages();
 
-  copyPresetSettingsV2ToSettingsV7(t, s);
+  copyPresetSettingsOfConfigurationV2(t, s);
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySplitSettingsV2ToSplitSettingsV7(void* target, void* source) {
+void copySplitSettingsV2(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV2* s = (SplitSettingsV2*)source;
 
@@ -769,14 +769,14 @@ void copySplitSettingsV2ToSplitSettingsV7(void* target, void* source) {
   t->mpe = false;
 }
 
-void copyPresetSettingsV2ToSettingsV7(void* target, void* source) {
+void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV2* s = (ConfigurationV2*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     t->preset[p].global.splitPoint = s->preset[p].global.splitPoint;
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
-    copyGlobalSettingsNoteLightsToSettingsV7(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
+    copyGlobalSettingsNoteLights(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
@@ -793,15 +793,15 @@ void copyPresetSettingsV2ToSettingsV7(void* target, void* source) {
     t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
     t->preset[p].global.sustainBehavior = sustainHold;
 
-    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV3ToSettingsV7(void* target, void* source) {
+void copyConfigurationV3(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
 
@@ -822,20 +822,20 @@ void copySettingsV3ToSettingsV7(void* target, void* source) {
   t->device.leftHanded = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV3ToSettingsV7(t, s);
+    copyPresetSettingsOfConfigurationV3(t, s);
   }
   
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copyGlobalSettingsV3ToSettingsV7(void* target, void* source) {
+void copyGlobalSettingsV3(void* target, void* source) {
   GlobalSettings* t = (GlobalSettings*)target;
   GlobalSettingsV3* s = (GlobalSettingsV3*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  copyGlobalSettingsNoteLightsToSettingsV7(t, s->mainNotes, s->accentNotes);
+  copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
@@ -853,34 +853,34 @@ void copyGlobalSettingsV3ToSettingsV7(void* target, void* source) {
   t->sustainBehavior = sustainHold;
 }
 
-void copyPresetSettingsV3ToSettingsV7(void* target, void* source) {
+void copyPresetSettingsOfConfigurationV3(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyGlobalSettingsV3ToSettingsV7(&t->preset[p].global, &s->preset[p].global);
+    copyGlobalSettingsV3(&t->preset[p].global, &s->preset[p].global);
 
-    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
-    copySplitSettingsV2ToSplitSettingsV7(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
+    copySplitSettingsV2(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
+    copySplitSettingsV2(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
   }
 
   // we're adding a current settings preset, which we're initializing with preset 0
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
-void copySettingsV4ToSettingsV7(void* target, void* source) {
+void copyConfigurationV4(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV4* s = (ConfigurationV4*)source;
 
-  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
+  copyDeviceSettingsV4(&t->device, &s->device);
 
-  copyPresetSettingsV4ToSettingsV7(&t->settings, &s->settings);
+  copyPresetSettingsV3(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV4ToSettingsV7(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV3(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyDeviceSettingsV4ToSettingsV7(void* target, void* source) {
+void copyDeviceSettingsV4(void* target, void* source) {
   DeviceSettings* t = (DeviceSettings*)target;
   DeviceSettingsV4* s = (DeviceSettingsV4*)source;
 
@@ -905,39 +905,39 @@ void copyDeviceSettingsV4ToSettingsV7(void* target, void* source) {
   t->leftHanded = false;
 }
 
-void copyPresetSettingsV4ToSettingsV7(void* target, void* source) {
+void copyPresetSettingsV3(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV3* s = (PresetSettingsV3*)source;
 
-  copyGlobalSettingsV3ToSettingsV7(&t->global, &s->global);
+  copyGlobalSettingsV3(&t->global, &s->global);
 
-  copySplitSettingsV2ToSplitSettingsV7(&t->split[LEFT], &s->split[LEFT]);
-  copySplitSettingsV2ToSplitSettingsV7(&t->split[RIGHT], &s->split[RIGHT]);
+  copySplitSettingsV2(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV2(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copySettingsV5ToSettingsV7(void* target, void* source) {
+void copyConfigurationV5(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV5* s = (ConfigurationV5*)source;
 
-  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
+  copyDeviceSettingsV4(&t->device, &s->device);
 
-  copyPresetSettingsV5ToSettingsV7(&t->settings, &s->settings);
+  copyPresetSettingsV4(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV5ToSettingsV7(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV4(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyPresetSettingsV5ToSettingsV7(void* target, void* source) {
+void copyPresetSettingsV4(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV4* s = (PresetSettingsV4*)source;
 
-  copyGlobalSettingsV4ToSettingsV7(&t->global, &s->global);
+  copyGlobalSettingsV4(&t->global, &s->global);
 
-  copySplitSettingsV3ToSplitSettingsV7(&t->split[LEFT], &s->split[LEFT]);
-  copySplitSettingsV3ToSplitSettingsV7(&t->split[RIGHT], &s->split[RIGHT]);
+  copySplitSettingsV3(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV3(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
-void copyGlobalSettingsNoteLightsToSettingsV7(void* target, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
+void copyGlobalSettingsNoteLights(void* target, boolean* sourceMainNotes, boolean* sourceAccentNotes) {
   GlobalSettings* t = (GlobalSettings*)target;
 
   initializeNoteLights(*t);
@@ -953,13 +953,13 @@ void copyGlobalSettingsNoteLightsToSettingsV7(void* target, boolean* sourceMainN
   }
 }
 
-void copyGlobalSettingsV4ToSettingsV7(void* target, void* source) {
+void copyGlobalSettingsV4(void* target, void* source) {
   GlobalSettings* t = (GlobalSettings*)target;
   GlobalSettingsV4* s = (GlobalSettingsV4*)source;
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
-  copyGlobalSettingsNoteLightsToSettingsV7(t, s->mainNotes, s->accentNotes);
+  copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
@@ -977,7 +977,7 @@ void copyGlobalSettingsV4ToSettingsV7(void* target, void* source) {
   t->sustainBehavior = sustainHold;
 }
 
-void copySplitSettingsV3ToSplitSettingsV7(void* target, void* source) {
+void copySplitSettingsV3(void* target, void* source) {
   SplitSettings* t = (SplitSettings*)target;
   SplitSettingsV3* s = (SplitSettingsV3*)source;
 
@@ -1023,29 +1023,29 @@ void copySplitSettingsV3ToSplitSettingsV7(void* target, void* source) {
   t->mpe = s->mpe;
 }
 
-void copySettingsV6ToSettingsV7(void* target, void* source) {
+void copyConfigurationV6(void* target, void* source) {
   Configuration* t = (Configuration*)target;
-  ConfigurationV5* s = (ConfigurationV5*)source;
+  ConfigurationV6* s = (ConfigurationV6*)source;
 
-  copyDeviceSettingsV4ToSettingsV7(&t->device, &s->device);
+  copyDeviceSettingsV4(&t->device, &s->device);
 
-  copyPresetSettingsV6ToSettingsV7(&t->settings, &s->settings);
+  copyPresetSettingsV5(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    copyPresetSettingsV6ToSettingsV7(&t->preset[p], &s->preset[p]);
+    copyPresetSettingsV5(&t->preset[p], &s->preset[p]);
   }
 }
 
-void copyPresetSettingsV6ToSettingsV7(void* target, void* source) {
+void copyPresetSettingsV5(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV5* s = (PresetSettingsV5*)source;
 
-  copyGlobalSettingsV5ToSettingsV7(&t->global, &s->global);
+  copyGlobalSettingsV5(&t->global, &s->global);
 
   t->split[LEFT] = s->split[LEFT];
   t->split[RIGHT] = s->split[RIGHT];
 }
 
-void copyGlobalSettingsV5ToSettingsV7(void* target, void* source) {
+void copyGlobalSettingsV5(void* target, void* source) {
   GlobalSettings* t = (GlobalSettings*)target;
   GlobalSettingsV5* s = (GlobalSettingsV5*)source;
 
