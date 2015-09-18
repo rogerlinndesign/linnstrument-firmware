@@ -925,6 +925,7 @@ void receivedNrpn(int parameter, int value) {
     case 252:
       if (inRange(value, 0, 512)) {
         Device.minUSBMIDIInterval = value;
+        applyMidiInterval();
       }
       break;
   }
