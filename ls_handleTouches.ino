@@ -69,6 +69,7 @@ boolean severalTouchesForMidiChannel(byte split, byte col, byte row) {
 const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(5);
 
 boolean potentialSlideTransferCandidate(byte col) {
+  if (controlModeActive) return false;
   if (col < 1) return false;
   if (userFirmwareActive) {
     if (!userFirmwareSlideMode[sensorRow]) return false;
@@ -324,7 +325,7 @@ void handleSlideTransferCandidate(byte siblingCol) {
   }
 }
 
-void handleNewTouch() {
+boolean handleNewTouch() {
   DEBUGPRINT((1,"handleNewTouch"));
   DEBUGPRINT((1," col="));DEBUGPRINT((1,(int)sensorCol));
   DEBUGPRINT((1," row="));DEBUGPRINT((1,(int)sensorRow));
@@ -332,28 +333,36 @@ void handleNewTouch() {
   DEBUGPRINT((1," pressureZ="));DEBUGPRINT((1,(int)sensorCell().pressureZ));
   DEBUGPRINT((1,"\n"));
 
+  boolean result = false;
+
   cellTouched(touchedCell);                                 // mark this cell as touched
 
   if (animationActive) {                                    // allow any new touch to cancel scrolling
     stopAnimation = true;
-    return;
+    return false;
   }
 
   // if it's a command button, handle it
-  if (sensorCol == 0 &&
-      // user firmware mode only handles the global settings command button
-      (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) {
+  if (sensorCol == 0) {
+    if (controlModeActive) {
+      switchSerialMode(false);
 
-    if (sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
-        sensorRow != SWITCH_2_ROW) {                        // only activate them if there's note being played on the playing surface
-      for (int r = 0; r < NUMROWS; ++r) {                   // this prevents accidental settings modifications while playing
-        if ((colsInRowsTouched[r] & ~(int32_t)(1)) != 0) {
-          cellTouched(ignoredCell);
-          return;
+      return false;
+    }
+
+    // user firmware mode only handles the global settings command button
+    if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW) {
+      if (sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
+          sensorRow != SWITCH_2_ROW) {                        // only activate them if there's note being played on the playing surface
+        for (int r = 0; r < NUMROWS; ++r) {                   // this prevents accidental settings modifications while playing
+          if ((colsInRowsTouched[r] & ~(int32_t)(1)) != 0) {
+            cellTouched(ignoredCell);
+            return false;
+          }
         }
       }
+      handleControlButtonNewTouch();
     }
-    handleControlButtonNewTouch();
   }
   else {                                                    // or if it's in column 1-25...
     switch (displayMode)
@@ -386,6 +395,7 @@ void handleNewTouch() {
       else if (!isLowRow() || allowNewTouchOnLowRow()) {
         initVelocity();
         calcVelocity(sensorCell().velocityZ);
+        result = true;
       }
       else {
         cellTouched(untouchedCell);
@@ -466,6 +476,8 @@ void handleNewTouch() {
       break;
     }
   }
+
+  return result;
 }
 
 // Calculate the transposed note number for the current cell by taken the transposition settings into account
@@ -622,6 +634,9 @@ void handleXYZupdate() {
     if (userFirmwareActive) {
       handleNewUserFirmwareTouch();
     }
+    else if (controlModeActive) {
+      handleNewControlModeTouch();
+    }
     // is this cell used for low row functionality
     else if (isLowRow()) {
       lowRowStart();
@@ -664,6 +679,11 @@ void handleXYZupdate() {
         prepareNewNote(notenum);
       }
     }
+  }
+
+  // we don't need to handle any expression in control mode
+  if (controlModeActive && !newVelocity) {
+    return;
   }
 
   // get the processed expression data
@@ -938,6 +958,18 @@ void handleNewUserFirmwareTouch() {
   sensorCell().note = sensorCol;
   sensorCell().channel = sensorRow+1;
   midiSendNoteOn(LEFT, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+}
+
+void handleNewControlModeTouch() {
+  Serial.write((byte)1);
+  Serial.write((byte)sensorCol);
+  Serial.write((byte)sensorRow);
+  Serial.write("\n");
+
+  sensorCell().note = sensorCol;
+  sensorCell().channel = sensorRow+1;
+
+  setLed(sensorCol, sensorRow, Split[focusedSplit].colorNoteon, cellOn, LED_LAYER_PLAYED);
 }
 
 byte handleZExpression() {
@@ -1246,10 +1278,21 @@ void handleTouchRelease() {
   if (handleCalibrationRelease()) {
     // do nothing, calibration is handled elsewhere
   }
-  // user firmware mode had its own mode of operation
+  // user firmware mode has its own mode of operation
   else if (userFirmwareActive) {
     midiSendNoteOffWithVelocity(LEFT, sensorCell().note, 0, sensorCell().channel);
     sensorCell().clearMusicalData();
+  }
+  // control mode has its own mode of operation
+  else if (controlModeActive) {
+    if (sensorCell().hasNote()) {
+      Serial.write((byte)0);
+      Serial.write((byte)sensorCol);
+      Serial.write((byte)sensorRow);
+      Serial.write("\n");
+
+      setLed(sensorCol, sensorRow, COLOR_OFF, cellOff, LED_LAYER_PLAYED);
+    }
   }
   // CC faders have their own operation mode
   else if (Split[sensorSplit].ccFaders) {

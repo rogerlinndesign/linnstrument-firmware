@@ -70,7 +70,9 @@ void updateDisplay() {
   {
   case displayNormal:
   case displaySplitPoint:
-    paintNormalDisplay();
+    if (!controlModeActive) {
+      paintNormalDisplay();
+    }
     break;
   case displayPerSplit:
     paintPerSplitDisplay(Global.currentPerSplit);

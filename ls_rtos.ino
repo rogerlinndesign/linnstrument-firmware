@@ -47,7 +47,7 @@ inline void performContinuousTasks(unsigned long now) {
 
   checkAdvanceArpeggiator(now);  
   if (Device.serialMode) {
-    handleExtStorage();
+    handleSerialIO();
   }
   else {
     handleMidiInput(now);

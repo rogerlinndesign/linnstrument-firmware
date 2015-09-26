@@ -371,6 +371,13 @@ inline boolean TouchInfo::isActiveTouch() {
   return featherTouch || velocityZ > 0 || pressureZ > 0;
 }
 
+const short CONTROL_VELOCITY = 127;
+const short CONTROL_PRESSURE = 127;
+
+const short CONTROL_MODE_LOZ = 20;
+const short SWITCH_FEATHERZ = 120;
+const short SWITCH_LOZ = 230;
+
 inline void TouchInfo::refreshZ() {
   if (shouldRefreshZ) {
     currentRawZ = readZ();                            // store the raw Z data for later comparisons and calculations
@@ -380,11 +387,25 @@ inline void TouchInfo::refreshZ() {
 
     shouldRefreshZ = false;
 
-    if (currentRawZ < Device.sensorFeatherZ) {        // if the raw touch is below feather touch, keep 0 for the Z values
+    if (controlModeActive && currentRawZ >= CONTROL_MODE_LOZ) {
+      featherTouch = true;
+      velocityZ = CONTROL_VELOCITY;
+      pressureZ = CONTROL_PRESSURE;
       return;
     }
 
-    short usableZ = currentRawZ - Device.sensorLoZ;   // subtract minimum from value
+    unsigned short featherZ = Device.sensorFeatherZ;
+    unsigned short loZ = Device.sensorLoZ;
+    if (sensorCol == 0) {
+        featherZ = SWITCH_FEATHERZ;
+        loZ = SWITCH_LOZ;
+    }
+
+    if (currentRawZ < featherZ) {                     // if the raw touch is below feather touch, keep 0 for the Z values
+      return;
+    }
+
+    short usableZ = currentRawZ - loZ;                // subtract minimum from value
 
     if (usableZ <= 0) {                               // if it's below the acceptable minimum, store it as a feather touch
       featherTouch = true;
@@ -393,8 +414,8 @@ inline void TouchInfo::refreshZ() {
 
     // the control switches always have maximum velocity and pressure
     if (sensorCol == 0) {
-      velocityZ = 127;
-      pressureZ = 127;
+      velocityZ = CONTROL_VELOCITY;
+      pressureZ = CONTROL_PRESSURE;
       return;
     }
 

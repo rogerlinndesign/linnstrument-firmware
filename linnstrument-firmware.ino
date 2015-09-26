@@ -801,6 +801,8 @@ byte lowRowCCXYZConfigState = 3;                    // the last state of the adv
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
 
+boolean controlModeActive = false;                  // indicates whether control mode is active, detecting no expression but very sensitive cell presses intended for fast typing
+
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
@@ -1120,8 +1122,7 @@ inline void modeLoopPerformance() {
 
     if (previousTouch != touchedCell && previousTouch != ignoredCell &&
         sensorCell().isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
-      handleNewTouch();
-      canShortCircuit = true;
+      canShortCircuit = handleNewTouch();
     }
     else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
       handleXYZupdate();                                                          // handle any X, Y or Z movements

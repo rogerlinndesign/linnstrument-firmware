@@ -37,6 +37,12 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
 }
 
 void switchSerialMode(boolean flag) {
+  if (controlModeActive) {
+    controlModeActive = false;
+    clearDisplay();
+    updateDisplay();
+  }
+  
   Device.serialMode = flag;
   applySerialMode();
 }

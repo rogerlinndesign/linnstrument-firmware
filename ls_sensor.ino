@@ -21,18 +21,6 @@ const short Z_BIAS_SEPTEMBER[NUMROWS][NUMCOLS] =  {
   };
 const short Z_BIAS_MULTIPLIER_SEPTEMBER = 1400;
 
-const short Z_BIAS_NOVEMBER[NUMROWS][NUMCOLS] =  {
-    {516, 667, 686, 699, 704, 702, 692, 675, 654, 631, 609, 591, 578, 572, 575, 585, 601, 622, 645, 667, 686, 699, 704, 702, 692, 675},
-    {516, 893, 888, 872, 846, 813, 777, 740, 707, 680, 663, 657, 663, 680, 706, 739, 776, 813, 846, 871, 888, 893, 887, 869, 842, 809},
-    {516, 732, 744, 748, 744, 732, 714, 691, 665, 641, 619, 602, 592, 590, 596, 609, 629, 653, 678, 702, 723, 739, 747, 747, 739, 723},
-    {516, 811, 804, 785, 759, 726, 691, 656, 626, 602, 588, 585, 594, 612, 639, 672, 707, 742, 772, 795, 808, 811, 803, 784, 757, 724},
-    {516, 724, 738, 744, 739, 726, 704, 677, 647, 617, 591, 570, 557, 554, 560, 576, 599, 627, 657, 686, 712, 731, 742, 743, 734, 717},
-    {516, 751, 751, 745, 732, 716, 696, 674, 653, 635, 621, 612, 609, 613, 623, 638, 657, 679, 700, 719, 735, 746, 751, 750, 742, 728},
-    {516, 828, 849, 858, 853, 835, 807, 770, 731, 692, 659, 635, 624, 626, 641, 668, 703, 742, 782, 816, 842, 856, 857, 844, 820, 786},
-    {516, 766, 775, 780, 780, 775, 765, 750, 733, 713, 692, 671, 652, 635, 622, 613, 610, 611, 617, 628, 643, 661, 682, 703, 723, 742}
-  };
-const short Z_BIAS_MULTIPLIER_NOVEMBER = 860;
-
 // readX:
 // Reads raw X value at the currently addressed column and row
 const short READX_FLATZONE = 25;
@@ -85,33 +73,45 @@ inline short readY(byte zPct) {                       // returns a value of 0-12
 
 // readZ:
 // Reads Z value at current cell
+const short READZ_DELAY_CONTROLMODE = 50;
+const short READZ_DELAY_SWITCH = 24;
+const short READZ_DELAY_SENSOR = 15;
+const short READZ_DELAY_SENSORINITIAL = 14;
+const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
+
 inline unsigned short readZ() {                       // returns the raw Z value
   selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
-  // prevent phantom reads when vertically adjacent cells are pressed
-  if (sensorCol == 0) {
-    delayUsec(24);
-  }
-  // if there are active touches in the column, always use a settling time
-  else if (rowsInColsTouched[0]) {
-    delayMicroseconds(11);
-  }
 
-  // read raw Z value and invert it from (4095 - 0) to (0-4095)
-  short rawZ = 4095 - spiAnalogRead();
+  short rawZ;
 
-  // if there are no active touches in the column, but the raw pressure without settling time exceeds the value 80,
-  // introduce a settling time to read the proper stabilized value
-  if (rowsInColsTouched[0] == 0 && rawZ > 80) {
-      delayMicroseconds(10);
-      rawZ = 4095 - spiAnalogRead();
+  if (controlModeActive) {
+    delayUsec(READZ_DELAY_CONTROLMODE);
+
+    // read raw Z value and invert it from (4095 - 0) to (0-4095)
+    rawZ = 4095 - spiAnalogRead();
+  }
+  else {
+    // if there are active touches in the column, always use a settling time
+    if (sensorCol == 0) {
+      delayUsec(READZ_DELAY_SWITCH);
+    }
+    else if (rowsInColsTouched[0]) {
+      delayUsec(READZ_DELAY_SENSOR);
+    }
+
+    // read raw Z value and invert it from (4095 - 0) to (0-4095)
+    rawZ = 4095 - spiAnalogRead();
+
+    // if there are no active touches in the column, but the raw pressure without settling time exceeds the value threshold,
+    // introduce a settling time to read the proper stabilized value
+    if (rowsInColsTouched[0] == 0 && rawZ > READZ_SETTLING_PRESSURE_THRESHOLD) {
+        delayUsec(READZ_DELAY_SENSORINITIAL);
+        rawZ = 4095 - spiAnalogRead();
+    }
   }
 
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
-
-  // this bias is totally experimental and not considered finished, it's merely an experiment to see
-  // if different values can make the november sensor better, at the moment it's not!
-  // rawZ = (rawZ * Z_BIAS_MULTIPLIER_NOVEMBER) / Z_BIAS_NOVEMBER[sensorRow][sensorCol];
 
   return rawZ;
 }
