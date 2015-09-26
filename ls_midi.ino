@@ -1341,7 +1341,7 @@ void handlePendingMidi(unsigned long now) {
       if (messageIndex == 1 &&
           (lastType == MIDINoteOn ||
            nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
-        additionalInterval = 1000;
+        additionalInterval = 2000;
       }
 
       // if the time between now and the last MIDI byte exceeds the required interval, process it
