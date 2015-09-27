@@ -367,113 +367,46 @@ boolean handleNewTouch() {
   else {                                                    // or if it's in column 1-25...
     switch (displayMode)
     {
-    case displaySplitPoint:                                 // if the Split button is held, this touch changes the split point
-      if (splitButtonDown) {
-        handleSplitPointNewTouch();
+      case displaySplitPoint:                                 // if the Split button is held, this touch changes the split point
+        if (splitButtonDown) {
+          handleSplitPointNewTouch();
+          break;
+        }
+        // If we get here, we're displaying in displaySplitPoint mode, but we've just gotten a normal new touch.
+        // THE FALL THROUGH HERE (no break statement) IS PURPOSEFUL!
+
+      case displayNormal:                                            // it's normal performance mode
+      case displayVolume:                                            // it's a volume change
+
+        // check if the new touch could be an ongoing slide to the right
+        if (potentialSlideTransferCandidate(sensorCol-1)) {
+          handleSlideTransferCandidate(sensorCol-1);
+        }
+        // check if the new touch could be an ongoing slide to the left
+        else if (potentialSlideTransferCandidate(sensorCol+1)) {
+          handleSlideTransferCandidate(sensorCol+1);
+        }
+        // only allow a certain number of touches in a single column to prevent cross talk
+        else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
+          cellTouched(ignoredCell);
+        }
+        // this is really a new touch without any relationship to an ongoing slide
+        // however, it could be the low row and in certain situations it doesn't allow new touches
+        else if (!isLowRow() || allowNewTouchOnLowRow()) {
+          initVelocity();
+          calcVelocity(sensorCell().velocityZ);
+          result = true;
+        }
+        else {
+          cellTouched(untouchedCell);
+        }
+
         break;
-      }
-      // If we get here, we're displaying in displaySplitPoint mode, but we've just gotten a normal new touch.
-      // THE FALL THROUGH HERE (no break statement) IS PURPOSEFUL!
-
-    case displayNormal:                                            // it's normal performance mode
-    case displayVolume:                                            // it's a volume change
-
-      // check if the new touch could be an ongoing slide to the right
-      if (potentialSlideTransferCandidate(sensorCol-1)) {
-        handleSlideTransferCandidate(sensorCol-1);
-      }
-      // check if the new touch could be an ongoing slide to the left
-      else if (potentialSlideTransferCandidate(sensorCol+1)) {
-        handleSlideTransferCandidate(sensorCol+1);
-      }
-      // only allow a certain number of touches in a single column to prevent cross talk
-      else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
-        cellTouched(ignoredCell);
-      }
-      // this is really a new touch without any relationship to an ongoing slide
-      // however, it could be the low row and in certain situations it doesn't allow new touches
-      else if (!isLowRow() || allowNewTouchOnLowRow()) {
+      default:
         initVelocity();
         calcVelocity(sensorCell().velocityZ);
         result = true;
-      }
-      else {
-        cellTouched(untouchedCell);
-      }
-
-      break;
-    case displayPerSplit:
-      handlePerSplitSettingNewTouch();
-      break;
-    case displayPreset:
-      handlePresetNewTouch();
-      break;
-    case displayBendRange:
-      handleBendRangeNewTouch();
-      break;
-    case displayLimitsForY:
-      handleLimitsForYNewTouch();
-      break;
-    case displayCCForY:
-      handleCCForYNewTouch();
-      break;
-    case displayLimitsForZ:
-      handleLimitsForZNewTouch();
-      break;
-    case displayCCForZ:
-      handleCCForZNewTouch();
-      break;
-    case displayCCForFader:
-      handleCCForFaderNewTouch();
-      break;
-    case displayLowRowCCXConfig:
-      handleLowRowCCXConfigNewTouch();
-      break;
-    case displayLowRowCCXYZConfig:
-      handleLowRowCCXYZConfigNewTouch();
-      break;
-    case displayCCForSwitch:
-      handleCCForSwitchConfigNewTouch();
-      break;
-    case displayLimitsForVelocity:
-      handleLimitsForVelocityNewTouch();
-      break;
-    case displayValueForFixedVelocity:
-      handleValueForFixedVelocityNewTouch();
-      break;
-    case displayMinUSBMIDIInterval:
-      handleMinUSBMIDIIntervalNewTouch();
-      break;
-    case displaySensorLoZ:
-      handleSensorLoZNewTouch();
-      break;
-    case displaySensorFeatherZ:
-      handleSensorFeatherZNewTouch();
-      break;
-    case displaySensorRangeZ:
-      handleSensorRangeZNewTouch();
-      break;
-    case displayOctaveTranspose:
-      handleOctaveTransposeNewTouch();
-      break;
-    case displayGlobal:
-    case displayGlobalWithTempo:
-      handleGlobalSettingNewTouch();
-      break;
-    case displayOsVersion:
-      setDisplayMode(displayOsVersionBuild);
-      updateDisplay();
-      break;
-    case displayOsVersionBuild:
-      setDisplayMode(displayOsVersion);
-      updateDisplay();
-      break;
-    case displayCalibration:
-      initVelocity();
-      break;
-    case displayEditAudienceMessage:
-      handleEditAudienceMessageNewTouch();
-      break;
+        break;
     }
   }
 
@@ -559,6 +492,85 @@ byte takeChannel(byte split) {
 
 #define INVALID_DATA SHRT_MAX
 
+void handleNonPlayingTouch(boolean newVelocity) {
+  if (newVelocity) {
+    switch (displayMode) {
+      case displayPerSplit:
+        handlePerSplitSettingNewTouch();
+        break;
+      case displayPreset:
+        handlePresetNewTouch();
+        break;
+      case displayBendRange:
+        handleBendRangeNewTouch();
+        break;
+      case displayLimitsForY:
+        handleLimitsForYNewTouch();
+        break;
+      case displayCCForY:
+        handleCCForYNewTouch();
+        break;
+      case displayLimitsForZ:
+        handleLimitsForZNewTouch();
+        break;
+      case displayCCForZ:
+        handleCCForZNewTouch();
+        break;
+      case displayCCForFader:
+        handleCCForFaderNewTouch();
+        break;
+      case displayLowRowCCXConfig:
+        handleLowRowCCXConfigNewTouch();
+        break;
+      case displayLowRowCCXYZConfig:
+        handleLowRowCCXYZConfigNewTouch();
+        break;
+      case displayCCForSwitch:
+        handleCCForSwitchConfigNewTouch();
+        break;
+      case displayLimitsForVelocity:
+        handleLimitsForVelocityNewTouch();
+        break;
+      case displayValueForFixedVelocity:
+        handleValueForFixedVelocityNewTouch();
+        break;
+      case displayMinUSBMIDIInterval:
+        handleMinUSBMIDIIntervalNewTouch();
+        break;
+      case displaySensorLoZ:
+        handleSensorLoZNewTouch();
+        break;
+      case displaySensorFeatherZ:
+        handleSensorFeatherZNewTouch();
+        break;
+      case displaySensorRangeZ:
+        handleSensorRangeZNewTouch();
+        break;
+      case displayOctaveTranspose:
+        handleOctaveTransposeNewTouch();
+        break;
+      case displayGlobal:
+      case displayGlobalWithTempo:
+        handleGlobalSettingNewTouch();
+        break;
+      case displayOsVersion:
+        setDisplayMode(displayOsVersionBuild);
+        updateDisplay();
+        break;
+      case displayOsVersionBuild:
+        setDisplayMode(displayOsVersion);
+        updateDisplay();
+        break;
+      case displayCalibration:
+        initVelocity();
+        break;
+      case displayEditAudienceMessage:
+        handleEditAudienceMessageNewTouch();
+        break;
+    }
+  }
+}
+
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
 void handleXYZupdate() {
@@ -571,33 +583,21 @@ void handleXYZupdate() {
   if (handleCalibrationSample()) return;
 
   // some features need hold functionality
-  switch (displayMode) {
-    case displayPerSplit:
-      handlePerSplitSettingHold();
-      return;
-    case displayPreset:
-      handlePresetHold();
-      return;
-    case displayGlobal:
-    case displayGlobalWithTempo:
-      handleGlobalSettingHold();
-      return;
+  if (sensorCell().velocity) {
+    switch (displayMode) {
+      case displayPerSplit:
+        handlePerSplitSettingHold();
+        return;
+      case displayPreset:
+        handlePresetHold();
+        return;
+      case displayGlobal:
+      case displayGlobalWithTempo:
+        handleGlobalSettingHold();
+        return;
+    }
   }
   
-  // only continue if the active display modes require finger tracking
-  if (displayMode != displayNormal &&
-      displayMode != displayVolume &&
-      (displayMode != displaySplitPoint || splitButtonDown)) {
-    return;
-  }
-
-  DEBUGPRINT((2,"handleXYZupdate"));
-  DEBUGPRINT((2," col="));DEBUGPRINT((2,(int)sensorCol));
-  DEBUGPRINT((2," row="));DEBUGPRINT((2,(int)sensorRow));
-  DEBUGPRINT((2," velocityZ="));DEBUGPRINT((2,(int)sensorCell().velocityZ));
-  DEBUGPRINT((2," pressureZ="));DEBUGPRINT((2,(int)sensorCell().pressureZ));
-  DEBUGPRINT((2,"\n"));
-
   boolean newVelocity = calcVelocity(sensorCell().velocityZ);
 
   // check if after a new velocity calculation, this cell is not a phantom touch
@@ -607,6 +607,23 @@ void handleXYZupdate() {
     cellTouched(untouchedCell);
     return;
   }
+
+  // only continue if the active display modes require finger tracking
+  if (displayMode != displayNormal &&
+      displayMode != displayVolume &&
+      (displayMode != displaySplitPoint || splitButtonDown)) {
+    // check if this should be handled as a non-playing touch
+    handleNonPlayingTouch(newVelocity);
+    performContinuousTasks(micros());
+    return;
+  }
+
+  DEBUGPRINT((2,"handleXYZupdate"));
+  DEBUGPRINT((2," col="));DEBUGPRINT((2,(int)sensorCol));
+  DEBUGPRINT((2," row="));DEBUGPRINT((2,(int)sensorRow));
+  DEBUGPRINT((2," velocityZ="));DEBUGPRINT((2,(int)sensorCell().velocityZ));
+  DEBUGPRINT((2," pressureZ="));DEBUGPRINT((2,(int)sensorCell().pressureZ));
+  DEBUGPRINT((2,"\n"));
 
   // turn off note handling and note expression features for low row, volume, cc faders and strumming
   boolean handleNotes = true;
@@ -1171,6 +1188,83 @@ void releaseChannel(byte split, byte channel) {
 
 #define PENDING_RELEASE_MOVEMENT   3
 
+boolean handleNonPlayingRelease() {
+  if (sensorCell().velocity) {
+    switch (displayMode) {
+      case displayPerSplit:
+        handlePerSplitSettingRelease();
+        break;
+      case displayPreset:
+        handlePresetRelease();
+        break;
+      case displayBendRange:
+        handleBendRangeRelease();
+        break;
+      case displayLimitsForY:
+        handleLimitsForYRelease();
+        break;
+      case displayCCForY:
+        handleCCForYRelease();
+        break;
+      case displayLimitsForZ:
+        handleLimitsForZRelease();
+        break;
+      case displayCCForZ:
+        handleCCForZRelease();
+        break;
+      case displayCCForFader:
+        handleCCForFaderRelease();
+        break;
+      case displayLowRowCCXConfig:
+        handleLowRowCCXConfigRelease();
+        break;
+      case displayLowRowCCXYZConfig:
+        handleLowRowCCXYZConfigRelease();
+        break;
+      case displayCCForSwitch:
+        handleCCForSwitchConfigRelease();
+        break;
+      case displayLimitsForVelocity:
+        handleLimitsForVelocityRelease();
+        break;
+      case displayMinUSBMIDIInterval:
+        handleMinUSBMIDIIntervalRelease();
+        break;
+      case displayValueForFixedVelocity:
+        handleValueForFixedVelocityRelease();
+        break;
+      case displaySensorLoZ:
+        handleSensorLoZRelease();
+        break;
+      case displaySensorFeatherZ:
+        handleSensorFeatherZRelease();
+        break;
+      case displaySensorRangeZ:
+        handleSensorRangeZRelease();
+        break;
+      case displayVolume:
+        handleVolumeRelease();
+        break;
+      case displayOctaveTranspose:
+        handleOctaveTransposeRelease();
+        break;
+      case displayGlobal:
+      case displayGlobalWithTempo:
+        handleGlobalSettingRelease();
+        break;
+      case displayEditAudienceMessage:
+        handleEditAudienceMessageRelease();
+        break;
+      default:
+        return false;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
   DEBUGPRINT((1,"handleTouchRelease"));
@@ -1207,75 +1301,11 @@ void handleTouchRelease() {
   }
 
   // Some of the displayModes handle Release events
-  switch (displayMode) {
-    case displayPerSplit:
-      handlePerSplitSettingRelease();
-      return;
-    case displayPreset:
-      handlePresetRelease();
-      return;
-    case displayBendRange:
-      handleBendRangeRelease();
-      return;
-    case displayLimitsForY:
-      handleLimitsForYRelease();
-      return;
-    case displayCCForY:
-      handleCCForYRelease();
-      return;
-    case displayLimitsForZ:
-      handleLimitsForZRelease();
-      return;
-    case displayCCForZ:
-      handleCCForZRelease();
-      return;
-    case displayCCForFader:
-      handleCCForFaderRelease();
-      return;
-    case displayLowRowCCXConfig:
-      handleLowRowCCXConfigRelease();
-      break;
-    case displayLowRowCCXYZConfig:
-      handleLowRowCCXYZConfigRelease();
-      break;
-    case displayCCForSwitch:
-      handleCCForSwitchConfigRelease();
-      break;
-    case displayLimitsForVelocity:
-      handleLimitsForVelocityRelease();
-      break;
-    case displayMinUSBMIDIInterval:
-      handleMinUSBMIDIIntervalRelease();
-      break;
-    case displayValueForFixedVelocity:
-      handleValueForFixedVelocityRelease();
-      break;
-    case displaySensorLoZ:
-      handleSensorLoZRelease();
-      return;
-    case displaySensorFeatherZ:
-      handleSensorFeatherZRelease();
-      return;
-    case displaySensorRangeZ:
-      handleSensorRangeZRelease();
-      return;
-    case displayVolume:
-      handleVolumeRelease();
-      return;
-    case displayOctaveTranspose:
-      handleOctaveTransposeRelease();
-      return;
-    case displayGlobal:
-    case displayGlobalWithTempo:
-      handleGlobalSettingRelease();
-      return;
-    case displayEditAudienceMessage:
-      handleEditAudienceMessageRelease();
-      return;
+  if (handleNonPlayingRelease()) {
+    performContinuousTasks(micros());
   }
-
   // check if calibration is active and its cell release logic needs to be executed
-  if (handleCalibrationRelease()) {
+  else if (handleCalibrationRelease()) {
     // do nothing, calibration is handled elsewhere
   }
   // user firmware mode has its own mode of operation
