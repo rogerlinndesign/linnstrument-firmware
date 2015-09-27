@@ -55,7 +55,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 /******************************************** CONSTANTS ******************************************/
 
 char* OSVersion = "123.";
-char* OSVersionBuild = ".023";
+char* OSVersionBuild = ".024";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
