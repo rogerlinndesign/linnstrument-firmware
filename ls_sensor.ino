@@ -80,6 +80,8 @@ const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
 inline unsigned short readZ() {                       // returns the raw Z value
+  DEBUGPRINT((3,"readZ\n"));
+
   selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
 
   short rawZ;

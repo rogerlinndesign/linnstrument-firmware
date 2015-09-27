@@ -623,8 +623,7 @@ void handleControlButtonNewTouch() {
 
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
-  switch (sensorRow)                                   // which control button is it?
-  {
+  switch (sensorRow) {                                 // which control button is it?
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
@@ -715,8 +714,7 @@ void handleControlButtonRelease() {
     controlButton = -1;                                                     // keep track of which control button we're handling
   }
 
-  switch (sensorRow)
-  {
+  switch (sensorRow) {
     // Most of the buttons, when released, revert the display to normal
     // and save the global settings which may have been changed.
 
@@ -771,8 +769,7 @@ void handleControlButtonRelease() {
 
 // chan value is 1-16
 void toggleChannel(byte chan) {
-  switch (midiChannelSelect)
-  {
+  switch (midiChannelSelect) {
     case MIDICHANNEL_MAIN:
       // in MPE mode the only valid main channels are 1 and 16
       if (!Split[Global.currentPerSplit].mpe || chan == 1 || chan == 16) {
@@ -806,8 +803,7 @@ void toggleChannel(byte chan) {
 }
 
 void updateSplitMidiChannels(byte sp) {
-  switch (Split[sp].midiMode)
-  {
+  switch (Split[sp].midiMode) {
     case channelPerNote:
     {
       splitChannels[sp].clear();
@@ -970,8 +966,7 @@ void handlePerSplitSettingNewTouch() {
   }
   else if (sensorCol == 2) {
 
-    switch (sensorRow)
-    {
+    switch (sensorRow) {
       case MIDICHANNEL_MAIN:
       case MIDICHANNEL_PERNOTE:
       case MIDICHANNEL_PERROW:
@@ -1709,8 +1704,7 @@ void handleOctaveTransposeNewTouch() {
 
 void handleOctaveTransposeNewTouchSplit(byte side) {
   if (sensorRow == OCTAVE_ROW) {
-    switch (sensorCol)
-    {
+    switch (sensorCol) {
       case 3: Split[side].transposeOctave = -60; break;
       case 4: Split[side].transposeOctave = -48; break;
       case 5: Split[side].transposeOctave = -36; break;

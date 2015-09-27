@@ -66,90 +66,89 @@ void updateDisplay() {
     return;
   }
 
-  switch (displayMode)
-  {
-  case displayNormal:
-  case displaySplitPoint:
-    if (!controlModeActive) {
-      paintNormalDisplay();
-    }
-    break;
-  case displayPerSplit:
-    paintPerSplitDisplay(Global.currentPerSplit);
-    break;
-  case displayPreset:
-    paintPresetDisplay(Global.currentPerSplit);
-    break;
-  case displayOsVersion:
-    paintOSVersionDisplay();
-    break;
-  case displayOsVersionBuild:
-    paintOSVersionBuildDisplay();
-    break;
-  case displayVolume:
-    paintVolumeDisplay(Global.currentPerSplit);
-    break;
-  case displayOctaveTranspose:
-    paintOctaveTransposeDisplay(Global.currentPerSplit);
-    break;
-  case displayGlobal:
-  case displayGlobalWithTempo:
-    paintGlobalSettingsDisplay();
-    break;
-  case displayCalibration:
-    paintCalibrationDisplay();
-    break;
-  case displayReset:
-    paintResetDisplay();
-    break;
-  case displayBendRange:
-    paintBendRangeDisplay(Global.currentPerSplit);
-    break;
-  case displayLimitsForY:
-    paintLimitsForYDisplay(Global.currentPerSplit);
-    break;
-  case displayCCForY:
-    paintCCForYDisplay(Global.currentPerSplit);
-    break;
-  case displayLimitsForZ:
-    paintLimitsForZDisplay(Global.currentPerSplit);
-    break;
-  case displayCCForZ:
-    paintCCForZDisplay(Global.currentPerSplit);
-    break;
-  case displayCCForFader:
-    paintCCForFaderDisplay(Global.currentPerSplit);
-    break;
-  case displayLowRowCCXConfig:
-    paintLowRowCCXConfigDisplay(Global.currentPerSplit);
-    break;
-  case displayLowRowCCXYZConfig:
-    paintLowRowCCXYZConfigDisplay(Global.currentPerSplit);
-    break;
-  case displayCCForSwitch:
-    paintCCForSwitchConfigDisplay();
-    break;
-  case displayLimitsForVelocity:
-    paintLimitsForVelocityDisplay();
-    break;
-  case displayValueForFixedVelocity:
-    paintValueForFixedVelocityDisplay();
-    break;
-  case displayMinUSBMIDIInterval:
-    paintMinUSBMIDIIntervalDisplay();
-    break;
-  case displaySensorLoZ:
-    paintSensorLoZDisplay();
-    break;
-  case displaySensorFeatherZ:
-    paintSensorFeatherZDisplay();
-    break;
-  case displaySensorRangeZ:
-    paintSensorRangeZDisplay();
-    break;
-  case displayEditAudienceMessage:
-    paintEditAudienceMessage();
-    break;
+  switch (displayMode) {
+    case displayNormal:
+    case displaySplitPoint:
+      if (!controlModeActive) {
+        paintNormalDisplay();
+      }
+      break;
+    case displayPerSplit:
+      paintPerSplitDisplay(Global.currentPerSplit);
+      break;
+    case displayPreset:
+      paintPresetDisplay(Global.currentPerSplit);
+      break;
+    case displayOsVersion:
+      paintOSVersionDisplay();
+      break;
+    case displayOsVersionBuild:
+      paintOSVersionBuildDisplay();
+      break;
+    case displayVolume:
+      paintVolumeDisplay(Global.currentPerSplit);
+      break;
+    case displayOctaveTranspose:
+      paintOctaveTransposeDisplay(Global.currentPerSplit);
+      break;
+    case displayGlobal:
+    case displayGlobalWithTempo:
+      paintGlobalSettingsDisplay();
+      break;
+    case displayCalibration:
+      paintCalibrationDisplay();
+      break;
+    case displayReset:
+      paintResetDisplay();
+      break;
+    case displayBendRange:
+      paintBendRangeDisplay(Global.currentPerSplit);
+      break;
+    case displayLimitsForY:
+      paintLimitsForYDisplay(Global.currentPerSplit);
+      break;
+    case displayCCForY:
+      paintCCForYDisplay(Global.currentPerSplit);
+      break;
+    case displayLimitsForZ:
+      paintLimitsForZDisplay(Global.currentPerSplit);
+      break;
+    case displayCCForZ:
+      paintCCForZDisplay(Global.currentPerSplit);
+      break;
+    case displayCCForFader:
+      paintCCForFaderDisplay(Global.currentPerSplit);
+      break;
+    case displayLowRowCCXConfig:
+      paintLowRowCCXConfigDisplay(Global.currentPerSplit);
+      break;
+    case displayLowRowCCXYZConfig:
+      paintLowRowCCXYZConfigDisplay(Global.currentPerSplit);
+      break;
+    case displayCCForSwitch:
+      paintCCForSwitchConfigDisplay();
+      break;
+    case displayLimitsForVelocity:
+      paintLimitsForVelocityDisplay();
+      break;
+    case displayValueForFixedVelocity:
+      paintValueForFixedVelocityDisplay();
+      break;
+    case displayMinUSBMIDIInterval:
+      paintMinUSBMIDIIntervalDisplay();
+      break;
+    case displaySensorLoZ:
+      paintSensorLoZDisplay();
+      break;
+    case displaySensorFeatherZ:
+      paintSensorFeatherZDisplay();
+      break;
+    case displaySensorRangeZ:
+      paintSensorRangeZDisplay();
+      break;
+    case displayEditAudienceMessage:
+      paintEditAudienceMessage();
+      break;
   }
 
   updateSwitchLeds();
@@ -157,12 +156,11 @@ void updateDisplay() {
 
 // handle logic tied to exiting specific display mode, like post-processing or saving
 void exitDisplayMode(DisplayMode mode) {
-  switch (mode)
-  {
-  case displayEditAudienceMessage:
-    trimEditedAudienceMessage();
-    storeSettings();
-    break;
+  switch (mode) {
+    case displayEditAudienceMessage:
+      trimEditedAudienceMessage();
+      storeSettings();
+      break;
   }
 }
 
@@ -364,8 +362,7 @@ void paintPerSplitDisplay(byte side) {
   doublePerSplit = false;  
 
   // set Midi Mode and channel lights
-  switch (Split[side].midiMode)
-  {
+  switch (Split[side].midiMode) {
     case oneChannel:
     {
       setLed(1, 7, Split[side].colorMain, cellOn);
@@ -383,8 +380,7 @@ void paintPerSplitDisplay(byte side) {
     }
   }
 
-  switch (midiChannelSelect)
-  {
+  switch (midiChannelSelect) {
     case MIDICHANNEL_MAIN:
       setLed(2, 7, Split[side].colorMain, cellOn);
       showMainMidiChannel(side);
@@ -399,8 +395,7 @@ void paintPerSplitDisplay(byte side) {
       break;
   }
 
-  switch (Split[side].bendRangeOption)
-  {
+  switch (Split[side].bendRangeOption) {
     case bendRange2:
       setLed(7, 7, Split[side].colorMain, cellOn);
       break;
@@ -443,8 +438,7 @@ void paintPerSplitDisplay(byte side) {
     setLed(9, 7, getLimitsForYColor(side), cellOn);
   }
 
-  switch (Split[side].expressionForY)
-  {
+  switch (Split[side].expressionForY) {
     case timbrePolyPressure:
     case timbreChannelPressure:
     case timbreCC74:
@@ -465,8 +459,7 @@ void paintPerSplitDisplay(byte side) {
     setLed(10, 7, getLimitsForZColor(side), cellOn);
   }
 
-  switch (Split[side].expressionForZ)
-  {
+  switch (Split[side].expressionForZ) {
     case loudnessPolyPressure:
       setLed(10, 6, Split[side].colorMain, cellOn);
       break;
@@ -485,8 +478,7 @@ void paintPerSplitDisplay(byte side) {
   setLed(11, 4, Split[side].colorLowRow, cellOn);
 
   // Set "Low row" lights
-  switch (Split[side].lowRowMode)
-  {
+  switch (Split[side].lowRowMode) {
     case lowRowNormal:
       setLed(12, 7, Split[side].colorMain, cellOn);
       break;
@@ -921,37 +913,37 @@ void paintOctave(byte color, byte midcol, byte row, short octave) {
   if (0 == color) color = octave > 0 ? COLOR_GREEN : COLOR_RED ;
 
   switch (octave) {
-  case -60:
-    setLed(midcol-5, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case -48:
-    setLed(midcol-4, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case -36:
-    setLed(midcol-3, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case -24:
-    setLed(midcol-2, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case -12:
-    setLed(midcol-1, row, color, cellOn);
-    break;
+    case -60:
+      setLed(midcol-5, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case -48:
+      setLed(midcol-4, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case -36:
+      setLed(midcol-3, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case -24:
+      setLed(midcol-2, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case -12:
+      setLed(midcol-1, row, color, cellOn);
+      break;
 
-  case 60:
-    setLed(midcol+5, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case 48:
-    setLed(midcol+4, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case 36:
-    setLed(midcol+3, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case 24:
-    setLed(midcol+2, row, color, cellOn);
-    // lack of break here is purposeful, we want to fall through...
-  case 12:
-    setLed(midcol+1, row, color, cellOn);
-    break;
+    case 60:
+      setLed(midcol+5, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case 48:
+      setLed(midcol+4, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case 36:
+      setLed(midcol+3, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case 24:
+      setLed(midcol+2, row, color, cellOn);
+      // lack of break here is purposeful, we want to fall through...
+    case 12:
+      setLed(midcol+1, row, color, cellOn);
+      break;
   }
 }
 
@@ -1102,8 +1094,7 @@ void paintGlobalSettingsDisplay() {
         break;
     }
 
-    switch (Global.rowOffset)
-    {
+    switch (Global.rowOffset) {
       case ROWOFFSET_NOOVERLAP: // no overlap
         lightLed(5, 3);
         break;
@@ -1204,15 +1195,15 @@ void paintGlobalSettingsDisplay() {
     }
 
     paintGlobalSettingsFlashTempo(micros());
-}
+  }
 
-if (displayMode == displayGlobalWithTempo) {
-  byte color = Split[LEFT].colorMain;
-  char str[4];
-  char* format = "%3d";
-  snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
-  tinyfont_draw_string(0, 4, str, color);
-}
+  if (displayMode == displayGlobalWithTempo) {
+    byte color = Split[LEFT].colorMain;
+    char str[4];
+    char* format = "%3d";
+    snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
+    tinyfont_draw_string(0, 4, str, color);
+  }
 
 #ifdef DEBUG_ENABLED
   // Colum 17 is for setting/showing the debug level

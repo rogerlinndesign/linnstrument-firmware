@@ -1425,8 +1425,7 @@ void preSendSwitchCC65(byte split, byte v) {
 }
 
 void preSendControlChange(byte split, byte controlnum, byte v) {
-  switch (Split[split].midiMode)
-  {
+  switch (Split[split].midiMode) {
     case channelPerNote:
     {
       for (byte ch = 0; ch < 16; ++ch) {
@@ -1467,8 +1466,7 @@ void midiSendAllNotesOff(byte split) {
 
   preSendControlChange(split, 64, 0);
   for (byte notenum = 0; notenum < 128; ++notenum) {
-    switch (Split[split].midiMode)
-    {
+    switch (Split[split].midiMode) {
       case channelPerNote:
       {
         for (byte ch = 0; ch < 16; ++ch) {
