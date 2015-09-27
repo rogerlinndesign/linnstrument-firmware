@@ -66,6 +66,8 @@ void updateDisplay() {
     return;
   }
 
+  startBufferedLeds();
+
   switch (displayMode) {
     case displayNormal:
     case displaySplitPoint:
@@ -152,6 +154,8 @@ void updateDisplay() {
   }
 
   updateSwitchLeds();
+
+  finishBufferedLeds();
 }
 
 // handle logic tied to exiting specific display mode, like post-processing or saving
