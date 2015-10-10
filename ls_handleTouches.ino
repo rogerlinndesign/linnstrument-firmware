@@ -108,6 +108,7 @@ boolean hasImpossibleX() {             // checks whether the calibrated X is out
 }
 
 void transferFromSameRowCell(byte col) {
+  sensorCell().lastTouch = cell(col, sensorRow).lastTouch;
   sensorCell().initialX = cell(col, sensorRow).initialX;
   sensorCell().initialReferenceX = cell(col, sensorRow).initialReferenceX;  
   sensorCell().quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
@@ -124,6 +125,7 @@ void transferFromSameRowCell(byte col) {
   sensorCell().vcount = cell(col, sensorRow).vcount;
   noteTouchMapping[sensorSplit].changeCell(sensorCell().note, sensorCell().channel, sensorCol, sensorRow);
 
+  cell(col, sensorRow).lastTouch = 0;
   cell(col, sensorRow).initialX = -1;
   cell(col, sensorRow).initialReferenceX = 0;
   cell(col, sensorRow).quantizationOffsetX = 0;
@@ -149,6 +151,7 @@ void transferFromSameRowCell(byte col) {
 }
 
 void transferToSameRowCell(byte col) {
+  cell(col, sensorRow).lastTouch = sensorCell().lastTouch;
   cell(col, sensorRow).initialX = sensorCell().initialX;
   cell(col, sensorRow).initialReferenceX = sensorCell().initialReferenceX;
   cell(col, sensorRow).quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
@@ -165,6 +168,7 @@ void transferToSameRowCell(byte col) {
   cell(col, sensorRow).vcount = sensorCell().vcount;
   noteTouchMapping[sensorSplit].changeCell(cell(col, sensorRow).note, cell(col, sensorRow).channel, col, sensorRow);
 
+  sensorCell().lastTouch = 0;
   sensorCell().initialX = -1;
   sensorCell().initialReferenceX = 0;
   sensorCell().quantizationOffsetX = 0;
@@ -183,8 +187,8 @@ void transferToSameRowCell(byte col) {
   // do not reset vcount!
 
   byte channel = cell(col, sensorRow).channel;
-  if (channel != -1 && col == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
-    focus(sensorSplit, channel).col = sensorCol;
+  if (channel != -1 && sensorCol == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
+    focus(sensorSplit, channel).col = col;
     focus(sensorSplit, channel).row = sensorRow;
   }
 }
