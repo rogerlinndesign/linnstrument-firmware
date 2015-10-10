@@ -155,6 +155,24 @@ void completelyRefreshLeds() {
   }
 }
 
+void clearDisplayImmediately() {
+  for (byte col = 0; col < NUMCOLS; ++col) {
+    clearColumn(col);
+
+    // turn off all LEDs in one go without waiting for the refresh cycle
+    // this is inlined as actual code since extracting this as an inlined method
+    // has a visual influence on the LED refresh rate
+    byte ledColShifted = col << 2;
+    if ((col & 16) == 0) ledColShifted |= B10000000;                // if column address 4 is 0, set bit 7
+
+    digitalWrite(37, HIGH);                                         // enable the outputs of the LED driver chips
+    SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
+    SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send blue byte
+    SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send green byte
+    SPI.transfer(SPI_LEDS, 0);                                      // send red byte
+    digitalWrite(37, LOW);                                          // disable the outputs of the LED driver chips
+  }
+}
 
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.

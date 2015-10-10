@@ -399,7 +399,8 @@ enum DisplayMode {
   displaySensorFeatherZ,
   displaySensorRangeZ,
   displayPromo,
-  displayEditAudienceMessage
+  displayEditAudienceMessage,
+  displaySleep
 };
 DisplayMode displayMode = displayNormal;
 

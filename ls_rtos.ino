@@ -39,6 +39,10 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 }
 
 inline void performContinuousTasks(unsigned long nowMicros) {
+  if (displayMode == displaySleep) {
+    return;
+  }
+
   if (checkRefreshLedColumn(nowMicros)) {
     unsigned long nowMillis = millis();
 

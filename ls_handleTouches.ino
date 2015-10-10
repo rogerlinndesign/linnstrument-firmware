@@ -348,11 +348,27 @@ boolean handleNewTouch() {
     return false;
   }
 
+  // any touch will wake up LinnStrument again, and should be ignored
+  if (displayMode == displaySleep) {
+    cellTouched(ignoredCell);
+    setDisplayMode(displayNormal);
+    updateDisplay();
+    return false;
+  }
+
   // if it's a command button, handle it
   if (sensorCol == 0) {
     if (controlModeActive) {
       switchSerialMode(false);
-
+      return false;
+    }
+    
+    // check if we should activate sleep mode
+    if ((sensorRow == GLOBAL_SETTINGS_ROW && cell(0, PER_SPLIT_ROW).touched == touchedCell) ||
+        (sensorRow == PER_SPLIT_ROW && cell(0, GLOBAL_SETTINGS_ROW).touched == touchedCell)) {
+      controlButton = -1;
+      clearDisplayImmediately();
+      setDisplayMode(displaySleep);
       return false;
     }
 
@@ -1294,6 +1310,10 @@ void handleTouchRelease() {
 
   // mark this cell as no longer touched
   cellTouched(untouchedCell);
+
+  if (displayMode == displaySleep) {
+    return;
+  }
 
   // release open strings if no touches are down anymore
   handleOpenStringsRelease();

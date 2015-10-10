@@ -36,6 +36,7 @@ displaySensorFeatherZ        : sensor feather Z sensitivity selection
 displaySensorRangeZ          : max Z sensor range selection
 displayPromo                 : display promotion animation
 displayEditAudienceMessage   : edit an audience message
+displaySleep                 : sleeping
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -47,6 +48,10 @@ bool blinkMiddleRootNote = false;      // indicates whether the middle root note
 
 // changes the active display mode
 void setDisplayMode(DisplayMode mode) {
+  DEBUGPRINT((0,"setDisplayMode"));
+  DEBUGPRINT((0," mode="));DEBUGPRINT((0,(int)mode));
+  DEBUGPRINT((0,"\n"));
+
   boolean refresh = (displayMode != mode);
   if (refresh || displayModeStart == 0) {
     displayModeStart = millis();
