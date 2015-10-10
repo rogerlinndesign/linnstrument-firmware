@@ -1077,6 +1077,11 @@ void paintGlobalSettingsDisplay() {
     setLed(16, 3, COLOR_RED, cellOn);
   }
 
+  // set light for promo animation
+  if (Device.promoAnimation) {
+    lightLed(25, 7);
+  }
+
   if (!userFirmwareActive) {
 
     if (Device.leftHanded) {

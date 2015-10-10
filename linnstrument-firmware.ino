@@ -540,7 +540,7 @@ struct DeviceSettings {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  boolean promoAnimation;                    // store whether the promo animation should run after five minutes of not touching
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
@@ -803,6 +803,7 @@ unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the 
 
 boolean controlModeActive = false;                  // indicates whether control mode is active, detecting no expression but very sensitive cell presses intended for fast typing
 
+unsigned long lastTouchMoment = 0;                  // last time someone touched LinnStrument in milliseconds
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
@@ -1082,7 +1083,7 @@ void setup() {
   setupDone = true;
 
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Device.promoAnimationAtStartup) {
+  if (Device.promoAnimation) {
     playPromoAnimation();
   }
 }

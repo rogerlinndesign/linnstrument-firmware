@@ -7,9 +7,6 @@ This shows a promotional animation that explains what's unique about the LinnStr
 **************************************************************************************************/
 
 void playPromoAnimation() {
-  Device.promoAnimationAtStartup = true;
-  storeSettings();
-
   setDisplayMode(displayPromo);
 
   clearSwitches();
@@ -197,9 +194,7 @@ void playPromoAnimation() {
   animationActive = false;
   clearDisplay();
   
-  Device.promoAnimationAtStartup = false;
-  storeSettings();
-
+  lastTouchMoment = millis();
   controlButton = -1;
   setDisplayMode(displayNormal);
   updateDisplay();

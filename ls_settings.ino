@@ -221,7 +221,7 @@ void storeSettingsToPreset(byte p) {
 void initializeDeviceSettings() {
   config.device.version = 7;
   config.device.serialMode = false;
-  config.device.promoAnimationAtStartup = false;
+  config.device.promoAnimation = false;
   config.device.operatingLowPower = false;
   config.device.leftHanded = false;
   config.device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
@@ -2496,7 +2496,12 @@ void handleGlobalSettingRelease() {
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
       else if (sensorCol == 25) {
-        playPromoAnimation();
+        Device.promoAnimation = !Device.promoAnimation;
+        storeSettings();
+
+        if (Device.promoAnimation) {
+          playPromoAnimation();
+        }
       }
     }
   }

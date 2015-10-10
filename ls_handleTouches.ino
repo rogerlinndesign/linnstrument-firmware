@@ -645,6 +645,8 @@ void handleXYZupdate() {
 
   // this cell corresponds to a playing note
   if (newVelocity) {
+    lastTouchMoment = millis();
+    
     sensorCell().lastTouch = millis();
     sensorCell().lastMovedX = 0;
     sensorCell().lastValueX = INVALID_DATA;

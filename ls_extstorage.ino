@@ -422,7 +422,7 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.sensorLoZ = g->sensorLoZ;
   t->device.sensorFeatherZ = g->sensorFeatherZ;
   t->device.sensorRangeZ = g->sensorRangeZ;
-  t->device.promoAnimationAtStartup = g->promoAnimationAtStartup;
+  t->device.promoAnimation = g->promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
@@ -526,7 +526,7 @@ void copyConfigurationV2(void* target, void* source) {
     t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   }
   t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimationAtStartup = s->device.promoAnimationAtStartup;
+  t->device.promoAnimation = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
@@ -653,7 +653,7 @@ void copyConfigurationV3(void* target, void* source) {
     t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   }
   t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimationAtStartup = s->device.promoAnimationAtStartup;
+  t->device.promoAnimation = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   memcpy(t->device.audienceMessages, s->device.audienceMessages, sizeof(char)*(16 * 31));
@@ -731,7 +731,7 @@ void copyDeviceSettingsV4(void* target, void* source) {
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimationAtStartup = s->promoAnimationAtStartup;
+  t->promoAnimation = s->promoAnimationAtStartup;
 
   for (byte msg = 0; msg < 16; ++msg) {
     memset(t->audienceMessages[msg], '\0', sizeof(t->audienceMessages[msg]));
