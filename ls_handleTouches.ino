@@ -337,6 +337,8 @@ boolean handleNewTouch() {
   DEBUGPRINT((1," pressureZ="));DEBUGPRINT((1,(int)sensorCell().pressureZ));
   DEBUGPRINT((1,"\n"));
 
+  lastTouchMoment = millis();
+    
   boolean result = false;
 
   cellTouched(touchedCell);                                 // mark this cell as touched
@@ -645,8 +647,6 @@ void handleXYZupdate() {
 
   // this cell corresponds to a playing note
   if (newVelocity) {
-    lastTouchMoment = millis();
-    
     sensorCell().lastTouch = millis();
     sensorCell().lastMovedX = 0;
     sensorCell().lastValueX = INVALID_DATA;
