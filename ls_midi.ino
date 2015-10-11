@@ -213,7 +213,7 @@ void handleMidiInput(unsigned long now) {
             // attempts to reset the exact cell that belongs to a midi note and channel
             if (!resetExactNoteCell(split, midiData1, midiChannel)) {
               // if there's not one exact location, we reset all cells that could correspond to the note number
-            resetPossibleNoteCells(split, midiData1);
+              resetPossibleNoteCells(split, midiData1);
             }
           }
           break;
@@ -1318,6 +1318,13 @@ void initializeLastMidiTracking() {
   }
 }
 
+byte getMidiNotesOnCount(byte split, byte notenum, byte channel) {
+  split = constrain(split, 0, 1);
+  notenum = constrain(notenum, 0, 127);
+  channel = constrain(channel-1, 0, 15);
+  return lastValueMidiNotesOn[split][notenum][channel];
+}
+
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
   // we always queue four bytes and will process them as MIDI messages in the handlePendingMidi
   midiOutQueue.push(channel & 0x0F);
@@ -1582,6 +1589,7 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
 }
 
 void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   velocity = constrain(velocity, 0, 127);
   channel = constrain(channel-1, 0, 15);
@@ -1606,6 +1614,7 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
 }
 
 void midiSendNoteOff(byte split, byte notenum, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
@@ -1617,6 +1626,7 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
 }
 
 void midiSendNoteOffWithVelocity(byte split, byte notenum, byte velocity, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
@@ -1644,6 +1654,8 @@ void midiSendNoteOffRaw(byte notenum, byte velocity, byte channel) {
 }
 
 void midiSendNoteOffForAllTouches(byte split) {
+  split = constrain(split, 0, 1);
+
   signed char note = noteTouchMapping[split].firstNote;
   signed char channel = noteTouchMapping[split].firstChannel;
 

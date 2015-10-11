@@ -1385,8 +1385,9 @@ void handleTouchRelease() {
           break;
         }
       }
+
       // if no notes are active anymore, reset the highlighted cells
-      if (allNotesOff) {
+      if (allNotesOff && getMidiNotesOnCount(sensorSplit, sensorCell().note + octaveOffsetDifference, sensorCell().channel) == 0) {
         resetPossibleNoteCells(sensorSplit, sensorCell().note + octaveOffsetDifference);
       }
     }
