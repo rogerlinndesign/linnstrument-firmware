@@ -192,6 +192,7 @@ void playPromoAnimation() {
   }
   stopAnimation = false;
   animationActive = false;
+  clearSwitches();
   clearDisplay();
   
   lastTouchMoment = millis();
