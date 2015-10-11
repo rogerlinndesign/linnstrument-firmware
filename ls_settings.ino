@@ -50,9 +50,13 @@ void switchSerialMode(boolean flag) {
 void applySerialMode() {
   if (Device.serialMode) {
     digitalWrite(35, HIGH);
+    digitalWrite(36, HIGH);
+    Serial.begin(115200);
+    Serial.flush();
   }
   else {
     digitalWrite(35, LOW);
+    applyMidiIo();
   }
 }
 
@@ -206,8 +210,8 @@ void applyPresetSettings(PresetSettings& preset) {
 
 void applyConfiguration() {
   Device = config.device;
-  applySerialMode();
   applyPresetSettings(config.settings);
+  applySerialMode();
 }
 
 void storeSettingsToPreset(byte p) {

@@ -40,6 +40,12 @@ boolean isMidiUsingDIN() {
 }
 
 void applyMidiIo() {
+  // do not reconfigure the serial speeds when device update mode is active
+  // the MIDI IO settings will be applied when OS update mode is turned off
+  if (Device.serialMode) {
+    return;
+  }
+
   if (isMidiUsingDIN()) {
     digitalWrite(36, 0);     // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
