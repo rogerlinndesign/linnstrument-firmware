@@ -59,7 +59,7 @@ byte countTouchesForMidiChannel(byte split, byte col, byte row) {
     return 0;
   }
 
-  return noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel) > 1;
+  return noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel);
 }
 
 const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(5);
@@ -75,7 +75,7 @@ boolean potentialSlideTransferCandidate(byte col) {
     if (!isLowRow() &&                                                   // don't perform slide transfers
         (!Split[sensorSplit].sendX ||                                    // if pitch slides are disabled
          !isFocusedCell(col, sensorRow) ||                               // if this is not a focused cell
-         countTouchesForMidiChannel(sensorSplit, col, sensorRow) > 0)) { // when there are several touches for the same MIDI channel
+         countTouchesForMidiChannel(sensorSplit, col, sensorRow) > 1)) { // when there are several touches for the same MIDI channel
       return false;
     }
     if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
