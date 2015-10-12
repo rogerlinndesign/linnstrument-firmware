@@ -1717,7 +1717,7 @@ void handleMinUSBMIDIIntervalRelease() {
 }
 
 void handleSensorLoZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
+  handleNumericDataNewTouchCol(Device.sensorLoZ, max(100, Device.sensorFeatherZ), 1024, false);
 }
 
 void handleSensorLoZRelease() {
@@ -1725,7 +1725,7 @@ void handleSensorLoZRelease() {
 }
 
 void handleSensorFeatherZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 0, min(1024, Device.sensorLoZ), false);
+  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 65, min(1024, Device.sensorLoZ), false);
 }
 
 void handleSensorFeatherZRelease() {

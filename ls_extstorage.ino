@@ -419,8 +419,8 @@ void copyConfigurationV1(void* target, void* source) {
   memcpy(t->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
   memcpy(t->device.calCols, g->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
   t->device.calibrated = g->calibrated;
-  t->device.sensorLoZ = g->sensorLoZ;
-  t->device.sensorFeatherZ = g->sensorFeatherZ;
+  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = g->sensorRangeZ;
   t->device.promoAnimation = g->promoAnimationAtStartup;
   t->device.serialMode = true;
@@ -520,11 +520,8 @@ void copyConfigurationV2(void* target, void* source) {
   memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
   memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
   t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = s->device.sensorLoZ;
-  t->device.sensorFeatherZ = s->device.sensorFeatherZ;
-  if (t->device.sensorFeatherZ == 111) {
-    t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  }
+  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   t->device.promoAnimation = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
@@ -647,11 +644,8 @@ void copyConfigurationV3(void* target, void* source) {
   memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
   memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
   t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = s->device.sensorLoZ;
-  t->device.sensorFeatherZ = s->device.sensorFeatherZ;
-  if (t->device.sensorFeatherZ == 111) {
-    t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  }
+  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   t->device.promoAnimation = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
@@ -728,8 +722,8 @@ void copyDeviceSettingsV4(void* target, void* source) {
   memcpy(t->calCols, s->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
-  t->sensorLoZ = s->sensorLoZ;
-  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  t->sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->sensorRangeZ = s->sensorRangeZ;
   t->promoAnimation = s->promoAnimationAtStartup;
 
