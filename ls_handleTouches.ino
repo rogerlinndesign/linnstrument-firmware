@@ -962,7 +962,7 @@ void prepareNewNote(signed char notenum) {
 
   // reset the pitch bend and pressure right before sending the note on
   if (!userFirmwareActive) {
-    if (isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+    if (Split[sensorSplit].sendX && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
       resetLastMidiPitchBend(sensorCell().channel);
       preSendPitchBend(sensorSplit, 0, sensorCell().channel);
     }

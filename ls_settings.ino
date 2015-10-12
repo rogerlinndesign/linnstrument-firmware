@@ -1015,6 +1015,7 @@ void handlePerSplitSettingNewTouch() {
     case 8:
       switch (sensorRow) {
         case 7:
+          preSendPitchBend(Global.currentPerSplit, 0);
           Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
           break;
         case 6:

@@ -461,6 +461,7 @@ void receivedNrpn(int parameter, int value) {
     // Split Send X
     case 20:
       if (inRange(value, 0, 1)) {
+        preSendPitchBend(split, 0);
         Split[split].sendX = value;
       }
       break;
