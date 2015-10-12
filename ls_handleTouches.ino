@@ -54,16 +54,12 @@ void initVelocity() {
 
 #define TRANSFER_SLIDE_PROXIMITY 100
 
-boolean severalTouchesForMidiChannel(byte split, byte col, byte row) {
+byte countTouchesForMidiChannel(byte split, byte col, byte row) {
   if (!cell(col, row).hasNote()) {
-    return false;
+    return 0;
   }
 
-  if (noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel) > 1) {
-    return true;
-  }
-
-  return false;
+  return noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel) > 1;
 }
 
 const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(5);
@@ -79,7 +75,7 @@ boolean potentialSlideTransferCandidate(byte col) {
     if (!isLowRow() &&                                                   // don't perform slide transfers
         (!Split[sensorSplit].sendX ||                                    // if pitch slides are disabled
          !isFocusedCell(col, sensorRow) ||                               // if this is not a focused cell
-         severalTouchesForMidiChannel(sensorSplit, col, sensorRow))) {   // when there are several touches for the same MIDI channel
+         countTouchesForMidiChannel(sensorSplit, col, sensorRow) > 0)) { // when there are several touches for the same MIDI channel
       return false;
     }
     if (isLowRow() && !lowRowRequiresSlideTracking()) return false;
@@ -805,7 +801,7 @@ void handleXYZupdate() {
 
         // if there are several touches for the same MIDI channel (for instance in one channel mode)
         // we average the X values to have only one global X value for those touches
-        if (severalTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow)) {
+        if (countTouchesForMidiChannel(sensorSplit, sensorCol, sensorRow) > 2) {
 
           // start with the current sensor's pitch and note
           int highestNotePitch = valueX;
