@@ -730,7 +730,7 @@ void handleXYZupdate() {
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell().isMeaningfulTouch()) {
     valueX = handleXExpression();
-    if (Device.leftHanded) {
+    if (valueX != INVALID_DATA && Device.leftHanded) {
       valueX = -1 * valueX;
     }
 
