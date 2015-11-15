@@ -137,6 +137,12 @@ void clearLed(byte col, byte row, byte layer) {
   setLed(col, row, COLOR_OFF, cellOff, layer);
 }
 
+// Turns all LEDs off
+void clearFullDisplay() {
+  clearSwitches();
+  clearDisplay();
+}
+
 // Turns all LEDs off in columns 1 or higher
 void clearDisplay() {
   for (byte col = 1; col < NUMCOLS; ++col) {

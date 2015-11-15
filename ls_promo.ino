@@ -9,16 +9,14 @@ This shows a promotional animation that explains what's unique about the LinnStr
 void playPromoAnimation() {
   setDisplayMode(displayPromo);
 
-  clearSwitches();
-
   while (!stopAnimation) {
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     LINNSTRUMENT", COLOR_GREEN);
 
     if (stopAnimation) break;
 
     animationActive = true;
-    clearDisplay();
+    clearFullDisplay();
     for (byte l = 0; l < 30 && !stopAnimation; ++l) {
       for (byte col = 1; col < NUMCOLS && !stopAnimation; ++col) {
         for (byte row = 0; row < NUMROWS && !stopAnimation; ++row) {
@@ -31,13 +29,13 @@ void playPromoAnimation() {
 
     if (stopAnimation) break;
 
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     PRESSURE SENSING", COLOR_MAGENTA);
 
     if (stopAnimation) break;
 
     animationActive = true;
-    clearDisplay();
+    clearFullDisplay();
     paintNormalDisplay();
     for (byte l = 0; l < 5 && !stopAnimation; ++l) {
       byte col = random(3, 24);
@@ -79,13 +77,13 @@ void playPromoAnimation() {
 
     if (stopAnimation) break;
 
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     PITCH SLIDES", COLOR_YELLOW);
 
     if (stopAnimation) break;
     
     animationActive = true;
-    clearDisplay();
+    clearFullDisplay();
     paintNormalDisplay();
     for (byte l = 0; l < 5 && !stopAnimation; ++l) {
       byte row = random(0, NUMROWS);
@@ -105,13 +103,13 @@ void playPromoAnimation() {
 
     if (stopAnimation) break;
 
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     Y-AXIS CONTROL", COLOR_BLUE);
 
     if (stopAnimation) break;
     
     animationActive = true;
-    clearDisplay();
+    clearFullDisplay();
     paintNormalDisplay();
     for (byte l = 0; l < 5 && !stopAnimation; ++l) {
       byte col = random(1, NUMCOLS);
@@ -131,13 +129,13 @@ void playPromoAnimation() {
 
     if (stopAnimation) break;
 
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     POLYPHONIC", COLOR_RED);
 
     if (stopAnimation) break;
     
     animationActive = true;
-    clearDisplay();
+    clearFullDisplay();
     paintNormalDisplay();
     for (byte l = 0; l < 6 && !stopAnimation; ++l) {
       byte dir = random(0, 2);
@@ -152,13 +150,13 @@ void playPromoAnimation() {
       byte row = random(0, NUMROWS-2);
       while (!stopAnimation) {
         if (pattern) {
-          setLed(col, row+0, COLOR_RED, cellOn);
-          setLed(col, row+1, COLOR_RED, cellOn);
-          setLed(col-1, row+2, COLOR_RED, cellOn);
+          setLed(col+1, row+0, COLOR_RED, cellOn);
+          setLed(col+1, row+1, COLOR_RED, cellOn);
+          setLed(col, row+2, COLOR_RED, cellOn);
           delayUsecWithScanning(80000);
-          paintNormalDisplayCell(Global.currentPerSplit, col, row+0);
-          paintNormalDisplayCell(Global.currentPerSplit, col, row+1);
-          paintNormalDisplayCell(Global.currentPerSplit, col-1, row+2);
+          paintNormalDisplayCell(Global.currentPerSplit, col+1, row+0);
+          paintNormalDisplayCell(Global.currentPerSplit, col+1, row+1);
+          paintNormalDisplayCell(Global.currentPerSplit, col, row+2);
         }
         else {
           setLed(col, row+0, COLOR_RED, cellOn);
@@ -183,7 +181,7 @@ void playPromoAnimation() {
 
     if (stopAnimation) break;
 
-    clearDisplay();
+    clearFullDisplay();
     big_scroll_text("     OPEN & CUSTOMIZABLE", COLOR_BLUE);
 
     if (stopAnimation) break;
@@ -192,8 +190,7 @@ void playPromoAnimation() {
   }
   stopAnimation = false;
   animationActive = false;
-  clearSwitches();
-  clearDisplay();
+  clearFullDisplay();
   
   lastTouchMoment = millis();
   controlButton = -1;

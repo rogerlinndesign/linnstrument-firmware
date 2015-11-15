@@ -1928,8 +1928,7 @@ void changeUserFirmwareMode(boolean active) {
   userFirmwareActive = active;
 
   initializeLedsLayer(LED_LAYER_CUSTOM2);
-  clearDisplay();
-  clearSwitches();
+  clearFullDisplay();
 
   applyMidiDecimationRate();
 
