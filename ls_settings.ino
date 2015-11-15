@@ -2032,6 +2032,7 @@ void handleGlobalSettingNewTouch() {
                 (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
         if (displayMode != displayReset) {
           reset();
+          clearDisplay();
           setDisplayMode(displayReset);
         }
       }
