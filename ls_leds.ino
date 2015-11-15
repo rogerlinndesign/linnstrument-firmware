@@ -60,11 +60,23 @@ void initializeLedsLayer(byte layer) {
 
 void startBufferedLeds() {
   bufferedLeds = 1;
-  memcpy(leds[bufferedLeds], leds[visibleLeds], (LED_LAYERS+1) * NUMCOLS * NUMROWS);
+  for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        leds[bufferedLeds][layer][col][row] = leds[visibleLeds][layer][col][row];
+      }
+    }
+  }
 }
 
 void finishBufferedLeds() {
-  memcpy(leds[visibleLeds], leds[bufferedLeds], (LED_LAYERS+1) * NUMCOLS * NUMROWS);
+  for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        leds[visibleLeds][layer][col][row] = leds[bufferedLeds][layer][col][row];
+      }
+    }
+  }
   bufferedLeds = 0;
 }
 
@@ -108,10 +120,6 @@ void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
   if (leds[bufferedLeds][layer][col][row] != data) {
     leds[bufferedLeds][layer][col][row] = data;
     leds[bufferedLeds][LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
-  }
-
-  if (bufferedLeds == 1) {
-    performContinuousTasks(micros());
   }
 }
 
