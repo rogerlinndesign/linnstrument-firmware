@@ -2386,7 +2386,9 @@ void handleGlobalSettingNewTouch() {
     case 16:
       switch (sensorRow) {
         case 2:
-          setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+          if (displayMode != displayReset) {
+            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+          }
           break;
       }
       break;
