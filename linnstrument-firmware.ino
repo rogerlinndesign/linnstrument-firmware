@@ -210,6 +210,19 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 #define DEFAULT_FIXED_VELOCITY 96   // default fixed velocity value
 
 
+/*************************************** CONVENIENCE MACROS **************************************/
+
+// convenience macros to easily access the cells with touch information
+#define cell(col, row)             touchInfo[col][row]
+#define virtualCell()              virtualTouchInfo[sensorRow]
+
+// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
+#define calcTimeDelta(now, last)   (now < last ? now + ~last : now - last)
+
+// obtain the focused cell for a channel in a asplit
+#define focus(split, channel)      focusCell[split][channel - 1]
+
+
 /****************************************** TOUCH TRACKING ***************************************/
 
 // Current cell in the scan routine
@@ -302,6 +315,8 @@ struct TouchInfo {
   unsigned long velSumXY;
 };
 TouchInfo touchInfo[NUMCOLS][NUMROWS];       // store as much touch information instances as there are cells
+
+TouchInfo* sensorCell = &cell(sensorCol, sensorRow);
 
 int32_t rowsInColsTouched[NUMCOLS];          // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
@@ -706,20 +721,6 @@ const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
 const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
 
 
-/*************************************** CONVENIENCE MACROS **************************************/
-
-// convenience macros to easily access the cells with touch information
-#define sensorCell()               touchInfo[sensorCol][sensorRow]
-#define cell(col, row)             touchInfo[col][row]
-#define virtualCell()              virtualTouchInfo[sensorRow]
-
-// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
-#define calcTimeDelta(now, last)   (now < last ? now + ~last : now - last)
-
-// obtain the focused cell for a channel in a asplit
-#define focus(split, channel)      focusCell[split][channel - 1]
-
-
 /*************************************** OTHER RUNTIME STATE *************************************/
 
 DueFlashStorage dueFlashStorage;                    // access to the persistent flash storage
@@ -1045,7 +1046,7 @@ void setup() {
     // detect if low power mode is toggled by holding down the octave/transpose button at startup
     if (switchPressAtStartup(4)) {
       Device.operatingLowPower = true;
-      sensorCell().touched = touchedCell;
+      cell(sensorCol, sensorRow).touched = touchedCell;
       storeSettings();
     }
 
@@ -1118,27 +1119,27 @@ inline void modeLoopPerformance() {
     }
   }
   else {
-    TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
+    TouchState previousTouch = sensorCell->touched;                              // get previous touch status of this cell
 
     boolean canShortCircuit = false;
 
     if (previousTouch != touchedCell && previousTouch != ignoredCell &&
-        sensorCell().isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
+        sensorCell->isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
       canShortCircuit = handleNewTouch();
     }
-    else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
-      handleXYZupdate();                                                          // handle any X, Y or Z movements
+    else if (previousTouch == touchedCell && sensorCell->isActiveTouch()) {      // if touched now and touched before
+      handleXYZupdate();                                                         // handle any X, Y or Z movements
       canShortCircuit = true;
     }
-    else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
-             calcTimeDelta(millis(), sensorCell().lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
+    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch() &&   // if not touched now but touched before, it's been released
+             calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
     if (canShortCircuit &&
-        sensorCell().touched == touchedCell &&
-        sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
-      sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
+        sensorCell->touched == touchedCell &&
+        sensorCell->isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+      sensorCell->shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
   }

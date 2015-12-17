@@ -924,8 +924,8 @@ byte colorCycle(byte color, boolean includeBlack) {
 }
 
 boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
-  if (sensorCell().lastTouch != 0) {
-    if (calcTimeDelta(millis(), sensorCell().lastTouch) < SENSOR_HOLD_DELAY) {
+  if (sensorCell->lastTouch != 0) {
+    if (calcTimeDelta(millis(), sensorCell->lastTouch) < SENSOR_HOLD_DELAY) {
       return true;
     }
 
@@ -935,7 +935,7 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
 }
 
 boolean isCellPastHoldWait() {
-  return sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY;
+  return sensorCell->lastTouch != 0 && calcTimeDelta(millis(), sensorCell->lastTouch) > EDIT_MODE_HOLD_DELAY;
 }
 
 void applyTimbreCC74(byte split) {
@@ -952,7 +952,7 @@ void applyTimbreCC74(byte split) {
 
 void handlePerSplitSettingNewTouch() {
   // start tracking the touch duration to be able to enable hold functionality
-  sensorCell().lastTouch = millis();
+  sensorCell->lastTouch = millis();
 
   switch (sensorCol) {
     // MIDI mode settings
@@ -1236,7 +1236,7 @@ void handlePerSplitSettingNewTouch() {
 
 void handlePerSplitSettingHold() {
   if (isCellPastHoldWait()) {
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
       case 1:
@@ -1415,7 +1415,7 @@ void handlePerSplitSettingRelease() {
       break;
   }
 
-  sensorCell().lastTouch = 0;
+  sensorCell->lastTouch = 0;
 
   handleShowSplit();
 
@@ -1477,7 +1477,7 @@ void handlePresetNewTouch() {
   if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
-      sensorCell().lastTouch = millis();
+      sensorCell->lastTouch = millis();
       // indicate that a hold operation is being waited for
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
@@ -1506,7 +1506,7 @@ void handlePresetHold() {
     // store to the selected preset
     byte preset = sensorRow-2;
     storeSettingsToPreset(preset);
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
     saveSettings();
     updateDisplay();
@@ -1534,7 +1534,7 @@ void handlePresetRelease() {
 
       // load the selected preset
       applyPresetSettings(config.preset[preset]);
-      sensorCell().lastTouch = 0;
+      sensorCell->lastTouch = 0;
 
       saveSettings();
       updateDisplay();
@@ -1746,7 +1746,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
     return;
   }
 
-  if (sensorCell().velocity) {
+  if (sensorCell->velocity) {
     // if a touch is already down, only consider new touches from the same row
     // this allows the volume slider to be used anywhere on the surface and
     // for it to be 'played' with multiple touches on the same row without
@@ -1771,7 +1771,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
       }
     }
 
-    short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
+    short value = calculateFaderValue(sensorCell->calibratedX(), 1, 24);
 
     if (value >= 0) {
       short previous = ccFaderValues[Global.currentPerSplit][7];
@@ -1793,7 +1793,7 @@ void handleVolumeRelease() {
   }
 
   // if another touch is already down on the same row, make it take over the
-  if (sensorCell().velocity) {
+  if (sensorCell->velocity) {
     for (byte col = NUMCOLS - 1; col >= 1; --col) {
       if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
         transferToSameRowCell(col);
@@ -1976,7 +1976,7 @@ void handleGlobalSettingNewTouch() {
 #endif
 
   // start tracking the touch duration to be able to enable hold functionality
-  sensorCell().lastTouch = millis();
+  sensorCell->lastTouch = millis();
 
   // select the Velocity Sensitivity
   switch (sensorCol) {
@@ -2412,7 +2412,7 @@ void changeMidiIO(byte where) {
 void handleGlobalSettingHold() {
 
   if (isCellPastHoldWait()) {
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
       case 9:
@@ -2555,7 +2555,7 @@ void handleGlobalSettingRelease() {
     }
   }
 
-  sensorCell().lastTouch = 0;
+  sensorCell->lastTouch = 0;
 
   updateDisplay();
 }

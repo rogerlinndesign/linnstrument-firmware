@@ -133,7 +133,7 @@ bool handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
     // only calibrate a deliberate touch that is at least half-way through the pressure sensitivity range
-    if (sensorCell().isStableYTouch()) {
+    if (sensorCell->isStableYTouch()) {
       short rawX = readX(0);
       short rawY = readY(0);
       if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {

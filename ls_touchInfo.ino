@@ -220,28 +220,28 @@ inline byte scale1016to127(int v, boolean allowZero) {
 }
 
 boolean calcVelocity(unsigned short z) {
-  if (sensorCell().vcount < VELOCITY_SAMPLES_DBL) {
+  if (sensorCell->vcount < VELOCITY_SAMPLES_DBL) {
 
     // we use the Z values in two passed, so that each sample point in the linear regression
     // algorithm is the maximum of two measurements, this stabilizes the velocity calculation
-    if (sensorCell().vcount % 2 == 0) {
-      sensorCell().velPreviousZ = z;
-      sensorCell().vcount++;
+    if (sensorCell->vcount % 2 == 0) {
+      sensorCell->velPreviousZ = z;
+      sensorCell->vcount++;
       return false;
     }
 
     // calculate the maximum of the two pressure samples
-    z = max(sensorCell().velPreviousZ, z);
-    sensorCell().velPreviousZ = 0;
+    z = max(sensorCell->velPreviousZ, z);
+    sensorCell->velPreviousZ = 0;
 
     // calculate the linear regression sums that are variable with the pressure
-    sensorCell().velSumY += z;
-    sensorCell().velSumXY += ((sensorCell().vcount >> 1) + VELOCITY_ZERO_POINTS) * z;
+    sensorCell->velSumY += z;
+    sensorCell->velSumXY += ((sensorCell->vcount >> 1) + VELOCITY_ZERO_POINTS) * z;
 
-    sensorCell().vcount++;
+    sensorCell->vcount++;
 
     // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES_DBL) {
+    if (sensorCell->vcount == VELOCITY_SAMPLES_DBL) {
       int scale;
       const short* curve;
       switch (Global.velocitySensitivity) {
@@ -258,14 +258,14 @@ boolean calcVelocity(unsigned short z) {
           curve = Z_CURVE_LOW;
           break;
       }
-      int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
+      int sxy = (VELOCITY_N * sensorCell->velSumXY) - VELOCITY_SUMX * sensorCell->velSumY;
       int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 1, 1016)];
 
       slope = FXD_TO_INT(fxdMinVelOffset + FXD_MUL(FXD_FROM_INT(slope), fxdVelRatio));
 
       slope = scale1016to127(slope, false);
 
-      sensorCell().velocity = calcPreferredVelocity(slope);
+      sensorCell->velocity = calcPreferredVelocity(slope);
 
       return true;
     }
@@ -285,7 +285,7 @@ byte calcPreferredVelocity(byte velocity) {
 }
 
 boolean TouchInfo::isCalculatingVelocity() {
-  return sensorCell().vcount > 0 && sensorCell().vcount < VELOCITY_SAMPLES_DBL;
+  return sensorCell->vcount > 0 && sensorCell->vcount < VELOCITY_SAMPLES_DBL;
 }
 
 void TouchInfo::shouldRefreshData() {
@@ -363,7 +363,7 @@ inline boolean TouchInfo::isMeaningfulTouch() {
 }
 
 inline boolean TouchInfo::isStableYTouch() {    
-  return sensorCell().isMeaningfulTouch() && sensorCell().rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
+  return sensorCell->isMeaningfulTouch() && sensorCell->rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
 }
 
 inline boolean TouchInfo::isActiveTouch() {

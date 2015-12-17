@@ -34,8 +34,8 @@ void debugPrintln(int level, int val) {
 // displayXFrame:
 // For debug, displays an entire frame of raw X values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayXFrame() {
-  if (sensorCell().touched == touchedCell) {
-    sensorCell().refreshX();
+  if (sensorCell->touched == touchedCell) {
+    sensorCell->refreshX();
   }
 
   static unsigned long lastFrame = 0;
@@ -67,8 +67,8 @@ void displayXFrame() {
 // displayYFrame:
 // For debug, displays an entire frame of raw Y values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayYFrame() {
-  if (sensorCell().touched == touchedCell) {
-    sensorCell().refreshY();
+  if (sensorCell->touched == touchedCell) {
+    sensorCell->refreshY();
   }
 
   static unsigned long lastFrame = 0;
@@ -154,11 +154,11 @@ void displayCellTouchedFrame() {
 }
 
 void modeLoopManufacturingTest() {
-  TouchState previousTouch = sensorCell().touched;
-  sensorCell().refreshZ();
+  TouchState previousTouch = sensorCell->touched;
+  sensorCell->refreshZ();
 
   // highlight the touches
-  if (previousTouch != touchedCell && sensorCell().isMeaningfulTouch()) {
+  if (previousTouch != touchedCell && sensorCell->isMeaningfulTouch()) {
     cellTouched(touchedCell);
 
     if (sensorCol == 0) {
@@ -194,7 +194,7 @@ void modeLoopManufacturingTest() {
       }
     }
   }
-  else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch()) {
+  else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch()) {
     cellTouched(untouchedCell);
 
     if (cellsTouched == 0) {
@@ -206,8 +206,8 @@ void modeLoopManufacturingTest() {
     }
   }
 
-  if (sensorCol != 0 && sensorCell().touched != untouchedCell) {
-    byte pressure = sensorCell().pressureZ;
+  if (sensorCol != 0 && sensorCell->touched != untouchedCell) {
+    byte pressure = sensorCell->pressureZ;
     int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(pressure), FXD_CONST_127), FXD_FROM_INT(NUMCOLS-2))) + 1;
       
     for (byte c = 1; c < NUMCOLS; ++c) {

@@ -9,7 +9,7 @@ These functions handle the CC faders for each split
 #define CC_FADER_NUMBER_OFFSET 1
 
 void handleFaderTouch(boolean newVelocity) {
-  if (sensorCell().velocity) {
+  if (sensorCell->velocity) {
     unsigned short ccForFader = Split[sensorSplit].ccForFader[sensorRow];
 
     // only proceed when this is the touch on the highest row in the same split when the CC numbers
@@ -50,7 +50,7 @@ void handleFaderTouch(boolean newVelocity) {
       }
 
       // initialize the initial fader touch
-      value = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
+      value = calculateFaderValue(sensorCell->calibratedX(), faderLeft, faderLength);
     }
 
     if (value >= 0) {
@@ -70,7 +70,7 @@ void handleFaderTouch(boolean newVelocity) {
 
 void handleFaderRelease() {
   // if another touch is already down on the same row, make it take over the touch
-  if (sensorCell().velocity) {
+  if (sensorCell->velocity) {
     byte faderLeft, faderLength;
     determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
     if (faderLength > 0) {

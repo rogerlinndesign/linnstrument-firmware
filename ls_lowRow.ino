@@ -120,7 +120,7 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
       }
     }
     // send out the continuous data for the low row cells
-    else if (sensorCell().velocity) {
+    else if (sensorCell->velocity) {
       switch (Split[sensorSplit].lowRowMode)
       {
         case lowRowArpeggiator:
@@ -132,8 +132,8 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          short xDelta = constrain(sensorCell().calibratedX() - sensorCell().initialX >> 3, 0, 127);
-          short xPosition = calculateFaderValue(sensorCell().calibratedX(), faderLeft, faderLength);
+          short xDelta = constrain(sensorCell->calibratedX() - sensorCell->initialX >> 3, 0, 127);
+          short xPosition = calculateFaderValue(sensorCell->calibratedX(), faderLeft, faderLength);
 
           switch (Split[sensorSplit].lowRowMode)
           {
@@ -250,26 +250,26 @@ void sendLowRowCCXYZ(unsigned short x, short y, short z) {
 void handleLowRowRestrike() {
   // we're processing a cell that's not on the low-row, check if column 0 was pressed
   // and retrigger in that case
-  if (sensorCell().hasNote() && lowRowState[sensorSplit] == pressed) {
+  if (sensorCell->hasNote() && lowRowState[sensorSplit] == pressed) {
     // use the velocity of the low-row press
-    sensorCell().velocity = cell(0, 0).velocity;
+    sensorCell->velocity = cell(0, 0).velocity;
 
     // retrigger the MIDI note
-    midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-    midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+    midiSendNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+    midiSendNoteOn(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
   }
 }
 
 void handleLowRowStrum() {
   // we're processing a cell that's not on the low-row, check if the corresponding
   // low-row column was pressed and retrigger in that case
-  if (sensorCell().hasNote() && lowRowState[sensorCol] == pressed) {
+  if (sensorCell->hasNote() && lowRowState[sensorCol] == pressed) {
     // use the velocity of the low-row press
-    sensorCell().velocity = cell(sensorCol, 0).velocity;
+    sensorCell->velocity = cell(sensorCol, 0).velocity;
 
     // retrigger the MIDI note
-    midiSendNoteOff(sensorSplit, sensorCell().note, sensorCell().channel);
-    midiSendNoteOn(sensorSplit, sensorCell().note, sensorCell().velocity, sensorCell().channel);
+    midiSendNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+    midiSendNoteOn(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
   }
 }
 
@@ -279,7 +279,7 @@ void lowRowStart() {
     case lowRowRestrike:
       // no need to keep track of the columns, we want to restrike every note
       lowRowState[sensorSplit] = pressed;
-      cell(0, 0).velocity = sensorCell().velocity;
+      cell(0, 0).velocity = sensorCell->velocity;
       break;
     case lowRowStrum:
       lowRowState[sensorCol] = pressed;
@@ -355,7 +355,7 @@ void lowRowStop() {
     case lowRowBend:
     case lowRowCCX:
     case lowRowCCXYZ:
-      if (sensorCell().velocity) {
+      if (sensorCell->velocity) {
         // handle taking over an already active touch, the highest already active touch wins
         byte lowCol, highCol;
         getSplitBoundaries(sensorSplit, lowCol, highCol);
