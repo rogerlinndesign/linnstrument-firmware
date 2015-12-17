@@ -410,14 +410,34 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   return result;
 }
 
+void copyCalibration(CalibrationX (*calRowsTarget)[NUMCOLS+1][4], CalibrationX (*calRowsSource)[NUMCOLS+1][4], CalibrationY (*calColsTarget)[9][NUMROWS], CalibrationY (*calColsSource)[9][NUMROWS]) {
+  for (int i = 0; i < NUMCOLS+1; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      (*calRowsTarget)[i][j] = (*calRowsSource)[i][j];
+    }
+  }
+  for (int i = 0; i < 9; ++i) {
+    for (int j = 0; j < NUMROWS; ++j) {
+      (*calColsTarget)[i][j] = (*calColsSource)[i][j];
+    }
+  }
+}
+
+void copyAudienceMessages(char (*target)[16][31], char (*source)[16][31]) {
+  for (byte msg = 0; msg < 16; ++msg) {
+    memset((*target)[msg], '\0', sizeof((*target)[msg]));
+    strncpy((*target)[msg], (*source)[msg], 30);
+    (*target)[msg][30] = '\0';
+  }
+}
+
 void copyConfigurationV1(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV1* s = (ConfigurationV1*)source;
   GlobalSettingsV1* g = &(s->global);
 
   t->device.version = g->version;
-  memcpy(t->device.calRows, g->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, g->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  copyCalibration(&(t->device.calRows), &(g->calRows), &(t->device.calCols), &(g->calCols));
   t->device.calibrated = g->calibrated;
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
@@ -517,8 +537,7 @@ void copyConfigurationV2(void* target, void* source) {
   ConfigurationV2* s = (ConfigurationV2*)source;
 
   t->device.version = s->device.version;
-  memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
@@ -641,8 +660,7 @@ void copyConfigurationV3(void* target, void* source) {
   ConfigurationV3* s = (ConfigurationV3*)source;
 
   t->device.version = s->device.version;
-  memcpy(t->device.calRows, s->device.calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->device.calCols, s->device.calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
@@ -650,7 +668,7 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.promoAnimation = s->device.promoAnimationAtStartup;
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
-  memcpy(t->device.audienceMessages, s->device.audienceMessages, sizeof(char)*(16 * 31));
+  copyAudienceMessages(&(t->device.audienceMessages), &(s->device.audienceMessages));
   t->device.leftHanded = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -718,21 +736,14 @@ void copyDeviceSettingsV4(void* target, void* source) {
 
   t->version = s->version;
   t->serialMode = true;
-  memcpy(t->calRows, s->calRows, sizeof(CalibrationX)*((NUMCOLS+1) * 4));
-  memcpy(t->calCols, s->calCols, sizeof(CalibrationY)*(9 * NUMROWS));
+  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
   t->sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->sensorRangeZ = s->sensorRangeZ;
   t->promoAnimation = s->promoAnimationAtStartup;
-
-  for (byte msg = 0; msg < 16; ++msg) {
-    memset(t->audienceMessages[msg], '\0', sizeof(t->audienceMessages[msg]));
-    strncpy(t->audienceMessages[msg], s->audienceMessages[msg], 30);
-    t->audienceMessages[msg][30] = '\0';
-  }
-
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = false;
 }
