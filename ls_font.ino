@@ -254,15 +254,15 @@ static Character small_0 = { 4,
   " 00 "
   "    " };
 
-static Character small_1 = { 4,
-  "    "
-  "  0 "
-  " 00 "
-  "  0 "
-  "  0 "
-  "  0 "
-  " 000"
-  "    " };
+static Character small_1 = { 2,
+  "  "
+  " 0"
+  "00"
+  " 0"
+  " 0"
+  " 0"
+  " 0"
+  "  " };
 
 static Character small_2 = { 4,
   "    "
@@ -1725,6 +1725,168 @@ static Character big_tilde = { 5,
   "     "
   "     " };
 
+/***************************************** Condensed Font ****************************************/
+
+static Character cond_blank = { 3,
+  "   "
+  "   "
+  "   "
+  "   "
+  "   "
+  "   "
+  "   "
+  "   " };
+
+static Character cond_0 = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  " 0 "
+  "     " };
+
+static Character cond_1 = { 3,
+  "   "
+  " 0 "
+  "00 "
+  " 0 "
+  " 0 "
+  " 0 "
+  " 0 "
+  "   " };
+
+static Character cond_2 = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  "  0"
+  " 0 "
+  "0  "
+  "000"
+  "   " };
+
+static Character cond_3 = { 3,
+  "   "
+  "00 "
+  "  0"
+  " 0 "
+  "  0"
+  "  0"
+  "00 "
+  "    " };
+
+static Character cond_4 = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  "000"
+  "  0"
+  "  0"
+  "  0"
+  "   " };
+
+static Character cond_5 = { 3,
+  "   "
+  "000"
+  "0  "
+  "00 "
+  "  0"
+  "0 0"
+  " 0 "
+  "     " };
+
+static Character cond_6 = { 3,
+  "   "
+  " 0 "
+  "0  "
+  "00 "
+  "0 0"
+  "0 0"
+  " 0 "
+  "   " };
+
+static Character cond_7 = { 3,
+  "   "
+  "000"
+  "  0"
+  "  0"
+  " 0 "
+  "0  "
+  "0  "
+  "   " };
+
+static Character cond_8 = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  " 0 "
+  "0 0"
+  "0 0"
+  " 0 "
+  "   " };
+
+static Character cond_9 = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  "0 0"
+  " 00"
+  "  0"
+  " 0 "
+  "   " };
+
+static Character cond_H = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  "000"
+  "0 0"
+  "0 0"
+  "0 0"
+  "   " };
+
+static Character cond_L = { 3,
+  "   "
+  "0  "
+  "0  "
+  "0  "
+  "0  "
+  "0  "
+  "000"
+  "   " };
+
+static Character cond_X = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  " 0 "
+  " 0 "
+  "0 0"
+  "0 0"
+  "   " };
+
+static Character cond_Y = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  " 0 "
+  " 0 "
+  " 0 "
+  " 0 "
+  "   " };
+
+static Character cond_Z = { 3,
+  "   "
+  "000"
+  "  0"
+  " 0 "
+  "0  "
+  "0  "
+  "000"
+  "   " };
+
 struct Font {
   byte height;
   char* chars;
@@ -1756,6 +1918,12 @@ Character* bigChars[] = {
   &big_lbrace, &big_pipe, &big_rbrace, &big_tilde
 };
 struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", bigChars };
+
+Character* condChars[] = {
+  &cond_blank, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9, &cond_H, &cond_L, &cond_X, &cond_Y, &cond_Z
+};
+struct Font condFont = { 8, " 0123456789HLXYZ", condChars };
+
 
 unsigned font_width_string(char* str, struct Font* font) {
   unsigned width = 0;
@@ -1841,6 +2009,22 @@ void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase,
 
 void bigfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
   font_draw_string(col, row, str, color, &bigFont, erase, reversed, seperationColor);
+}
+
+void condfont_draw_string(int col, int row, char* str, byte color) {
+  condfont_draw_string(col, row, str, color, true);
+}
+
+void condfont_draw_string(int col, int row, char* str, byte color, boolean erase) {
+  condfont_draw_string(col, row, str, color, erase, false);
+}
+
+void condfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed) {
+  condfont_draw_string(col, row, str, color, erase, reversed, COLOR_OFF);
+}
+
+void condfont_draw_string(int col, int row, char* str, byte color, boolean erase, boolean reversed, byte seperationColor) {
+  font_draw_string(col, row, str, color, &condFont, erase, reversed, seperationColor);
 }
 
 // Draw a single character at col,row

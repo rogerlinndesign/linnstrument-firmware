@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.2.0 =========================================
+======================================== LinnStrument Operating System v1.2.4 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -54,8 +54,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-char* OSVersion = "120.";
-char* OSVersionBuild = ".019";
+char* OSVersion = "124.";
+char* OSVersionBuild = ".027";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -103,25 +103,36 @@ char* OSVersionBuild = ".019";
 #define COLOR_MAGENTA  6
 #define COLOR_BLACK    7
 
+// Special row offset values, for legacy reasons
+#define ROWOFFSET_NOOVERLAP  0x00
+#define ROWOFFSET_ZERO       0x7f
+
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
+#define DEFAULT_MAINLOOP_DIVIDER 3
+#define DEFAULT_LED_REFRESH      500
+#define DEFAULT_MIDI_DECIMATION  0
+#define DEFAULT_MIDI_INTERVAL    0
+
 // Differences for low power mode
-#define LOWPOWER_LED_REFRESH      250   // accelerate led refresh so that they can be lit only half of the time
-#define LOWPOWER_MIDI_DECIMATION  12    // use a decimation rate of 12 ms in low power mode
+#define LOWPOWER_MAINLOOP_DIVIDER 2        // increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
+#define LOWPOWER_LED_REFRESH      250      // accelerate led refresh so that they can be lit only half of the time
+#define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
+#define LOWPOWER_MIDI_INTERVAL    150      // use a minimum interval of 150 microseconds between MIDI bytes in low power mode
 
 // Values related to the Z sensor, continuous pressure
-#define DEFAULT_SENSOR_LO_Z        230                 // lowest acceptable raw Z value to start a touch
-#define DEFAULT_SENSOR_FEATHER_Z   120                 // lowest acceptable raw Z value to continue a touch
+#define DEFAULT_SENSOR_LO_Z        120                 // lowest acceptable raw Z value to start a touch
+#define DEFAULT_SENSOR_FEATHER_Z   80                  // lowest acceptable raw Z value to continue a touch
 #define DEFAULT_SENSOR_RANGE_Z     648                 // default range of the pressure
 #define MAX_SENSOR_RANGE_Z         1016                // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Pitch correction behavior
-#define PITCH_CORRECT_HOLD_SAMPLES_FAST    4
-#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  24
-#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    175
-#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 24
+#define PITCH_CORRECT_HOLD_SAMPLES_FAST    8
+#define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  48
+#define PITCH_CORRECT_HOLD_SAMPLES_SLOW    350
+#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 48
 
 // Threshold below which the average rate of change of X is considered 'stationary'
 #define RATEX_THRESHOLD_FAST    2.2
@@ -148,6 +159,7 @@ char* OSVersionBuild = ".019";
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
 #define LIGHTS_ACCENT  1
+#define LIGHTS_ACTIVE  2
 
 // The values of SWITCH_ here MUST be the same as the row numbers of the cells used to set them.
 #define SWITCH_FOOT_L    0
@@ -177,11 +189,14 @@ char* OSVersionBuild = ".019";
 
 #define EDIT_MODE_HOLD_DELAY  1000
 
+#define DEFAULT_MIN_USB_MIDI_INTERVAL  0
+
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 /******************************************** VELOCITY *******************************************/
 
 #define VELOCITY_SAMPLES       3
+#define VELOCITY_SAMPLES_DBL   VELOCITY_SAMPLES * 2
 #define VELOCITY_ZERO_POINTS   1
 #define VELOCITY_N             VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
 #define VELOCITY_SUMX          10   // x1 + x2 + x3 + ... + xn
@@ -190,10 +205,28 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 #define VELOCITY_SCALE_MEDIUM  34
 #define VELOCITY_SCALE_HIGH    38
 
+#define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
+#define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
+#define DEFAULT_FIXED_VELOCITY 96   // default fixed velocity value
+
+
+/*************************************** CONVENIENCE MACROS **************************************/
+
+// convenience macros to easily access the cells with touch information
+#define cell(col, row)             touchInfo[col][row]
+#define virtualCell()              virtualTouchInfo[sensorRow]
+
+// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
+#define calcTimeDelta(now, last)   (now < last ? now + ~last : now - last)
+
+// obtain the focused cell for a channel in a asplit
+#define focus(split, channel)      focusCell[split][channel - 1]
+
 
 /****************************************** TOUCH TRACKING ***************************************/
 
 // Current cell in the scan routine
+byte cellCount = 0;                         // the number of the cell that's currently being processed
 byte sensorCol = 0;                         // currently read column in touch sensor
 byte sensorRow = 0;                         // currently read row in touch sensor
 byte sensorSplit = 0;                       // the split of the currently read touch sensor
@@ -247,6 +280,7 @@ struct TouchInfo {
   short currentRawX;                         // last raw X value of each cell
   short currentCalibratedX;                  // last calibrated X value of each cell
   short lastMovedX;                          // the last X movement, so that we can compare movement jumps
+  short lastValueX;                          // the last calculated X value based on the current settings
   int32_t fxdRateX;                          // the averaged rate of change of the X values
   int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
   boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
@@ -257,6 +291,7 @@ struct TouchInfo {
   boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
 
   short currentRawZ;                         // the raw Z value
+  byte percentRawZ;                          // percentage of Z compared to the raw offset and range
   boolean featherTouch;                      // indicates whether this is a feather touch
   byte velocityZ;                            // the Z value with velocity sensitivity
   byte pressureZ;                            // the Z value with pressure sensitivity
@@ -275,10 +310,13 @@ struct TouchInfo {
   signed char octaveOffset;                  // the octave offset when the note started, since this can change during playing
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
+  unsigned long velPreviousZ;                // the previous value of Z for velocity calculation, allowing for the maximum of two samples to be calculated
   unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
   unsigned long velSumXY;
 };
 TouchInfo touchInfo[NUMCOLS][NUMROWS];       // store as much touch information instances as there are cells
+
+TouchInfo* sensorCell = &cell(sensorCol, sensorRow);
 
 int32_t rowsInColsTouched[NUMCOLS];          // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[NUMROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
@@ -361,17 +399,23 @@ enum DisplayMode {
   displayCalibration,
   displayReset,
   displayBendRange,
+  displayLimitsForY,
   displayCCForY,
+  displayLimitsForZ,
   displayCCForZ,
   displayCCForFader,
   displayLowRowCCXConfig,
   displayLowRowCCXYZConfig,
   displayCCForSwitch,
+  displayLimitsForVelocity,
+  displayValueForFixedVelocity,
+  displayMinUSBMIDIInterval,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
   displayPromo,
-  displayEditAudienceMessage
+  displayEditAudienceMessage,
+  displaySleep
 };
 DisplayMode displayMode = displayNormal;
 
@@ -473,9 +517,13 @@ struct SplitSettings {
   boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
   TimbreExpression expressionForY;     // the expression that should be used for timbre
   unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;              // 0-127
+  unsigned short maxForY;              // 0-127
   boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
   LoudnessExpression expressionForZ;   // the expression that should be used for loudness
   unsigned short customCCForZ;         // 0-127
+  unsigned short minForZ;              // 0-127
+  unsigned short maxForZ;              // 0-127
   unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
@@ -485,9 +533,9 @@ struct SplitSettings {
   byte lowRowCCXBehavior;              // see LowRowCCBehavior values
   unsigned short ccForLowRow;          // 0-127
   byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
-  unsigned short ccForLowRowX;         // 0-99
-  unsigned short ccForLowRowY;         // 0-99
-  unsigned short ccForLowRowZ;         // 0-99
+  unsigned short ccForLowRowX;         // 0-127
+  unsigned short ccForLowRowY;         // 0-127
+  unsigned short ccForLowRowZ;         // 0-127
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;         // transpose lights on display. Range is -12 to +12
@@ -504,12 +552,14 @@ struct DeviceSettings {
   CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationAtStartup;           // store whether the promo animation should run at startup
+  boolean promoAnimation;                    // store whether the promo animation should run after five minutes of not touching
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
 };
 DeviceSettings Device;
 
@@ -548,15 +598,24 @@ enum ArpeggiatorDirection {
   ArpReplayAll
 };
 
+enum SustainBehavior {
+  sustainHold,
+  sustainLatch
+};
+
 struct GlobalSettings {
   void setSwitchAssignment(byte, byte);
 
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
-  boolean mainNotes[12];                     // determines which notes receive "main" lights
-  boolean accentNotes[12];                   // determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
@@ -566,6 +625,7 @@ struct GlobalSettings {
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
 };
 GlobalSettings Global;
 
@@ -654,25 +714,13 @@ const int32_t FXD_CONST_2 = FXD_FROM_INT(2);
 const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
 const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
 const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
+const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
+const int32_t FXD_CONST_1016 = FXD_FROM_INT(1016);
 
 const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
 const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
 
 const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
-
-
-/*************************************** CONVENIENCE MACROS **************************************/
-
-// convenience macros to easily access the cells with touch information
-#define sensorCell()               touchInfo[sensorCol][sensorRow]
-#define cell(col, row)             touchInfo[col][row]
-#define virtualCell()              virtualTouchInfo[sensorRow]
-
-// calculate the difference between now and a previous timestamp, taking a possible single overflow into account
-#define calcTimeDelta(now, last)   (now < last ? now + ~last : now - last)
-
-// obtain the focused cell for a channel in a asplit
-#define focus(split, channel)      focusCell[split][channel - 1]
 
 
 /*************************************** OTHER RUNTIME STATE *************************************/
@@ -683,9 +731,11 @@ boolean setupDone = false;                          // indicates whether the set
 
 signed char debugLevel = -1;                        // level of debug messages that should be printed
 boolean firstTimeBoot = false;                      // this will be true when the LinnStrument booted up the first time after a firmware upgrade
+boolean globalReset = false;                        // this will be true when the LinnStrument was just globally reset
 unsigned long lastReset;                            // the last time a reset was started
 
 byte globalColor = COLOR_BLUE;                      // color for global, split point and transpose settings
+byte globalAltColor = COLOR_CYAN;                   // alternate color for global, split point and transpose settings
 
 boolean changedSplitPoint = false;                  // reflects whether the split point was changed
 boolean splitButtonDown = false;                    // reflects state of Split button
@@ -693,9 +743,10 @@ boolean splitButtonDown = false;                    // reflects state of Split b
 signed char controlButton = -1;                     // records the row of the current controlButton being held down
 unsigned long lastControlPress[NUMROWS];
 
-unsigned long ledRefreshInterval = 500;             // LED timing
-unsigned long prevLedTimerCount;                    // timer for refreshing leds
-unsigned long prevGlobalSettingsDisplayTimerCount;  // timer for refreshing the global settings display
+byte mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;         // loop divider at which continuous tasks are ran
+unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
+unsigned long prevLedTimerCount;                         // timer for refreshing leds
+unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
@@ -727,28 +778,42 @@ boolean userFirmwareZActive[NUMROWS];               // indicates whether Z data 
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
 
-int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);      // the current tempo
-byte midiDecimateRate = 0;                          // by default no decimation
-byte lastValueMidiNotesOn[NUMSPLITS][128][16];      // for each split, keep track of MIDI note on to filter out note off messages that are not needed
-unsigned short pitchHoldDuration[NUMSPLITS];        // for each split the actual pitch hold duration in samples
+int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);               // the current tempo
+unsigned long midiDecimateRate = 0;                          // by default no decimation
+unsigned long midiMinimumInterval = DEFAULT_MIDI_INTERVAL;   // minimum interval between sending two MIDI bytes
+byte lastValueMidiNotesOn[NUMSPLITS][128][16];               // for each split, keep track of MIDI note on to filter out note off messages that are not needed
+unsigned short pitchHoldDuration[NUMSPLITS];                 // for each split the actual pitch hold duration in samples
 int32_t fxdPitchHoldDuration[NUMSPLITS];
-int32_t fxdRateXThreshold[NUMSPLITS];               // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
-int latestNoteNumberForAutoOctave = -1;             // keep track of the latest note number that was generated to use for auto octave switching
+int32_t fxdRateXThreshold[NUMSPLITS];                        // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
+int latestNoteNumberForAutoOctave = -1;                      // keep track of the latest note number that was generated to use for auto octave switching
 
 byte audienceMessageToEdit = 0;                     // the audience message to edit with that mode is active
 short audienceMessageOffset = 0;                    // the offset in columns for printing the edited audience message
 short audienceMessageLength = 0;                    // the length in pixels of the audience message to edit
 
+int32_t fxdLimitsForYRatio[NUMSPLITS];              // the ratio to convert the full range of Y into the range applied by the limits
+int32_t fxdLimitsForZRatio[NUMSPLITS];              // the ratio to convert the full range of Z into the range applied by the limits
+
+int32_t fxdMinVelOffset;                            // the offset to apply to the velocity values
+int32_t fxdVelRatio;                                // the ratio to convert the full range of velocity into the range applied by the limits
+
+byte limitsForYConfigState = 1;                     // the last state of the Y value limit configuration, this counts down to go to further pages
+byte limitsForZConfigState = 1;                     // the last state of the Z value limit configuration, this counts down to go to further pages
+byte limitsForVelocityConfigState = 1;              // the last state of the velocity value limit configuration, this counts down to go to further pages
 byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
 byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
 
+boolean controlModeActive = false;                  // indicates whether control mode is active, detecting no expression but very sensitive cell presses intended for fast typing
+
+unsigned long lastTouchMoment = 0;                  // last time someone touched LinnStrument in milliseconds
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
 void setLed(byte col, byte row, byte color, CellDisplay disp);
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
+void initializeNoteLights(GlobalSettings& g);
 
 boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay);
 
@@ -807,7 +872,38 @@ boolean switchPressAtStartup(byte switchRow) {
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
+    mainLoopDivider = LOWPOWER_MAINLOOP_DIVIDER;
     ledRefreshInterval = LOWPOWER_LED_REFRESH;
+  }
+  else {
+    mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;
+    ledRefreshInterval = DEFAULT_LED_REFRESH;
+  }
+
+  applyMidiInterval();
+}
+
+void applyMidiInterval() {
+  if (isMidiUsingDIN()) {
+    // 256 microseconds between bytes on Serial ports
+    midiMinimumInterval = 256;
+  }
+  else {
+    midiMinimumInterval = Device.minUSBMIDIInterval;
+  }
+
+  if (Device.operatingLowPower && midiMinimumInterval < LOWPOWER_MIDI_INTERVAL) {
+    midiMinimumInterval = LOWPOWER_MIDI_INTERVAL;
+  }
+
+  applyMidiDecimationRate();
+}
+
+void applyMidiDecimationRate() {
+  // usually 3 bytes in a MIDI message
+  midiDecimateRate = midiMinimumInterval * 3;
+
+  if (Device.operatingLowPower && midiDecimateRate < LOWPOWER_MIDI_DECIMATION) {
     midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
   }
 }
@@ -866,7 +962,8 @@ void setup() {
   /*!!*/  if (switchPressAtStartup(0)) {
   /*!!*/    // if the global settings and switch 2 buttons are pressed at startup, the LinnStrument will do a global reset
   /*!!*/    if (switchPressAtStartup(2)) {
-  /*!!*/      dueFlashStorage.write(0, 1);
+  /*!!*/      globalReset = true;
+  /*!!*/      dueFlashStorage.write(0, 254);
   /*!!*/    }
   /*!!*/    // if only the global settings button is pressed at startup, activatate firmware upgrade mode
   /*!!*/    else {
@@ -898,12 +995,33 @@ void setup() {
 
   reset();
 
+  // ensure that the switches that are pressed down for the global reset at boot are not taken into account any further
+  if (globalReset) {
+    cellTouched(0, 0, touchedCell);
+    cellTouched(0, 2, touchedCell);
+  }
+
   // setup system timers for interval between LED column refreshes and foot switch reads
   prevLedTimerCount = prevFootSwitchTimerCount = prevGlobalSettingsDisplayTimerCount = micros();
+
+  // perform some initialization
+  initializeCalibrationSamples();
+  initializeStorage();
+  applyConfiguration();
+
+  for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
+    secretSwitch[ss] = false;
+  }
 
   // detect if test mode is active by holding down the per-split button at startup
   if (switchPressAtStartup(7)) {
     operatingMode = modeManufacturingTest;
+
+    Global.velocitySensitivity = velocityLow;
+    Global.minForVelocity = 0;
+    Global.maxForVelocity = 127;
+    applyLimitsForVelocity();
+    Global.pressureSensitivity = pressureLow;
 
     // Disable serial mode
     digitalWrite(35, LOW);
@@ -927,21 +1045,10 @@ void setup() {
     setDisplayMode(displayNormal);
     setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
 
-    // perform some initialization
-    initializeCalibrationSamples();
-
-    initializeStorage();
-
-    applyConfiguration();
-
-    for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
-      secretSwitch[ss] = false;
-    }
-
     // detect if low power mode is toggled by holding down the octave/transpose button at startup
     if (switchPressAtStartup(4)) {
       Device.operatingLowPower = true;
-      sensorCell().touched = touchedCell;
+      cell(sensorCol, sensorRow).touched = touchedCell;
       storeSettings();
     }
 
@@ -951,11 +1058,6 @@ void setup() {
 
     // update the display for the last state
     updateDisplay();
-  }
-
-  // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Device.promoAnimationAtStartup) {
-    playPromoAnimation();
   }
 
 #ifdef DISPLAY_XFRAME_AT_LAUNCH
@@ -983,16 +1085,15 @@ void setup() {
 #endif
 
   setupDone = true;
+
+  // if the promo animation was running last time the LinnStrument was on, start it up automatically
+  if (Device.promoAnimation) {
+    playPromoAnimation();
+  }
 }
 
 
 /******************************* MAIN LOOP *****************************/
-
-// loop:
-// Main execution loop for LinnStrument OS
-// Read Z (pressure) for each of the 200 row/column intersections. If a cell is touched, send Note On messages and also read
-// continuous Z, X and Y (if each is enabled), and send resulting continuous MIDI messages. After each cell rad, check the timer
-// and refresh the next LED column and read foot switches as necessary.
 
 void loop() {
   // the default musical performance mode
@@ -1020,33 +1121,38 @@ inline void modeLoopPerformance() {
     }
   }
   else {
-    TouchState previousTouch = sensorCell().touched;                              // get previous touch status of this cell
+    TouchState previousTouch = sensorCell->touched;                              // get previous touch status of this cell
 
     boolean canShortCircuit = false;
 
     if (previousTouch != touchedCell && previousTouch != ignoredCell &&
-        sensorCell().isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
-      handleNewTouch();
+        sensorCell->isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
+      canShortCircuit = handleNewTouch();
+    }
+    else if (previousTouch == touchedCell && sensorCell->isActiveTouch()) {      // if touched now and touched before
+      handleXYZupdate();                                                         // handle any X, Y or Z movements
       canShortCircuit = true;
     }
-    else if (previousTouch == touchedCell && sensorCell().isActiveTouch()) {      // if touched now and touched before
-      handleXYZupdate();                                                          // handle any X, Y or Z movements
-      canShortCircuit = true;
-    }
-    else if (previousTouch != untouchedCell && !sensorCell().isActiveTouch() &&   // if not touched now but touched before, it's been released
-             calcTimeDelta(millis(), sensorCell().lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
+    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch() &&   // if not touched now but touched before, it's been released
+             calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
       handleTouchRelease();
     }
 
     if (canShortCircuit &&
-        sensorCell().touched == touchedCell &&
-        sensorCell().isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
-      sensorCell().shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
+        sensorCell->touched == touchedCell &&
+        sensorCell->isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+      sensorCell->shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
   }
 
-  performContinuousTasks(micros());
+  // We're iterating so quickly, that it makes no sense to perform the continuous tasks
+  // at each sensor cell, only call this every three cells.
+  // Note that this is very much dependent on the speed of the main loop, if it slows down
+  // lights will start flickering and this ratio might have to be adapted.
+  if (cellCount % mainLoopDivider == 0) {
+    performContinuousTasks(micros());
+  }
 
 #ifdef DEBUG_ENABLED
   if (SWITCH_XFRAME) displayXFrame();                            // Turn on secret switch to display the X value of all cells in grid at the end of each total surface scan

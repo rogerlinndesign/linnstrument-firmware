@@ -466,7 +466,7 @@ void advanceArpeggiatorForSplit(byte split) {
 }
 
 inline boolean isArpeggiatorEnabled(byte split) {
-  return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split ) || isSwitchArpeggiatorPressed( split);
+  return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split) || isSwitchArpeggiatorPressed(split);
 }
 
 void tapTempoPress() {

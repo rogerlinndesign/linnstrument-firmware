@@ -172,7 +172,7 @@ void initializeTouchInfo() {
       cell(col, row).channel = -1;
       cell(col, row).octaveOffset = 0;
       cell(col, row).fxdPrevPressure = 0;
-      cell(col, row).fxdPrevTimbre = 0;
+      cell(col, row).fxdPrevTimbre = FXD_CONST_255;
       cell(col, row).clearPhantoms();
     }
   }
@@ -220,17 +220,30 @@ inline byte scale1016to127(int v, boolean allowZero) {
 }
 
 boolean calcVelocity(unsigned short z) {
-  if (sensorCell().vcount < VELOCITY_SAMPLES) {
-    // calculate the linear regression sums that are variable with the pressure
-    sensorCell().velSumY += z;
-    sensorCell().velSumXY += (sensorCell().vcount + VELOCITY_ZERO_POINTS) * z;
+  if (sensorCell->vcount < VELOCITY_SAMPLES_DBL) {
 
-    sensorCell().vcount++;
+    // we use the Z values in two passed, so that each sample point in the linear regression
+    // algorithm is the maximum of two measurements, this stabilizes the velocity calculation
+    if (sensorCell->vcount % 2 == 0) {
+      sensorCell->velPreviousZ = z;
+      sensorCell->vcount++;
+      return false;
+    }
+
+    // calculate the maximum of the two pressure samples
+    z = max(sensorCell->velPreviousZ, z);
+    sensorCell->velPreviousZ = 0;
+
+    // calculate the linear regression sums that are variable with the pressure
+    sensorCell->velSumY += z;
+    sensorCell->velSumXY += ((sensorCell->vcount >> 1) + VELOCITY_ZERO_POINTS) * z;
+
+    sensorCell->vcount++;
 
     // when the number of samples are reached, calculate the final velocity
-    if (sensorCell().vcount == VELOCITY_SAMPLES) {
+    if (sensorCell->vcount == VELOCITY_SAMPLES_DBL) {
       int scale;
-      const short *curve;
+      const short* curve;
       switch (Global.velocitySensitivity) {
         case velocityHigh:
           scale = VELOCITY_SCALE_HIGH;
@@ -245,18 +258,34 @@ boolean calcVelocity(unsigned short z) {
           curve = Z_CURVE_LOW;
           break;
       }
-      int sxy = (VELOCITY_N * sensorCell().velSumXY) - VELOCITY_SUMX * sensorCell().velSumY;
+      int sxy = (VELOCITY_N * sensorCell->velSumXY) - VELOCITY_SUMX * sensorCell->velSumY;
       int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 1, 1016)];
+
+      slope = FXD_TO_INT(fxdMinVelOffset + FXD_MUL(FXD_FROM_INT(slope), fxdVelRatio));
 
       slope = scale1016to127(slope, false);
 
-      sensorCell().velocity = calcPreferredVelocity(slope);
+      sensorCell->velocity = calcPreferredVelocity(slope);
 
       return true;
     }
   }
 
   return false;
+}
+
+byte calcPreferredVelocity(byte velocity) {
+  // determine the preferred velocity based on the sensitivity settings
+  if (Global.velocitySensitivity == velocityFixed) {
+    return Global.valueForFixedVelocity;
+  }
+  else {
+    return constrain(velocity, 1, 127);
+  }
+}
+
+boolean TouchInfo::isCalculatingVelocity() {
+  return sensorCell->vcount > 0 && sensorCell->vcount < VELOCITY_SAMPLES_DBL;
 }
 
 void TouchInfo::shouldRefreshData() {
@@ -277,7 +306,7 @@ short TouchInfo::calibratedX() {
 
 inline void TouchInfo::refreshX() {
   if (shouldRefreshX) {
-    currentRawX = readX();
+    currentRawX = readX(percentRawZ);
     currentCalibratedX = calculateCalibratedX(currentRawX);
     shouldRefreshX = false;
 
@@ -294,6 +323,7 @@ inline void TouchInfo::refreshX() {
       
       fxdRateX = 0;
       lastMovedX = 0;
+      lastValueX = INVALID_DATA;
     }
   }
 }
@@ -305,7 +335,7 @@ short TouchInfo::rawY() {
 
 inline void TouchInfo::refreshY() {
   if (shouldRefreshY) {
-    currentRawY = readY();
+    currentRawY = readY(percentRawZ);
     currentCalibratedY = calculateCalibratedY(currentRawY);
     shouldRefreshY = false;
 
@@ -329,17 +359,24 @@ short TouchInfo::rawZ() {
 
 inline boolean TouchInfo::isMeaningfulTouch() {
   refreshZ();
-  return velocityZ > 0 || pressureZ > 0;
+  return velocityZ > 0;
 }
 
 inline boolean TouchInfo::isStableYTouch() {    
-  return sensorCell().isMeaningfulTouch() && sensorCell().rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
+  return sensorCell->isMeaningfulTouch() && sensorCell->rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
 }
 
 inline boolean TouchInfo::isActiveTouch() {
   refreshZ();
   return featherTouch || velocityZ > 0 || pressureZ > 0;
 }
+
+const short CONTROL_VELOCITY = 127;
+const short CONTROL_PRESSURE = 127;
+
+const short CONTROL_MODE_LOZ = 20;
+const short SWITCH_FEATHERZ = 120;
+const short SWITCH_LOZ = 230;
 
 inline void TouchInfo::refreshZ() {
   if (shouldRefreshZ) {
@@ -350,11 +387,25 @@ inline void TouchInfo::refreshZ() {
 
     shouldRefreshZ = false;
 
-    if (currentRawZ < Device.sensorFeatherZ) {        // if the raw touch is below feather touch, keep 0 for the Z values
+    if (controlModeActive && currentRawZ >= CONTROL_MODE_LOZ) {
+      featherTouch = true;
+      velocityZ = CONTROL_VELOCITY;
+      pressureZ = CONTROL_PRESSURE;
       return;
     }
 
-    short usableZ = currentRawZ - Device.sensorLoZ;   // subtract minimum from value
+    unsigned short featherZ = Device.sensorFeatherZ;
+    unsigned short loZ = Device.sensorLoZ;
+    if (sensorCol == 0) {
+        featherZ = SWITCH_FEATHERZ;
+        loZ = SWITCH_LOZ;
+    }
+
+    if (currentRawZ < featherZ) {                     // if the raw touch is below feather touch, keep 0 for the Z values
+      return;
+    }
+
+    short usableZ = currentRawZ - loZ;                // subtract minimum from value
 
     if (usableZ <= 0) {                               // if it's below the acceptable minimum, store it as a feather touch
       featherTouch = true;
@@ -363,8 +414,8 @@ inline void TouchInfo::refreshZ() {
 
     // the control switches always have maximum velocity and pressure
     if (sensorCol == 0) {
-      velocityZ = 127;
-      pressureZ = 127;
+      velocityZ = CONTROL_VELOCITY;
+      pressureZ = CONTROL_PRESSURE;
       return;
     }
 
@@ -405,6 +456,7 @@ inline void TouchInfo::refreshZ() {
     else {
         usablePressureZ = constrain(usableZ, 1, sensorRangePressure);
     }
+    percentRawZ = (constrain(usableZ, 0, sensorRange) * 100) / sensorRange;
 
     int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
     int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
@@ -417,10 +469,6 @@ inline void TouchInfo::refreshZ() {
     velocityZ = scale1016to127(usableVelocityZ, false);
     pressureZ = scale1016to127(usablePressureZ, true);
   }
-}
-
-boolean TouchInfo::isCalculatingVelocity() {
-  return sensorCell().vcount > 0 && sensorCell().vcount < VELOCITY_SAMPLES;
 }
 
 boolean TouchInfo::hasNote() {
@@ -463,7 +511,7 @@ void TouchInfo::clearMusicalData() {
   channel = -1;
   octaveOffset = 0;
   fxdPrevPressure = 0;
-  fxdPrevTimbre = 0;
+  fxdPrevTimbre = FXD_CONST_255;
 }
 
 void TouchInfo::clearSensorData() {
@@ -473,6 +521,7 @@ void TouchInfo::clearSensorData() {
   currentRawX = 0;
   currentCalibratedX = 0;
   lastMovedX = 0;
+  lastValueX = INVALID_DATA;
   fxdRateX = 0;
   fxdRateCountX = 0;
   shouldRefreshX = true;
@@ -481,11 +530,13 @@ void TouchInfo::clearSensorData() {
   currentCalibratedY = 0;
   shouldRefreshY = true;
   currentRawZ = 0;
+  percentRawZ = 0;
   featherTouch = false;
   velocityZ = 0;
   pressureZ = 0;
   shouldRefreshZ = true;
   pendingReleaseCount = 0;
+  velPreviousZ = 0;
   velSumY = 0;
   velSumXY = 0;
 }

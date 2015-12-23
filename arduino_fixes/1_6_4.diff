@@ -1,0 +1,34 @@
+diff -u -r hardware_orig/sam/1.6.4/cores/arduino/UARTClass.cpp hardware/sam/1.6.4/cores/arduino/UARTClass.cpp
+--- hardware_orig/sam/1.6.4/cores/arduino/UARTClass.cpp	2015-04-23 17:30:36.000000000 +0200
++++ hardware/sam/1.6.4/cores/arduino/UARTClass.cpp	2015-07-07 18:30:10.000000000 +0200
+@@ -144,10 +144,19 @@
+ 
+ size_t UARTClass::write( const uint8_t uc_data )
+ {
++  return write(uc_data, true);
++}
++
++size_t UARTClass::write( const uint8_t uc_data, const bool wait )
++{
+   // Is the hardware currently busy?
+   if (((_pUart->UART_SR & UART_SR_TXRDY) != UART_SR_TXRDY) |
+       (_tx_buffer->_iTail != _tx_buffer->_iHead))
+   {
++    // return immediately if we're not supposed to wait or buffer,
++    // meaning that the buffering is most probably done by the calling code
++    if ( !wait ) return 0;
++
+     // If busy we buffer
+     unsigned int l = (_tx_buffer->_iHead + 1) % SERIAL_BUFFER_SIZE;
+     while (_tx_buffer->_iTail == l)
+diff -u -r hardware_orig/sam/1.6.4/cores/arduino/UARTClass.h hardware/sam/1.6.4/cores/arduino/UARTClass.h
+--- hardware_orig/sam/1.6.4/cores/arduino/UARTClass.h	2015-04-23 17:30:36.000000000 +0200
++++ hardware/sam/1.6.4/cores/arduino/UARTClass.h	2015-07-07 18:30:10.000000000 +0200
+@@ -53,6 +53,7 @@
+     int read(void);
+     void flush(void);
+     size_t write(const uint8_t c);
++    size_t write(const uint8_t c, const bool wait);
+     using Print::write; // pull in write(str) and write(buf, size) from Print
+ 
+     void setInterruptPriority(uint32_t priority);

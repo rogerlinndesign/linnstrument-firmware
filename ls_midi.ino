@@ -40,6 +40,12 @@ boolean isMidiUsingDIN() {
 }
 
 void applyMidiIo() {
+  // do not reconfigure the serial speeds when device update mode is active
+  // the MIDI IO settings will be applied when OS update mode is turned off
+  if (Device.serialMode) {
+    return;
+  }
+
   if (isMidiUsingDIN()) {
     digitalWrite(36, 0);     // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
@@ -50,6 +56,8 @@ void applyMidiIo() {
     Serial.begin(115200);    // set serial port at fastest speed 115200
     Serial.flush();          // clear the serial port
   }
+
+  applyMidiInterval();
 }
 
 void handleMidiInput(unsigned long now) {
@@ -205,7 +213,7 @@ void handleMidiInput(unsigned long now) {
             // attempts to reset the exact cell that belongs to a midi note and channel
             if (!resetExactNoteCell(split, midiData1, midiChannel)) {
               // if there's not one exact location, we reset all cells that could correspond to the note number
-            resetPossibleNoteCells(split, midiData1);
+              resetPossibleNoteCells(split, midiData1);
             }
           }
           break;
@@ -270,8 +278,11 @@ void handleMidiInput(unsigned long now) {
               }
               break;
             case 13:
-              if (userFirmwareActive && (!Device.operatingLowPower || midiData2 > LOWPOWER_MIDI_DECIMATION)) {
-                midiDecimateRate = midiData2;
+              if (userFirmwareActive) {
+                unsigned long rate = midiData2 * 1000;
+                if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
+                  midiDecimateRate = rate;
+                }
               }
               break;
             case 20:
@@ -450,6 +461,7 @@ void receivedNrpn(int parameter, int value) {
     // Split Send X
     case 20:
       if (inRange(value, 0, 1)) {
+        preSendPitchBend(split, 0);
         Split[split].sendX = value;
       }
       break;
@@ -674,20 +686,48 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split MIDI CC For LowRow XYZ X
     case 51:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowX = value;
       }
       break;
     // Split MIDI CC For LowRow XYZ Y
     case 52:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowY = value;
       }
       break;
     // Split MIDI CC For LowRow XYZ Z
     case 53:
-      if (inRange(value, 0, 99)) {
+      if (inRange(value, 0, 127)) {
         Split[split].ccForLowRowZ = value;
+      }
+      break;
+    // Split Minimum CC Value For Y
+    case 54:
+      if (inRange(value, 0, 127)) {
+        Split[split].minForY = value;
+        applyLimitsForY();
+      }
+      break;
+    // Split Maximum CC Value For Y
+    case 55:
+      if (inRange(value, 0, 127)) {
+        Split[split].maxForY = value;
+        applyLimitsForY();
+      }
+      break;
+    // Split Minimum CC Value For Z
+    case 56:
+      if (inRange(value, 0, 127)) {
+        Split[split].minForZ = value;
+        applyLimitsForZ();
+      }
+      break;
+    // Split Maximum CC Value For Z
+    case 57:
+      if (inRange(value, 0, 127)) {
+        Split[split].maxForZ = value;
+        applyLimitsForZ();
       }
       break;
     // Global Split Active
@@ -712,19 +752,33 @@ void receivedNrpn(int parameter, int value) {
     case 203: case 204: case 205: case 206: case 207: case 208:
     case 209: case 210: case 211: case 212: case 213: case 214:
       if (inRange(value, 0, 1)) {
-        Global.mainNotes[parameter-203] = value;
+        if (value) {
+          Global.mainNotes[Global.activeNotes] |= 1 << parameter-203;
+        }
+        else {
+          Global.mainNotes[Global.activeNotes] &= ~(1 << parameter-203);
+        }
       }
       break;
     // Global Accent Note Lights
     case 215: case 216: case 217: case 218: case 219: case 220:
     case 221: case 222: case 223: case 224: case 225: case 226:
       if (inRange(value, 0, 1)) {
-        Global.accentNotes[parameter-215] = value;
+        if (value) {
+          Global.accentNotes[Global.activeNotes] |= 1 << parameter-215;
+        }
+        else {
+          Global.accentNotes[Global.activeNotes] &= ~(1 << parameter-215);
+        }
       }
       break;
     // Global Row Offset
     case 227:
+<<<<<<< HEAD
       if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || value == 14) {
+=======
+      if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || ROWOFFSET_ZERO) {
+>>>>>>> rogerlinndesign/master
         Global.rowOffset = value;
       }
       break;
@@ -836,6 +890,55 @@ void receivedNrpn(int parameter, int value) {
         changeUserFirmwareMode(value);
       }
       break;
+    // Left Handed Operation Active
+    case 246:
+      if (inRange(value, 0, 1)) {
+        Device.leftHanded = value;
+        completelyRefreshLeds();
+        updateDisplay();
+      }
+      break;
+    // Active note lights preset
+    case 247:
+      if (inRange(value, 0, 11)) {
+        Global.activeNotes = value;
+        completelyRefreshLeds();
+        updateDisplay();
+      }
+      break;
+    // Global MIDI CC For Switch CC65
+    case 248:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitch = value;
+      }
+      break;
+    // Global Minimum Value For Velocity
+    case 249:
+      if (inRange(value, 1, 127)) {
+        Global.minForVelocity = value;
+        applyLimitsForVelocity();
+      }
+      break;
+    // Global Maximum Value For Velocity
+    case 250:
+      if (inRange(value, 1, 127)) {
+        Global.maxForVelocity = value;
+        applyLimitsForVelocity();
+      }
+      break;
+    // Global Value For Fixed Velocity
+    case 251:
+      if (inRange(value, 1, 127)) {
+        Global.valueForFixedVelocity = value;
+      }
+      break;
+    // Global Minimum Interval Between MIDI Bytes Over USB
+    case 252:
+      if (inRange(value, 0, 512)) {
+        Device.minUSBMIDIInterval = value;
+        applyMidiInterval();
+      }
+      break;
   }
 
   updateDisplay();
@@ -936,6 +1039,9 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
 
   short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
+  if (Device.leftHanded) {
+    col = NUMCOLS - col;
+  }
 
   byte lowColSplit, highColSplit;
   getSplitBoundaries(split, lowColSplit, highColSplit);
@@ -1054,8 +1160,45 @@ void preSendPitchBend(byte split, int pitchValue, byte channel) {
   midiSendPitchBend(scalePitch(split, pitchValue), channel);    // Send the bend amount as a difference from bend center (8192)
 }
 
+// Calculate the real value if custom limits are set
+byte applyLimits(byte value, byte minValue, byte maxValue, int32_t ratio) {
+  if (minValue != 0 || maxValue != 127) {
+    value = minValue + FXD_TO_INT(FXD_MUL(FXD_FROM_INT(value), ratio));
+  }
+
+  return value;
+}
+
+void preResetLastTimbre(byte split, byte note, byte channel) {
+  switch(Split[split].expressionForY)
+  {
+    case timbrePolyPressure:
+      resetLastMidiPolyPressure(note, channel);
+      break;
+
+    case timbreChannelPressure:
+      resetLastMidiAfterTouch(channel);
+      break;
+
+    default:
+    {
+      byte ccForY;
+      if (Split[split].expressionForY == timbreCC1) {
+        ccForY = 1;
+      }
+      else {
+        ccForY = Split[split].customCCForY;
+      }
+      resetLastMidiCC(ccForY, channel);
+      break;
+    }
+  }
+}
+
 // Called to send Y-axis movements
 void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
+  yValue = applyLimits(yValue, Split[split].minForY, Split[split].maxForY, fxdLimitsForYRatio[split]);
+
   switch(Split[split].expressionForY)
   {
     case timbrePolyPressure:
@@ -1089,8 +1232,27 @@ void preSendTimbre(byte split, byte yValue, byte note, byte channel) {
   }
 }
 
+void preResetLastLoudness(byte split, byte note, byte channel) {
+  switch(Split[split].expressionForZ)
+  {
+    case loudnessPolyPressure:
+      resetLastMidiPolyPressure(note, channel);
+      break;
+
+    case loudnessChannelPressure:
+      resetLastMidiAfterTouch(channel);
+      break;
+
+    case loudnessCC11:
+      resetLastMidiCC(Split[split].customCCForZ, channel);
+      break;
+  }
+}
+
 // Called to send Z message. Depending on midiMode, sends different types of Channel Pressure or Poly Pressure message.
 void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
+  pressureValue = applyLimits(pressureValue, Split[split].minForZ, Split[split].maxForZ, fxdLimitsForZRatio[split]);
+
   switch(Split[split].expressionForZ)
   {
     case loudnessPolyPressure:
@@ -1113,6 +1275,26 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
       }
       break;
   }
+}
+
+void resetLastMidiPolyPressure(byte note, byte channel) {
+  lastValueMidiPP[channel * note] = 0xFF;
+  lastMomentMidiPP[channel * note] = 0;
+}
+
+void resetLastMidiAfterTouch(byte channel) {
+  lastValueMidiAT[channel] = 0xFF;
+  lastMomentMidiAT[channel] = 0;
+}
+
+void resetLastMidiCC(byte controlnum, byte channel) {
+  lastValueMidiCC[channel * controlnum] = 0xFF;
+  lastMomentMidiCC[channel * controlnum] = 0;
+}
+
+void resetLastMidiPitchBend(byte channel) {
+  lastValueMidiPB[channel] = 0x7FFF;
+  lastMomentMidiPB[channel] = 0;
 }
 
 void initializeLastMidiTracking() {
@@ -1141,44 +1323,101 @@ void initializeLastMidiTracking() {
   }
 }
 
+byte getMidiNotesOnCount(byte split, byte notenum, byte channel) {
+  split = constrain(split, 0, 1);
+  notenum = constrain(notenum, 0, 127);
+  channel = constrain(channel-1, 0, 15);
+  return lastValueMidiNotesOn[split][notenum][channel];
+}
+
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
-  param1 &= 0x7F;
-  param2 &= 0x7F;
-  midiOutQueue.push((byte)type | (channel & 0x0F));
-  midiOutQueue.push(param1);
-  if (type != MIDIProgramChange && type != MIDIChannelPressure) {
-    midiOutQueue.push(param2);
-  }
+  // we always queue four bytes and will process them as MIDI messages in the handlePendingMidi
+  midiOutQueue.push(channel & 0x0F);
+  midiOutQueue.push((byte)type);
+  midiOutQueue.push(param1 & 0x7F);
+  midiOutQueue.push(param2 & 0x7F);
 }
 
 void handlePendingMidi(unsigned long now) {
-  // when in low power mode only send one MIDI byte every 150 microseconds
-  if (Device.operatingLowPower) {
-    static unsigned long lastEnvoy = 0;
-    if (calcTimeDelta(now, lastEnvoy) >= 150 && !midiOutQueue.empty()) {
-      sendNextMidiOutputByte();
-      lastEnvoy = now;
+  static unsigned long lastEnvoy = 0;
+  static byte messageIndex = 0;
+  static byte lastChannel = 0;
+  static byte lastType = 0;
+
+  if (!midiOutQueue.empty()) {
+    // the first queued byte is always the MIDI channel
+    if (messageIndex == 0) {
+      lastChannel = midiOutQueue.pop();
+      messageIndex++;
     }
-  }
-  else {
-    if (!midiOutQueue.empty()) {
-      sendNextMidiOutputByte();
+    // the others will constitute the actual MIDI message
+    else {
+      byte nextByte = midiOutQueue.peek();
+
+      // always insert a 1 ms delay around MIDI note on and note off boundaries
+      unsigned long additionalInterval = 0;
+      if (messageIndex == 1 &&
+          (lastType == MIDINoteOn ||
+           nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
+        additionalInterval = 2000;
+      }
+
+      // if the time between now and the last MIDI byte exceeds the required interval, process it
+      if (calcTimeDelta(now, lastEnvoy) >= (midiMinimumInterval + additionalInterval)) {
+        // construct the correct MIDI byte that needs to be sent
+        byte midiByte;
+        if (messageIndex == 1) {
+          midiByte = nextByte | lastChannel;
+        }
+        else {
+          midiByte = nextByte;
+        }
+
+        // try to send the MIDI message byte
+        if (sendNextMidiOutputByte(midiByte)) {
+          // keep track of the last MIDI message type that was successfully sent
+          if (messageIndex == 1) {
+            lastType = nextByte;
+          }
+
+          // remove the sent byte from the queue and keep track of the message sequence
+          midiOutQueue.pop();
+          messageIndex++;
+
+          // in case of program change and channel pressure, the MIDI message length is one shorter,
+          // so automatically remove the fourth byte from the queue since it's unused
+          if (messageIndex == 3 &&
+              (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
+            midiOutQueue.pop();
+            messageIndex++;
+          }
+
+          // update the last time a MIDI byte was attempted to be sent
+          lastEnvoy = now;
+        }
+      }
+    }
+
+    // each time four bytes have been processed from the queue, start a new MIDI message
+    if (messageIndex == 4) {
+      messageIndex = 0;
+      lastChannel = 0;
     }
   }
 }
 
 // send a MIDI message byte using the most appropriate method, the return value
-// indicates whether a next message can be sent immediately afterwards
-boolean sendNextMidiOutputByte() {
+// indicates whether the byte was sent successfully
+boolean sendNextMidiOutputByte(byte b) {
 #ifdef PATCHED_ARDUINO_SERIAL_WRITE
-  if (Serial.write(midiOutQueue.peek(), false) > 0) {
-    midiOutQueue.pop();
+  if (Serial.write(b, false) > 0) {
     return true;
   }
-#else
-  Serial.write(midiOutQueue.pop());
-#endif
   return false;
+#else
+  Serial.write(b);
+  return true;
+#endif
 }
 
 void midiSendVolume(byte v, byte channel) {
@@ -1204,8 +1443,7 @@ void preSendSwitchCC65(byte split, byte v) {
 }
 
 void preSendControlChange(byte split, byte controlnum, byte v) {
-  switch (Split[split].midiMode)
-  {
+  switch (Split[split].midiMode) {
     case channelPerNote:
     {
       for (byte ch = 0; ch < 16; ++ch) {
@@ -1246,8 +1484,7 @@ void midiSendAllNotesOff(byte split) {
 
   preSendControlChange(split, 64, 0);
   for (byte notenum = 0; notenum < 128; ++notenum) {
-    switch (Split[split].midiMode)
-    {
+    switch (Split[split].midiMode) {
       case channelPerNote:
       {
         for (byte ch = 0; ch < 16; ++ch) {
@@ -1287,9 +1524,9 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
   controlval = constrain(controlval, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
-  short index = controlnum + 128*channel;
+  short index = controlnum * channel;
   if (!always && controlnum < 120 && controlnum != 64) {
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
@@ -1318,14 +1555,14 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
   controlval = constrain(controlval, 0, 0x3fff);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
 
   // calculate the 14-bit msb and lsb
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = controlMsb + 128*channel;
-  short indexLsb = controlLsb + 128*channel;
+  short indexMsb = controlMsb * channel;
+  short indexLsb = controlLsb * channel;
 
   if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
   if (controlval != 0 &&
@@ -1357,6 +1594,7 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
 }
 
 void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   velocity = constrain(velocity, 0, 127);
   channel = constrain(channel-1, 0, 15);
@@ -1381,6 +1619,7 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
 }
 
 void midiSendNoteOff(byte split, byte notenum, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
@@ -1392,6 +1631,7 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
 }
 
 void midiSendNoteOffWithVelocity(byte split, byte notenum, byte velocity, byte channel) {
+  split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
@@ -1419,12 +1659,14 @@ void midiSendNoteOffRaw(byte notenum, byte velocity, byte channel) {
 }
 
 void midiSendNoteOffForAllTouches(byte split) {
+  split = constrain(split, 0, 1);
+
   signed char note = noteTouchMapping[split].firstNote;
   signed char channel = noteTouchMapping[split].firstChannel;
 
   while (note != -1) {
     midiSendNoteOff(split, note, channel);
-    NoteEntry *entry = noteTouchMapping[split].getNoteEntry(note, channel);
+    NoteEntry* entry = noteTouchMapping[split].getNoteEntry(note, channel);
     if (entry == NULL) {
       note = -1;
     }
@@ -1439,7 +1681,7 @@ void midiSendPitchBend(int pitchval, byte channel) {
   unsigned int bend = constrain(pitchval + 8192, 0, 16383);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   if (lastValueMidiPB[channel] == bend) return;
   if (pitchval != 0 && calcTimeDelta(now, lastMomentMidiPB[channel]) <= midiDecimateRate) return;
   lastValueMidiPB[channel] = bend;
@@ -1481,7 +1723,7 @@ void midiSendAfterTouch(byte value, byte channel) {
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
+  unsigned long now = micros();
   if (lastValueMidiAT[channel] == value) return;
   if (value != 0 && calcTimeDelta(now, lastMomentMidiAT[channel]) <= midiDecimateRate) return;
   lastValueMidiAT[channel] = value;
@@ -1504,8 +1746,8 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
-  unsigned long now = millis();
-  short index = notenum + 128*channel;
+  unsigned long now = micros();
+  short index = notenum * channel;
   if (lastValueMidiPP[index] == value) return;
   if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
   lastValueMidiPP[index] = value;
@@ -1558,12 +1800,44 @@ void midiSendNRPN(unsigned short number, unsigned short value, byte channel) {
   }
 }
 
+void midiSendRPN(unsigned short number, unsigned short value, byte channel) {
+  number = constrain(number, 0, 0x3fff);
+  value = constrain(value, 0, 0x3fff);
+  channel = constrain(channel-1, 0, 15);
+
+  if (Device.serialMode) {
+#ifdef DEBUG_ENABLED
+    if (SWITCH_DEBUGMIDI) {
+      Serial.print("midiSendRPN number=");
+      Serial.print((int)number);
+      Serial.print(", value=");
+      Serial.print((int)value);
+      Serial.print(", channel=");
+      Serial.print((int)channel);
+      Serial.print("\n");
+    }
+#endif
+  } else {
+    unsigned numberMsb = (number & 0x3fff) >> 7;
+    unsigned numberLsb = number & 0x7f;
+    unsigned valueMsb = (value & 0x3fff) >> 7;
+    unsigned valueLsb = value & 0x7f;
+
+    queueMidiMessage(MIDIControlChange, 101, numberMsb, channel);
+    queueMidiMessage(MIDIControlChange, 100, numberLsb, channel);
+    queueMidiMessage(MIDIControlChange, 6, valueMsb, channel);
+    queueMidiMessage(MIDIControlChange, 38, valueLsb, channel);
+    queueMidiMessage(MIDIControlChange, 101, 127, channel);
+    queueMidiMessage(MIDIControlChange, 100, 127, channel);
+  }
+}
+
 void midiSendMpeState(byte mainChannel, byte polyphony) {
   midiSendControlChange(127, polyphony, mainChannel, true);
 }
 
 void midiSendMpePitchBendRange(byte split) {
   if (Split[split].mpe && getBendRange(split) == 24) {
-    midiSendNRPN(0, 24, Split[split].midiChanMain);
+    midiSendRPN(0, 24 << 7, Split[split].midiChanMain);
   }
 }

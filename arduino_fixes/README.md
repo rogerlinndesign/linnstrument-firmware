@@ -25,6 +25,15 @@ On the Terminal, this command should copy them all to the right location in
 one go, make sure that the 'arduino_fixes' directory is your current directory
 first:
 
+For 1.6.4:
+
+  First install the required packages for the Arduino SAM Boards through the Arduino IDE board manager.
+  These packages will be located in your home directory, for instance on MacOSX:
+  $HOME/Library/Arduino15/packages/arduino/
+
+  Now issue the following command:
+  cp -v 1.6.4/*ART* $HOME/Library/Arduino15/packages/arduino/hardware/sam/1.6.4/cores/arduino/
+
 For 1.6.3:
 
   First install the required packages for the Arduino SAM Boards through the Arduino IDE board manager.

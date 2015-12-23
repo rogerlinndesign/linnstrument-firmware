@@ -37,6 +37,12 @@ void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
 }
 
 void switchSerialMode(boolean flag) {
+  if (controlModeActive) {
+    controlModeActive = false;
+    clearDisplay();
+    updateDisplay();
+  }
+  
   Device.serialMode = flag;
   applySerialMode();
 }
@@ -44,18 +50,29 @@ void switchSerialMode(boolean flag) {
 void applySerialMode() {
   if (Device.serialMode) {
     digitalWrite(35, HIGH);
+    digitalWrite(36, HIGH);
+    Serial.begin(115200);
+    Serial.flush();
   }
   else {
     digitalWrite(35, LOW);
+    applyMidiIo();
   }
 }
 
 void initializeStorage() {
-  firstTimeBoot = (dueFlashStorage.read(0) != 0);         // See if this is the first time we've executed.
-                                                          // When new code is loaded into the Due, this will be non-zero.
-  if (firstTimeBoot) {
-    switchSerialMode(true);                               // Start in serial mode after OS upgrade to be able to receive the settings
-    config.device.serialMode = true;
+  byte bootblock = dueFlashStorage.read(0);
+
+  if (bootblock != 0) {                                   // See if we need to boot from scratch
+    if (bootblock == 255) {                               // When a new firmware is uploaded, the first flash byte will be 255
+      switchSerialMode(true);                             // Start in serial mode after OS upgrade to be able to receive the settings
+      config.device.serialMode = true;
+      firstTimeBoot = true;
+    }
+    else {
+      switchSerialMode(false);                            // Start in MIDI mode for all other bootblock values
+      config.device.serialMode = false;
+    }
 
     writeSettingsToFlash();                               // Store the initial default settings
 
@@ -169,7 +186,7 @@ void loadSettings() {
     clearDisplay();
     small_scroll_text("     SETTINGS RESET, SORRY ...", globalColor);
 
-    dueFlashStorage.write(0, 1);
+    dueFlashStorage.write(0, 253);
     initializeStorage();
   }
 }
@@ -181,6 +198,9 @@ void applyPresetSettings(PresetSettings& preset) {
 
   focusedSplit = Global.currentPerSplit;
   applyPitchCorrectHold();
+  applyLimitsForY();
+  applyLimitsForZ();
+  applyLimitsForVelocity();
 
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
@@ -190,8 +210,8 @@ void applyPresetSettings(PresetSettings& preset) {
 
 void applyConfiguration() {
   Device = config.device;
-  applySerialMode();
   applyPresetSettings(config.settings);
+  applySerialMode();
 }
 
 void storeSettingsToPreset(byte p) {
@@ -203,10 +223,12 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 5;
+  config.device.version = 7;
   config.device.serialMode = false;
-  config.device.promoAnimationAtStartup = false;
+  config.device.promoAnimation = false;
   config.device.operatingLowPower = false;
+  config.device.leftHanded = false;
+  config.device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
 
   initializeAudienceMessages();
 }
@@ -225,20 +247,139 @@ void initializeDeviceSensorSettings() {
   config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
+void initializeNoteLights(GlobalSettings& g) {
+    g.activeNotes = 0;
+
+    // initialize accentNotes array. Starting with only C within each octave highlighted
+    for (byte count = 0; count < 12; ++count) {
+      g.accentNotes[count] = 1;
+    }
+
+    // initialize mainNotes array (all off).
+    for (byte count = 0; count < 12; ++count) {
+      g.mainNotes[count] = 0;
+    }
+
+    // Major
+    g.mainNotes[0] |= 1 << 0;
+    g.mainNotes[0] |= 1 << 2;
+    g.mainNotes[0] |= 1 << 4;
+    g.mainNotes[0] |= 1 << 5;
+    g.mainNotes[0] |= 1 << 7;
+    g.mainNotes[0] |= 1 << 9;
+    g.mainNotes[0] |= 1 << 11;
+
+    // Natural minor
+    g.mainNotes[1] |= 1 << 0;
+    g.mainNotes[1] |= 1 << 2;
+    g.mainNotes[1] |= 1 << 3;
+    g.mainNotes[1] |= 1 << 5;
+    g.mainNotes[1] |= 1 << 7;
+    g.mainNotes[1] |= 1 << 8;
+    g.mainNotes[1] |= 1 << 10;
+
+    // Harmonic minor
+    g.mainNotes[2] |= 1 << 0;
+    g.mainNotes[2] |= 1 << 2;
+    g.mainNotes[2] |= 1 << 3;
+    g.mainNotes[2] |= 1 << 5;
+    g.mainNotes[2] |= 1 << 7;
+    g.mainNotes[2] |= 1 << 8;
+    g.mainNotes[2] |= 1 << 11;
+
+    // Major Pentatonic
+    g.mainNotes[3] |= 1 << 0;
+    g.mainNotes[3] |= 1 << 2;
+    g.mainNotes[3] |= 1 << 4;
+    g.mainNotes[3] |= 1 << 7;
+    g.mainNotes[3] |= 1 << 9;
+
+    // Minor Pentatonic
+    g.mainNotes[4] |= 1 << 0;
+    g.mainNotes[4] |= 1 << 3;
+    g.mainNotes[4] |= 1 << 5;
+    g.mainNotes[4] |= 1 << 7;
+    g.mainNotes[4] |= 1 << 10;
+
+    // Major Blues
+    g.mainNotes[5] |= 1 << 0;
+    g.mainNotes[5] |= 1 << 3;
+    g.mainNotes[5] |= 1 << 4;
+    g.mainNotes[5] |= 1 << 7;
+    g.mainNotes[5] |= 1 << 9;
+    g.mainNotes[5] |= 1 << 10;
+
+    // Minor Blues
+    g.mainNotes[6] |= 1 << 0;
+    g.mainNotes[6] |= 1 << 3;
+    g.mainNotes[6] |= 1 << 5;
+    g.mainNotes[6] |= 1 << 6;
+    g.mainNotes[6] |= 1 << 7;
+    g.mainNotes[6] |= 1 << 10;
+
+    // Diminished
+    g.mainNotes[7] |= 1 << 0;
+    g.mainNotes[7] |= 1 << 2;
+    g.mainNotes[7] |= 1 << 3;
+    g.mainNotes[7] |= 1 << 5;
+    g.mainNotes[7] |= 1 << 6;
+    g.mainNotes[7] |= 1 << 8;
+    g.mainNotes[7] |= 1 << 9;
+    g.mainNotes[7] |= 1 << 11;
+
+    // Whole Tone
+    g.mainNotes[8] |= 1 << 0;
+    g.mainNotes[8] |= 1 << 2;
+    g.mainNotes[8] |= 1 << 4;
+    g.mainNotes[8] |= 1 << 6;
+    g.mainNotes[8] |= 1 << 8;
+    g.mainNotes[8] |= 1 << 10;
+
+    // Spanish (Phrygian Dominant)
+    g.mainNotes[9] |= 1 << 0;
+    g.mainNotes[9] |= 1 << 1;
+    g.mainNotes[9] |= 1 << 4;
+    g.mainNotes[9] |= 1 << 5;
+    g.mainNotes[9] |= 1 << 7;
+    g.mainNotes[9] |= 1 << 8;
+    g.mainNotes[9] |= 1 << 10;
+
+    // Gypsy (Hungarian Minor)
+    g.mainNotes[10] |= 1 << 0;
+    g.mainNotes[10] |= 1 << 2;
+    g.mainNotes[10] |= 1 << 3;
+    g.mainNotes[10] |= 1 << 6;
+    g.mainNotes[10] |= 1 << 7;
+    g.mainNotes[10] |= 1 << 8;
+    g.mainNotes[10] |= 1 << 10;
+
+    // Arabic (Major Locrian)
+    g.mainNotes[11] |= 1 << 0;
+    g.mainNotes[11] |= 1 << 2;
+    g.mainNotes[11] |= 1 << 4;
+    g.mainNotes[11] |= 1 << 5;
+    g.mainNotes[11] |= 1 << 6;
+    g.mainNotes[11] |= 1 << 8;
+    g.mainNotes[11] |= 1 << 10;
+}
+
 void initializePresetSettings() {
   splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
     presetBlinkStart[n] = 0;
 
-    PresetSettings &p = config.preset[n];
-    GlobalSettings &g = p.global;
+    PresetSettings& p = config.preset[n];
+    GlobalSettings& g = p.global;
 
     g.splitPoint = 12;
     g.currentPerSplit = LEFT;
 
     g.rowOffset = 5;
     g.velocitySensitivity = velocityMedium;
+    g.minForVelocity = DEFAULT_MIN_VELOCITY;
+    g.maxForVelocity = DEFAULT_MAX_VELOCITY;
+    g.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
@@ -254,27 +395,13 @@ void initializePresetSettings() {
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
     g.ccForSwitch = 65;
 
-    // initialize accentNotes array. Starting with only C within each octave highlighted
-    g.accentNotes[0] = true;
-    for (byte count = 1; count < 12; ++count) {
-      g.accentNotes[count] = false;
-    }
-
-    // initialize mainNotes array (all off).
-    for (byte count = 0; count < 12; ++count) {
-      g.mainNotes[count] = false;
-    }
-    g.mainNotes[0] = true;
-    g.mainNotes[2] = true;
-    g.mainNotes[4] = true;
-    g.mainNotes[5] = true;
-    g.mainNotes[7] = true;
-    g.mainNotes[9] = true;
-    g.mainNotes[11] = true;
+    initializeNoteLights(g);
 
     g.arpDirection = ArpUp;
     g.arpTempo = ArpSixteenth;
     g.arpOctave = 0;
+
+    g.sustainBehavior = sustainHold;
 
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
@@ -292,9 +419,13 @@ void initializePresetSettings() {
         p.split[s].pitchCorrectHold = true;
         p.split[s].pitchResetOnRelease = false;
         p.split[s].expressionForY = timbreCC74;
+        p.split[s].minForY = 0;
+        p.split[s].maxForY = 127;
         p.split[s].customCCForY = 74;
         p.split[s].relativeY = false;
         p.split[s].expressionForZ = loudnessPolyPressure;
+        p.split[s].minForZ = 0;
+        p.split[s].maxForZ = 127;
         p.split[s].customCCForZ = 11;
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
@@ -316,7 +447,8 @@ void initializePresetSettings() {
 
     // initialize values that differ between the keyboard splits
     p.split[LEFT].midiChanMain = 1;
-    for (byte chan = 0; chan < 8; ++chan) {
+    p.split[LEFT].midiChanSet[0] = false;
+    for (byte chan = 1; chan < 8; ++chan) {
       p.split[LEFT].midiChanSet[chan] = true;
     }
     for (byte chan = 8; chan < 16; ++chan) {
@@ -327,13 +459,14 @@ void initializePresetSettings() {
     p.split[LEFT].colorNoteon = COLOR_RED;
     p.split[LEFT].lowRowMode = lowRowNormal;
 
-    p.split[RIGHT].midiChanMain = 2;
+    p.split[RIGHT].midiChanMain = 15;
     for (byte chan = 0; chan < 8; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = false;
     }
-    for (byte chan = 8; chan < 16; ++chan) {
+    for (byte chan = 8; chan < 15; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = true;
     }
+    p.split[RIGHT].midiChanSet[15] = false;
     p.split[RIGHT].midiChanPerRow = 9;
     p.split[RIGHT].colorMain = COLOR_BLUE;
     p.split[RIGHT].colorNoteon = COLOR_MAGENTA;
@@ -365,11 +498,14 @@ void initializePresetSettings() {
 
   // initialize runtime data
   applyPitchCorrectHold();
+  applyLimitsForY();
+  applyLimitsForZ();
+  applyLimitsForVelocity();
   for (byte s = 0; s < NUMSPLITS; ++s) {
     for (byte c = 0; c < 128; ++c) {
       ccFaderValues[s][c] = 0;
     }
-    ccFaderValues[s][6] = 63;
+    ccFaderValues[s][7] = 63;
     currentEditedCCFader[s] = 0;
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
@@ -428,8 +564,37 @@ void applyBendRange(SplitSettings& target, byte bendRange) {
   }  
 }
 
+void applyLimitsForY() {
+  for (byte sp = 0; sp < NUMSPLITS; ++sp) {
+    int32_t fxd_range = FXD_FROM_INT(Split[sp].maxForY - Split[sp].minForY);
+    fxdLimitsForYRatio[sp] = FXD_DIV(fxd_range, FXD_CONST_127);
+  }
+}
+
+void applyLimitsForZ() {
+  for (byte sp = 0; sp < NUMSPLITS; ++sp) {
+    int32_t fxd_range = FXD_FROM_INT(Split[sp].maxForZ - Split[sp].minForZ);
+    fxdLimitsForZRatio[sp] = FXD_DIV(fxd_range, FXD_CONST_127);
+  }
+}
+
+void applyLimitsForVelocity() {
+  fxdMinVelOffset = FXD_FROM_INT(Global.minForVelocity * 8);
+  int32_t fxd_maxVelOffset = FXD_CONST_1016 - FXD_FROM_INT(Global.maxForVelocity * 8);
+  fxdVelRatio = FXD_DIV(FXD_CONST_1016 - fxdMinVelOffset - fxd_maxVelOffset, FXD_CONST_1016);
+}
+
 // Called to handle press events of the 8 control buttons
 void handleControlButtonNewTouch() {
+  // if we're in the startup phase after a global reset
+  // a new press on a control button terminates the global reset state
+  // and makes sure that startup control button combination is reset
+  if (globalReset) {
+    globalReset = false;
+    cellTouched(0, 0, untouchedCell);
+    cellTouched(0, 2, untouchedCell);
+  }
+
   // only allow one control button to be pressed at the same time
   // this prevents phantom presses to occur for the control buttons
   // this is not detectable with the regular phantom press algorithm
@@ -462,8 +627,7 @@ void handleControlButtonNewTouch() {
 
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
-  switch (sensorRow)                                   // which control button is it?
-  {
+  switch (sensorRow) {                                 // which control button is it?
     case GLOBAL_SETTINGS_ROW:                          // global settings button presssed
       resetAllTouches();
       lightLed(0, 0);                                  // light the button
@@ -535,6 +699,13 @@ void handleControlButtonNewTouch() {
 
 // Called to handle release events of the 8 control buttons
 void handleControlButtonRelease() {
+  // unless we pressed a new control button, no control button releases in global reset
+  // phase will be taken into account, this is needed to allow users to release the
+  // control button startup combination without leaving calibration mode
+  if (globalReset) {
+    return;
+  }
+
   if (sensorRow != SWITCH_1_ROW &&
       sensorRow != SWITCH_2_ROW) {                                          // don't allow simultaneous control buttons except for the switches
 
@@ -547,8 +718,7 @@ void handleControlButtonRelease() {
     controlButton = -1;                                                     // keep track of which control button we're handling
   }
 
-  switch (sensorRow)
-  {
+  switch (sensorRow) {
     // Most of the buttons, when released, revert the display to normal
     // and save the global settings which may have been changed.
 
@@ -603,8 +773,7 @@ void handleControlButtonRelease() {
 
 // chan value is 1-16
 void toggleChannel(byte chan) {
-  switch (midiChannelSelect)
-  {
+  switch (midiChannelSelect) {
     case MIDICHANNEL_MAIN:
       // in MPE mode the only valid main channels are 1 and 16
       if (!Split[Global.currentPerSplit].mpe || chan == 1 || chan == 16) {
@@ -638,8 +807,7 @@ void toggleChannel(byte chan) {
 }
 
 void updateSplitMidiChannels(byte sp) {
-  switch (Split[sp].midiMode)
-  {
+  switch (Split[sp].midiMode) {
     case channelPerNote:
     {
       splitChannels[sp].clear();
@@ -701,6 +869,8 @@ boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
     Split[split].midiChanSet[c+channelOffset] = true;
   }
 
+  updateSplitMidiChannels(split);
+
   // notify that MPE is on
   midiSendMpeState(mainChannel, polyphony);
 
@@ -754,8 +924,8 @@ byte colorCycle(byte color, boolean includeBlack) {
 }
 
 boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
-  if (sensorCell().lastTouch != 0) {
-    if (calcTimeDelta(millis(), sensorCell().lastTouch) < SENSOR_HOLD_DELAY) {
+  if (sensorCell->lastTouch != 0) {
+    if (calcTimeDelta(millis(), sensorCell->lastTouch) < SENSOR_HOLD_DELAY) {
       return true;
     }
 
@@ -765,7 +935,7 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
 }
 
 boolean isCellPastHoldWait() {
-  return sensorCell().lastTouch != 0 && calcTimeDelta(millis(), sensorCell().lastTouch) > EDIT_MODE_HOLD_DELAY;
+  return sensorCell->lastTouch != 0 && calcTimeDelta(millis(), sensorCell->lastTouch) > EDIT_MODE_HOLD_DELAY;
 }
 
 void applyTimbreCC74(byte split) {
@@ -782,327 +952,470 @@ void applyTimbreCC74(byte split) {
 
 void handlePerSplitSettingNewTouch() {
   // start tracking the touch duration to be able to enable hold functionality
-  sensorCell().lastTouch = millis();
+  sensorCell->lastTouch = millis();
 
-  if (sensorCol == 1) {
-
-    // This column of 3 cells lets you select the mode of channel selection
-    if (sensorRow >= 5 && sensorRow <= 7) {
-      Split[Global.currentPerSplit].midiMode = 7 - sensorRow;    // values are 0, 1, 2
-
-      if (sensorRow != 6) {
-        setSplitMpeMode(Global.currentPerSplit, false);
+  switch (sensorCol) {
+    // MIDI mode settings
+    case 1:
+      switch (sensorRow) {
+        case 7:
+        case 6:
+        case 5:
+          Split[Global.currentPerSplit].midiMode = 7 - sensorRow;    // values are 0, 1, 2
+          if (sensorRow != 6) {
+            setSplitMpeMode(Global.currentPerSplit, false);
+          }
+          updateSplitMidiChannels(Global.currentPerSplit);
+          break;
       }
-    }
+      break;
 
-    updateSplitMidiChannels(Global.currentPerSplit);
+    // View MIDI channels
+    case 2:
+      switch (sensorRow) {
+        case MIDICHANNEL_MAIN:
+        case MIDICHANNEL_PERNOTE:
+        case MIDICHANNEL_PERROW:
+          midiChannelSelect = sensorRow;
+          break;
+      }
+      break;
 
-  }
-  else if (sensorCol == 2) {
+    // MIDI Channel configuration
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      if (sensorRow >=4 && sensorRow <= 7) {
+        // Channels in column 3 are 1,5,9,13, column 4 are 2,6,10,14, column 5 are 3,7,11,15, and column 6 are 4,8,12,16
+        byte chan = (7 - sensorRow) * 4 + sensorCol - 2;    // this value should be from 1 to 16
+        toggleChannel(chan);
+      }
+      break;
 
-    switch (sensorRow)
-    {
-      case MIDICHANNEL_MAIN:
-      case MIDICHANNEL_PERNOTE:
-      case MIDICHANNEL_PERROW:
-        midiChannelSelect = sensorRow;
-        break;
-    }
-
-  } else if (sensorCol >= 3 && sensorCol <= 6 && sensorRow >=4 && sensorRow <= 7) {
-
-    // Channels in column 3 are 1,5,9,13, column 4 are 2,6,10,14, column 5 are 3,7,11,15, and column 6 are 4,8,12,16
-    byte chan = (7 - sensorRow) * 4 + sensorCol - 2;    // this value should be from 1 to 16
-    toggleChannel(chan);
-
-  } else if (sensorCol == 7) {
-    // BendRange setting
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].bendRangeOption = bendRange2;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].bendRangeOption = bendRange3;
-    }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].bendRangeOption = bendRange12;
-    } 
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].bendRangeOption = bendRange24;
-    } 
-
-  } else if (sensorCol == 8) {
+    // Bend range settings
+    case 7:
+      switch (sensorRow) {
+        case 7:
+          Split[Global.currentPerSplit].bendRangeOption = bendRange2;
+          break;
+        case 6:
+          Split[Global.currentPerSplit].bendRangeOption = bendRange3;
+          break;
+        case 5:
+          Split[Global.currentPerSplit].bendRangeOption = bendRange12;
+          break;
+        case 4:
+          Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+          break;
+      }
+      break;
 
     // Pitch/X settings
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].pitchCorrectQuantize = !Split[Global.currentPerSplit].pitchCorrectQuantize;
-    }
-    else if ((sensorRow == 5 && cell(sensorCol, 4).touched != untouchedCell) ||
-         (sensorRow == 4 && cell(sensorCol, 5).touched != untouchedCell)) {
-      Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
-      applyPitchCorrectHold();
-    }
-    else if (sensorRow == 5) {
-      if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldMedium) {
-        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
+    case 8:
+      switch (sensorRow) {
+        case 7:
+          preSendPitchBend(Global.currentPerSplit, 0);
+          Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
+          break;
+        case 6:
+          Split[Global.currentPerSplit].pitchCorrectQuantize = !Split[Global.currentPerSplit].pitchCorrectQuantize;
+          break;
+        case 5:
+          if (cell(sensorCol, 4).touched != untouchedCell) {
+            Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
+          }
+          else {
+            if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldMedium) {
+              Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
+            }
+            else {
+              Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium;
+            }
+          }
+          applyPitchCorrectHold();
+          break;
+        case 4:
+          if (cell(sensorCol, 5).touched != untouchedCell) {
+            Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldSlow;
+          }
+          else {
+            if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldFast) {
+              Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
+            }
+            else {
+              Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast;
+            }
+          }
+          applyPitchCorrectHold();
+          break;
+        case 3:
+          Split[Global.currentPerSplit].pitchResetOnRelease = !Split[Global.currentPerSplit].pitchResetOnRelease;
+          break;
       }
-      else {
-        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldMedium;
-      }
-      applyPitchCorrectHold();
-    }
-    else if (sensorRow == 4) {
-      if (Split[Global.currentPerSplit].pitchCorrectHold == pitchCorrectHoldFast) {
-        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldOff;
-      }
-      else {
-        Split[Global.currentPerSplit].pitchCorrectHold = pitchCorrectHoldFast;
-      }
-      applyPitchCorrectHold();
-    }
-    else if (sensorRow == 3) {
-      Split[Global.currentPerSplit].pitchResetOnRelease = !Split[Global.currentPerSplit].pitchResetOnRelease;
-    }
-
-  } else if (sensorCol == 9) {
+      break;
 
     // Timbre/Y settings
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].sendY = !Split[Global.currentPerSplit].sendY;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].expressionForY = timbreCC1;
-    }
-    else if (sensorRow == 5) {
-      applyTimbreCC74(Global.currentPerSplit);
-    }
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
-    }
-
-  } else if (sensorCol == 10) {
+    case 9:
+      switch (sensorRow) {
+        case 7:
+          // handled in release
+          break;
+        case 6:
+          Split[Global.currentPerSplit].expressionForY = timbreCC1;
+          break;
+        case 5:
+          applyTimbreCC74(Global.currentPerSplit);
+          break;
+        case 4:
+          Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
+          break;
+      }
+      break;
 
     // Loudness/Z settings
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].sendZ = !Split[Global.currentPerSplit].sendZ;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessPolyPressure;
-    }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessChannelPressure;
-    }
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
-    }
-
-  } else if (sensorCol == 11) {
-
-    // Color setting
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].colorMain = colorCycle(Split[Global.currentPerSplit].colorMain, false);
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].colorAccent = colorCycle(Split[Global.currentPerSplit].colorAccent, false);
-    }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].colorNoteon = colorCycle(Split[Global.currentPerSplit].colorNoteon, true);
-    }
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
-    }
-
-  } else if (sensorCol == 12) {
-
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowNormal;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowRestrike;
-    }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowStrum;
-    }
-    else if (sensorRow == 4) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowArpeggiator;
-    }
-
-  } else if (sensorCol == 13) {
-
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowSustain;
-    }
-    else if (sensorRow == 6) {
-      Split[Global.currentPerSplit].lowRowMode = lowRowBend;
-    }
-
-  } else if (sensorCol == 14) {
-
-    if      (sensorRow == 7) {
-      Split[Global.currentPerSplit].arpeggiator = !Split[Global.currentPerSplit].arpeggiator;
-      if (Split[Global.currentPerSplit].arpeggiator) {
-        Split[Global.currentPerSplit].strum = false;
-        Split[Global.currentPerSplit].ccFaders = false;
+    case 10:
+      switch (sensorRow) {
+        case 7:
+          // handled in release
+          break;
+        case 6:
+          Split[Global.currentPerSplit].expressionForZ = loudnessPolyPressure;
+          break;
+        case 5:
+          Split[Global.currentPerSplit].expressionForZ = loudnessChannelPressure;
+          break;
+        case 4:
+          Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
+          break;
       }
-      randomSeed(analogRead(0));
-    }
-    else if (sensorRow == 5) {
-      Split[Global.currentPerSplit].strum = !Split[Global.currentPerSplit].strum;
-      if (Split[Global.currentPerSplit].strum) {
-        Split[RIGHT - Global.currentPerSplit].strum = false; // there can only be one strum split
-        Split[Global.currentPerSplit].arpeggiator = false;
-        Split[Global.currentPerSplit].ccFaders = false;
-      }
-    }
+      break;
 
+    // Color settings
+    case 11:
+      switch (sensorRow) {
+        case 7:
+          Split[Global.currentPerSplit].colorMain = colorCycle(Split[Global.currentPerSplit].colorMain, false);
+          break;
+        case 6:
+          Split[Global.currentPerSplit].colorAccent = colorCycle(Split[Global.currentPerSplit].colorAccent, false);
+          break;
+        case 5:
+          Split[Global.currentPerSplit].colorNoteon = colorCycle(Split[Global.currentPerSplit].colorNoteon, true);
+          break;
+        case 4:
+          Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
+          break;
+      }
+      break;
+
+    // Low-row settings 1/2
+    case 12:
+      switch (sensorRow) {
+        case 7:
+          Split[Global.currentPerSplit].lowRowMode = lowRowNormal;
+          break;
+        case 6:
+          Split[Global.currentPerSplit].lowRowMode = lowRowRestrike;
+          break;
+        case 5:
+          Split[Global.currentPerSplit].lowRowMode = lowRowStrum;
+          break;
+        case 4:
+          Split[Global.currentPerSplit].lowRowMode = lowRowArpeggiator;
+          break;
+      }
+      break;
+
+    // Low-row settings 2/2
+    case 13:
+      switch (sensorRow) {
+        case 7:
+          Split[Global.currentPerSplit].lowRowMode = lowRowSustain;
+          break;
+        case 6:
+          Split[Global.currentPerSplit].lowRowMode = lowRowBend;
+          break;
+        case 5:
+          // handled in release
+          break;
+        case 4:
+          // handled in release
+          break;
+      }
+      break;
+
+    // Special settings
+    case 14:
+      switch (sensorRow) {
+        case 7:
+          Split[Global.currentPerSplit].arpeggiator = !Split[Global.currentPerSplit].arpeggiator;
+          if (Split[Global.currentPerSplit].arpeggiator) {
+            Split[Global.currentPerSplit].strum = false;
+            Split[Global.currentPerSplit].ccFaders = false;
+          }
+          randomSeed(analogRead(0));
+          break;
+        case 6:
+          // handled in release
+          break;
+        case 5:
+          Split[Global.currentPerSplit].strum = !Split[Global.currentPerSplit].strum;
+          if (Split[Global.currentPerSplit].strum) {
+            Split[RIGHT - Global.currentPerSplit].strum = false; // there can only be one strum split
+            Split[Global.currentPerSplit].arpeggiator = false;
+            Split[Global.currentPerSplit].ccFaders = false;
+          }
+          break;
+      }
+      break;
   }
 
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (displayMode == displayPerSplit) {
-    if (sensorCol == 1  && sensorRow == 6) {
-      setLed(sensorCol, sensorRow, getMpeColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 7 && sensorRow == 4) {
-      setLed(sensorCol, sensorRow, getBendRangeColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 9 && sensorRow == 5) {
-      setLed(sensorCol, sensorRow, getCCForYColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 10 && sensorRow == 4) {
-      setLed(sensorCol, sensorRow, getCCForZColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 13 && sensorRow == 5) {
-      setLed(sensorCol, sensorRow, getLowRowCCXColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 13 && sensorRow == 4) {
-      setLed(sensorCol, sensorRow, getLowRowCCXYZColor(sensorSplit), cellSlowPulse);
-    }
-    else if (sensorCol == 14 && sensorRow == 6) {
-      setLed(sensorCol, sensorRow, getCCFadersColor(sensorSplit), cellSlowPulse);
-    }
+  switch (sensorCol) {
+    case 1:
+      switch (sensorRow) {
+        case 6:
+          setLed(sensorCol, sensorRow, getMpeColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 7:
+      switch (sensorRow) {
+        case 4:
+          setLed(sensorCol, sensorRow, getBendRangeColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 9:
+      switch (sensorRow) {
+        case 7:
+          setLed(sensorCol, sensorRow, getLimitsForYColor(sensorSplit), cellSlowPulse);
+          break;
+        case 5:
+          setLed(sensorCol, sensorRow, getCCForYColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 10:
+      switch (sensorRow) {
+        case 7:
+          setLed(sensorCol, sensorRow, getLimitsForZColor(sensorSplit), cellSlowPulse);
+          break;
+        case 4:
+          setLed(sensorCol, sensorRow, getCCForZColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 13:
+      switch (sensorRow) {
+        case 5:
+          setLed(sensorCol, sensorRow, getLowRowCCXColor(sensorSplit), cellSlowPulse);
+          break;
+        case 4:
+          setLed(sensorCol, sensorRow, getLowRowCCXYZColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 14:
+      switch (sensorRow) {
+        case 6:
+          setLed(sensorCol, sensorRow, getCCFadersColor(sensorSplit), cellSlowPulse);
+          break;
+      }
+      break;
   }
 }
 
 void handlePerSplitSettingHold() {
   if (isCellPastHoldWait()) {
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
-    if (sensorCol == 1 && sensorRow == 6) {
-      setSplitMpeMode(Global.currentPerSplit, true);
-      updateDisplay();
-    }
-    else if (sensorCol == 7 && sensorRow == 4) {
-      resetNumericDataChange();
-      setDisplayMode(displayBendRange);
-      updateDisplay();
-    }
-    else if (sensorCol == 9 && sensorRow == 5) {
-      resetNumericDataChange();
-      setDisplayMode(displayCCForY);
-      updateDisplay();
-    }
-    else if (sensorCol == 10 && sensorRow == 4) {
-      resetNumericDataChange();
-      setDisplayMode(displayCCForZ);
-      updateDisplay();
-    }
-    else if (sensorCol == 13 && sensorRow == 5) {
-      lowRowCCXConfigState = 1;
-      resetNumericDataChange();
-      setDisplayMode(displayLowRowCCXConfig);
-      updateDisplay();
-    }
-    else if (sensorCol == 13 && sensorRow == 4) {
-      lowRowCCXYZConfigState = 3;
-      resetNumericDataChange();
-      setDisplayMode(displayLowRowCCXYZConfig);
-      updateDisplay();
-    }
-    else if (sensorCol == 14 && sensorRow == 6) {
-      resetNumericDataChange();
-      setDisplayMode(displayCCForFader);
-      updateDisplay();
+    switch (sensorCol) {
+      case 1:
+        switch (sensorRow) {
+          case 6:
+            setSplitMpeMode(Global.currentPerSplit, true);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 7:
+        switch (sensorRow) {
+          case 4:
+            resetNumericDataChange();
+            setDisplayMode(displayBendRange);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 9:
+        switch (sensorRow) {
+          case 7:
+            resetNumericDataChange();
+            setDisplayMode(displayLimitsForY);
+            updateDisplay();
+            break;
+          case 5:
+            resetNumericDataChange();
+            setDisplayMode(displayCCForY);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 10:
+        switch (sensorRow) {
+          case 7:
+            resetNumericDataChange();
+            setDisplayMode(displayLimitsForZ);
+            updateDisplay();
+            break;
+          case 4:
+            resetNumericDataChange();
+            setDisplayMode(displayCCForZ);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 13:
+        switch (sensorRow) {
+          case 5:
+            lowRowCCXConfigState = 1;
+            resetNumericDataChange();
+            setDisplayMode(displayLowRowCCXConfig);
+            updateDisplay();
+            break;
+          case 4:
+            lowRowCCXYZConfigState = 3;
+            resetNumericDataChange();
+            setDisplayMode(displayLowRowCCXYZConfig);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 14:
+        switch (sensorRow) {
+          case 6:
+            resetNumericDataChange();
+            setDisplayMode(displayCCForFader);
+            updateDisplay();
+            break;
+        }
+        break;
     }
   }
 }
 
 void handlePerSplitSettingRelease() {
-  if (sensorCol == 1 && sensorRow == 6) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].midiMode == channelPerNote) {
-      resetDisplay = cellOn;
-    }
+  switch (sensorCol) {
+    case 1:
+      switch (sensorRow) {
+        case 6:
+          if (ensureCellBeforeHoldWait(getMpeColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].midiMode == channelPerNote ? cellOn : cellOff)) {
+            setSplitMpeMode(Global.currentPerSplit, false);
+          }
+          break;
+      }
+      break;
 
-    if (ensureCellBeforeHoldWait(getMpeColor(Global.currentPerSplit), resetDisplay)) {
-      setSplitMpeMode(Global.currentPerSplit, false);
-    }
-  }
-  else if (sensorCol == 7 && sensorRow == 4) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].bendRangeOption == bendRange24) {
-      resetDisplay = cellOn;
-    }
-    if (ensureCellBeforeHoldWait(getBendRangeColor(Global.currentPerSplit), resetDisplay)) {
-      Split[Global.currentPerSplit].bendRangeOption = bendRange24;
-    }
-  }
-  else if (sensorCol == 9 && sensorRow == 5) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].expressionForY == timbrePolyPressure ||
-        Split[Global.currentPerSplit].expressionForY == timbreChannelPressure ||
-        Split[Global.currentPerSplit].expressionForY == timbreCC74) {
-      resetDisplay = cellOn;
-    }
-    if (ensureCellBeforeHoldWait(getCCForYColor(Global.currentPerSplit), resetDisplay)) {
-      applyTimbreCC74(Global.currentPerSplit);
-    }
-  }
-  else if (sensorCol == 10 && sensorRow == 4) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].expressionForZ == loudnessCC11) {
-      resetDisplay = cellOn;
-    }
-    if (ensureCellBeforeHoldWait(getCCForZColor(Global.currentPerSplit), resetDisplay)) {
-      Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
-    }
-  }
-  else if (sensorCol == 13) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].lowRowMode == lowRowCCX && sensorRow == 5 ||
-        Split[Global.currentPerSplit].lowRowMode == lowRowCCXYZ && sensorRow == 4) {
-      resetDisplay = cellOn;
-    }
-    
-    if (sensorRow == 5) {
-      if (ensureCellBeforeHoldWait(getLowRowCCXColor(Global.currentPerSplit), resetDisplay)) {
-        Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
+    case 7:
+      switch (sensorRow) {
+        case 4:
+          if (ensureCellBeforeHoldWait(getBendRangeColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].bendRangeOption == bendRange24 ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+          }
+          break;
       }
-    }
-    else if (sensorRow == 4) {
-      if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(Global.currentPerSplit), resetDisplay)) {
-        Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
+      break;
+
+    case 9:
+      switch (sensorRow) {
+        case 7:
+          if (ensureCellBeforeHoldWait(getLimitsForYColor(Global.currentPerSplit),
+                                      Split[Global.currentPerSplit].sendY ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].sendY = !Split[Global.currentPerSplit].sendY;
+          }
+          break;
+        case 5: {
+          CellDisplay resetDisplay = cellOff;
+          if (Split[Global.currentPerSplit].expressionForY == timbrePolyPressure ||
+              Split[Global.currentPerSplit].expressionForY == timbreChannelPressure ||
+              Split[Global.currentPerSplit].expressionForY == timbreCC74) {
+            resetDisplay = cellOn;
+          }
+          if (ensureCellBeforeHoldWait(getCCForYColor(Global.currentPerSplit), resetDisplay)) {
+            applyTimbreCC74(Global.currentPerSplit);
+          }
+          break;
+        }
       }
-    }
-  }
-  else if (sensorCol == 14 && sensorRow == 6) {
-    CellDisplay resetDisplay = cellOff;
-    if (Split[Global.currentPerSplit].ccFaders) {
-      resetDisplay = cellOn;
-    }
-    if (ensureCellBeforeHoldWait(getCCFadersColor(Global.currentPerSplit), resetDisplay)) {
-      Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
-      if (Split[Global.currentPerSplit].ccFaders) {
-        Split[Global.currentPerSplit].arpeggiator = false;
-        Split[Global.currentPerSplit].strum = false;
+      break;
+
+    case 10:
+      switch (sensorRow) {
+        case 7:
+          if (ensureCellBeforeHoldWait(getLimitsForZColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].sendZ ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].sendZ = !Split[Global.currentPerSplit].sendZ;
+          }
+          break;
+        case 4:
+          if (ensureCellBeforeHoldWait(getCCForZColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].expressionForZ == loudnessCC11 ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
+          }
+          break;
       }
-    }
+      break;
+
+    case 13:
+      switch (sensorRow) {
+        case 5:
+          if (ensureCellBeforeHoldWait(getLowRowCCXColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].expressionForZ == lowRowCCX ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
+          }
+          break;
+        case 4:
+          if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].expressionForZ == lowRowCCXYZ ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
+          }
+          break;
+      }
+      break;
+
+    case 14:
+      switch (sensorRow) {
+        case 6:
+          if (ensureCellBeforeHoldWait(getCCFadersColor(Global.currentPerSplit),
+                                       Split[Global.currentPerSplit].ccFaders ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].ccFaders = !Split[Global.currentPerSplit].ccFaders;
+            if (Split[Global.currentPerSplit].ccFaders) {
+              Split[Global.currentPerSplit].arpeggiator = false;
+              Split[Global.currentPerSplit].strum = false;
+            }
+          }
+          break;
+      }
+      break;
   }
 
-  sensorCell().lastTouch = 0;
+  sensorCell->lastTouch = 0;
 
   handleShowSplit();
 
@@ -1127,8 +1440,19 @@ boolean handleShowSplit() {
     }
 
     if (hit && !doublePerSplit) {
-      Global.currentPerSplit = newSplit;
-      focusedSplit = newSplit;
+      // if we're in sub-menus of the per-split settings and the active split cell is tapped again
+      // it goes back to the main per-split settings menu
+      if (Global.currentPerSplit == newSplit) {
+        if (displayMode != displayVolume && displayMode != displayOctaveTranspose) {
+          setDisplayMode(displayPerSplit);
+        }
+      }
+      // otherwise switch the split for the currently active panel
+      else {
+        Global.currentPerSplit = newSplit;
+        focusedSplit = newSplit;
+      }
+      resetNumericDataChange();
       updateDisplay();
     }
   }
@@ -1137,6 +1461,14 @@ boolean handleShowSplit() {
 }
 
 void handlePresetNewTouch() {
+  if ((sensorCol == 1 && sensorRow == 7 && midiPreset[Global.currentPerSplit] < 127) ||
+      (sensorCol == 1 && sensorRow == 6 && midiPreset[Global.currentPerSplit] > 0)) {
+    midiPreset[Global.currentPerSplit] += (sensorRow == 7 ? 1 : -1);
+    lastControlPress[PRESET_ROW] = millis() - SWITCH_HOLD_DELAY;
+    applyMidiPreset();
+    updateDisplay();
+  }
+
   // don't change presets on the row that has the split selection
   if (sensorRow == 7) {
     return;
@@ -1145,7 +1477,7 @@ void handlePresetNewTouch() {
   if (sensorCol >= NUMCOLS-2) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
-      sensorCell().lastTouch = millis();
+      sensorCell->lastTouch = millis();
       // indicate that a hold operation is being waited for
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
@@ -1174,7 +1506,7 @@ void handlePresetHold() {
     // store to the selected preset
     byte preset = sensorRow-2;
     storeSettingsToPreset(preset);
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
     saveSettings();
     updateDisplay();
@@ -1202,7 +1534,7 @@ void handlePresetRelease() {
 
       // load the selected preset
       applyPresetSettings(config.preset[preset]);
-      sensorCell().lastTouch = 0;
+      sensorCell->lastTouch = 0;
 
       saveSettings();
       updateDisplay();
@@ -1217,6 +1549,24 @@ void handleBendRangeNewTouch() {
 
 void handleBendRangeRelease() {
   handleNumericDataReleaseCol(true);
+}
+
+void handleLimitsForYNewTouch() {
+  switch (limitsForYConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForY, 0, 127, false);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForY, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForYConfigState, 0, 1);
+}
+
+void handleLimitsForYRelease() {
+  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
+  applyLimitsForY();
 }
 
 void handleCCForYNewTouch() {
@@ -1238,6 +1588,24 @@ void applyCustomCCForY(byte split) {
 
 void handleCCForYRelease() {
   handleNumericDataReleaseCol(true);
+}
+
+void handleLimitsForZNewTouch() {
+  switch (limitsForZConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForZ, 0, 127, false);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForZ, 0, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForZConfigState, 0, 1);
+}
+
+void handleLimitsForZRelease() {
+  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseRow(true);
+  applyLimitsForZ();
 }
 
 void handleCCForZNewTouch() {
@@ -1268,7 +1636,7 @@ void handleCCForFaderRelease() {
 void handleLowRowCCXConfigNewTouch() {
   switch (lowRowCCXConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, false);
       break;
     case 0:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 127, false);
@@ -1285,16 +1653,16 @@ void handleLowRowCCXConfigRelease() {
 void handleLowRowCCXYZConfigNewTouch() {
   switch (lowRowCCXYZConfigState) {
     case 3:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, true);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, false);
       break;
     case 2:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 127, false);
       break;
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 127, false);
       break;
     case 0:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 99, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 127, false);
       break;
   }
   handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3);
@@ -1310,11 +1678,46 @@ void handleCCForSwitchConfigNewTouch() {
 }
 
 void handleCCForSwitchConfigRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
+}
+
+void handleLimitsForVelocityNewTouch() {
+  switch (limitsForVelocityConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Global.minForVelocity, 1, 127, false);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Global.maxForVelocity, 1, 127, false);
+      break;
+  }
+  handleNumericDataNewTouchRow(limitsForVelocityConfigState, 0, 1);
+}
+
+void handleLimitsForVelocityRelease() {
+  handleNumericDataReleaseCol(false);
+  handleNumericDataReleaseRow(false);
+  applyLimitsForVelocity();
+}
+
+void handleValueForFixedVelocityNewTouch() {
+  handleNumericDataNewTouchCol(Global.valueForFixedVelocity, 1, 127, false);
+}
+
+void handleValueForFixedVelocityRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
+void handleMinUSBMIDIIntervalNewTouch() {
+  handleNumericDataNewTouchCol(Device.minUSBMIDIInterval, 0, 512, false);
+}
+
+void handleMinUSBMIDIIntervalRelease() {
+  handleNumericDataReleaseCol(false);
+  applyMidiInterval();
 }
 
 void handleSensorLoZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorLoZ, max(0, Device.sensorFeatherZ), 1024, false);
+  handleNumericDataNewTouchCol(Device.sensorLoZ, max(100, Device.sensorFeatherZ), 1024, false);
 }
 
 void handleSensorLoZRelease() {
@@ -1322,7 +1725,7 @@ void handleSensorLoZRelease() {
 }
 
 void handleSensorFeatherZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 0, min(1024, Device.sensorLoZ), false);
+  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 65, min(1024, Device.sensorLoZ), false);
 }
 
 void handleSensorFeatherZRelease() {
@@ -1343,21 +1746,61 @@ void handleVolumeNewTouch(boolean newVelocity) {
     return;
   }
 
-  short value = calculateFaderValue(sensorCell().calibratedX(), 1, 24);
-  if (value >= 0) {
-    short previous = ccFaderValues[Global.currentPerSplit][6];
-    ccFaderValues[Global.currentPerSplit][6] = value;
+  if (sensorCell->velocity) {
+    // if a touch is already down, only consider new touches from the same row
+    // this allows the volume slider to be used anywhere on the surface and
+    // for it to be 'played' with multiple touches on the same row without
+    // interference from other rows
+    if (cellsTouched) {
+      for (int r = 0; r < NUMROWS; ++r) {
+        if (r != sensorRow && (colsInRowsTouched[r] & ~(1 << sensorCol)) != 0) {
+          cellTouched(ignoredCell);
+          return;
+        }
+      }
+    }
 
-    byte chan = Split[Global.currentPerSplit].midiChanMain;
-    midiSendVolume(value, chan);     // Send the MIDI volume controller message
-    if (previous != value) {
-      paintVolumeDisplayRow(sensorSplit);
+    // if a new touch happens on the same row that is further down the row, make it
+    // take over the touch
+    if (newVelocity) {
+      for (byte col = NUMCOLS - 1; col >= 1; --col) {
+        if (col != sensorCol && cell(col, sensorRow).velocity) {
+          transferFromSameRowCell(col);
+          return;
+        }
+      }
+    }
+
+    short value = calculateFaderValue(sensorCell->calibratedX(), 1, 24);
+
+    if (value >= 0) {
+      short previous = ccFaderValues[Global.currentPerSplit][7];
+      ccFaderValues[Global.currentPerSplit][7] = value;
+
+      byte chan = Split[Global.currentPerSplit].midiChanMain;
+      midiSendVolume(value, chan);     // Send the MIDI volume controller message
+      if (previous != value) {
+        paintVolumeDisplayRow(Global.currentPerSplit);
+      }
     }
   }
 }
 
 void handleVolumeRelease() {
-  handleShowSplit();  // see if one of the "Show Split" cells have been hit
+  // see if one of the "Show Split" cells have been hit
+  if (handleShowSplit()) {
+    return;
+  }
+
+  // if another touch is already down on the same row, make it take over the
+  if (sensorCell->velocity) {
+    for (byte col = NUMCOLS - 1; col >= 1; --col) {
+      if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {
+        transferToSameRowCell(col);
+        break;
+      }
+    }
+  }
 }
 
 void handleOctaveTransposeNewTouch() {
@@ -1381,8 +1824,7 @@ void handleOctaveTransposeNewTouch() {
 
 void handleOctaveTransposeNewTouchSplit(byte side) {
   if (sensorRow == OCTAVE_ROW) {
-    switch (sensorCol)
-    {
+    switch (sensorCol) {
       case 3: Split[side].transposeOctave = -60; break;
       case 4: Split[side].transposeOctave = -48; break;
       case 5: Split[side].transposeOctave = -36; break;
@@ -1419,13 +1861,21 @@ void handleSplitPointNewTouch() {
 }
 
 // This manages the toggling of the note light cells (columns 2-4 and rows 0-3)
-void toggleNoteLights(boolean* notelights) {
+void toggleNoteLights(int& notelights) {
   if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
     return;
   }
 
   byte light = sensorCol-2 + (sensorRow*3);
-  notelights[light] = !notelights[light];
+  notelights ^= 1 << light;
+}
+
+void setActiveNoteLights() {
+  if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
+    return;
+  }
+
+  Global.activeNotes = sensorCol-2 + (sensorRow*3);
 }
 
 boolean isArpeggiatorTempoTriplet() {
@@ -1478,15 +1928,9 @@ void changeUserFirmwareMode(boolean active) {
   userFirmwareActive = active;
 
   initializeLedsLayer(LED_LAYER_CUSTOM2);
-  clearDisplay();
-  clearSwitches();
+  clearFullDisplay();
 
-  if (Device.operatingLowPower) {
-    midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
-  }
-  else {
-    midiDecimateRate = 0;
-  }
+  applyMidiDecimationRate();
 
   if (active) {
     for (byte r = 0; r < NUMROWS; ++r) {
@@ -1512,7 +1956,7 @@ void handleGlobalSettingNewTouch() {
 
 #ifdef DEBUG_ENABLED
   // Column 17 is for controlling debug levels
-  if (sensorCol == 17 && sensorRow < 4) {
+  if (sensorCol == 17 && sensorRow < 5) {
     debugLevel = sensorRow - 1;
     DEBUGPRINT((-1,"debugLevel = "));
     DEBUGPRINT((-1,debugLevel));
@@ -1532,111 +1976,51 @@ void handleGlobalSettingNewTouch() {
 #endif
 
   // start tracking the touch duration to be able to enable hold functionality
-  sensorCell().lastTouch = millis();
+  sensorCell->lastTouch = millis();
 
   // select the Velocity Sensitivity
-  if (sensorCol == 10) {
-    // Note: this assumes the VelocitySensitivity values exactly match the sensor rows
-    switch (sensorRow) {
-    case velocityLow:
-    case velocityMedium:
-    case velocityHigh:
-    case velocityFixed:
-      Global.velocitySensitivity = VelocitySensitivity(sensorRow);
-    }
-  }
-
-  // select the Pressure Sensitivity and behaviour
-  if (sensorCol == 11) {
-    switch (sensorRow)
-    {
-      // Note: this assumes the PressureSensitivity values exactly match the sensor rows
-      case pressureLow:
-      case pressureMedium:
-      case pressureHigh:
-        Global.pressureSensitivity = PressureSensitivity(sensorRow);
-        break;
-      case 3:
-        Global.pressureAftertouch = !Global.pressureAftertouch;
-    }
-  }
-
-  // select the MIDI I/O
-  if (sensorCol == 15) {
-    if (sensorRow == 0 ) {
-      changeMidiIO(1);
-    }
-    else if (sensorRow == 1) {
-      changeMidiIO(0);
-    }
-    else if (sensorRow == 3) {
-      Device.operatingLowPower = !Device.operatingLowPower;
-      applyLowPowerMode();
-    }
-  }
-
-  if (sensorCol == 16) {
-    if (sensorRow == 1) {
-      setDisplayMode(displayOsVersion);
-    }
-    // reset feature
-    else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
-              (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
-      if (displayMode != displayReset) {
-        reset();
-        setDisplayMode(displayReset);
-      }
-    }
-    else if (sensorRow == 3) {
-      setDisplayMode(displayCalibration);
-      initializeCalibrationSamples();
-    }
-  }
-
-  if (sensorCol == 25) {
-    if      (sensorRow == 0) {
-      resetNumericDataChange();
-      setDisplayMode(displaySensorLoZ);
-    }
-    else if (sensorRow == 1) {
-      resetNumericDataChange();
-      setDisplayMode(displaySensorFeatherZ);
-    }
-    else if (sensorRow == 2) {
-      resetNumericDataChange();
-      setDisplayMode(displaySensorRangeZ);
-    }
-  }
-
-  if (!userFirmwareActive) {
-
-    // handle tempo change
-    if (sensorRow >= 4 && sensorRow != 7) {
-      handleTempoNewTouch();
-    }
-
-    // select Scale Notes or Accent Notes
-    if (sensorCol == 1) {
-      switch (sensorRow)
-      {
-        case LIGHTS_MAIN:
-        case LIGHTS_ACCENT:
-          lightSettings = sensorRow;
+  switch (sensorCol) {
+    case 10:
+      // Note: this assumes the VelocitySensitivity values exactly match the sensor rows
+      switch (sensorRow) {
+        case velocityLow:
+        case velocityMedium:
+        case velocityHigh:
+        case velocityFixed:
+          Global.velocitySensitivity = VelocitySensitivity(sensorRow);
           break;
       }
-    }
+      break;
 
-    if (sensorCol >= 2 && sensorCol <= 4 && sensorRow >= 0 && sensorRow <= 3) {
-      // select individual scale notes or accent notes
-      switch (lightSettings)
-      {
-        case LIGHTS_MAIN:
-          toggleNoteLights(Global.mainNotes);
+    // select the Pressure Sensitivity and behaviour
+    case 11:
+      switch (sensorRow) {
+        // Note: this assumes the PressureSensitivity values exactly match the sensor rows
+        case pressureLow:
+        case pressureMedium:
+        case pressureHigh:
+          Global.pressureSensitivity = PressureSensitivity(sensorRow);
           break;
-        case LIGHTS_ACCENT:
-          toggleNoteLights(Global.accentNotes);
+        case 3:
+          Global.pressureAftertouch = !Global.pressureAftertouch;
+      }
+      break;
+
+    // select the MIDI I/O
+    case 15:
+      switch (sensorRow) {
+        case 0:
+          changeMidiIO(1);
+          break;
+        case 1:
+          changeMidiIO(0);
+          break;
+        case 3:
+          Device.operatingLowPower = !Device.operatingLowPower;
+          applyLowPowerMode();
           break;
       }
+<<<<<<< HEAD
     }
 
     // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
@@ -1699,121 +2083,384 @@ void handleGlobalSettingNewTouch() {
     else if (sensorCol == 9 && sensorRow == 0) {
       Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
     }
+=======
+      break;
+>>>>>>> rogerlinndesign/master
 
-    // select the Arpeggiator settings
-    if (sensorCol == 12) {
-      if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
-          (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
-        Global.arpDirection = ArpUpDown;
+    case 16:
+      if (sensorRow == 1) {
+        setDisplayMode(displayOsVersion);
       }
-      else if (sensorRow == 0) {
-        Global.arpDirection = ArpDown;
-      }
-      else if (sensorRow == 1) {
-        Global.arpDirection = ArpUp;
-      }
-      else if (sensorRow == 2) {
-        Global.arpDirection = ArpRandom;
+      // reset feature
+      else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
+                (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
+        if (displayMode != displayReset) {
+          reset();
+          clearDisplay();
+          setDisplayMode(displayReset);
+        }
       }
       else if (sensorRow == 3) {
-        Global.arpDirection = ArpReplayAll;
+        setDisplayMode(displayCalibration);
+        initializeCalibrationSamples();
       }
+      break;
+
+    case 25:
+      switch (sensorRow) {
+        case 0:
+          resetNumericDataChange();
+          setDisplayMode(displaySensorLoZ);
+          break;
+        case 1:
+          resetNumericDataChange();
+          setDisplayMode(displaySensorFeatherZ);
+          break;
+        case 2:
+          resetNumericDataChange();
+          setDisplayMode(displaySensorRangeZ);
+          break;
+      }
+
+      break;
+  }
+
+  if (!userFirmwareActive) {
+
+    // handle tempo change
+    if (sensorRow >= 4 && sensorRow != 7) {
+      handleTempoNewTouch();
     }
 
-    if (sensorCol == 13) {
-      if ((sensorRow == 1 && cell(sensorCol, 0).touched != untouchedCell) ||
-           (sensorRow == 0 && cell(sensorCol, 1).touched != untouchedCell)) {
-        Global.arpTempo = ArpSixteenthSwing;
-      }
-      else if (sensorRow == 0) {
-        if (isArpeggiatorTempoTriplet()) {
-          Global.arpTempo = ArpEighthTriplet;
-        }
-        else {
-          Global.arpTempo = ArpEighth;
-        }
-      }
-      else if (sensorRow == 1) {
-        if (isArpeggiatorTempoTriplet()) {
-          Global.arpTempo = ArpSixteenthTriplet;
-        }
-        else {
-          Global.arpTempo = ArpSixteenth;
-        }
-      }
-      else if (sensorRow == 2) {
-        if (isArpeggiatorTempoTriplet()) {
-          Global.arpTempo = ArpThirtysecondTriplet;
-        }
-        else {
-          Global.arpTempo = ArpThirtysecond;
-        }
-      }
-      else if (sensorRow == 3) {
-        switch (Global.arpTempo) {
-          case ArpEighth:
-            Global.arpTempo = ArpEighthTriplet;
+    // select Scale Notes or Accent Notes
+    switch (sensorCol) {
+      case 1:
+        switch (sensorRow) {
+          case LIGHTS_MAIN:
+          case LIGHTS_ACCENT:
+          case LIGHTS_ACTIVE:
+            lightSettings = sensorRow;
             break;
-          case ArpEighthTriplet:
-            Global.arpTempo = ArpEighth;
-            break;
-          case ArpSixteenth:
-            Global.arpTempo = ArpSixteenthTriplet;
-            break;
-          case ArpSixteenthTriplet:
-            Global.arpTempo = ArpSixteenth;
-            break;
-          case ArpThirtysecond:
-            Global.arpTempo = ArpThirtysecondTriplet;
-            break;
-          case ArpThirtysecondTriplet:
-            Global.arpTempo = ArpThirtysecond;
+          // toggle left handed mode
+          case 3:
+            Device.leftHanded = !Device.leftHanded;
             break;
         }
-      }
-    }
+        break;
 
-    if (sensorCol == 14) {
-      if (sensorRow == 0) {
-        if (Global.arpOctave == 1) {
-          Global.arpOctave = 0;
+      case 2:
+      case 3:
+      case 4:
+        if (sensorRow >= 0 && sensorRow <= 3) {
+          // select individual scale notes or accent notes
+          switch (lightSettings) {
+            case LIGHTS_MAIN:
+              toggleNoteLights(Global.mainNotes[Global.activeNotes]);
+              break;
+            case LIGHTS_ACCENT:
+              toggleNoteLights(Global.accentNotes[Global.activeNotes]);
+              break;
+            case LIGHTS_ACTIVE:
+              setActiveNoteLights();
+          }
         }
-        else {
-          Global.arpOctave = 1;
-        }
-      }
-      else if (sensorRow == 1) {
-        if (Global.arpOctave == 2) {
-          Global.arpOctave = 0;
-        }
-        else {
-          Global.arpOctave = 2;
-        }
-      }
-      else if (sensorRow == 3) {
-        if (!isMidiClockRunning()) {
-          lightLed(14, 3);
+        break;
 
-          tapTempoPress();
-          setDisplayMode(displayGlobalWithTempo);
-
-          delayUsec(100000);
-
-          clearLed(14, 3);
+      // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
+      case 5:
+        switch (sensorRow) {
+          case 0:
+            if (Global.rowOffset == 3) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 3;
+            }
+            break;
+          case 1:
+            if (Global.rowOffset == 5) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 5;
+            }
+            break;
+          case 2:
+            if (Global.rowOffset == 7) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 7;
+            }
+            break;
+          case 3:
+            if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = ROWOFFSET_NOOVERLAP;
+            }
+            break;
         }
-      }
+        break;
+
+      // select more row offsets
+      case 6:
+        switch (sensorRow) {
+          case 0:
+            if (Global.rowOffset == 4) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 4;
+            }
+            break;
+          case 1:
+            if (Global.rowOffset == 6) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 6;
+            }
+            break;
+          case 2:
+            if (Global.rowOffset == 12) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 12;      // octave
+            }
+            break;
+          case 3:
+            if (Global.rowOffset == 13) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = 13;      // guitar
+            }
+            break;
+        }
+        break;
+
+      case 7:
+        // select which switch is being controlled/displayed
+        if (sensorRow < 4) {
+          switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
+        }
+        break;
+
+      // set the switch targets
+      case 8:
+        switch (sensorRow) {
+          case 0:
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
+            break;
+          case 1:
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
+            break;
+          case 2:
+            if (cell(9, sensorRow).touched != untouchedCell) {
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+            }
+            else {
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
+            }
+            break;
+          case 3:
+            // toggle whether the switches operate on both splits or not
+            Global.switchBothSplits[switchSelect] = !Global.switchBothSplits[switchSelect];
+            break;
+        }
+        break;
+
+      case 9:
+        switch (sensorRow) {
+          case 0:
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
+            break;
+          case 1:
+            // handled at release
+            break;
+          case 2:
+            if (cell(8, sensorRow).touched != untouchedCell) {
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+            }
+            else {
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
+            }
+            break;
+        }
+        break;
+
+      case 12:
+        switch (sensorRow) {
+          case 0:
+            if (cell(sensorCol, 1).touched != untouchedCell) {
+              Global.arpDirection = ArpUpDown;
+            }
+            else {
+              Global.arpDirection = ArpDown;
+            }
+            break;
+          case 1:
+            if (cell(sensorCol, 0).touched != untouchedCell) {
+              Global.arpDirection = ArpUpDown;
+            }
+            else {
+              Global.arpDirection = ArpUp;
+            }
+            break;
+          case 2:
+            Global.arpDirection = ArpRandom;
+            break;
+          case 3:
+            Global.arpDirection = ArpReplayAll;
+            break;
+        }
+        break;
+
+      case 13:
+        switch (sensorRow) {
+          case 0:
+            if (cell(sensorCol, 1).touched != untouchedCell) {
+              Global.arpTempo = ArpSixteenthSwing;
+            }
+            else {
+              if (isArpeggiatorTempoTriplet()) {
+                Global.arpTempo = ArpEighthTriplet;
+              }
+              else {
+                Global.arpTempo = ArpEighth;
+              }
+            }
+            break;
+          case 1:
+            if (cell(sensorCol, 0).touched != untouchedCell) {
+              Global.arpTempo = ArpSixteenthSwing;
+            }
+            else {
+              if (isArpeggiatorTempoTriplet()) {
+                Global.arpTempo = ArpSixteenthTriplet;
+              }
+              else {
+                Global.arpTempo = ArpSixteenth;
+              }
+            }
+            break;
+          case 2:
+            if (isArpeggiatorTempoTriplet()) {
+              Global.arpTempo = ArpThirtysecondTriplet;
+            }
+            else {
+              Global.arpTempo = ArpThirtysecond;
+            }
+            break;
+          case 3:
+            switch (Global.arpTempo) {
+              case ArpEighth:
+                Global.arpTempo = ArpEighthTriplet;
+                break;
+              case ArpEighthTriplet:
+                Global.arpTempo = ArpEighth;
+                break;
+              case ArpSixteenth:
+                Global.arpTempo = ArpSixteenthTriplet;
+                break;
+              case ArpSixteenthTriplet:
+                Global.arpTempo = ArpSixteenth;
+                break;
+              case ArpThirtysecond:
+                Global.arpTempo = ArpThirtysecondTriplet;
+                break;
+              case ArpThirtysecondTriplet:
+                Global.arpTempo = ArpThirtysecond;
+                break;
+            }
+            break;
+        }
+        break;
+
+      case 14:
+        switch (sensorRow) {
+          case 0:
+            if (Global.arpOctave == 1) {
+              Global.arpOctave = 0;
+            }
+            else {
+              Global.arpOctave = 1;
+            }
+            break;
+          case 1:
+            if (Global.arpOctave == 2) {
+              Global.arpOctave = 0;
+            }
+            else {
+              Global.arpOctave = 2;
+            }
+            break;
+          case 3:
+            if (!isMidiClockRunning()) {
+              lightLed(14, 3);
+
+              tapTempoPress();
+              setDisplayMode(displayGlobalWithTempo);
+
+              delayUsec(100000);
+
+              clearLed(14, 3);
+            }
+            break;
+        }
+        break;
     }
   }
 
   updateDisplay();
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
-  if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
-    if (sensorCol == 9  && sensorRow == 1 ||
-        sensorCol <= 16 && sensorRow == 7 ||
-        sensorCol == 16 && sensorRow == 2) {
-      setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
-    }
+  switch (sensorCol) {
+    case 9:
+      switch (sensorRow) {
+        case 1:
+          setLed(sensorCol, sensorRow, getSwitchCC65Color(), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 10:
+      switch (sensorRow) {
+        case 0:
+        case 1:
+        case 2:
+          setLed(sensorCol, sensorRow, getVelocityColor(), cellSlowPulse);
+          break;
+        case 3:
+          setLed(sensorCol, sensorRow, getFixedVelocityColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 15:
+      switch (sensorRow) {
+        case 0:
+          setLed(sensorCol, sensorRow, getMIDIUSBColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
+    case 16:
+      switch (sensorRow) {
+        case 2:
+          if (displayMode != displayReset) {
+            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+          }
+          break;
+      }
+      break;
+  }
+
+  if (sensorRow == 7 && sensorCol <= 16) {
+    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
   }
 }
 
@@ -1830,23 +2477,60 @@ void changeMidiIO(byte where) {
 void handleGlobalSettingHold() {
 
   if (isCellPastHoldWait()) {
-    sensorCell().lastTouch = 0;
+    sensorCell->lastTouch = 0;
 
-    if (sensorCol == 9 && sensorRow == 1) {
-      resetNumericDataChange();
-      setDisplayMode(displayCCForSwitch);
-      updateDisplay();
+    switch (sensorCol) {
+      case 9:
+        switch (sensorRow) {
+          case 1:
+            resetNumericDataChange();
+            setDisplayMode(displayCCForSwitch);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 10:
+        switch (sensorRow) {
+          case 0:
+          case 1:
+          case 2:
+            resetNumericDataChange();
+            setDisplayMode(displayLimitsForVelocity);
+            updateDisplay();
+            break;
+          case 3:
+            resetNumericDataChange();
+            setDisplayMode(displayValueForFixedVelocity);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 15:
+        switch (sensorRow) {
+          case 0:
+            resetNumericDataChange();
+            setDisplayMode(displayMinUSBMIDIInterval);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 16:
+        switch (sensorRow) {
+          // handle switch to/from User Firmware Mode
+          case 2:
+            // ensure that this is not a reset operation instead
+            if (cell(16, 0).touched == untouchedCell) {
+              changeUserFirmwareMode(!userFirmwareActive);
+            }
+            break;
+        }
+        break;
     }
 
-    // handle switch to/from User Firmware Mode
-    if (sensorCol == 16 && sensorRow == 2 &&
-      // ensure that this is not a reset operation instead
-      cell(16, 0).touched == untouchedCell) {
-      changeUserFirmwareMode(!userFirmwareActive);
-    }
-
-    if (sensorRow == 7) {
-
+    if (sensorRow == 7 && sensorCol <= 16) {
       // initialize the touch-slide interface
       resetNumericDataChange();
 
@@ -1884,7 +2568,12 @@ void handleGlobalSettingRelease() {
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
       else if (sensorCol == 25) {
-        playPromoAnimation();
+        Device.promoAnimation = !Device.promoAnimation;
+        storeSettings();
+
+        if (Device.promoAnimation) {
+          playPromoAnimation();
+        }
       }
     }
   }
@@ -1931,7 +2620,7 @@ void handleGlobalSettingRelease() {
     }
   }
 
-  sensorCell().lastTouch = 0;
+  sensorCell->lastTouch = 0;
 
   updateDisplay();
 }
