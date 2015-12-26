@@ -8,7 +8,7 @@ These functions handle the changing of any of LinnStrument's panel settings.
 
 // These messages correspond to the scrolling texts that will be displayed by default when pressing
 // the top-most row in global settings. Only the first 30 characters will be used.
-char* defaultAudienceMessages[16] = {
+const char* defaultAudienceMessages[16] = {
   "LINNSTRUMENT",
   "APPLAUSE",
   "HA HA HA",

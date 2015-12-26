@@ -821,7 +821,7 @@ void paintSplitNumericDataDisplay(byte side, unsigned short value, byte offset, 
 
 void paintNumericDataDisplay(byte color, unsigned short value, byte offset, boolean condensed) {
   char str[10];
-  char* format;
+  const char* format;
   byte pos;
 
   if (value < 100) {
@@ -1214,7 +1214,7 @@ void paintGlobalSettingsDisplay() {
   if (displayMode == displayGlobalWithTempo) {
     byte color = Split[LEFT].colorMain;
     char str[4];
-    char* format = "%3d";
+    const char* format = "%3d";
     snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
     tinyfont_draw_string(0, 4, str, color);
   }
