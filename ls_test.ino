@@ -7,13 +7,13 @@ Assorted debug functions.
 **************************************************************************************************/
 
 
-void debugPrint(int level, char* msg) {
+void debugPrint(int level, const char* msg) {
   if (Device.serialMode && (debugLevel >= level)) {
     Serial.print(msg);
   }
 }
 
-void debugPrintln(int level, char* msg) {
+void debugPrintln(int level, const char* msg) {
   if (Device.serialMode && (debugLevel >= level)) {
     Serial.println(msg);
   }
