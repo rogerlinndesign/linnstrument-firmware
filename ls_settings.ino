@@ -1386,13 +1386,13 @@ void handlePerSplitSettingRelease() {
       switch (sensorRow) {
         case 5:
           if (ensureCellBeforeHoldWait(getLowRowCCXColor(Global.currentPerSplit),
-                                       Split[Global.currentPerSplit].expressionForZ == lowRowCCX ? cellOn : cellOff)) {
+                                       Split[Global.currentPerSplit].lowRowMode == lowRowCCX ? cellOn : cellOff)) {
             Split[Global.currentPerSplit].lowRowMode = lowRowCCX;
           }
           break;
         case 4:
           if (ensureCellBeforeHoldWait(getLowRowCCXYZColor(Global.currentPerSplit),
-                                       Split[Global.currentPerSplit].expressionForZ == lowRowCCXYZ ? cellOn : cellOff)) {
+                                       Split[Global.currentPerSplit].lowRowMode == lowRowCCXYZ ? cellOn : cellOff)) {
             Split[Global.currentPerSplit].lowRowMode = lowRowCCXYZ;
           }
           break;
