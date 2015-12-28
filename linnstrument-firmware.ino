@@ -809,6 +809,8 @@ unsigned long lastTouchMoment = 0;                  // last time someone touched
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
+inline void selectSensorCell(byte col, byte row, byte switchCode);
+
 void setLed(byte col, byte row, byte color, CellDisplay disp);
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer);
 void initializeNoteLights(GlobalSettings& g);

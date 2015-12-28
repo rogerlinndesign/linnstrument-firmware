@@ -160,10 +160,10 @@ inline short spiAnalogRead() {
  */
 
 
-
-inline void selectSensorCell(byte col,             // column to be addressed by analog switches
-                             byte row,             // row to be addressed by analog switches
-                             byte switchCode) {    // set analog switches to read X (0), Y (1) or Z (2)
+// col: column to be addressed by analog switches
+// row: row to be addressed by analog switches
+// switchCode: set analog switches to read X (0), Y (1) or Z (2)
+inline void selectSensorCell(byte col, byte row, byte switchCode) {
   // first set lower 5 bits of MSB to specified column
   byte msb = col;                                 // set MSB of SPI value to column
   if ((col & 16) == 0) msb = col | B00100000;     // if column address 4 is 0, set bit 5 of MSB (inverted state of bit 4) to 1
