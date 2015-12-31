@@ -44,7 +44,6 @@ void cellTouched(byte col, byte row, TouchState state) {
 
 // Re-initialize the velocity detection
 void initVelocity() {
-  sensorCell->velPreviousZ = 0;
   sensorCell->velSumY = 0;
   sensorCell->velSumXY = 0;
 

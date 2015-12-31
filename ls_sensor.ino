@@ -97,7 +97,7 @@ inline unsigned short readZ() {                       // returns the raw Z value
     if (sensorCol == 0) {
       delayUsec(READZ_DELAY_SWITCH);
     }
-    else if (rowsInColsTouched[0]) {
+    else if (rowsInColsTouched[sensorCol]) {
       delayUsec(READZ_DELAY_SENSOR);
     }
 
@@ -106,7 +106,7 @@ inline unsigned short readZ() {                       // returns the raw Z value
 
     // if there are no active touches in the column, but the raw pressure without settling time exceeds the value threshold,
     // introduce a settling time to read the proper stabilized value
-    if (rowsInColsTouched[0] == 0 && rawZ > READZ_SETTLING_PRESSURE_THRESHOLD) {
+    if (rowsInColsTouched[sensorCol] == 0 && rawZ > READZ_SETTLING_PRESSURE_THRESHOLD) {
         delayUsec(READZ_DELAY_SENSORINITIAL);
         rawZ = 4095 - spiAnalogRead();
     }

@@ -195,15 +195,14 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 /******************************************** VELOCITY *******************************************/
 
-#define VELOCITY_SAMPLES       3
-#define VELOCITY_SAMPLES_DBL   VELOCITY_SAMPLES * 2
+#define VELOCITY_SAMPLES       4
 #define VELOCITY_ZERO_POINTS   1
-#define VELOCITY_N             VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS
+#define VELOCITY_N             (VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS)
 #define VELOCITY_SUMX          10   // x1 + x2 + x3 + ... + xn
 #define VELOCITY_SUMXSQ        30   // x1^2 + x2^2 + x3^2 + ... + xn^2
-#define VELOCITY_SCALE_LOW     30
-#define VELOCITY_SCALE_MEDIUM  34
-#define VELOCITY_SCALE_HIGH    38
+#define VELOCITY_SCALE_LOW     41
+#define VELOCITY_SCALE_MEDIUM  41
+#define VELOCITY_SCALE_HIGH    41
 
 #define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
 #define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
@@ -310,7 +309,6 @@ struct TouchInfo {
   signed char octaveOffset;                  // the octave offset when the note started, since this can change during playing
   int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
-  unsigned long velPreviousZ;                // the previous value of Z for velocity calculation, allowing for the maximum of two samples to be calculated
   unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
   unsigned long velSumXY;
 };
