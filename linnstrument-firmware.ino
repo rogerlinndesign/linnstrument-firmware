@@ -713,8 +713,9 @@ const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
 const int32_t FXD_CONST_1016 = FXD_FROM_INT(1016);
 
-const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);    // 4095 / 48
-const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);    // 4095 / 24
+const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);         // 4095 / 48
+const int32_t CALX_PHANTOM_RANGE = FXD_MAKE(128);         // 4095 / 32
+const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);         // 4095 / 24
 
 const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
 

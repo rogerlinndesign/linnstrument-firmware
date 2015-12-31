@@ -98,8 +98,8 @@ boolean isReadyForSlideTransfer(byte col) {
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
   return Device.calibrated &&
-    (sensorCell->calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - CALX_FULL_UNIT) ||
-     sensorCell->calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + CALX_FULL_UNIT));
+    (sensorCell->calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - CALX_PHANTOM_RANGE) ||
+     sensorCell->calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + CALX_PHANTOM_RANGE));
 }
 
 void transferFromSameRowCell(byte col) {
@@ -193,6 +193,22 @@ void transferToSameRowCell(byte col) {
 }
 
 boolean isPhantomTouch() {
+  // when the device is calibrated we fully rely on the plausability of the X readings to determine
+  // if a touch is a phantom touch or not
+  if (Device.calibrated) {
+    if (hasImpossibleX()) {
+      sensorCell->setPhantoms(sensorCol, sensorCol, sensorRow, sensorRow);
+      return true;
+    }
+
+    return false;
+  }
+
+  // this is the legacy phantom detection algorithm that correct when we waited for a full scan before checking
+  // the phantom presses, this introduces an unacceptable delay at initial touch though
+  // we're currently leaving this code in since it does get rid of some of the phantom touches when people
+  // are somehow using the device without proper calibration in place
+
   // check if this is a potential corner of a rectangle to filter out ghost notes, this first check matches
   // any cells that have other cells on the same row and column, so it's not sufficient by itself, but it's fast
   int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(int32_t)(1 << sensorRow);
@@ -225,8 +241,7 @@ boolean isPhantomTouch() {
           // real presses and which ones are phantom presses, so we're looking for
           // the other corner that was scanned twice to determine which one has the
           // lowest pressure, this is the most likely to be the phantom press
-          if (hasImpossibleX() ||
-              (cell(touchedCol, touchedRow).isHigherPhantomPressure(sensorCell->currentRawZ) &&
+          if ((cell(touchedCol, touchedRow).isHigherPhantomPressure(sensorCell->currentRawZ) &&
                cell(sensorCol, touchedRow).isHigherPhantomPressure(sensorCell->currentRawZ) &&
                cell(touchedCol, sensorRow).isHigherPhantomPressure(sensorCell->currentRawZ))) {
 
@@ -249,14 +264,6 @@ boolean isPhantomTouch() {
       rowsInSensorColTouched &= ~(1 << touchedRow);
     }
   }
-
-  // this might be a lone touch outside of a square formation, we can detect this if calibration reference points are present
-  if (hasImpossibleX()) {
-    sensorCell->setPhantoms(sensorCol, sensorCol, sensorRow, sensorRow);
-    return true;
-  }
-
-  return false;
 }
 
 byte countTouchesInColumn() {
@@ -622,8 +629,6 @@ void handleXYZupdate() {
   boolean newVelocity = calcVelocity(sensorCell->velocityZ);
 
   // check if after a new velocity calculation, this cell is not a phantom touch
-  // we piggy-back off of the velocity calculation delay to ensure that we have at
-  // least one full scan of the surface before making comparisons against other cells
   if (newVelocity && isPhantomTouch()) {
     cellTouched(untouchedCell);
     return;
