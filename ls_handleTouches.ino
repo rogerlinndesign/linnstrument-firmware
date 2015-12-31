@@ -264,6 +264,7 @@ boolean isPhantomTouch() {
       rowsInSensorColTouched &= ~(1 << touchedRow);
     }
   }
+  return false;
 }
 
 byte countTouchesInColumn() {
