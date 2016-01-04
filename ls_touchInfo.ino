@@ -250,7 +250,7 @@ boolean calcVelocity(unsigned short z) {
           break;
       }
       int sxy = (VELOCITY_N * sensorCell->velSumXY) - VELOCITY_SUMX * sensorCell->velSumY;
-      int slope = constrain((scale * sxy) / VELOCITY_SXX, 1, 1016);
+      int slope = curve[constrain((scale * sxy) / VELOCITY_SXX, 1, 1016)];
 
       slope = FXD_TO_INT(fxdMinVelOffset + FXD_MUL(FXD_FROM_INT(slope), fxdVelRatio));
 
