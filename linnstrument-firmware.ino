@@ -868,6 +868,12 @@ boolean switchPressAtStartup(byte switchRow) {
   return false;
 }
 
+void activateSleepMode() {
+  controlButton = -1;
+  clearDisplayImmediately();
+  setDisplayMode(displaySleep);
+}
+
 void applyLowPowerMode() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {

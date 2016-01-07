@@ -373,9 +373,7 @@ boolean handleNewTouch() {
     // check if we should activate sleep mode
     if ((sensorRow == GLOBAL_SETTINGS_ROW && cell(0, PER_SPLIT_ROW).touched == touchedCell) ||
         (sensorRow == PER_SPLIT_ROW && cell(0, GLOBAL_SETTINGS_ROW).touched == touchedCell)) {
-      controlButton = -1;
-      clearDisplayImmediately();
-      setDisplayMode(displaySleep);
+      activateSleepMode();
       return false;
     }
 

@@ -2020,6 +2020,9 @@ void handleGlobalSettingNewTouch() {
         case 1:
           changeMidiIO(0);
           break;
+        case 2:
+          activateSleepMode();
+          break;
         case 3:
           if (!Device.serialMode) {
             Device.operatingLowPower = !Device.operatingLowPower;
