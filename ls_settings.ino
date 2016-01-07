@@ -459,7 +459,7 @@ void initializePresetSettings() {
     p.split[LEFT].colorNoteon = COLOR_RED;
     p.split[LEFT].lowRowMode = lowRowNormal;
 
-    p.split[RIGHT].midiChanMain = 15;
+    p.split[RIGHT].midiChanMain = 16;
     for (byte chan = 0; chan < 8; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = false;
     }
