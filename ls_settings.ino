@@ -42,6 +42,11 @@ void switchSerialMode(boolean flag) {
     clearDisplay();
     updateDisplay();
   }
+
+  if (Device.operatingLowPower) {
+    Device.operatingLowPower = false;
+    applyLowPowerMode();
+  }
   
   Device.serialMode = flag;
   applySerialMode();
@@ -2016,8 +2021,10 @@ void handleGlobalSettingNewTouch() {
           changeMidiIO(0);
           break;
         case 3:
-          Device.operatingLowPower = !Device.operatingLowPower;
-          applyLowPowerMode();
+          if (!Device.serialMode) {
+            Device.operatingLowPower = !Device.operatingLowPower;
+            applyLowPowerMode();
+          }
           break;
       }
       break;
