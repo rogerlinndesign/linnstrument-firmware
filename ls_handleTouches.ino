@@ -795,12 +795,7 @@ void handleXYZupdate() {
       }
     }
     else {
-      // if sensing Z is enabled...
-      // send different pressure update depending on midiMode
-      if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-        preSendLoudness(sensorSplit, valueZ, sensorCell->note, sensorCell->channel);
-      }
-
+      
       // if X-axis movements are enabled and it's a candidate for
       // X/Y expression based on the MIDI mode and the currently held down cells
       if (valueX != INVALID_DATA &&
@@ -877,7 +872,19 @@ void handleXYZupdate() {
 
       // send the note on if this in a newly calculated velocity
       if (newVelocity) {
+        // reset pressure to 0 before sending the note, the actually pressure value will
+        // be sent right after the note on
+        if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+          preSendLoudness(sensorSplit, 0, sensorCell->note, sensorCell->channel);
+        }
+
         sendNewNote();
+      }
+
+      // if sensing Z is enabled...
+      // send different pressure update depending on midiMode
+      if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+        preSendLoudness(sensorSplit, valueZ, sensorCell->note, sensorCell->channel);
       }
 
       // after the initial velocity, new velocity values are continuously being calculated simply based
