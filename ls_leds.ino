@@ -170,27 +170,16 @@ void completelyRefreshLeds() {
 }
 
 void clearDisplayImmediately() {
-  for (byte col = 0; col < NUMCOLS; ++col) {
-    clearColumn(col);
-
-    // turn off all LEDs in one go without waiting for the refresh cycle
-    // this is inlined as actual code since extracting this as an inlined method
-    // has a visual influence on the LED refresh rate
-    byte ledColShifted = col << 2;
-    if ((col & 16) == 0) ledColShifted |= B10000000;                // if column address 4 is 0, set bit 7
-
-    digitalWrite(37, HIGH);                                         // enable the outputs of the LED driver chips
-    SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
-    SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send blue byte
-    SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send green byte
-    SPI.transfer(SPI_LEDS, 0);                                      // send red byte
-    digitalWrite(37, LOW);                                          // disable the outputs of the LED driver chips
-  }
+  // disable the outputs of the LED driver chips
+  digitalWrite(37, HIGH);
 }
 
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.
-void refreshLedColumn(unsigned long now) {               // output: none
+void refreshLedColumn(unsigned long now) {
+  // disabling the power output from the LED driver pins early prevents power leaking into unwanted cells.
+  digitalWrite(37, HIGH);                                         // disable the outputs of the LED driver chips
+
   // keep a steady pulsating going for those leds that need it
   static unsigned long lastPulse = 0;
   static bool lastPulseOn = true;
@@ -267,14 +256,16 @@ void refreshLedColumn(unsigned long now) {               // output: none
 
     if (++ledCol >= NUMCOLS) ledCol = 0;
   }
+  else {
+    return;
+  }
 
   ledColShifted = actualCol << 2;
   if ((actualCol & 16) == 0) ledColShifted |= B10000000;          // if column address 4 is 0, set bit 7
 
-  digitalWrite(37, HIGH);                                         // enable the outputs of the LED driver chips
   SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
   SPI.transfer(SPI_LEDS, blue, SPI_CONTINUE);                     // send blue byte
   SPI.transfer(SPI_LEDS, green, SPI_CONTINUE);                    // send green byte
   SPI.transfer(SPI_LEDS, red);                                    // send red byte
-  digitalWrite(37, LOW);                                          // disable the outputs of the LED driver chips
+  digitalWrite(37, LOW);                                          // enable the outputs of the LED driver chips
 }
