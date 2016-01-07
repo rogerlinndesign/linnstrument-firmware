@@ -204,7 +204,7 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 #define VELOCITY_SCALE_MEDIUM  41
 #define VELOCITY_SCALE_HIGH    41
 
-#define DEFAULT_MIN_VELOCITY   32   // default minimum velocity value
+#define DEFAULT_MIN_VELOCITY   1    // default minimum velocity value
 #define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
 #define DEFAULT_FIXED_VELOCITY 96   // default fixed velocity value
 
