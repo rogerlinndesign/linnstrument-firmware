@@ -121,6 +121,10 @@ void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
     leds[bufferedLeds][layer][col][row] = data;
     leds[bufferedLeds][LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
   }
+
+  if (bufferedLeds == 1) {
+    performContinuousTasks(micros());
+  }
 }
 
 // light up a single LED with the default color
