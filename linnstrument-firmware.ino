@@ -947,6 +947,7 @@ void setup() {
   /*!!*/  // initialize the SPI port for setting one column of LEDs
   /*!!*/  SPI.begin(SPI_LEDS);
   /*!!*/  SPI.setDataMode(SPI_LEDS, SPI_MODE0);
+          SPI.setDataWidth(SPI_LEDS, SPI_CSR_BITS_16_BIT);
   /*!!*/  SPI.setClockDivider(SPI_LEDS, 4);                   // max clock is about 20 mHz. 4 = 21 mHz. Transferring all 4 bytes takes 1.9 uS.
   /*!!*/
   /*!!*/  // initialize the SPI port for setting analog switches in touch sensor
