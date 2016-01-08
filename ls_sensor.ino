@@ -187,6 +187,6 @@ inline void selectSensorCell(byte col, byte row, byte switchCode) {
     break;
   }
 
-  SPI.transfer(SPI_SENSOR, lsb, SPI_CONTINUE);    // to daisy-chained 595 (LSB)
-  SPI.transfer(SPI_SENSOR, msb);                  // to first 595 at MOSI (MSB, for both sensor columns and LED columns)
+  SPI.transfer16(SPI_SENSOR, (short)lsb<<8 | msb);    // to daisy-chained 595 (LSB)
+                                                      // to first 595 at MOSI (MSB, for both sensor columns and LED columns)
 }
