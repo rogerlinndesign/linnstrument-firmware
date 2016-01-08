@@ -961,6 +961,8 @@ void setup() {
   /*!!*/  SPI.setDataMode(SPI_ADC, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_ADC, 4);                    // set speed to 84/4 = 21 mHz. Max clock for ADC is 32 mHz @ 2.7-4.5v, 48mHz @ 4.5-5.5v
   /*!!*/
+          SPI.setDataWidth(SPI_ADC, SPI_CSR_BITS_16_BIT);
+
   /*!!*/  // Initialize the output enable line for the 2 LED display chips
   /*!!*/  pinMode(37, OUTPUT);
   /*!!*/  digitalWrite(37, HIGH);

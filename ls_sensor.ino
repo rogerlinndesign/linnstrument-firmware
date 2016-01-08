@@ -121,11 +121,8 @@ inline unsigned short readZ() {                       // returns the raw Z value
 // spiAnalogRead:
 // returns raw ADC output at current cell
 inline short spiAnalogRead() {
-  byte msb = SPI.transfer(SPI_ADC, 0, SPI_CONTINUE);         // read byte MSB
-  byte lsb = SPI.transfer(SPI_ADC, 0);                       // read byte LSB
+  short raw = SPI.transfer16(SPI_ADC, 0);         // read 16-bit byte pair
 
-  short raw = short(msb) << 8;             // assemble the 2 transfered bytes into an int
-  raw |= lsb;
   return raw >> 2;                         // shift the 14-bit value from bits 16-2 to bits 14-0
 }
 
