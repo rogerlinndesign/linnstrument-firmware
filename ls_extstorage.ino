@@ -483,7 +483,7 @@ void copySplitSettingsV1(void* target, void* source) {
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;
   t->midiChanPerRow = s->midiChanPerRow;
-  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
   applyBendRange(*t, s->bendRange);
   t->sendX = s->sendX;
   t->sendY = s->sendY;
@@ -561,7 +561,7 @@ void copySplitSettingsV2(void* target, void* source) {
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;
   t->midiChanPerRow = s->midiChanPerRow;
-  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
   applyBendRange(*t, s->bendRange);
   t->sendX = s->sendX;
   t->sendY = s->sendY;
@@ -827,7 +827,7 @@ void copySplitSettingsV3(void* target, void* source) {
   t->midiMode = s->midiMode;
   t->midiChanMain = s->midiChanMain;
   t->midiChanPerRow = s->midiChanPerRow;
-  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*8);
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
   t->bendRangeOption = s->bendRangeOption;
   t->customBendRange = s->customBendRange;
   t->sendX = s->sendX;
