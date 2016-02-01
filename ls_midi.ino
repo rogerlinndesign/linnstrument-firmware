@@ -1274,21 +1274,31 @@ void preSendLoudness(byte split, byte pressureValue, byte note, byte channel) {
 }
 
 void resetLastMidiPolyPressure(byte note, byte channel) {
+  note = constrain(note, 0, 127);
+  // we leave the channel starting at 1 since it serves as an offset here
+
   lastValueMidiPP[channel * note] = 0xFF;
   lastMomentMidiPP[channel * note] = 0;
 }
 
 void resetLastMidiAfterTouch(byte channel) {
+  channel = constrain(channel-1, 0, 15);
+
   lastValueMidiAT[channel] = 0xFF;
   lastMomentMidiAT[channel] = 0;
 }
 
 void resetLastMidiCC(byte controlnum, byte channel) {
+  controlnum = constrain(controlnum, 0, 127);
+  // we leave the channel starting at 1 since it serves as an offset here
+
   lastValueMidiCC[channel * controlnum] = 0xFF;
   lastMomentMidiCC[channel * controlnum] = 0;
 }
 
 void resetLastMidiPitchBend(byte channel) {
+  channel = constrain(channel-1, 0, 15);
+  
   lastValueMidiPB[channel] = 0x7FFF;
   lastMomentMidiPB[channel] = 0;
 }
@@ -1302,10 +1312,11 @@ void initializeLastMidiTracking() {
     lastMomentMidiPB[ch] = 0;
     lastMomentMidiAT[ch] = 0;
     for (byte msg = 0; msg < 128; ++msg) {
-      lastValueMidiCC[ch*msg] = 0xFF;
-      lastValueMidiPP[ch*msg] = 0xFF;
-      lastMomentMidiCC[ch*msg] = 0;
-      lastMomentMidiPP[ch*msg] = 0;
+      byte choffset = ch + 1;
+      lastValueMidiCC[choffset*msg] = 0xFF;
+      lastValueMidiPP[choffset*msg] = 0xFF;
+      lastMomentMidiCC[choffset*msg] = 0;
+      lastMomentMidiPP[choffset*msg] = 0;
     }
   }
 
@@ -1522,7 +1533,7 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
 
   unsigned long now = micros();
   // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
-  short index = controlnum * channel;
+  short index = controlnum * (channel + 1);
   if (!always && controlnum < 120 && controlnum != 64) {
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
@@ -1557,8 +1568,8 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = controlMsb * channel;
-  short indexLsb = controlLsb * channel;
+  short indexMsb = controlMsb * (channel + 1);
+  short indexLsb = controlLsb * (channel + 1);
 
   if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
   if (controlval != 0 &&
@@ -1743,7 +1754,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
-  short index = notenum * channel;
+  short index = notenum * (channel + 1);
   if (lastValueMidiPP[index] == value) return;
   if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
   lastValueMidiPP[index] = value;
