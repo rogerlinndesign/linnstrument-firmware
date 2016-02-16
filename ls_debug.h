@@ -17,7 +17,7 @@ values enable more and more debugging output. Typically, level 0 is used for thi
 currently debugging. After debugging something, either remove them or move them to higher levels.
 **************************************************************************************************/
 
-// #define DEBUG_ENABLED
+#define DEBUG_ENABLED
 
 #ifdef DEBUG_ENABLED
 

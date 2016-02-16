@@ -312,6 +312,8 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     return;
   }
 
+  bool bGuitarDisplay = ARCGUITAR;
+  
   // by default clear the cell color
   byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
@@ -327,8 +329,18 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   else {
     byte octaveNote = abs(displayedNote % 12);
 
+    if(bGuitarDisplay &&  ((col == 1) || (col == 4) || (col == 6) || (col == 8) || (col == 10) || (col == 13) || (col == 16) || (col == 18) || (col == 20) || (col == 22) || (col == 25)))
+    {
+      colour = COLOR_YELLOW;
+      cellDisplay = cellOn;
+    }
+
     // first paint all cells in split to its background color
+<<<<<<< HEAD
+    if ((!bGuitarDisplay) && (Global.mainNotes[octaveNote])) {
+=======
     if (Global.mainNotes[Global.activeNotes] & (1 << octaveNote)) {
+>>>>>>> rogerlinndesign/master
       colour = Split[split].colorMain;
       cellDisplay = cellOn;
     }
@@ -338,6 +350,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       colour = Split[split].colorAccent;
       cellDisplay = cellOn;
     }
+
 
     // if the low row is anything but normal, set it to the appropriate color
     if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
@@ -1133,8 +1146,13 @@ void paintGlobalSettingsDisplay() {
       case 13:      // guitar tuning
         lightLed(6, 3);
         break;
+<<<<<<< HEAD
+      case 14:      // ARC guitar tuning
+        lightLed(6, 4);
+=======
       case ROWOFFSET_ZERO:
         // no nothing
+>>>>>>> rogerlinndesign/master
         break;
     }
 

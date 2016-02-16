@@ -2030,7 +2030,72 @@ void handleGlobalSettingNewTouch() {
           }
           break;
       }
+<<<<<<< HEAD
+    }
+
+    // select one of 8 Row Offsets: 0 = no overlap, 1-12 = 1=12, 13 = octave, 14 = guitar
+    if      (sensorCol == 5 && sensorRow == 3) {
+      Global.rowOffset = 0;       // no overlap
+    }
+    else if (sensorCol == 5 && sensorRow == 0) {
+      Global.rowOffset = 3;
+    }
+    else if (sensorCol == 6 && sensorRow == 0) {
+      Global.rowOffset = 4;
+    }
+    else if (sensorCol == 5 && sensorRow == 1) {
+      Global.rowOffset = 5;
+    }
+    else if (sensorCol == 6 && sensorRow == 1) {
+      Global.rowOffset = 6;
+    }
+    else if (sensorCol == 5 && sensorRow == 2) {
+      Global.rowOffset = 7;
+    }
+    else if (sensorCol == 6 && sensorRow == 2) {
+      Global.rowOffset = 12;      // octave
+    }
+    else if (sensorCol == 6 && sensorRow == 3) {
+      Global.rowOffset = 13;      // guitar
+    }
+    else if (sensorCol == 6 && sensorRow == 4) {
+      Global.rowOffset = 14;      // guitar ARC
+    }
+
+    // select which switch is being controlled/displayed
+    if (sensorCol == 7 && sensorRow < 4) {
+      switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
+    }
+
+    // toggle whether the switches operate on both splits or not
+    if (sensorCol == 8 && sensorRow == 3) {
+      Global.switchBothSplits[switchSelect] = !Global.switchBothSplits[switchSelect];
+    }
+
+    // set the switch targets
+    if      (sensorRow == 2 &&
+             ((sensorCol == 8 && cell(9, sensorRow).touched != untouchedCell) ||
+              (sensorCol == 9 && cell(8, sensorRow).touched != untouchedCell))) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+    }
+    else if (sensorCol == 8 && sensorRow == 2) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
+    }
+    else if (sensorCol == 9 && sensorRow == 2) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
+    }
+    else if (sensorCol == 8 && sensorRow == 1) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
+    }
+    else if (sensorCol == 8 && sensorRow == 0) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
+    }
+    else if (sensorCol == 9 && sensorRow == 0) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
+    }
+=======
       break;
+>>>>>>> rogerlinndesign/master
 
     case 16:
       if (sensorRow == 1) {

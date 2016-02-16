@@ -774,7 +774,11 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Row Offset
     case 227:
+<<<<<<< HEAD
+      if (value == 0 || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || value == 14) {
+=======
       if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || ROWOFFSET_ZERO) {
+>>>>>>> rogerlinndesign/master
         Global.rowOffset = value;
       }
       break;
