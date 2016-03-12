@@ -402,8 +402,8 @@ void initializePresetSettings() {
 
     initializeNoteLights(g);
 
-    g.arpDirection = ArpUp;
-    g.arpTempo = ArpSixteenth;
+    g.arpDirection = ArpReplayAll;
+    g.arpTempo = ArpSixteenthSwing;
     g.arpOctave = 0;
 
     g.sustainBehavior = sustainHold;
