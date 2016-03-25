@@ -275,7 +275,7 @@ struct ConfigurationV5 {
   PresetSettingsV4 preset[NUMPRESETS];
 };
 /**************************************** Configuration V6 ***************************************/
-/* This is used by firmware v1.2.1 and 1.2.2
+/* This is used by firmware v1.2.1 and v1.2.2
 /*************************************************************************************************/
 struct GlobalSettingsV5 {
   void setSwitchAssignment(byte, byte);
@@ -307,6 +307,33 @@ struct ConfigurationV6 {
   DeviceSettingsV4 device;
   PresetSettingsV5 settings;
   PresetSettingsV5 preset[NUMPRESETS];
+};
+/**************************************** Configuration V7 ***************************************/
+/* This is used by firmware v1.2.3-beta1, v1.2.3-beta2, v1.2.3-beta3, v1.2.3 and v1.2.4-beta1
+/*************************************************************************************************/
+struct DeviceSettingsV5 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimation;                    // store whether the promo animation should run after five minutes of not touching
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+};
+struct PresetSettingsV6 {
+  GlobalSettings global;
+  SplitSettings split[NUMSPLITS];
+};
+struct ConfigurationV7 {
+  DeviceSettingsV5 device;
+  PresetSettings settings;
+  PresetSettings preset[NUMPRESETS];
 };
 /*************************************************************************************************/
 
@@ -362,12 +389,19 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
       // this is the v6 of the configuration configuration, apply it if the size is right
       case 6:
         if (confSize == sizeof(ConfigurationV6)) {
-          targetConfig = new ConfigurationV5();
+          targetConfig = new ConfigurationV6();
           copyConfigurationFunction = &copyConfigurationV6;
         }
         break;
       // this is the v7 of the configuration configuration, apply it if the size is right
       case 7:
+        if (confSize == sizeof(ConfigurationV7)) {
+          targetConfig = new ConfigurationV7();
+          copyConfigurationFunction = &copyConfigurationV7;
+        }
+        break;
+      // this is the v8 of the configuration configuration, apply it if the size is right
+      case 8:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -431,6 +465,20 @@ void copyAudienceMessages(char (*target)[16][31], char (*source)[16][31]) {
   }
 }
 
+void setPromoAnimation(void* target, bool flag) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  if (flag) {
+    t->sleepActive = true;
+    t->sleepDelay = 2;
+    t->sleepAnimation = true;
+  }
+  else {
+    t->sleepActive = false;
+    t->sleepDelay = 0;
+    t->sleepAnimation = false;
+  }
+}
+
 void copyConfigurationV1(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV1* s = (ConfigurationV1*)source;
@@ -442,7 +490,7 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = g->sensorRangeZ;
-  t->device.promoAnimation = g->promoAnimationAtStartup;
+  setPromoAnimation(&t->device, g->promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
@@ -542,7 +590,7 @@ void copyConfigurationV2(void* target, void* source) {
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimation = s->device.promoAnimationAtStartup;
+  setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
@@ -665,7 +713,7 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
-  t->device.promoAnimation = s->device.promoAnimationAtStartup;
+  setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   copyAudienceMessages(&(t->device.audienceMessages), &(s->device.audienceMessages));
@@ -742,7 +790,7 @@ void copyDeviceSettingsV4(void* target, void* source) {
   t->sensorLoZ = DEFAULT_SENSOR_LO_Z;
   t->sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimation = s->promoAnimationAtStartup;
+  setPromoAnimation(t, s->promoAnimationAtStartup);
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = false;
@@ -911,4 +959,35 @@ void copyGlobalSettingsV5(void* target, void* source) {
   t->arpTempo = s->arpTempo;
   t->arpOctave = s->arpOctave;
   t->sustainBehavior = s->sustainBehavior;
+}
+
+void copyConfigurationV7(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV7* s = (ConfigurationV7*)source;
+
+  copyDeviceSettingsV5(&t->device, &s->device);
+
+  t->settings = s->settings;
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    t->preset[p] = s->preset[p];
+  }
+}
+
+void copyDeviceSettingsV5(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV5* s = (DeviceSettingsV5*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->promoAnimationActive = false;
+  setPromoAnimation(t, s->promoAnimation);
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->leftHanded = false;
 }

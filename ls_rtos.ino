@@ -49,7 +49,7 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     checkStopBlinkingLeds(nowMillis);
     checkTimeToReadFootSwitches(nowMicros);
     checkRefreshGlobalSettingsDisplay(nowMicros);
-    checkPromoAnimation(nowMillis);
+    checkSleep(nowMillis);
   }
 
   checkAdvanceArpeggiator(nowMicros);  
@@ -91,11 +91,16 @@ inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
   }
 }
 
-// checks to see if it's time to activate the promo animation
-inline void checkPromoAnimation(unsigned long now) {
-  if (Device.promoAnimation && displayMode != displayPromo &&
-      calcTimeDelta(now, lastTouchMoment) > 120000) {                      // auto-activate after 2 minutes
-    playPromoAnimation();
+// checks to see if it's time to sleep LinnStrument
+inline void checkSleep(unsigned long now) {
+  if (Device.sleepActive && Device.sleepDelay > 0 && displayMode != displayPromo && displayMode != displaySleep &&
+      calcTimeDelta(now, lastTouchMoment) > Device.sleepDelay * 60000) {
+    if (Device.sleepAnimation) {
+      playPromoAnimation();
+    }
+    else {
+      activateSleepMode();
+    }
   }
 }
 

@@ -561,6 +561,9 @@ void handleNonPlayingTouch(boolean newVelocity) {
       case displayValueForFixedVelocity:
         handleValueForFixedVelocityNewTouch();
         break;
+      case displaySleepConfig:
+        handleSleepConfigNewTouch();
+        break;
       case displayMinUSBMIDIInterval:
         handleMinUSBMIDIIntervalNewTouch();
         break;
@@ -1258,6 +1261,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displayLimitsForVelocity:
         handleLimitsForVelocityRelease();
+        break;
+      case displaySleepConfig:
+        handleSleepConfigRelease();
         break;
       case displayMinUSBMIDIInterval:
         handleMinUSBMIDIIntervalRelease();

@@ -228,9 +228,12 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 7;
+  config.device.version = 8;
   config.device.serialMode = false;
-  config.device.promoAnimation = false;
+  config.device.promoAnimationActive = false;
+  config.device.sleepActive = false;
+  config.device.sleepDelay = 0;
+  config.device.sleepAnimation = false;
   config.device.operatingLowPower = false;
   config.device.leftHanded = false;
   config.device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
@@ -1712,6 +1715,23 @@ void handleValueForFixedVelocityRelease() {
   handleNumericDataReleaseCol(false);
 }
 
+void handleSleepConfigNewTouch() {
+  switch (sleepConfigState) {
+    case 1:
+      handleNumericDataNewTouchCol(Device.sleepAnimation);
+      break;
+    case 0:
+      handleNumericDataNewTouchCol(Device.sleepDelay, 0, 30, true);
+      break;
+  }
+  handleNumericDataNewTouchRow(sleepConfigState, 0, 1);
+}
+
+void handleSleepConfigRelease() {
+  handleNumericDataReleaseCol(false);
+  handleNumericDataReleaseRow(false);
+}
+
 void handleMinUSBMIDIIntervalNewTouch() {
   handleNumericDataNewTouchCol(Device.minUSBMIDIInterval, 0, 512, false);
 }
@@ -2021,7 +2041,7 @@ void handleGlobalSettingNewTouch() {
           changeMidiIO(0);
           break;
         case 2:
-          activateSleepMode();
+          // handled at release
           break;
         case 3:
           if (!Device.serialMode) {
@@ -2390,6 +2410,9 @@ void handleGlobalSettingNewTouch() {
         case 0:
           setLed(sensorCol, sensorRow, getMIDIUSBColor(), cellSlowPulse);
           break;
+        case 2:
+          setLed(sensorCol, sensorRow, getSleepColor(), cellSlowPulse);
+          break;
       }
       break;
 
@@ -2459,6 +2482,11 @@ void handleGlobalSettingHold() {
             setDisplayMode(displayMinUSBMIDIInterval);
             updateDisplay();
             break;
+          case 2:
+            resetNumericDataChange();
+            setDisplayMode(displaySleepConfig);
+            updateDisplay();
+            break;
         }
         break;
 
@@ -2512,24 +2540,27 @@ void handleGlobalSettingRelease() {
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
-      else if (sensorCol == 25) {
-        Device.promoAnimation = !Device.promoAnimation;
-        storeSettings();
-
-        if (Device.promoAnimation) {
-          playPromoAnimation();
-        }
-      }
     }
   }
-
-  if (sensorCol == 9 && sensorRow == 1 &&
+  else if (sensorCol == 9 && sensorRow == 1 &&
       ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
     Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
   }
-
+  else if (sensorCol == 15 && sensorRow == 2 &&
+      ensureCellBeforeHoldWait(globalColor, Device.sleepActive ? cellOn : cellOff)) {
+    Device.sleepActive = !Device.sleepActive;
+    if (Device.sleepActive && Device.sleepDelay == 0) {
+      Device.sleepActive = false;
+      if (Device.sleepAnimation) {
+        playPromoAnimation();
+      }
+      else {
+        activateSleepMode();
+      }
+    }
+  }
   // Toggle UPDATE OS value
-  if (sensorCol == 16 && sensorRow == 2) {
+  else if (sensorCol == 16 && sensorRow == 2) {
     byte resetColor = COLOR_BLACK;
     CellDisplay resetDisplay = cellOff;
     if (Device.serialMode) {
@@ -2548,8 +2579,7 @@ void handleGlobalSettingRelease() {
     if (sensorRow >= 4 && sensorRow != 7) {
       handleNumericDataReleaseCol(false);
     }
-
-    if (sensorCol == 16) {
+    else if (sensorCol == 16) {
       // Send AllNotesOff
       if (sensorRow == 0) {
         lightLed(16, 0);

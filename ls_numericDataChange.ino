@@ -39,6 +39,17 @@ void resetNumericDataChangeRow() {
   numericDataReleaseRowTime = 0;
 }
 
+boolean handleNumericDataNewTouchCol(boolean &currentData) {
+  unsigned short newData = handleNumericDataNewTouchColRaw(currentData, false, true, true);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
 boolean handleNumericDataNewTouchCol(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   unsigned short newData = handleNumericDataNewTouchColRaw(currentData, minimum, maximum, useFineChanges);
   if (newData != currentData) {

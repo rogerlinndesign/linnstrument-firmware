@@ -37,6 +37,7 @@ displaySensorRangeZ          : max Z sensor range selection
 displayPromo                 : display promotion animation
 displayEditAudienceMessage   : edit an audience message
 displaySleep                 : sleeping
+displaySleepConfig           : sleep mode configuration
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -155,6 +156,9 @@ void updateDisplay() {
       break;
     case displayEditAudienceMessage:
       paintEditAudienceMessage();
+      break;
+    case displaySleepConfig:
+      paintSleepConfig();
       break;
   }
 
@@ -794,6 +798,30 @@ void paintValueForFixedVelocityDisplay() {
   paintNumericDataDisplay(globalColor, Global.valueForFixedVelocity, 0, true);
 }
 
+void paintSleepConfig() {
+  clearDisplay();
+
+  switch (sleepConfigState) {
+    case 1:
+      if (Device.sleepAnimation) {
+        bigfont_draw_string(0, 0, "ANI", globalColor, true);
+      }
+      else {
+        bigfont_draw_string(0, 0, "SLP", globalColor, true);
+      }
+      break;
+    case 0:
+      if (Device.sleepDelay == 0) {
+        bigfont_draw_string(0, 0, "NOW", globalColor, true);
+      }
+      else {
+        bigfont_draw_string(0, 0, "D", globalColor, true);
+        paintNumericDataDisplay(globalColor, Device.sleepDelay, 4, true);
+      }
+      break;
+  }
+}
+
 void paintMinUSBMIDIIntervalDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
@@ -1064,6 +1092,11 @@ void paintGlobalSettingsDisplay() {
     lightLed(15, 1);       // for MIDI jacks
   }
 
+  // set light for sleep mode
+  if (Device.sleepActive) {
+    lightLed(15, 2);
+  }
+
   // Show the low power mode
   if (Device.operatingLowPower) {
     lightLed(15, 3);
@@ -1080,11 +1113,6 @@ void paintGlobalSettingsDisplay() {
   }
   else {
     setLed(16, 3, COLOR_RED, cellOn);
-  }
-
-  // set light for promo animation
-  if (Device.promoAnimation) {
-    lightLed(25, 7);
   }
 
   if (!userFirmwareActive) {
@@ -1259,6 +1287,10 @@ byte getMIDIUSBColor() {
   if (Device.minUSBMIDIInterval != DEFAULT_MIN_USB_MIDI_INTERVAL) {
     return globalAltColor;
   }
+  return globalColor;
+}
+
+byte getSleepColor() {
   return globalColor;
 }
 

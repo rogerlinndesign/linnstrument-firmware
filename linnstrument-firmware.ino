@@ -413,7 +413,8 @@ enum DisplayMode {
   displaySensorRangeZ,
   displayPromo,
   displayEditAudienceMessage,
-  displaySleep
+  displaySleep,
+  displaySleepConfig
 };
 DisplayMode displayMode = displayNormal;
 
@@ -554,7 +555,10 @@ struct DeviceSettings {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimation;                    // store whether the promo animation should run after five minutes of not touching
+  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
@@ -799,6 +803,7 @@ byte limitsForZConfigState = 1;                     // the last state of the Z v
 byte limitsForVelocityConfigState = 1;              // the last state of the velocity value limit configuration, this counts down to go to further pages
 byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
 byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
+byte sleepConfigState = 1;                          // the last state of the sleep configuration, this counts down to go to further pages
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
 
@@ -1092,7 +1097,7 @@ void setup() {
   setupDone = true;
 
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Device.promoAnimation) {
+  if (Device.promoAnimationActive) {
     playPromoAnimation();
   }
 }
