@@ -481,6 +481,9 @@ void initializePresetSettings() {
     p.split[RIGHT].lowRowMode = lowRowNormal;
   }
 
+  // we're initializing the current settings with preset 0
+  memcpy(&config.settings, &config.preset[0], sizeof(PresetSettings));
+
   // preset 0 is pre-programmed for one channel sounds from our Logic example file
   config.preset[0].split[LEFT].midiMode = oneChannel;
   config.preset[0].split[RIGHT].midiMode = oneChannel;
@@ -501,8 +504,19 @@ void initializePresetSettings() {
   config.preset[1].split[RIGHT].midiChanMain = 16;
   config.preset[1].split[RIGHT].midiChanSet[15] = false;
 
-  // we're initializing the current settings with preset 3
-  memcpy(&config.settings, &config.preset[3], sizeof(PresetSettings));
+  // preset 3 is pre-programmed for making drumbeats
+  config.preset[3].split[LEFT].midiMode = channelPerNote;
+  config.preset[3].split[RIGHT].midiMode = channelPerNote;
+  config.preset[3].split[LEFT].bendRangeOption = bendRange2;
+  config.preset[3].split[RIGHT].bendRangeOption = bendRange2;
+  config.preset[3].split[LEFT].pitchCorrectHold = pitchCorrectHoldOff;
+  config.preset[3].split[RIGHT].pitchCorrectHold = pitchCorrectHoldOff;
+  config.preset[3].split[LEFT].expressionForZ = loudnessChannelPressure;
+  config.preset[3].split[RIGHT].expressionForZ = loudnessChannelPressure;
+  config.preset[3].split[LEFT].lowRowMode = lowRowArpeggiator;
+  config.preset[3].split[RIGHT].lowRowMode = lowRowArpeggiator;
+  config.preset[3].global.arpDirection = ArpReplayAll;
+  config.preset[3].global.arpTempo = ArpSixteenthSwing;
 
   // initialize runtime data
   applyPitchCorrectHold();
