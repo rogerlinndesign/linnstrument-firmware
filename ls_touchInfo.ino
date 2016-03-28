@@ -222,7 +222,7 @@ inline byte scale1016to127(int v, boolean allowZero) {
   return constrain(((v * 10) + 40) / 80, allowZero ? 0 : 1, 127);
 }
 
-boolean calcVelocity(unsigned short z) {
+VelocityState calcVelocity(unsigned short z) {
   if (sensorCell->vcount < VELOCITY_SAMPLES) {
 
     // calculate the linear regression sums that are variable with the pressure
@@ -258,11 +258,14 @@ boolean calcVelocity(unsigned short z) {
 
       sensorCell->velocity = calcPreferredVelocity(slope);
 
-      return true;
+      return velocityNew;
+    }
+    else {
+      return velocityCalculating;
     }
   }
 
-  return false;
+  return velocityCalculated;
 }
 
 byte calcPreferredVelocity(byte velocity) {

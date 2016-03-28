@@ -93,7 +93,7 @@ boolean potentialSlideTransferCandidate(byte col) {
 
 boolean isReadyForSlideTransfer(byte col) {
   return cell(col, sensorRow).pendingReleaseCount ||                 // there's a pending release waiting
-    sensorCell->currentRawZ > cell(col, sensorRow).currentRawZ;     // the cell pressure is higher
+    sensorCell->currentRawZ > cell(col, sensorRow).currentRawZ;      // the cell pressure is higher
 }
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
@@ -192,7 +192,7 @@ void transferToSameRowCell(byte col) {
   }
 }
 
-boolean isPhantomTouch() {
+boolean isPhantomTouchIndividual() {
   // when the device is calibrated we fully rely on the plausability of the X readings to determine
   // if a touch is a phantom touch or not
   if (Device.calibrated) {
@@ -200,15 +200,11 @@ boolean isPhantomTouch() {
       sensorCell->setPhantoms(sensorCol, sensorCol, sensorRow, sensorRow);
       return true;
     }
-
-    return false;
   }
+  return false;
+}
 
-  // this is the legacy phantom detection algorithm that correct when we waited for a full scan before checking
-  // the phantom presses, this introduces an unacceptable delay at initial touch though
-  // we're currently leaving this code in since it does get rid of some of the phantom touches when people
-  // are somehow using the device without proper calibration in place
-
+boolean isPhantomTouchContextual() {
   // check if this is a potential corner of a rectangle to filter out ghost notes, this first check matches
   // any cells that have other cells on the same row and column, so it's not sufficient by itself, but it's fast
   int32_t rowsInSensorColTouched = rowsInColsTouched[sensorCol] & ~(int32_t)(1 << sensorRow);
@@ -519,131 +515,144 @@ byte takeChannel(byte split) {
 
 #define INVALID_DATA SHRT_MAX
 
-void handleNonPlayingTouch(boolean newVelocity) {
-  if (newVelocity) {
-    switch (displayMode) {
-      case displayPerSplit:
-        handlePerSplitSettingNewTouch();
-        break;
-      case displayPreset:
-        handlePresetNewTouch();
-        break;
-      case displayBendRange:
-        handleBendRangeNewTouch();
-        break;
-      case displayLimitsForY:
-        handleLimitsForYNewTouch();
-        break;
-      case displayCCForY:
-        handleCCForYNewTouch();
-        break;
-      case displayLimitsForZ:
-        handleLimitsForZNewTouch();
-        break;
-      case displayCCForZ:
-        handleCCForZNewTouch();
-        break;
-      case displayCCForFader:
-        handleCCForFaderNewTouch();
-        break;
-      case displayLowRowCCXConfig:
-        handleLowRowCCXConfigNewTouch();
-        break;
-      case displayLowRowCCXYZConfig:
-        handleLowRowCCXYZConfigNewTouch();
-        break;
-      case displayCCForSwitch:
-        handleCCForSwitchConfigNewTouch();
-        break;
-      case displayLimitsForVelocity:
-        handleLimitsForVelocityNewTouch();
-        break;
-      case displayValueForFixedVelocity:
-        handleValueForFixedVelocityNewTouch();
-        break;
-      case displaySleepConfig:
-        handleSleepConfigNewTouch();
-        break;
-      case displayMinUSBMIDIInterval:
-        handleMinUSBMIDIIntervalNewTouch();
-        break;
-      case displaySensorLoZ:
-        handleSensorLoZNewTouch();
-        break;
-      case displaySensorFeatherZ:
-        handleSensorFeatherZNewTouch();
-        break;
-      case displaySensorRangeZ:
-        handleSensorRangeZNewTouch();
-        break;
-      case displayOctaveTranspose:
-        handleOctaveTransposeNewTouch();
-        break;
-      case displayGlobal:
-      case displayGlobalWithTempo:
-        handleGlobalSettingNewTouch();
-        break;
-      case displayOsVersion:
-        setDisplayMode(displayOsVersionBuild);
-        updateDisplay();
-        break;
-      case displayOsVersionBuild:
-        setDisplayMode(displayOsVersion);
-        updateDisplay();
-        break;
-      case displayCalibration:
-        initVelocity();
-        break;
-      case displayEditAudienceMessage:
-        handleEditAudienceMessageNewTouch();
-        break;
-    }
+void handleNonPlayingTouch() {
+  switch (displayMode) {
+    case displayPerSplit:
+      handlePerSplitSettingNewTouch();
+      break;
+    case displayPreset:
+      handlePresetNewTouch();
+      break;
+    case displayBendRange:
+      handleBendRangeNewTouch();
+      break;
+    case displayLimitsForY:
+      handleLimitsForYNewTouch();
+      break;
+    case displayCCForY:
+      handleCCForYNewTouch();
+      break;
+    case displayLimitsForZ:
+      handleLimitsForZNewTouch();
+      break;
+    case displayCCForZ:
+      handleCCForZNewTouch();
+      break;
+    case displayCCForFader:
+      handleCCForFaderNewTouch();
+      break;
+    case displayLowRowCCXConfig:
+      handleLowRowCCXConfigNewTouch();
+      break;
+    case displayLowRowCCXYZConfig:
+      handleLowRowCCXYZConfigNewTouch();
+      break;
+    case displayCCForSwitch:
+      handleCCForSwitchConfigNewTouch();
+      break;
+    case displayLimitsForVelocity:
+      handleLimitsForVelocityNewTouch();
+      break;
+    case displayValueForFixedVelocity:
+      handleValueForFixedVelocityNewTouch();
+      break;
+    case displaySleepConfig:
+      handleSleepConfigNewTouch();
+      break;
+    case displayMinUSBMIDIInterval:
+      handleMinUSBMIDIIntervalNewTouch();
+      break;
+    case displaySensorLoZ:
+      handleSensorLoZNewTouch();
+      break;
+    case displaySensorFeatherZ:
+      handleSensorFeatherZNewTouch();
+      break;
+    case displaySensorRangeZ:
+      handleSensorRangeZNewTouch();
+      break;
+    case displayOctaveTranspose:
+      handleOctaveTransposeNewTouch();
+      break;
+    case displayGlobal:
+    case displayGlobalWithTempo:
+      handleGlobalSettingNewTouch();
+      break;
+    case displayOsVersion:
+      setDisplayMode(displayOsVersionBuild);
+      updateDisplay();
+      break;
+    case displayOsVersionBuild:
+      setDisplayMode(displayOsVersion);
+      updateDisplay();
+      break;
+    case displayCalibration:
+      initVelocity();
+      break;
+    case displayEditAudienceMessage:
+      handleEditAudienceMessageNewTouch();
+      break;
   }
 }
 
 // handleXYZupdate:
 // Called when a cell is held, in order to read X, Y or Z movements and send MIDI messages as appropriate
-void handleXYZupdate() {
+// Returns a flag to indicate if the performance loop can be short-circuited
+boolean handleXYZupdate() {
   // if the touch is in the control buttons column, ignore it
   if (sensorCol == 0 &&
      // except for user firmware mode where only the global settings button is ignored for continuous updates
-     (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) return;
+     (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) return false;
 
   // if this data point serves as a calibration sample, return immediately
-  if (handleCalibrationSample()) return;
+  if (handleCalibrationSample()) return false;
 
   // some features need hold functionality
   if (sensorCell->velocity) {
     switch (displayMode) {
       case displayPerSplit:
         handlePerSplitSettingHold();
-        return;
+        return false;
+
       case displayPreset:
         handlePresetHold();
-        return;
+        return false;
+
       case displayGlobal:
       case displayGlobalWithTempo:
         handleGlobalSettingHold();
-        return;
+        return false;
     }
   }
   
-  boolean newVelocity = calcVelocity(sensorCell->velocityZ);
+  VelocityState velState = calcVelocity(sensorCell->velocityZ);
 
-  // check if after a new velocity calculation, this cell is not a phantom touch
-  if (newVelocity && isPhantomTouch()) {
-    cellTouched(untouchedCell);
-    return;
-  }
+  // velocity calculation works in stages, handle is one
+  boolean newVelocity = false;
+  switch (velState) {
+    // when the velocity is being calculated, the performance loop can be short-circuited
+    case velocityCalculating:
+      return true;
 
-  // only continue if the active display modes require finger tracking
-  if (displayMode != displayNormal &&
-      displayMode != displayVolume &&
-      (displayMode != displaySplitPoint || splitButtonDown)) {
-    // check if this should be handled as a non-playing touch
-    handleNonPlayingTouch(newVelocity);
-    performContinuousTasks(micros());
-    return;
+    case velocityNew:
+      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {
+        cellTouched(untouchedCell);
+          return false;
+      }
+
+      // only continue if the active display modes require finger tracking
+      if (displayMode != displayNormal &&
+          displayMode != displayVolume &&
+          (displayMode != displaySplitPoint || splitButtonDown)) {
+        // check if this should be handled as a non-playing touch
+        handleNonPlayingTouch();
+        performContinuousTasks(micros());
+        return false;
+      }
+
+      // mark this as a valid new velocity and process it as such further down the method
+      newVelocity = true;
+      break;
   }
 
   DEBUGPRINT((2,"handleXYZupdate"));
@@ -728,7 +737,7 @@ void handleXYZupdate() {
 
   // we don't need to handle any expression in control mode
   if (controlModeActive && !newVelocity) {
-    return;
+    return false;
   }
 
   // get the processed expression data
@@ -893,6 +902,8 @@ void handleXYZupdate() {
       sensorCell->velocity = calcPreferredVelocity(sensorCell->velocityZ);      
     }
   }
+
+  return false;
 }
 
 void handleSplitStrum() {
@@ -1490,7 +1501,7 @@ inline void nextSensorCell() {
 
   sensorCell = &cell(sensorCol, sensorRow);
 
-  // we're keeping track of the state of X and Y so that we don't refresh it needlessly for finger tracking
+  // we're keeping track of the state of X, Y and Z so that we don't refresh it needlessly for finger tracking
   sensorCell->shouldRefreshData();
 }
 

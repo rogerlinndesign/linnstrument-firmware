@@ -240,6 +240,12 @@ struct FocusCell {
 };
 FocusCell focusCell[NUMSPLITS][16];             // 2 splits and 16 MIDI channels for each split
 
+enum VelocityState {
+  velocityCalculating = 0,
+  velocityCalculated = 1,
+  velocityNew = 2
+};
+
 enum TouchState {
   untouchedCell = 0,
   ignoredCell = 1,
@@ -830,6 +836,7 @@ void applyBendRange(SplitSettings& target, byte bendRange);
 void cellTouched(TouchState state);
 void cellTouched(byte col, byte row, TouchState state);
 
+VelocityState calcVelocity(unsigned short z);
 
 /********************************************** SETUP ********************************************/
 
@@ -1140,8 +1147,7 @@ inline void modeLoopPerformance() {
       canShortCircuit = handleNewTouch();
     }
     else if (previousTouch == touchedCell && sensorCell->isActiveTouch()) {      // if touched now and touched before
-      handleXYZupdate();                                                         // handle any X, Y or Z movements
-      canShortCircuit = true;
+      canShortCircuit = handleXYZupdate();                                       // handle any X, Y or Z movements
     }
     else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch() &&   // if not touched now but touched before, it's been released
              calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
