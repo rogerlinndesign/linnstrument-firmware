@@ -559,6 +559,9 @@ void handleNonPlayingTouch() {
     case displaySleepConfig:
       handleSleepConfigNewTouch();
       break;
+    case displayRowOffset:
+      handleRowOffsetNewTouch();
+      break;
     case displayMinUSBMIDIInterval:
       handleMinUSBMIDIIntervalNewTouch();
       break;
@@ -1276,6 +1279,9 @@ boolean handleNonPlayingRelease() {
       case displaySleepConfig:
         handleSleepConfigRelease();
         break;
+      case displayRowOffset:
+        handleRowOffsetRelease();
+        break;
       case displayMinUSBMIDIInterval:
         handleMinUSBMIDIIntervalRelease();
         break;
@@ -1547,6 +1553,10 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
   lowest = LOWEST_NOTE;
 
   if (Global.rowOffset <= 12) {                       // if rowOffset is set to between 0 and 12..
+    if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
+      offset = Global.customRowOffset;
+    }
+
     if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {    // no overlap mode
       byte lowCol, highCol;
       getSplitBoundaries(split, lowCol, highCol);

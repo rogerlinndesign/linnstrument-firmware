@@ -326,8 +326,32 @@ struct DeviceSettingsV5 {
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
 };
+struct GlobalSettingsV6 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitch;                // 0-127
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+};
 struct PresetSettingsV6 {
-  GlobalSettings global;
+  GlobalSettingsV6 global;
   SplitSettings split[NUMSPLITS];
 };
 struct ConfigurationV7 {
@@ -501,6 +525,7 @@ void copyConfigurationV1(void* target, void* source) {
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
+    t->preset[p].global.customRowOffset = 12;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -680,6 +705,7 @@ void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
+    t->preset[p].global.customRowOffset = 12;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
     t->preset[p].global.minForVelocity = 0;
     t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -735,6 +761,7 @@ void copyGlobalSettingsV3(void* target, void* source) {
   t->currentPerSplit = s->currentPerSplit;
   copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
+  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -852,6 +879,7 @@ void copyGlobalSettingsV4(void* target, void* source) {
   t->currentPerSplit = s->currentPerSplit;
   copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
+  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -945,6 +973,7 @@ void copyGlobalSettingsV5(void* target, void* source) {
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
+  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = 0;
   t->maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -967,9 +996,9 @@ void copyConfigurationV7(void* target, void* source) {
 
   copyDeviceSettingsV5(&t->device, &s->device);
 
-  t->settings = s->settings;
+  copyPresetSettingsV6(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    t->preset[p] = s->preset[p];
+    copyPresetSettingsV6(&t->preset[p], &s->preset[p]);
   }
 }
 
@@ -990,4 +1019,40 @@ void copyDeviceSettingsV5(void* target, void* source) {
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = false;
+}
+
+void copyPresetSettingsV6(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV6* s = (PresetSettingsV6*)source;
+
+  copyGlobalSettingsV6(&t->global, &s->global);
+
+  t->split[LEFT] = s->split[LEFT];
+  t->split[RIGHT] = s->split[RIGHT];
+}
+
+void copyGlobalSettingsV6(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV6* s = (GlobalSettingsV6*)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
+  t->rowOffset = s->rowOffset;
+  t->customRowOffset = 12;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = s->minForVelocity;
+  t->maxForVelocity = s->maxForVelocity;
+  t->valueForFixedVelocity = s->valueForFixedVelocity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = s->ccForSwitch;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+  t->sustainBehavior = s->sustainBehavior;
 }

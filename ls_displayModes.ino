@@ -38,6 +38,7 @@ displayPromo                 : display promotion animation
 displayEditAudienceMessage   : edit an audience message
 displaySleep                 : sleeping
 displaySleepConfig           : sleep mode configuration
+displayRowOffset             : custom row offset selection
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -159,6 +160,9 @@ void updateDisplay() {
       break;
     case displaySleepConfig:
       paintSleepConfig();
+      break;
+    case displayRowOffset:
+      paintRowOffset();
       break;
   }
 
@@ -822,6 +826,11 @@ void paintSleepConfig() {
   }
 }
 
+void paintRowOffset() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Global.customRowOffset, 0, false);
+}
+
 void paintMinUSBMIDIIntervalDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
@@ -1155,8 +1164,8 @@ void paintGlobalSettingsDisplay() {
       case 7:        // +7
         lightLed(5, 2);
         break;
-      case 12:      // +octave
-        lightLed(6, 2);
+      case ROWOFFSET_OCTAVECUSTOM:      // +octave or custom
+        setLed(6, 2, getRowOffsetColor(), cellOn);
         break;
       case 13:      // guitar tuning
         lightLed(6, 3);
@@ -1259,6 +1268,13 @@ void paintGlobalSettingsDisplay() {
     }
   }
 #endif
+}
+
+byte getRowOffsetColor() {
+  if (Global.customRowOffset != 12) {
+    return globalAltColor;
+  }
+  return globalColor;
 }
 
 byte getSwitchCC65Color() {

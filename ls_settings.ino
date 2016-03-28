@@ -384,6 +384,7 @@ void initializePresetSettings() {
     g.currentPerSplit = LEFT;
 
     g.rowOffset = 5;
+    g.customRowOffset = 12;
     g.velocitySensitivity = velocityMedium;
     g.minForVelocity = DEFAULT_MIN_VELOCITY;
     g.maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -1746,6 +1747,14 @@ void handleSleepConfigRelease() {
   handleNumericDataReleaseRow(false);
 }
 
+void handleRowOffsetNewTouch() {
+  handleNumericDataNewTouchCol(Global.customRowOffset, 0, 16, true);
+}
+
+void handleRowOffsetRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
 void handleMinUSBMIDIIntervalNewTouch() {
   handleNumericDataNewTouchCol(Device.minUSBMIDIInterval, 0, 512, false);
 }
@@ -2203,12 +2212,7 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 2:
-            if (Global.rowOffset == 12) {
-              Global.rowOffset = ROWOFFSET_ZERO;
-            }
-            else {
-              Global.rowOffset = 12;      // octave
-            }
+            // handled at release
             break;
           case 3:
             if (Global.rowOffset == 13) {
@@ -2398,6 +2402,14 @@ void handleGlobalSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   switch (sensorCol) {
+    case 6:
+      switch (sensorRow) {
+        case 2:
+          setLed(sensorCol, sensorRow, getRowOffsetColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
     case 9:
       switch (sensorRow) {
         case 1:
@@ -2462,6 +2474,16 @@ void handleGlobalSettingHold() {
     sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
+      case 6:
+        switch (sensorRow) {
+          case 2:
+            resetNumericDataChange();
+            setDisplayMode(displayRowOffset);
+            updateDisplay();
+            break;
+        }
+        break;
+
       case 9:
         switch (sensorRow) {
           case 1:
@@ -2547,7 +2569,16 @@ void handleGlobalSettingHold() {
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorRow == 7) {
+  if (sensorCol == 6 && sensorRow == 2 &&
+      ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_OCTAVECUSTOM ? cellOn : cellOff)) {
+      if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
+      }
+  }
+  else if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
     if (calcTimeDelta(micros(), tempoChangeTime) >= 1000000) {
       if (sensorCol <= 16 && ensureCellBeforeHoldWait(COLOR_BLACK, cellOff)) {

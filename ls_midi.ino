@@ -774,7 +774,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Row Offset
     case 227:
-      if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == 12 || value == 13 || ROWOFFSET_ZERO) {
+      if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == ROWOFFSET_OCTAVECUSTOM || value == 13 || value == ROWOFFSET_ZERO) {
         Global.rowOffset = value;
       }
       break;
@@ -933,6 +933,12 @@ void receivedNrpn(int parameter, int value) {
       if (inRange(value, 0, 512)) {
         Device.minUSBMIDIInterval = value;
         applyMidiInterval();
+      }
+      break;
+    // Global Custom Row Offset Instead Of Octave
+    case 253:
+      if (inRange(value, 0, 16)) {
+        Global.customRowOffset = value;
       }
       break;
   }

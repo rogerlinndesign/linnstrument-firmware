@@ -104,8 +104,9 @@ char* OSVersionBuild = ".028";
 #define COLOR_BLACK    7
 
 // Special row offset values, for legacy reasons
-#define ROWOFFSET_NOOVERLAP  0x00
-#define ROWOFFSET_ZERO       0x7f
+#define ROWOFFSET_NOOVERLAP        0x00
+#define ROWOFFSET_OCTAVECUSTOM     0x0c
+#define ROWOFFSET_ZERO             0x7f
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
@@ -420,7 +421,8 @@ enum DisplayMode {
   displayPromo,
   displayEditAudienceMessage,
   displaySleep,
-  displaySleepConfig
+  displaySleepConfig,
+  displayRowOffset
 };
 DisplayMode displayMode = displayNormal;
 
@@ -620,6 +622,7 @@ struct GlobalSettings {
   int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
   int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  byte customRowOffset;                      // the custom row offset that can be configured at the location of the octave setting
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   unsigned short minForVelocity;             // 1-127
   unsigned short maxForVelocity;             // 1-127
