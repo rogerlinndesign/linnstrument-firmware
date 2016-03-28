@@ -1330,13 +1330,6 @@ void initializeLastMidiTracking() {
   }
 }
 
-byte getMidiNotesOnCount(byte split, byte notenum, byte channel) {
-  split = constrain(split, 0, 1);
-  notenum = constrain(notenum, 0, 127);
-  channel = constrain(channel-1, 0, 15);
-  return lastValueMidiNotesOn[split][notenum][channel];
-}
-
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
   // we always queue four bytes and will process them as MIDI messages in the handlePendingMidi
   midiOutQueue.push(channel & 0x0F);

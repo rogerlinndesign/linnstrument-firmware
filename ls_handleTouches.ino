@@ -1403,19 +1403,36 @@ void handleTouchRelease() {
       // that is currently in use on the split, since the octave can change on the fly, while playing,
       // hence changing the position of notes on the surface
       short octaveOffsetDifference = Split[sensorSplit].transposeOctave - sensorCell->octaveOffset;
+      short realSensorNote = sensorCell->note + octaveOffsetDifference;
 
       // ensure that no other notes of the same value are still active
       boolean allNotesOff = true;
-      for (byte ch = 1; ch <= 16; ++ch) {
-        if (noteTouchMapping[sensorSplit].hasTouch(sensorCell->note + octaveOffsetDifference, ch)) {
-          allNotesOff = false;
-          break;
+
+      // iterate over all the rows
+      for (byte row = 0; row < NUMROWS && allNotesOff; ++row) {
+
+        // continue while there are touched columns in the row
+        int32_t colsInRowTouched = colsInRowsTouched[row];
+        while (colsInRowTouched) {
+          byte touchedCol = 31 - __builtin_clz(colsInRowTouched);
+          
+          // if another touch in the same split has the same note, the lights should remain lit
+          if (!(sensorCol == touchedCol && sensorRow == row) &&
+              sensorSplit == getSplitOf(touchedCol) &&
+              cell(touchedCol, row).touched == touchedCell &&
+              cell(touchedCol, row).note + Split[sensorSplit].transposeOctave - cell(touchedCol, row).octaveOffset == realSensorNote) {
+            allNotesOff = false;
+            break;
+          }
+
+          // exclude the cell we just processed by flipping its bit
+          colsInRowTouched &= ~(1 << touchedCol);
         }
       }
 
       // if no notes are active anymore, reset the highlighted cells
-      if (allNotesOff && getMidiNotesOnCount(sensorSplit, sensorCell->note + octaveOffsetDifference, sensorCell->channel) == 0) {
-        resetPossibleNoteCells(sensorSplit, sensorCell->note + octaveOffsetDifference);
+      if (allNotesOff) {
+        resetPossibleNoteCells(sensorSplit, realSensorNote);
       }
     }
 
