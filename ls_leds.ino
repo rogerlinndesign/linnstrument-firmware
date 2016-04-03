@@ -214,7 +214,7 @@ void refreshLedColumn(unsigned long now) {
 
   actualCol = colIndex[ledCol];                           // using colIndex[], permits non-sequential lighting of LED columns, which doesn't seem to improve appearance
 
-  if (!Device.operatingLowPower || displayInterval % 2 == 0) {
+  if (!Device.operatingLowPower || displayInterval % 3 == 0) {
      // Initialize bytes to send to LEDs over SPI. Each bit represents a single LED on or off
     for (byte rowCount = 0; rowCount < NUMROWS; ++rowCount) {       // step through the 8 rows
       byte color = leds[visibleLeds][LED_LAYER_COMBINED][actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array

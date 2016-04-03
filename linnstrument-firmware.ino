@@ -117,9 +117,9 @@ char* OSVersionBuild = ".029";
 
 // Differences for low power mode
 #define LOWPOWER_MAINLOOP_DIVIDER 2        // increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
-#define LOWPOWER_LED_REFRESH      250      // accelerate led refresh so that they can be lit only half of the time
+#define LOWPOWER_LED_REFRESH      240      // accelerate led refresh so that they can be lit only one third of the time
 #define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
-#define LOWPOWER_MIDI_INTERVAL    150      // use a minimum interval of 150 microseconds between MIDI bytes in low power mode
+#define LOWPOWER_MIDI_INTERVAL    200      // use a minimum interval of 200 microseconds between MIDI messages in low power mode
 
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_LO_Z        120                 // lowest acceptable raw Z value to start a touch
@@ -1161,6 +1161,12 @@ inline void modeLoopPerformance() {
       sensorCell->shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
+  }
+
+  // When operating in low power mode, slow down the sensor scan rate in order to consume less power
+  // This introduces an overall additional average latency of 2.5ms
+  if (Device.operatingLowPower) {
+    delayUsec(25);
   }
 
   // We're iterating so quickly, that it makes no sense to perform the continuous tasks

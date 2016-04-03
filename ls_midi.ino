@@ -1527,12 +1527,13 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel) {
 }
 
 void midiSendControlChange(byte controlnum, byte controlval, byte channel, boolean always) {
+  controlnum = constrain(controlnum, 0, 127);
   controlval = constrain(controlval, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
-  // always send channel mode messages and sustain, as well as messages that are flagged as always (for instance 14 bit MIDI)
-  short index = controlnum * (channel + 1);
+  // always send channel mode messages and sustain, as well as messages that are flagged as always
+  short index = (controlnum + 1) * (channel + 1) - 1;
   if (!always && controlnum < 120 && controlnum != 64) {
     if (lastValueMidiCC[index] == controlval) return;
     if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
@@ -1558,6 +1559,8 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
 }
 
 void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlval, byte channel) {
+  controlMsb = constrain(controlMsb, 0, 127);
+  controlLsb = constrain(controlLsb, 0, 127);
   controlval = constrain(controlval, 0, 0x3fff);
   channel = constrain(channel-1, 0, 15);
 
@@ -1567,8 +1570,8 @@ void midiSendControlChange14Bit(byte controlMsb, byte controlLsb, short controlv
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = controlMsb * (channel + 1);
-  short indexLsb = controlLsb * (channel + 1);
+  short indexMsb = (controlMsb + 1) * (channel + 1) - 1;
+  short indexLsb = (controlLsb + 1) * (channel + 1) - 1;
 
   if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
   if (controlval != 0 &&
@@ -1753,7 +1756,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
-  short index = notenum * (channel + 1);
+  short index = (notenum + 1) * (channel + 1) - 1;
   if (lastValueMidiPP[index] == value) return;
   if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
   lastValueMidiPP[index] = value;
