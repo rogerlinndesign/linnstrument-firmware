@@ -17,11 +17,13 @@ enum ColumnState {
   continuous
 };
 
-ColumnState lowRowState[NUMCOLS];
+ColumnState lowRowColumnState[NUMCOLS];
+ColumnState lowRowSplitState[NUMSPLITS];
 boolean lowRowBendActive[NUMSPLITS];
 boolean lowRowCCXActive[NUMSPLITS];
 boolean lowRowCCXYZActive[NUMSPLITS];
 short lowRowInitialColumn[NUMSPLITS];
+short lastRestrikeColumn = 0;
 
 inline boolean isLowRow() {
   if (sensorRow != 0) return false;
@@ -33,10 +35,13 @@ inline boolean isLowRow() {
 }
 
 void initializeLowRowState() {
+  lastRestrikeColumn = 0;
+
   for (byte col = 0; col < NUMCOLS; ++col) {
-    lowRowState[col] = inactive;
+    lowRowColumnState[col] = inactive;
   }
   for (byte split = 0; split < NUMSPLITS; ++split) {
+    lowRowSplitState[split] = inactive;
     lowRowBendActive[split] = false;
     lowRowCCXActive[split] = false;
     lowRowCCXYZActive[split] = false;
@@ -70,7 +75,7 @@ boolean allowNewTouchOnLowRow() {
     case lowRowCCXYZ:
       return true;
     case lowRowSustain:
-      return lowRowState[sensorSplit] == inactive;
+      return lowRowSplitState[sensorSplit] == inactive;
   }
 }
 
@@ -188,18 +193,22 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
     switch (Split[sensorSplit].lowRowMode)
     {
       case lowRowRestrike:
+        if (lowRowSplitState[sensorSplit] == pressed && sensorCol == lastRestrikeColumn) {
+          lowRowSplitState[sensorSplit] = continuous;
+        }
+        break;
       case lowRowArpeggiator:
       case lowRowSustain:
       case lowRowBend:
       case lowRowCCX:
       case lowRowCCXYZ:
-        if (lowRowState[sensorSplit] == pressed) {
-          lowRowState[sensorSplit] = continuous;
+        if (lowRowSplitState[sensorSplit] == pressed) {
+          lowRowSplitState[sensorSplit] = continuous;
         }
         break;
       case lowRowStrum:
-        if (lowRowState[sensorCol] == pressed) {
-          lowRowState[sensorCol] = continuous;
+        if (lowRowColumnState[sensorCol] == pressed) {
+          lowRowColumnState[sensorCol] = continuous;
         }
         break;
     }
@@ -250,7 +259,7 @@ void sendLowRowCCXYZ(unsigned short x, short y, short z) {
 void handleLowRowRestrike() {
   // we're processing a cell that's not on the low-row, check if column 0 was pressed
   // and retrigger in that case
-  if (sensorCell->hasNote() && lowRowState[sensorSplit] == pressed) {
+  if (sensorCell->hasNote() && lowRowSplitState[sensorSplit] == pressed) {
     // use the velocity of the low-row press
     sensorCell->velocity = cell(0, 0).velocity;
 
@@ -263,7 +272,7 @@ void handleLowRowRestrike() {
 void handleLowRowStrum() {
   // we're processing a cell that's not on the low-row, check if the corresponding
   // low-row column was pressed and retrigger in that case
-  if (sensorCell->hasNote() && lowRowState[sensorCol] == pressed) {
+  if (sensorCell->hasNote() && lowRowColumnState[sensorCol] == pressed) {
     // use the velocity of the low-row press
     sensorCell->velocity = cell(sensorCol, 0).velocity;
 
@@ -277,26 +286,26 @@ void lowRowStart() {
   switch (Split[sensorSplit].lowRowMode)
   {
     case lowRowRestrike:
-      // no need to keep track of the columns, we want to restrike every note
-      lowRowState[sensorSplit] = pressed;
+      lowRowSplitState[sensorSplit] = pressed;
+      lastRestrikeColumn = sensorCol;
       cell(0, 0).velocity = sensorCell->velocity;
       break;
     case lowRowStrum:
-      lowRowState[sensorCol] = pressed;
+      lowRowColumnState[sensorCol] = pressed;
       break;
     case lowRowArpeggiator:
-      if (lowRowState[sensorSplit] == inactive) {
+      if (lowRowSplitState[sensorSplit] == inactive) {
         if (-1 == lowRowInitialColumn[sensorSplit]) {
           lowRowInitialColumn[sensorSplit] = sensorCol;
         }
 
-        lowRowState[sensorSplit] = pressed;
+        lowRowSplitState[sensorSplit] = pressed;
         temporarilyEnableArpeggiator();
       }
       startLowRowContinuousExpression();
       break;
     case lowRowSustain:
-      lowRowState[sensorSplit] = pressed;
+      lowRowSplitState[sensorSplit] = pressed;
       preSendSustain(sensorSplit, 127);
       break;
     case lowRowBend:
@@ -320,7 +329,7 @@ void lowRowStart() {
 }
 
 void startLowRowContinuousExpression() {
-  if (lowRowState[sensorSplit] != inactive) {
+  if (lowRowSplitState[sensorSplit] != inactive) {
     // handle taking over an already active touch
     byte lowCol, highCol;
     getSplitBoundaries(sensorSplit, lowCol, highCol);
@@ -333,7 +342,7 @@ void startLowRowContinuousExpression() {
   }
   else {
     // initialize the initial low row touch
-    lowRowState[sensorSplit] = pressed;
+    lowRowSplitState[sensorSplit] = pressed;
   }
 }
 
@@ -341,14 +350,17 @@ void lowRowStop() {
   switch (Split[sensorSplit].lowRowMode)
   {
     case lowRowRestrike:
-      lowRowState[sensorSplit] = inactive;
-      cell(0, 0).velocity = 0;
+      if (lastRestrikeColumn && sensorCol == lastRestrikeColumn) {
+        lowRowSplitState[sensorSplit] = inactive;
+        lastRestrikeColumn = 0;
+        cell(0, 0).velocity = 0;
+      }
       break;
     case lowRowStrum:
-      lowRowState[sensorCol] = inactive;
+      lowRowColumnState[sensorCol] = inactive;
       break;
     case lowRowSustain:
-      lowRowState[sensorSplit] = inactive;
+      lowRowSplitState[sensorSplit] = inactive;
       preSendSustain(sensorSplit, 0);
       break;
     case lowRowArpeggiator:
@@ -366,7 +378,7 @@ void lowRowStop() {
           }
         }
 
-        if (lowRowState[sensorSplit] != inactive) {
+        if (lowRowSplitState[sensorSplit] != inactive) {
           switch (Split[sensorSplit].lowRowMode)
           {
             case lowRowArpeggiator:
@@ -402,7 +414,7 @@ void lowRowStop() {
               break;
           }
 
-          lowRowState[sensorSplit] = inactive;
+          lowRowSplitState[sensorSplit] = inactive;
         }
       }
       break;
@@ -410,7 +422,7 @@ void lowRowStop() {
 }
 
 inline boolean isLowRowArpeggiatorPressed(byte split) {
-  return Split[split].lowRowMode == lowRowArpeggiator && lowRowState[split] != inactive;
+  return Split[split].lowRowMode == lowRowArpeggiator && lowRowSplitState[split] != inactive;
 }
 
 inline boolean isLowRowBendActive(byte split) {
