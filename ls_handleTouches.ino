@@ -630,7 +630,7 @@ boolean handleXYZupdate() {
   
   VelocityState velState = calcVelocity(sensorCell->velocityZ);
 
-  // velocity calculation works in stages, handle is one
+  // velocity calculation works in stages, handle each one
   boolean newVelocity = false;
   switch (velState) {
     // when the velocity is being calculated, the performance loop can be short-circuited
@@ -640,22 +640,24 @@ boolean handleXYZupdate() {
     case velocityNew:
       if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {
         cellTouched(untouchedCell);
-          return false;
-      }
-
-      // only continue if the active display modes require finger tracking
-      if (displayMode != displayNormal &&
-          displayMode != displayVolume &&
-          (displayMode != displaySplitPoint || splitButtonDown)) {
-        // check if this should be handled as a non-playing touch
-        handleNonPlayingTouch();
-        performContinuousTasks(micros());
         return false;
       }
 
       // mark this as a valid new velocity and process it as such further down the method
       newVelocity = true;
       break;
+  }
+
+  // only continue if the active display modes require finger tracking
+  if (displayMode != displayNormal &&
+      displayMode != displayVolume &&
+      (displayMode != displaySplitPoint || splitButtonDown)) {
+    // check if this should be handled as a non-playing touch
+    if (newVelocity) {
+      handleNonPlayingTouch();
+      performContinuousTasks(micros());
+    }
+    return false;
   }
 
   DEBUGPRINT((2,"handleXYZupdate"));

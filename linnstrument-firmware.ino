@@ -1157,9 +1157,7 @@ inline void modeLoopPerformance() {
       handleTouchRelease();
     }
 
-    if (canShortCircuit &&
-        sensorCell->touched == touchedCell &&
-        sensorCell->isCalculatingVelocity()) {                                   // if the initial velocity is being calculated, ensure that only Z data is being refresh and
+    if (canShortCircuit) {
       sensorCell->shouldRefreshData();                                           // immediately process this cell again without going through a full surface scan
       return;
     }
