@@ -709,7 +709,7 @@ boolean handleXYZupdate() {
 
       // if there was a previous note and automatic octave switching is enabled,
       // check if the conditions are met to change the octave up or down while playing
-      if (latestNoteNumberForAutoOctave != -1 && switchTargetEnabled[ASSIGNED_AUTO_OCTAVE][sensorSplit] > 0) {
+      if (latestNoteNumberForAutoOctave != -1 && isSwitchAutoOctavePressed(sensorSplit)) {
         short octaveChange = 0;
 
         // if the previous note was at least a perfect fifth lower, transpose one octave down

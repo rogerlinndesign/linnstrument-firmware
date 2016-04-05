@@ -326,6 +326,8 @@ void lowRowStart() {
       startLowRowContinuousExpression();
       break;
   }
+
+  updateSwitchLeds();
 }
 
 void startLowRowContinuousExpression() {
@@ -416,6 +418,8 @@ void lowRowStop() {
 
           lowRowSplitState[sensorSplit] = inactive;
         }
+
+        updateSwitchLeds();
       }
       break;
   }
@@ -423,6 +427,10 @@ void lowRowStop() {
 
 inline boolean isLowRowArpeggiatorPressed(byte split) {
   return Split[split].lowRowMode == lowRowArpeggiator && lowRowSplitState[split] != inactive;
+}
+
+inline boolean isLowRowSustainPressed(byte split) {
+  return Split[split].lowRowMode == lowRowSustain && lowRowSplitState[split] != inactive;
 }
 
 inline boolean isLowRowBendActive(byte split) {

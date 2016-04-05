@@ -1850,3 +1850,7 @@ void midiSendMpePitchBendRange(byte split) {
     midiSendRPN(0, 24 << 7, Split[split].midiChanMain);
   }
 }
+
+inline boolean isSustainEnabled(byte split) {
+  return isLowRowSustainPressed(split) || isSwitchSustainPressed(split);
+}
