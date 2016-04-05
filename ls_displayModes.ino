@@ -362,25 +362,25 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       colour = Split[split].colorAccent;
       cellDisplay = cellOn;
     }
-
-    // if the low row is anything but normal, set it to the appropriate color
-    if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
-      if (Split[split].lowRowMode == lowRowCCX && Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader ||
-          Split[split].lowRowMode == lowRowCCXYZ && Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
-        colour = COLOR_BLACK;
-        cellDisplay = cellOff;
-      }
-      else {
-        colour = Split[split].colorLowRow;
-        cellDisplay = cellOn;
-      }
-    }
   }
 
   // show pulsating middle root note
   if (blinkMiddleRootNote && displayedNote == 60) {
     colour = Split[split].colorAccent;
     cellDisplay = cellPulse;
+  }
+
+  // if the low row is anything but normal, set it to the appropriate color
+  if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
+    if (Split[split].lowRowMode == lowRowCCX && Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader ||
+        Split[split].lowRowMode == lowRowCCXYZ && Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+      colour = COLOR_BLACK;
+      cellDisplay = cellOff;
+    }
+    else {
+      colour = Split[split].colorLowRow;
+      cellDisplay = cellOn;
+    }
   }
 
   // actually set the cell's color
