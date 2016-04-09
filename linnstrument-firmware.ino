@@ -119,7 +119,7 @@ char* OSVersionBuild = ".029";
 #define LOWPOWER_MAINLOOP_DIVIDER 2        // increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
 #define LOWPOWER_LED_REFRESH      240      // accelerate led refresh so that they can be lit only one third of the time
 #define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
-#define LOWPOWER_MIDI_INTERVAL    200      // use a minimum interval of 200 microseconds between MIDI messages in low power mode
+#define LOWPOWER_MIDI_INTERVAL    350      // use a minimum interval of 350 microseconds between MIDI messages in low power mode
 
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_LO_Z        120                 // lowest acceptable raw Z value to start a touch
