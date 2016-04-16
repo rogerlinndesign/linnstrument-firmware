@@ -300,7 +300,9 @@ void lowRowStart() {
         }
 
         lowRowSplitState[sensorSplit] = pressed;
-        temporarilyEnableArpeggiator();
+        if (!Split[sensorSplit].arpeggiator) {
+          temporarilyEnableArpeggiator();
+        }
       }
       startLowRowContinuousExpression();
       break;
@@ -385,7 +387,9 @@ void lowRowStop() {
           {
             case lowRowArpeggiator:
               arpTempoDelta[sensorSplit] = 0;
-              disableTemporaryArpeggiator();
+              if (!Split[sensorSplit].arpeggiator) {
+                disableTemporaryArpeggiator();
+              }
               lowRowInitialColumn[sensorSplit] = -1;
               break;
             case lowRowBend:

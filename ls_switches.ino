@@ -198,8 +198,21 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_ARPEGGIATOR:
-      temporarilyEnableArpeggiator();
+      performArpeggiatorToggle();
       break;
+  }
+}
+
+void performArpeggiatorToggle() {
+  Split[sensorSplit].arpeggiator = !Split[sensorSplit].arpeggiator;
+  if (Split[sensorSplit].arpeggiator) {
+    temporarilyEnableArpeggiator();
+  }
+  else {
+    disableTemporaryArpeggiator();
+  }
+  if (displayMode == displayPerSplit) {
+    updateDisplay();
   }
 }
 
@@ -249,7 +262,7 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
       break;
 
     case ASSIGNED_ARPEGGIATOR:
-      disableTemporaryArpeggiator();
+      performArpeggiatorToggle();
       break;
   }
 }
@@ -294,7 +307,6 @@ void resetSwitchStates(byte whichSwitch) {
     if (switchState[whichSwitch][sp]) {
       byte assignment = Global.switchAssignment[whichSwitch];
       changeSwitchState(whichSwitch, assignment, sp, false);
-      performSwitchAssignmentOff(assignment, sp);
     }
   }
 }
@@ -304,10 +316,6 @@ void resetSwitchStates(byte whichSwitch) {
 void checkFootSwitches() {
   handleFootSwitchState(SWITCH_FOOT_L, digitalRead(FOOT_SW_LEFT));   // check left input raw state
   handleFootSwitchState(SWITCH_FOOT_R, digitalRead(FOOT_SW_RIGHT));  // check raw right input state
-}
-
-inline boolean isSwitchArpeggiatorPressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_ARPEGGIATOR][split];
 }
 
 inline boolean isSwitchSustainPressed(byte split) {

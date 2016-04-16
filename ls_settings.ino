@@ -516,6 +516,8 @@ void initializePresetSettings() {
   config.preset[3].split[RIGHT].expressionForZ = loudnessChannelPressure;
   config.preset[3].split[LEFT].lowRowMode = lowRowArpeggiator;
   config.preset[3].split[RIGHT].lowRowMode = lowRowArpeggiator;
+  config.preset[3].split[LEFT].arpeggiator = true;
+  config.preset[3].split[RIGHT].arpeggiator = false;
   config.preset[3].global.arpDirection = ArpReplayAll;
   config.preset[3].global.arpTempo = ArpSixteenthSwing;
 

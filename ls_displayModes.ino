@@ -183,19 +183,23 @@ void exitDisplayMode(DisplayMode mode) {
 
 void updateSwitchLeds() {
   CellDisplay displaySwitch1 = switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff;
-  if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR && isArpeggiatorEnabled(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
+  if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR) {
+    displaySwitch1 = isArpeggiatorEnabled(focusedSplit) ? cellOn : cellOff;
+  }
+  else if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
     displaySwitch1 = cellOn;
   }
   setLed(0, SWITCH_1_ROW, globalColor, displaySwitch1);
 
   CellDisplay displaySwitch2 = switchState[SWITCH_SWITCH_2][focusedSplit] ? cellOn : cellOff;
-  if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_ARPEGGIATOR && isArpeggiatorEnabled(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
-      (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
+  if (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_ARPEGGIATOR) {
+    displaySwitch2 = isArpeggiatorEnabled(focusedSplit) ? cellOn : cellOff;
+  }
+  else if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
     displaySwitch2 = cellOn;
   }
   setLed(0, SWITCH_2_ROW, globalColor, displaySwitch2);

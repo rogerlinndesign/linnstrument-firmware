@@ -73,16 +73,12 @@ byte getOctaveNote(byte octave, byte notenum) {
 
 void temporarilyEnableArpeggiator() {
   arpTempoDelta[sensorSplit] = 0;
-  if (!Split[sensorSplit].arpeggiator) {
-    midiSendNoteOffForAllTouches(sensorSplit);
-    resetArpeggiatorState(sensorSplit);
-  }
+  midiSendNoteOffForAllTouches(sensorSplit);
+  resetArpeggiatorState(sensorSplit);
 }
 
 void disableTemporaryArpeggiator() {
-  if (!Split[sensorSplit].arpeggiator) {
-    turnArpeggiatorOff(sensorSplit);
-  }
+  turnArpeggiatorOff(sensorSplit);
 }
 
 void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
@@ -466,7 +462,7 @@ void advanceArpeggiatorForSplit(byte split) {
 }
 
 inline boolean isArpeggiatorEnabled(byte split) {
-  return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split) || isSwitchArpeggiatorPressed(split);
+  return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split);
 }
 
 void tapTempoPress() {
