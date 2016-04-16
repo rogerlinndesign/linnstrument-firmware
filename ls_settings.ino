@@ -2587,6 +2587,12 @@ void handleGlobalSettingRelease() {
         clearDisplay();
         big_scroll_text_flipped(Device.audienceMessages[sensorCol - 1], Split[LEFT].colorMain);        
       }
+      else if (sensorCol == 25) {
+        Device.sleepActive = true;
+        Device.sleepDelay = 2;
+        Device.sleepAnimation = true;
+        storeSettings();
+      }
     }
   }
   else if (sensorCol == 9 && sensorRow == 1 &&
