@@ -885,6 +885,7 @@ boolean switchPressAtStartup(byte switchRow) {
 
 void activateSleepMode() {
   controlButton = -1;
+  clearSwitches();
   clearDisplayImmediately();
   setDisplayMode(displaySleep);
 }
