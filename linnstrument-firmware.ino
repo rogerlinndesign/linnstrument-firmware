@@ -75,8 +75,16 @@ char* OSVersionBuild = ".030";
 // #define DISPLAY_SURFACESCAN_AT_LAUNCH
 
 // Touch surface constants
-#define NUMCOLS  26                  // number of touch sensor columns
-#define NUMROWS  8                   // number of touch sensor rows
+#define LINNMODEL 200
+// #define LINNMODEL 128
+
+#if LINNMODEL == 200
+  #define NUMCOLS  26                  // number of touch sensor columns currently used for device
+  #define NUMROWS  8                   // number of touch sensor rows
+#elif LINNMODEL == 128
+  #define NUMCOLS  17                  // number of touch sensor columns currently used for device
+  #define NUMROWS  8                   // number of touch sensor rows
+#endif
 
 #define NUMSPLITS  2                 // number of splits supported
 #define LEFT       0

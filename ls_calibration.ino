@@ -15,6 +15,14 @@ For the Y values, it simply measures the top and bottom extremes for cells in 5 
 calculate for each cell the ratio that converts this to usable CC values.
 ***************************************************************************************************/
 
+#if LINNMODEL == 200
+  #define CALROWNUM 4
+  #define CALCOLNUM 9
+#elif LINNMODEL == 128
+  #define CALROWNUM 4
+  #define CALCOLNUM 6
+#endif
+
 // these are default starting points for uncalibrated LinnStruments, might need tweaking
 const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_FROM_INT(188);
 const int32_t CALX_DEFAULT_FIRST_CELL = FXD_FROM_INT(248);
@@ -34,13 +42,13 @@ void initializeCalibrationSamples() {
   calibrationPhase = calibrationRows;
 
   for (byte col = 0; col < NUMCOLS; ++col) {
-    for (byte row = 0; row < 4; ++row) {
+    for (byte row = 0; row < CALROWNUM; ++row) {
       calSampleRows[col][row].minValue = 4095;
       calSampleRows[col][row].maxValue = 0;
       calSampleRows[col][row].pass = 0;
     }
   }
-  for (byte col = 0; col < 9; ++col) {
+  for (byte col = 0; col < CALCOLNUM; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
       calSampleCols[col][row].minValue = 4095;
       calSampleCols[col][row].maxValue = 0;
@@ -53,7 +61,7 @@ void initializeCalibrationData() {
   config.device.calibrated = false;
 
   // Initialize default X calibration data
-  for (byte row = 0; row < 4; ++row) {
+  for (byte row = 0; row < CALROWNUM; ++row) {
     config.device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + CALX_BORDER_OFFSET;
     config.device.calRows[0][row].fxdMeasuredX = CALX_DEFAULT_LEFT_EDGE;
     config.device.calRows[0][row].fxdRatio = 0;
@@ -70,7 +78,7 @@ void initializeCalibrationData() {
   }
 
   // Initialize default Y calibration data
-  for (byte col = 0; col < 9; ++col) {
+  for (byte col = 0; col < CALCOLNUM; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
       config.device.calCols[col][row].minY = CALY_DEFAULT_MIN[row];
       config.device.calCols[col][row].maxY = CALY_DEFAULT_MAX[row];
@@ -192,7 +200,7 @@ boolean handleCalibrationRelease() {
       if (calibrationPhase == calibrationRows) {
         bool rowsOk = true;
         for (byte col = 1; col < NUMCOLS && rowsOk; ++col) {
-          for (byte row = 0; row < 4 && rowsOk; ++row) {
+          for (byte row = 0; row < CALROWNUM && rowsOk; ++row) {
             if (calSampleRows[col][row].pass < 2) {
               rowsOk = false;
             }
@@ -210,7 +218,7 @@ boolean handleCalibrationRelease() {
         bool colsOk = true;
 
         for (byte row = 0; row < NUMROWS && colsOk; ++row) {
-          for (byte col = 0; col < 9 && colsOk; ++col) {
+          for (byte col = 0; col < CALCOLNUM && colsOk; ++col) {
             if (calSampleCols[col][row].pass < 2) {
               colsOk = false;
             }
@@ -221,7 +229,7 @@ boolean handleCalibrationRelease() {
         if (colsOk) {
 
           // Calculate the calibration X data based on the collected samples
-          for (byte row = 0; row < 4; ++row) {
+          for (byte row = 0; row < CALROWNUM; ++row) {
 
             // The first calibration entry basically indicates the leftmost limit of the measured X values
             Device.calRows[0][row].fxdMeasuredX = FXD_FROM_INT(calSampleRows[1][row].minValue);
@@ -240,7 +248,7 @@ boolean handleCalibrationRelease() {
 
           // Store and calculate the calibration Y data based on the collected samples
           for (byte row = 0; row < NUMROWS; ++row) {
-            for (byte col = 0; col < 9; ++col) {
+            for (byte col = 0; col < CALCOLNUM; ++col) {
               int sampledRange = calSampleCols[col][row].maxValue - calSampleCols[col][row].minValue;
               int cellMarginY = (sampledRange / CALY_MARGIN_FRACTION);
               Device.calCols[col][row].minY = calSampleCols[col][row].minValue + cellMarginY;
@@ -289,7 +297,7 @@ boolean handleCalibrationRelease() {
 }
 
 void debugCalibration() {
-  for (byte row = 0; row < 4; ++row) {
+  for (byte row = 0; row < CALROWNUM; ++row) {
     for (byte col = 0; col < NUMCOLS; ++col) {
       DEBUGPRINT((0,"calRows"));
       DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)col));
@@ -309,7 +317,7 @@ void debugCalibration() {
     DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdRatio, FXD_CONST_100))));
     DEBUGPRINT((0,"\n"));
   }
-  for (byte col = 0; col < 5; ++col) {
+  for (byte col = 0; col < CALCOLNUM; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
       DEBUGPRINT((0,"calCols"));
       DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)col));

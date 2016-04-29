@@ -213,7 +213,7 @@ void updateSwitchLeds() {
 }
 
 // paintNormalDisplay:
-// Paints columns 1-26 of the display with the normal performance colors
+// Paints all non-switch columns of the display with the normal performance colors
 void paintNormalDisplay() {
   // highlight global settings red when user firmware mode is active
   if (userFirmwareActive) {

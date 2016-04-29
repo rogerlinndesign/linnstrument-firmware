@@ -380,7 +380,11 @@ void initializePresetSettings() {
     PresetSettings& p = config.preset[n];
     GlobalSettings& g = p.global;
 
+#if LINNMODEL == 200
     g.splitPoint = 12;
+#elif LINNMODEL == 128
+    g.splitPoint = 9;
+#endif
     g.currentPerSplit = LEFT;
 
     g.rowOffset = 5;
