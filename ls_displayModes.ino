@@ -182,6 +182,10 @@ void exitDisplayMode(DisplayMode mode) {
 }
 
 void updateSwitchLeds() {
+  if (operatingMode != modePerformance) {
+    return;
+  }
+
   CellDisplay displaySwitch1 = switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff;
   if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR) {
     displaySwitch1 = isArpeggiatorEnabled(focusedSplit) ? cellOn : cellOff;
