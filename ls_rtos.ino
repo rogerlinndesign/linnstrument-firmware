@@ -39,6 +39,13 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 }
 
 inline void performContinuousTasks(unsigned long nowMicros) {
+  // keeps track when continuous tasks are currently active in order to prevent infinite recursive calls
+  static boolean continuousTasksActive = false;
+  if (continuousTasksActive) {
+    return;
+  }
+  continuousTasksActive = true;
+
   if (displayMode == displaySleep) {
     return;
   }
@@ -60,6 +67,8 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     handleMidiInput(nowMicros);
     handlePendingMidi(nowMicros);
   }
+
+  continuousTasksActive = false;
 }
 
 // checks to see if it's time to refresh the next LED column, and if so, does it
