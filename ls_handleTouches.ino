@@ -667,6 +667,8 @@ boolean handleXYZupdate() {
   DEBUGPRINT((2," pressureZ="));DEBUGPRINT((2,(int)sensorCell->pressureZ));
   DEBUGPRINT((2,"\n"));
 
+  lastTouchMoment = millis();
+    
   // turn off note handling and note expression features for low row, volume, cc faders and strumming
   boolean handleNotes = true;
   // in user firmware mode, everything is always encoded as MIDI notes and information
