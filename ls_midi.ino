@@ -1350,7 +1350,9 @@ void handlePendingMidi(unsigned long now) {
   static byte lastChannel = 0;
   static byte lastType = 0;
 
-  if (!midiOutQueue.empty()) {
+  // when there are MIDI messages queued and the serial queue has room
+  // for at least one full MIDI message start sending it out
+  if (!midiOutQueue.empty() && Serial.availableForWrite() > 3) {
     // the first queued byte is always the MIDI channel
     if (messageIndex == 0) {
       lastChannel = midiOutQueue.pop();
