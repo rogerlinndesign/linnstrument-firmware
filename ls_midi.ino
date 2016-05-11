@@ -1346,17 +1346,19 @@ void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
 
 void handlePendingMidi(unsigned long now) {
   static unsigned long lastEnvoy = 0;
-  static byte messageIndex = 0;
+  static byte inMsgIndex = 0;
   static byte lastChannel = 0;
   static byte lastType = 0;
+  static byte outMsgBuffer[3];
+  static byte outMsgIndex = 0;
 
   // when there are MIDI messages queued and the serial queue has room
   // for at least one full MIDI message start sending it out
   if (!midiOutQueue.empty() && Serial.availableForWrite() > 3) {
     // the first queued byte is always the MIDI channel
-    if (messageIndex == 0) {
+    if (inMsgIndex == 0) {
       lastChannel = midiOutQueue.pop();
-      messageIndex++;
+      inMsgIndex++;
     }
     // the others will constitute the actual MIDI message
     else {
@@ -1364,68 +1366,58 @@ void handlePendingMidi(unsigned long now) {
 
       // always insert a 1 ms delay around MIDI note on and note off boundaries
       unsigned long additionalInterval = 0;
-      if (messageIndex == 1 &&
+      if (inMsgIndex == 1 &&
           (lastType == MIDINoteOn ||
            nextByte == MIDINoteOff || lastType == MIDINoteOff)) {
         additionalInterval = 2000;
       }
 
-      // if the time between now and the last MIDI byte exceeds the required interval, process it
-      if (calcTimeDelta(now, lastEnvoy) >= (midiMinimumInterval + additionalInterval)) {
+      // if the time between now and the last MIDI message exceeds the required interval, process it
+      if (calcTimeDelta(now, lastEnvoy) >= (midiMinimumInterval * 3 + additionalInterval)) {
         // construct the correct MIDI byte that needs to be sent
         byte midiByte;
-        if (messageIndex == 1) {
+        if (inMsgIndex == 1) {
           midiByte = nextByte | lastChannel;
         }
         else {
           midiByte = nextByte;
         }
 
-        // try to send the MIDI message byte
-        if (sendNextMidiOutputByte(midiByte)) {
-          // keep track of the last MIDI message type that was successfully sent
-          if (messageIndex == 1) {
-            lastType = nextByte;
-          }
+        // add the MIDI message byte to the buffer
+        outMsgBuffer[outMsgIndex++] = midiByte;
 
-          // remove the sent byte from the queue and keep track of the message sequence
+        // keep track of the last MIDI message type that was handled
+        if (inMsgIndex == 1) {
+          lastType = nextByte;
+        }
+
+        // remove the sent byte from the queue and keep track of the message sequence
+        midiOutQueue.pop();
+        inMsgIndex++;
+
+        // in case of program change and channel pressure, the MIDI message length is one shorter,
+        // so automatically remove the fourth byte from the queue since it's unused
+        if (inMsgIndex == 3 &&
+            (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
           midiOutQueue.pop();
-          messageIndex++;
-
-          // in case of program change and channel pressure, the MIDI message length is one shorter,
-          // so automatically remove the fourth byte from the queue since it's unused
-          if (messageIndex == 3 &&
-              (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
-            midiOutQueue.pop();
-            messageIndex++;
-          }
-
-          // update the last time a MIDI byte was attempted to be sent
-          lastEnvoy = now;
+          inMsgIndex++;
         }
       }
     }
 
     // each time four bytes have been processed from the queue, start a new MIDI message
-    if (messageIndex == 4) {
-      messageIndex = 0;
+    if (inMsgIndex == 4) {
+      // write the MIDI message in its entirety to the serial port
+      Serial.write(outMsgBuffer, outMsgIndex);
+
+      inMsgIndex = 0;
       lastChannel = 0;
+      outMsgIndex = 0;
+
+      // update the last time a MIDI message was sent
+      lastEnvoy = now;
     }
   }
-}
-
-// send a MIDI message byte using the most appropriate method, the return value
-// indicates whether the byte was sent successfully
-boolean sendNextMidiOutputByte(byte b) {
-#ifdef PATCHED_ARDUINO_SERIAL_WRITE
-  if (Serial.write(b, false) > 0) {
-    return true;
-  }
-  return false;
-#else
-  Serial.write(b);
-  return true;
-#endif
 }
 
 void midiSendVolume(byte v, byte channel) {

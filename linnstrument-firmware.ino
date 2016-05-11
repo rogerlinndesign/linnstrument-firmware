@@ -62,10 +62,6 @@ char* OSVersionBuild = ".030";
 #define SPI_SENSOR  4                // Arduino pin for touch sensor control over SPI
 #define SPI_ADC     52               // Arduino pin for input from TI ADS7883 12-bit A/D converter
 
-// Comment this define out to be able to compile against the standard Arduino API, but not
-// benefit from our no-delay serial write improvements
-#define PATCHED_ARDUINO_SERIAL_WRITE
-
 // Uncomment to immediately start X, Y, or Z frame debugging when the LinnStrument launches
 // This is useful when having to inspect the sensor data without being able to
 // use the switches to change the active settings
@@ -929,8 +925,9 @@ void applyMidiInterval() {
 }
 
 void applyMidiDecimationRate() {
-  // usually 3 bytes in a MIDI message
-  midiDecimateRate = midiMinimumInterval * 3;
+  // this is just a number made up with lots of testing in order to avoid having
+  // too many MIDI messages backing up in the outgoing queue
+  midiDecimateRate = midiMinimumInterval * 34;
 
   if (Device.operatingLowPower && midiDecimateRate < LOWPOWER_MIDI_DECIMATION) {
     midiDecimateRate = LOWPOWER_MIDI_DECIMATION;
