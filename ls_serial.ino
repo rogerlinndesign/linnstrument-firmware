@@ -92,7 +92,7 @@ void handleSerialIO() {
 void serialSendSettings() {
   Serial.write(ackCode);
 
-  clearDisplay();
+  clearDisplayImmediately();
   delayUsec(1000);
 
   saveSettings();
@@ -128,7 +128,7 @@ boolean serialWaitForMaximumTwoSeconds() {
 void serialRestoreSettings() {
   Serial.write(ackCode);
 
-  clearDisplay();
+  clearDisplayImmediately();
   delayUsec(1000);
 
   // retrieve the size of the settings
