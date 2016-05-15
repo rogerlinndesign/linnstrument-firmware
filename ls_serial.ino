@@ -176,7 +176,7 @@ void serialRestoreSettings() {
   switchSerialMode(false);
 
   // Enable normal playing mode and ensure calibration is fully turned off
-  if (settingsApplied) {
+  if (settingsApplied && Device.calibrated) {
     setDisplayMode(displayNormal);
     controlButton = -1;
     clearLed(0, GLOBAL_SETTINGS_ROW);
