@@ -1397,6 +1397,11 @@ void handleTouchRelease() {
   }
   else if (sensorCell->hasNote()) {
 
+    // reset the pressure when the note is release and that settings is active
+    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+      preSendLoudness(sensorSplit, 0, sensorCell->note, sensorCell->channel);
+    }
+
     // unregister the note <> cell mapping
     noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
 
@@ -1444,11 +1449,6 @@ void handleTouchRelease() {
       if (allNotesOff) {
         resetPossibleNoteCells(sensorSplit, realSensorNote);
       }
-    }
-
-    // reset the pressure when the note is release and that settings is active
-    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, sensorCell->note, sensorCell->channel);
     }
 
     // reset the pitch bend when the note is released and that setting is active
