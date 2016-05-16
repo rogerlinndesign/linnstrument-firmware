@@ -39,16 +39,16 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
 }
 
 inline void performContinuousTasks(unsigned long nowMicros) {
+  if (displayMode == displaySleep) {
+    return;
+  }
+
   // keeps track when continuous tasks are currently active in order to prevent infinite recursive calls
   static boolean continuousTasksActive = false;
   if (continuousTasksActive) {
     return;
   }
   continuousTasksActive = true;
-
-  if (displayMode == displaySleep) {
-    return;
-  }
 
   if (checkRefreshLedColumn(nowMicros)) {
     unsigned long nowMillis = millis();
