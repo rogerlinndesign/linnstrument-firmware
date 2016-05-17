@@ -1073,8 +1073,9 @@ void setup() {
     // detect if low power mode is toggled by holding down the octave/transpose button at startup
     if (switchPressAtStartup(4)) {
       Device.operatingLowPower = true;
-      cellTouched(0, 4, touchedCell);
+      Device.serialMode = false;
       storeSettings();
+      cellTouched(0, 4, touchedCell);
     }
 
     applyLowPowerMode();
