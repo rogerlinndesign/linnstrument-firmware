@@ -879,6 +879,7 @@ void reset() {
 boolean switchPressAtStartup(byte switchRow) {
   sensorCol = 0;
   sensorRow = switchRow;
+  updateSensorCell();
   // initially we need read Z a few times for the readings to stabilize
   readZ(); readZ(); unsigned short switchZ = readZ();
   if (switchZ > Device.sensorLoZ + 128) {
@@ -1067,6 +1068,7 @@ void setup() {
   // default to performance mode
   sensorCol = 0;
   sensorRow = 0;
+  updateSensorCell();
   {
     operatingMode = modePerformance;
 

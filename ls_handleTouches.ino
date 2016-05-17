@@ -1527,7 +1527,6 @@ inline void nextSensorCell() {
 
   sensorCol = scannedCells[cellCount][0];
   sensorRow = scannedCells[cellCount][1];
-  sensorSplit = getSplitOf(sensorCol);
   if (++cellCount >= MAX_CELLCOUNT) {
     cellCount = 0;
   }
@@ -1541,8 +1540,12 @@ inline void nextSensorCell() {
     }
   }
 
-  sensorCell = &cell(sensorCol, sensorRow);
+  updateSensorCell();
+}
 
+inline void updateSensorCell() {
+  sensorSplit = getSplitOf(sensorCol);
+  sensorCell = &cell(sensorCol, sensorRow);
   // we're keeping track of the state of X, Y and Z so that we don't refresh it needlessly for finger tracking
   sensorCell->shouldRefreshData();
 }
