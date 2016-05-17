@@ -1012,6 +1012,10 @@ void setup() {
   /*!!*/
   //*************************************************************************************************************************************************
 
+  // set display to normal performance mode & refresh it
+  clearDisplay();
+  setDisplayMode(displayNormal);
+
   // initialize input pins for 2 foot switches
   pinMode(FOOT_SW_LEFT, INPUT_PULLUP);
   pinMode(FOOT_SW_RIGHT, INPUT_PULLUP);
@@ -1066,15 +1070,10 @@ void setup() {
   {
     operatingMode = modePerformance;
 
-    // set display to normal performance mode & refresh it
-    clearDisplay();
-    setDisplayMode(displayNormal);
-    setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
-
     // detect if low power mode is toggled by holding down the octave/transpose button at startup
     if (switchPressAtStartup(4)) {
       Device.operatingLowPower = true;
-      cell(sensorCol, sensorRow).touched = touchedCell;
+      cellTouched(0, 4, touchedCell);
       storeSettings();
     }
 
