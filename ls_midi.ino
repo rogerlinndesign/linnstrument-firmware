@@ -1752,7 +1752,7 @@ void midiSendPolyPressure(byte notenum, byte value, byte channel) {
   unsigned long now = micros();
   short index = (notenum + 1) * (channel + 1) - 1;
   if (lastValueMidiPP[index] == value) return;
-  if (calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
+  if (value != 0 && calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
   lastValueMidiPP[index] = value;
   lastMomentMidiPP[index] = now;
 
