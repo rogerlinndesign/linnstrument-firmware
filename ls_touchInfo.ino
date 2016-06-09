@@ -166,6 +166,9 @@ void initializeTouchInfo() {
   // Initialize the cells array, starting operating with no touched cells
   for (byte col = 0; col < NUMCOLS; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
+#ifdef TESTING_SENSOR_DISABLE
+      cell(col, row).disabled = false;
+#endif
       cell(col, row).touched = untouchedCell;
       cell(col, row).lastTouch = 0;
       cell(col, row).clearSensorData();

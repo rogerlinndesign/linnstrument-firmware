@@ -1360,6 +1360,7 @@ void handleTouchRelease() {
       // user firmware mode only handles the global settings command button
       (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW)) {
     handleControlButtonRelease();
+    postTouchRelease();
     return;
   }
 
@@ -1474,6 +1475,14 @@ void handleTouchRelease() {
   sensorCell->vcount = 0;
 
   sensorCell->clearSensorData();
+
+  postTouchRelease();
+}
+
+void postTouchRelease() {
+#ifdef TESTING_SENSOR_DISABLE
+    sensorCell->disabled = true;
+#endif  
 }
 
 void handleOpenStringsRelease() {

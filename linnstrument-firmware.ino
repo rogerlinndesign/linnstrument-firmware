@@ -69,6 +69,7 @@ char* OSVersionBuild = ".033";
 // #define DISPLAY_YFRAME_AT_LAUNCH
 // #define DISPLAY_ZFRAME_AT_LAUNCH
 // #define DISPLAY_SURFACESCAN_AT_LAUNCH
+// #define TESTING_SENSOR_DISABLE
 
 // Touch surface constants
 #define LINNMODEL 200
@@ -280,6 +281,10 @@ struct TouchInfo {
   void clearMusicalData();                   // clear the musical data
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
+
+#ifdef TESTING_SENSOR_DISABLE
+  boolean disabled;
+#endif
 
   // touch data
   TouchState touched;                        // touch status of all sensor cells

@@ -44,6 +44,12 @@ const short READX_MIN_DELAY = 150;
 const short READX_RANGE_DELAY = READX_MAX_DELAY - READX_MIN_DELAY;
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
+#ifdef TESTING_SENSOR_DISABLE
+    if (sensorCell->disabled) {
+      return 0;
+    }
+#endif
+
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
@@ -69,6 +75,12 @@ const short READY_MIN_DELAY = 60;
 const short READY_RANGE_DELAY = READY_MAX_DELAY - READY_MIN_DELAY;
 
 inline short readY(byte zPct) {                       // returns a value of 0-127 within cell's y axis
+#ifdef TESTING_SENSOR_DISABLE
+    if (sensorCell->disabled) {
+      return 0;
+    }
+#endif
+
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
@@ -94,6 +106,12 @@ const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
 inline unsigned short readZ() {                       // returns the raw Z value
+#ifdef TESTING_SENSOR_DISABLE
+    if (sensorCell->disabled) {
+      return 0;
+    }
+#endif
+
   DEBUGPRINT((3,"readZ\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
