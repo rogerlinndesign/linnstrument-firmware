@@ -112,14 +112,15 @@ void writeSettingsToFlash() {
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
+  clearDisplayImmediately();
+  clearDisplay();
+  completelyRefreshLeds();
+
   unsigned long zeromarker = 0;
   unsigned long now = millis();
 
   // batch and slow down the flash storage in low power mode
   if (Device.operatingLowPower) {
-
-    clearDisplay();
-
     // ensure that there's at least 200 milliseconds between refreshing the display lights and writing to flash
     unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
     if (displayModeDelta < 200) {
@@ -155,8 +156,6 @@ void writeSettingsToFlash() {
     // write the timestamp after the configuration data for verification
     dueFlashStorage.write(offset+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
     delayUsec(1000);
-
-    updateDisplay();
   }
   // do the faster possible flash storage in regular power mode
   else {
@@ -172,6 +171,8 @@ void writeSettingsToFlash() {
     // write the timestamp after the configuration data for verification
     dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
   }
+
+  updateDisplay();
 }
 
 void loadSettings() {
