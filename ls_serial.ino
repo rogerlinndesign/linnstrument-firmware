@@ -95,8 +95,6 @@ void serialSendSettings() {
   clearDisplayImmediately();
   delayUsec(1000);
 
-  saveSettings();
-
   int32_t confSize = sizeof(Configuration);
 
   // send the size of the settings

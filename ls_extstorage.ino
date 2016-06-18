@@ -367,7 +367,7 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   byte settingsVersion = buff2[0];
 
   // if the stored version is newer than what this firmware supports, resort to default settings
-  if (settingsVersion > config.device.version) {
+  if (settingsVersion > Device.version) {
     result = false;
   }
   else {
@@ -440,9 +440,9 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
     if (targetConfig && copyConfigurationFunction) {
       memcpy(targetConfig, buff2, confSize);
 
-      byte currentVersion = config.device.version;
+      byte currentVersion = Device.version;
       copyConfigurationFunction(&config, targetConfig);
-      config.device.version = currentVersion;
+      Device.version = currentVersion;
 
       switch (settingsVersion) {
         case 1:

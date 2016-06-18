@@ -474,29 +474,31 @@ boolean TouchInfo::hasNote() {
 
 void TouchInfo::clearAllPhantoms() {
   if (hasPhantoms()) {
-    cell(phantomCoords[0], phantomCoords[2]).clearPhantoms();
-    cell(phantomCoords[1], phantomCoords[2]).clearPhantoms();
-    cell(phantomCoords[0], phantomCoords[3]).clearPhantoms();
-    cell(phantomCoords[1], phantomCoords[3]).clearPhantoms();
+    cell(phantomCol1, phantomRow1).clearPhantoms();
+    cell(phantomCol2, phantomRow1).clearPhantoms();
+    cell(phantomCol1, phantomRow2).clearPhantoms();
+    cell(phantomCol2, phantomRow2).clearPhantoms();
   }
 }
 
 void TouchInfo::clearPhantoms() {
-  for (byte coord = 0; coord < 4; ++ coord) {
-    phantomCoords[coord] = -1;
-  }
+  phantomSet = false;
+  phantomCol1 = 0;
+  phantomCol2 = 0;
+  phantomRow1 = 0;
+  phantomRow2 = 0;
 }
 
 boolean TouchInfo::hasPhantoms() {
-  return phantomCoords[0] != -1 && phantomCoords[1] != -1 &&
-    phantomCoords[2] != -1 && phantomCoords[3] != -1;
+  return phantomSet;
 }
 
 void TouchInfo::setPhantoms(byte col1, byte col2, byte row1, byte row2) {
-  phantomCoords[0] = col1;
-  phantomCoords[1] = col2;
-  phantomCoords[2] = row1;
-  phantomCoords[3] = row2;
+  phantomSet = true;
+  phantomCol1 = col1;
+  phantomCol2 = col2;
+  phantomRow1 = row1;
+  phantomRow2 = row2;
 }
 
 boolean TouchInfo::isHigherPhantomPressure(short other) {

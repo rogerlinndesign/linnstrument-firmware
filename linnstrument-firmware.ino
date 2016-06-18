@@ -240,9 +240,9 @@ byte sensorSplit = 0;                       // the split of the currently read t
 // saved as the specific column and row for the focus cell.
 // If in 1Ch/Poly mode, continuous X and Y messages are sent only from movements within the focused cell.
 // If in 1Ch/Chan mode, continuous X, Y and Z messages are sent only from movements within the focused cell.
-struct FocusCell {
-  byte col;
-  byte row;
+struct __attribute__ ((packed)) FocusCell {
+  byte col:5;
+  byte row:3;
 };
 FocusCell focusCell[NUMSPLITS][16];             // 2 splits and 16 MIDI channels for each split
 
@@ -259,7 +259,7 @@ enum TouchState {
   touchedCell = 3
 };
 
-struct TouchInfo {
+struct __attribute__ ((packed)) TouchInfo {
   void shouldRefreshData();                  // indicate that the X, Y and Z data should be refreshed
   short rawX();                              // ensure that X is updated to the latest scan and return its raw value
   short calibratedX();                       // ensure that X is updated to the latest scan and return its calibrated value
@@ -286,47 +286,44 @@ struct TouchInfo {
   boolean disabled;
 #endif
 
-  // touch data
-  TouchState touched;                        // touch status of all sensor cells
-  unsigned long lastTouch;
-  short initialX;                            // initial calibrated X value of each cell at the start of the touch
-  short initialReferenceX;                   // initial calibrated reference X value of each cell at the start of the touch
-  short quantizationOffsetX;                 // quantization offset to be applied to the X value
-  short currentRawX;                         // last raw X value of each cell
-  short currentCalibratedX;                  // last calibrated X value of each cell
-  short lastMovedX;                          // the last X movement, so that we can compare movement jumps
-  short lastValueX;                          // the last calculated X value based on the current settings
-  int32_t fxdRateX;                          // the averaged rate of change of the X values
-  int32_t fxdRateCountX;                     // the number of times the rate of change drops below the minimal value for quantization
-  boolean shouldRefreshX;                    // indicate whether it's necessary to refresh X
-
-  signed char initialY;                      // initial Y value of each cell
-  short currentRawY;                         // last raw Y value of each cell
-  signed char currentCalibratedY;            // last calibrated Y value of each cell
-  boolean shouldRefreshY;                    // indicate whether it's necessary to refresh Y
-
-  short currentRawZ;                         // the raw Z value
-  byte percentRawZ;                          // percentage of Z compared to the raw offset and range
-  boolean featherTouch;                      // indicates whether this is a feather touch
-  byte velocityZ;                            // the Z value with velocity sensitivity
-  byte pressureZ;                            // the Z value with pressure sensitivity
-  boolean shouldRefreshZ;                    // indicate whether it's necessary to refresh Z
-
-  signed char pendingReleaseCount;           // counter before which the note release will be effective
-
-  // phantom touch tracking
-  signed char phantomCoords[4];              // stores the coordinates of a rectangle that possibly has a phantom touch, stored as column 1, column 2, row 1, row 2
-
-  // musical data
-  byte vcount;                               // the number of times the pressure was measured to obtain a velocity
-  byte velocity;                             // velocity from 0 to 127
-  signed char note;                          // note from 0 to 127
-  signed char channel;                       // channel from 1 to 16
-  signed char octaveOffset;                  // the octave offset when the note started, since this can change during playing
-  int32_t fxdPrevPressure;                   // used to average out the rate of change of the pressure when transitioning between cells
-  int32_t fxdPrevTimbre;                     // used to average out the rate of change of the timbre
-  unsigned long velSumY;                     // these are used to calculate the intial velocity slope based on the first Z samples
-  unsigned long velSumXY;
+  unsigned long lastTouch:32;                // the timestamp when this cell was last touched
+  short initialX:16;                         // initial calibrated X value of each cell at the start of the touch
+  short quantizationOffsetX:16;              // quantization offset to be applied to the X value
+  short currentCalibratedX:16;               // last calibrated X value of each cell
+  short lastMovedX:16;                       // the last X movement, so that we can compare movement jumps
+  short lastValueX:16;                       // the last calculated X value based on the current settings
+  int32_t fxdRateX:32;                       // the averaged rate of change of the X values
+  int32_t fxdRateCountX:32;                  // the number of times the rate of change drops below the minimal value for quantization
+  int32_t fxdPrevPressure:32;                // used to average out the rate of change of the pressure when transitioning between cells
+  int32_t fxdPrevTimbre:32;                  // used to average out the rate of change of the timbre
+  signed char note:8;                        // note from 0 to 127, -1 meaning it's unassigned
+  signed char channel:6;                     // channel from 1 to 16, -1 meaning it's unassigned
+  unsigned short initialReferenceX:14;       // initial calibrated reference X value of each cell at the start of the touch
+  unsigned short currentRawX:12;             // last raw X value of each cell
+  signed char octaveOffset:8;                // the octave offset when the note started, since this can change during playing
+  byte phantomCol1:5;                        // stores the col 1 of a rectangle that possibly has a phantom touch
+  byte phantomRow1:3;                        // stores the row 1 of a rectangle that possibly has a phantom touch
+  byte phantomCol2:5;                        // stores the col 2 of a rectangle that possibly has a phantom touch
+  byte phantomRow2:3;                        // stores the row 2 of a rectangle that possibly has a phantom touch
+  signed char initialY:8;                    // initial Y value of each cell, -1 meaning it's unassigned
+  byte currentCalibratedY:7;                 // last calibrated Y value of each cell
+  boolean shouldRefreshY:1;                  // indicate whether it's necessary to refresh Y
+  unsigned short currentRawY:12;             // last raw Y value of each cell
+  unsigned short currentRawZ:12;             // the raw Z value
+  byte percentRawZ:7;                        // percentage of Z compared to the raw offset and range
+  boolean shouldRefreshX:1;                  // indicate whether it's necessary to refresh X
+  TouchState touched:2;                      // touch status of all sensor cells
+  byte vcount:3;                             // the number of times the pressure was measured to obtain a velocity
+  byte pendingReleaseCount:2;                // counter before which the note release will be effective
+int :1;
+  boolean featherTouch:1;                    // indicates whether this is a feather touch
+  byte pressureZ:7;                          // the Z value with pressure sensitivity
+  bool phantomSet:1;                         // indicates whether phantom touch coordinates are set
+  byte velocity:7;                           // velocity from 0 to 127
+  boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
+  byte velocityZ:7;                          // the Z value with velocity sensitivity
+  unsigned short velSumY:12;                 // these are used to calculate the intial velocity slope based on the first Z samples
+  unsigned short velSumXY:12;
 };
 TouchInfo touchInfo[NUMCOLS][NUMROWS];       // store as much touch information instances as there are cells
 
@@ -380,7 +377,7 @@ struct NoteTouchMapping {
   void debugNoteChain();
 
   unsigned short noteCount;
-  unsigned musicalTouchCount[16];
+  byte musicalTouchCount[16];
   signed char firstNote;
   signed char firstChannel;
   signed char lastNote;
@@ -445,10 +442,10 @@ enum CalibrationPhase {
 };
 byte calibrationPhase = calibrationInactive;
 
-struct CalibrationSample {
-  short minValue;
-  short maxValue;
-  int pass;
+struct __attribute__ ((packed)) CalibrationSample {
+  unsigned short minValue:12;
+  unsigned short maxValue:12;
+  byte pass:4;
 };
 CalibrationSample calSampleRows[NUMCOLS][4]; // store four rows of calibration measurements
 CalibrationSample calSampleCols[9][NUMROWS]; // store nine columns of calibration measurements
@@ -459,9 +456,9 @@ struct CalibrationX {
   int32_t fxdRatio;
 };
 
-struct CalibrationY {
-  int minY;
-  int maxY;
+struct __attribute__ ((packed)) CalibrationY {
+  unsigned short minY:12;
+  unsigned short maxY:12;
   int32_t fxdRatio;
 };
 
@@ -560,7 +557,7 @@ struct SplitSettings {
   boolean strum;                       // true when this split strums the touches of the other split
   boolean mpe;                         // true when MPE is active for this split
 };
-SplitSettings Split[NUMSPLITS];
+#define Split config.settings.split
 
 struct DeviceSettings {
   byte version;                              // the version of the configuration format
@@ -580,7 +577,7 @@ struct DeviceSettings {
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
 };
-DeviceSettings Device;
+#define Device config.device
 
 // The values here MUST match the row #'s for the leds that get lit up in GlobalSettings
 enum VelocitySensitivity {
@@ -647,7 +644,7 @@ struct GlobalSettings {
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
 };
-GlobalSettings Global;
+#define Global config.settings.global
 
 struct PresetSettings {
   GlobalSettings global;

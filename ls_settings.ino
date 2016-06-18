@@ -71,12 +71,12 @@ void initializeStorage() {
   if (bootblock != 0) {                                   // See if we need to boot from scratch
     if (bootblock == 255) {                               // When a new firmware is uploaded, the first flash byte will be 255
       switchSerialMode(true);                             // Start in serial mode after OS upgrade to be able to receive the settings
-      config.device.serialMode = true;
+      Device.serialMode = true;
       firstTimeBoot = true;
     }
     else {
       switchSerialMode(false);                            // Start in MIDI mode for all other bootblock values
-      config.device.serialMode = false;
+      Device.serialMode = false;
     }
 
     writeSettingsToFlash();                               // Store the initial default settings
@@ -95,15 +95,7 @@ void initializeStorage() {
 }
 
 void storeSettings() {
-  saveSettings();
   writeSettingsToFlash();
-}
-
-void saveSettings() {
-  config.device = Device;
-  config.settings.global = Global;
-  config.settings.split[LEFT] = Split[LEFT];
-  config.settings.split[RIGHT] = Split[RIGHT];
 }
 
 void writeSettingsToFlash() {
@@ -198,10 +190,6 @@ void loadSettings() {
 }
 
 void applyPresetSettings(PresetSettings& preset) {
-  memcpy(&Global, &preset.global, sizeof(GlobalSettings));
-  memcpy(&Split[LEFT], &preset.split[LEFT], sizeof(SplitSettings));
-  memcpy(&Split[RIGHT], &preset.split[RIGHT], sizeof(SplitSettings));
-
   focusedSplit = Global.currentPerSplit;
   applyPitchCorrectHold();
   applyLimitsForY();
@@ -215,7 +203,6 @@ void applyPresetSettings(PresetSettings& preset) {
 }
 
 void applyConfiguration() {
-  Device = config.device;
   applyPresetSettings(config.settings);
   applySerialMode();
 }
@@ -229,31 +216,31 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  config.device.version = 8;
-  config.device.serialMode = false;
-  config.device.promoAnimationActive = false;
-  config.device.sleepActive = false;
-  config.device.sleepDelay = 0;
-  config.device.sleepAnimation = false;
-  config.device.operatingLowPower = false;
-  config.device.leftHanded = false;
-  config.device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
+  Device.version = 8;
+  Device.serialMode = false;
+  Device.promoAnimationActive = false;
+  Device.sleepActive = false;
+  Device.sleepDelay = 0;
+  Device.sleepAnimation = false;
+  Device.operatingLowPower = false;
+  Device.leftHanded = false;
+  Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
 
   initializeAudienceMessages();
 }
 
 void initializeAudienceMessages() {
   for (byte msg = 0; msg < 16; ++msg) {
-    memset(config.device.audienceMessages[msg], '\0', sizeof(config.device.audienceMessages[msg]));
-    strncpy(config.device.audienceMessages[msg], defaultAudienceMessages[msg], 30);
-    config.device.audienceMessages[msg][30] = '\0';
+    memset(Device.audienceMessages[msg], '\0', sizeof(Device.audienceMessages[msg]));
+    strncpy(Device.audienceMessages[msg], defaultAudienceMessages[msg], 30);
+    Device.audienceMessages[msg][30] = '\0';
   }
 }
 
 void initializeDeviceSensorSettings() {
-  config.device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  config.device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  config.device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
+  Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
+  Device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
+  Device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
 void initializeNoteLights(GlobalSettings& g) {
@@ -1538,7 +1525,6 @@ void handlePresetHold() {
     storeSettingsToPreset(preset);
     sensorCell->lastTouch = 0;
 
-    saveSettings();
     updateDisplay();
     startPresetLEDBlink(preset, COLOR_RED);
   }
@@ -1566,7 +1552,6 @@ void handlePresetRelease() {
       applyPresetSettings(config.preset[preset]);
       sensorCell->lastTouch = 0;
 
-      saveSettings();
       updateDisplay();
       startPresetLEDBlink(preset, COLOR_GREEN);
     }
