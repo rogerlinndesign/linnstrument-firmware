@@ -13,8 +13,6 @@ are read subsequently, state is compared to these OFF states to insure valid pre
 normally-open and normally-closed switches.
 **************************************************************************************************/
 
-boolean switchArpeggiatorPressed[NUMSPLITS];
-
 void initializeSwitches() {
   // read initial state of each in order to determine if nornally-open or
   // normally-closed (like VFP2) switches are connected, or if nothing's connected.
@@ -37,13 +35,17 @@ void initializeSwitches() {
   switchState[SWITCH_SWITCH_2][RIGHT] = false;
   switchState[SWITCH_SWITCH_1][RIGHT] = false;
 
-  for (byte i = 0; i < 6; ++i) {
+  for (byte i = 0; i < 7; ++i) {
     switchTargetEnabled[i][LEFT] = false;
     switchTargetEnabled[i][RIGHT] = false;
   }
+}
 
-  switchArpeggiatorPressed[LEFT] = false;
-  switchArpeggiatorPressed[RIGHT] = false;
+boolean isStatefulSwitchAssignment(byte assignment) {
+  return assignment == ASSIGNED_AUTO_OCTAVE ||
+         assignment == ASSIGNED_SUSTAIN ||
+         assignment == ASSIGNED_CC_65 ||
+         assignment == ASSIGNED_ARPEGGIATOR;
 }
 
 void doSwitchPressed(byte whichSwitch) {
@@ -58,36 +60,29 @@ void doSwitchPressed(byte whichSwitch) {
 }
 
 void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
-  byte enabledCount = switchTargetEnabled[assignment][split];
-
-  // keep track of when the last press happened to be able to differentiate
-  // between toggle and hold
-  lastSwitchPress[whichSwitch] = millis();
-
-  // by default, the state of this switch will by on when pressed,
+  // by default, the state of this switch will be on when pressed,
   // unless it's determined later to be a toggle action
   boolean resultingState = true;
 
   // perform the switch assignment on action if this hasn't been enabled
   // by another switch yet
-  if (enabledCount == 0) {
+  if (!switchTargetEnabled[assignment][split]) {
     performSwitchAssignmentOn(assignment, split);
   }
-  // if the switch is enabled for the split, it's toggled on
+  // if the switch is enabled for the split,
   // go through the assignment off logic
-  else if (switchState[whichSwitch][split]) {
+  else {
     // turn the switch state off
     resultingState = false;
-
-    // if this is the last switch that has this assignment enabled
-    // perform the assignment off logic
-    if (enabledCount == 1) {
-      performSwitchAssignmentOff(assignment, split);
-    }
+    performSwitchAssignmentOff(assignment, split);
   }
 
   // change the state of the switch and the assignment based on the previous logic
   changeSwitchState(whichSwitch, assignment, split, resultingState);
+
+  // keep track of when the last press happened to be able to differentiate
+  // between toggle and hold
+  lastSwitchPress[whichSwitch] = millis();
 }
 
 void doSwitchReleased(byte whichSwitch) {
@@ -108,8 +103,7 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
 
   // foot switches have no hold or toggle havior based on time, but rather based on function
   if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
-    if (assignment == ASSIGNED_AUTO_OCTAVE || assignment == ASSIGNED_SUSTAIN ||
-        assignment == ASSIGNED_CC_65 || assignment == ASSIGNED_ARPEGGIATOR) {
+    if (isStatefulSwitchAssignment(assignment)) {
       isHeld = true;
     }
     else {
@@ -117,83 +111,55 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
     }
   }
 
-  if (isHeld) {
+  if (isHeld && isStatefulSwitchAssignment(assignment)) {
     // perform the assignment off logic, but when a split is active, it's possible that the
     // switch started being held on the other split, so we need to check which split is actually
     // active before changing the state
     if (splitActive) {
-      if (switchTargetEnabled[assignment][LEFT] == 1) {
+      if (switchTargetEnabled[assignment][LEFT]) {
         performSwitchAssignmentHoldOff(assignment, LEFT);
         changeSwitchState(whichSwitch, assignment, LEFT, false);
       }
-      if (switchTargetEnabled[assignment][RIGHT] == 1) {
+      if (switchTargetEnabled[assignment][RIGHT]) {
         performSwitchAssignmentHoldOff(assignment, RIGHT);
         changeSwitchState(whichSwitch, assignment, RIGHT, false);
       }
     }
     else {
-      if (switchTargetEnabled[assignment][split] == 1) {
+      if (switchTargetEnabled[assignment][split]) {
         performSwitchAssignmentHoldOff(assignment, split);
         changeSwitchState(whichSwitch, assignment, split, false);
       }
     }
   }
   // this is a toggle action, however only some assignment have toggle behavior
-  else {
-    // the switch is already off, don't proceed
-    if (assignment != ASSIGNED_ALTSPLIT && !switchState[whichSwitch][split]) {
-      return;
-    }
-
-    boolean turnSwitchOff = false;
-
-    switch (assignment)
-    {
-      // these assignments don't have visible toggle behaviours, they're more
-      // like one shot triggers
-      case ASSIGNED_OCTAVE_DOWN:
-      case ASSIGNED_OCTAVE_UP:
-      case ASSIGNED_ALTSPLIT:
-        // never keep the switch on after release for these assignments
-        turnSwitchOff = true;
-        break;
-
-      // these assignments can be toggle on or off visually
-      case ASSIGNED_AUTO_OCTAVE:
-      case ASSIGNED_SUSTAIN:
-      case ASSIGNED_CC_65:
-      case ASSIGNED_ARPEGGIATOR:
-        // preserve the current state if the switch is not held
-        break;
-    }
-
-    if (turnSwitchOff) {
+  // only proceed when the switch is on
+  else if (switchState[whichSwitch][split] || assignment == ASSIGNED_ALTSPLIT) {
+    // non-stateful assignments don't have visible toggle behaviours, they're more
+    // like one shot triggers, never keep the switch on after release for these assignments
+    if (!isStatefulSwitchAssignment(assignment)) {
       changeSwitchState(whichSwitch, assignment, split, false);
     }
   }
 }
 
 void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean enabled) {
-  if (enabled) {
-    // keep track of the assignment enabled count for the split
-    switchTargetEnabled[assignment][split]++;
-    // use both splits to keep track of the alt split enabled count for the alt split assignment
-    if (assignment == ASSIGNED_ALTSPLIT) {
-      switchTargetEnabled[assignment][!split]++;
+  // all switches are mutually exclusive, so we always reset the state of other switches with the same target assignment
+  for (byte sw = 0; sw < 4; ++sw) {
+    if (sw != whichSwitch && Global.switchAssignment[sw] == assignment) {
+      switchState[sw][split] = false;
+      lastSwitchPress[sw] = 0;
     }
-
-    switchState[whichSwitch][split] = true;
   }
-  else {
-    // keep track of the assignment enabled count for the split
-    switchTargetEnabled[assignment][split]--;
-    // use both splits to keep track of the alt split enabled count for the alt split assignment
-    if (assignment == ASSIGNED_ALTSPLIT) {
-      switchTargetEnabled[assignment][!split]--;
-    }
 
-    switchState[whichSwitch][split] = false;
+  // the state of the switch target assigment always reflects the state of the last switch that interacted with it
+  switchTargetEnabled[assignment][split] = enabled;
+  if (assignment == ASSIGNED_ALTSPLIT) {
+    switchTargetEnabled[assignment][!split] = enabled;
   }
+
+  // set the state of the switch
+  switchState[whichSwitch][split] = enabled;
 }
 
 void switchTransposeOctave(byte split, int interval) {
@@ -232,9 +198,21 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_ARPEGGIATOR:
-      temporarilyEnableArpeggiator();
-      switchArpeggiatorPressed[split] = true;
+      performArpeggiatorToggle();
       break;
+  }
+}
+
+void performArpeggiatorToggle() {
+  Split[sensorSplit].arpeggiator = !Split[sensorSplit].arpeggiator;
+  if (Split[sensorSplit].arpeggiator) {
+    temporarilyEnableArpeggiator();
+  }
+  else {
+    disableTemporaryArpeggiator();
+  }
+  if (displayMode == displayPerSplit) {
+    updateDisplay();
   }
 }
 
@@ -284,8 +262,7 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
       break;
 
     case ASSIGNED_ARPEGGIATOR:
-      disableTemporaryArpeggiator();
-      switchArpeggiatorPressed[split] = false;
+      performArpeggiatorToggle();
       break;
   }
 }
@@ -321,6 +298,8 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
       }
     }
   }
+
+  updateSwitchLeds();
 }
 
 void resetSwitchStates(byte whichSwitch) {
@@ -328,7 +307,6 @@ void resetSwitchStates(byte whichSwitch) {
     if (switchState[whichSwitch][sp]) {
       byte assignment = Global.switchAssignment[whichSwitch];
       changeSwitchState(whichSwitch, assignment, sp, false);
-      performSwitchAssignmentOff(assignment, sp);
     }
   }
 }
@@ -340,6 +318,14 @@ void checkFootSwitches() {
   handleFootSwitchState(SWITCH_FOOT_R, digitalRead(FOOT_SW_RIGHT));  // check raw right input state
 }
 
-inline boolean isSwitchArpeggiatorPressed(byte split) {
-  return switchArpeggiatorPressed[split];
+inline boolean isSwitchSustainPressed(byte split) {
+  return switchTargetEnabled[ASSIGNED_SUSTAIN][split];
+}
+
+inline boolean isSwitchAutoOctavePressed(byte split) {
+  return switchTargetEnabled[ASSIGNED_AUTO_OCTAVE][split];
+}
+
+inline boolean isSwitchCC65Pressed(byte split) {
+  return switchTargetEnabled[ASSIGNED_CC_65][split];
 }

@@ -39,6 +39,17 @@ void resetNumericDataChangeRow() {
   numericDataReleaseRowTime = 0;
 }
 
+boolean handleNumericDataNewTouchCol(boolean &currentData) {
+  unsigned short newData = handleNumericDataNewTouchColRaw(currentData, false, true, true);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
 boolean handleNumericDataNewTouchCol(unsigned short &currentData, unsigned short minimum, unsigned short maximum, boolean useFineChanges) {
   unsigned short newData = handleNumericDataNewTouchColRaw(currentData, minimum, maximum, useFineChanges);
   if (newData != currentData) {
@@ -109,7 +120,10 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
       byte increment = 1;
 
       // If the swipe is fast, increment by a larger amount.
-      if (calcTimeDelta(now, numericDataChangeColTime) < 70000) {
+      if (calcTimeDelta(now, numericDataChangeColTime) < 40000) {
+        increment = 20;
+      }
+      else if (calcTimeDelta(now, numericDataChangeColTime) < 70000) {
         increment = 4;
       }
       else if (calcTimeDelta(now, numericDataChangeColTime) < 120000) {

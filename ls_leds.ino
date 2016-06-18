@@ -33,13 +33,20 @@ These functions handle the low-level communication with LinnStrument's 208 RGB L
   redRow7   redRow6   redRow5   redRow4   redRow3   redRow2   redRow1   redRow0
 */
 
-byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
+#if LINNMODEL == 200
+  byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
+#elif LINNMODEL == 128
+  byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 2, 7, 12, 3, 8, 13, 4, 9, 14, 5, 10, 15};
+#endif
 
-// leds[NUMCOLS][NUMROWS]:
+// leds[BUFFERS][NUMCOLS][NUMROWS]:
+// Two buffers of ...
 // A 26 by 8 byte array containing one byte for each LED:
 // bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
 // bits 0-2: 0:off, 1: on, 2: pulse
-byte leds[LED_LAYERS+1][NUMCOLS][NUMROWS];             // array holding contents of display
+byte leds[2][LED_LAYERS+1][NUMCOLS][NUMROWS];             // array holding contents of display
+byte visibleLeds = 0;
+byte bufferedLeds = 0;
 
 void initializeLeds() {
   for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
@@ -50,9 +57,31 @@ void initializeLeds() {
 void initializeLedsLayer(byte layer) {
   for (byte col = 0; col < NUMCOLS; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
-      leds[layer][col][row] = 0;
+      leds[bufferedLeds][layer][col][row] = 0;
     }
   }
+}
+
+void startBufferedLeds() {
+  bufferedLeds = 1;
+  for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        leds[bufferedLeds][layer][col][row] = leds[visibleLeds][layer][col][row];
+      }
+    }
+  }
+}
+
+void finishBufferedLeds() {
+  for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
+    for (byte col = 0; col < NUMCOLS; ++col) {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        leds[visibleLeds][layer][col][row] = leds[bufferedLeds][layer][col][row];
+      }
+    }
+  }
+  bufferedLeds = 0;
 }
 
 inline byte getCombinedLedData(byte col, byte row) {
@@ -70,7 +99,7 @@ inline byte getCombinedLedData(byte col, byte row) {
     }
     // in normal display mode, show all layers and only show the main in other display modes
     if (displayMode == displayNormal || layer == LED_LAYER_MAIN) {
-      data = leds[layer][col][row];
+      data = leds[bufferedLeds][layer][col][row];
     }    
   }
   while(layer > 0 && (data & B00001111) == cellOff);
@@ -85,6 +114,8 @@ void setLed(byte col, byte row, byte color, CellDisplay disp) {
 }
 
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
+  if (col >= NUMCOLS || row >= NUMROWS) return;
+
   if (color == COLOR_OFF) {
     disp = cellOff;
   }
@@ -92,9 +123,13 @@ void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
     color = COLOR_OFF;
   }
   byte data = (color << 4) | disp;      // packs color and display into this cell within array
-  if (leds[layer][col][row] != data) {
-    leds[layer][col][row] = data;
-    leds[LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
+  if (leds[bufferedLeds][layer][col][row] != data) {
+    leds[bufferedLeds][layer][col][row] = data;
+    leds[bufferedLeds][LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
+  }
+
+  if (bufferedLeds == 1) {
+    performContinuousTasks(micros());
   }
 }
 
@@ -110,6 +145,12 @@ void clearLed(byte col, byte row) {
 
 void clearLed(byte col, byte row, byte layer) {
   setLed(col, row, COLOR_OFF, cellOff, layer);
+}
+
+// Turns all LEDs off
+void clearFullDisplay() {
+  clearSwitches();
+  clearDisplay();
 }
 
 // Turns all LEDs off in columns 1 or higher
@@ -128,33 +169,27 @@ void clearColumn(byte col) {
   for (byte row = 0; row < NUMROWS; ++row) {
     clearLed(col, row);
   }
-
-  // turn off all LEDs in one go without waiting for the refresh cycle
-  // this is inlined as actual code since extracting this as an inlined method
-  // has a visual influence on the LED refresh rate
-  byte ledColShifted = col << 2;
-  if ((col & 16) == 0) ledColShifted |= B10000000;                // if column address 4 is 0, set bit 7
-
-  digitalWrite(37, HIGH);                                         // enable the outputs of the LED driver chips
-  SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
-  SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send blue byte
-  SPI.transfer(SPI_LEDS, 0, SPI_CONTINUE);                        // send green byte
-  SPI.transfer(SPI_LEDS, 0);                                      // send red byte
-  digitalWrite(37, LOW);                                          // disable the outputs of the LED driver chips
 }
 
 void completelyRefreshLeds() {
   for (byte col = 0; col < NUMCOLS; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
-      leds[LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
+      leds[bufferedLeds][LED_LAYER_COMBINED][col][row] = getCombinedLedData(col, row);
     }
   }
 }
 
+void clearDisplayImmediately() {
+  // disable the outputs of the LED driver chips
+  digitalWrite(37, HIGH);
+}
 
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.
-void refreshLedColumn(unsigned long now) {               // output: none
+void refreshLedColumn(unsigned long now) {
+  // disabling the power output from the LED driver pins early prevents power leaking into unwanted cells.
+  digitalWrite(37, HIGH);                                         // disable the outputs of the LED driver chips
+
   // keep a steady pulsating going for those leds that need it
   static unsigned long lastPulse = 0;
   static bool lastPulseOn = true;
@@ -185,11 +220,11 @@ void refreshLedColumn(unsigned long now) {               // output: none
 
   actualCol = colIndex[ledCol];                           // using colIndex[], permits non-sequential lighting of LED columns, which doesn't seem to improve appearance
 
-  if (!Device.operatingLowPower || displayInterval % 2 == 0) {
+  if (!Device.operatingLowPower || displayInterval % 3 == 0) {
      // Initialize bytes to send to LEDs over SPI. Each bit represents a single LED on or off
     for (byte rowCount = 0; rowCount < NUMROWS; ++rowCount) {       // step through the 8 rows
-      byte color = leds[LED_LAYER_COMBINED][actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
-      byte cellDisplay = leds[LED_LAYER_COMBINED][actualCol][rowCount] & B00001111;     // get cell display value
+      byte color = leds[visibleLeds][LED_LAYER_COMBINED][actualCol][rowCount] >> 4;                  // set temp value 'color' to 4 color bits of this LED within array
+      byte cellDisplay = leds[visibleLeds][LED_LAYER_COMBINED][actualCol][rowCount] & B00001111;     // get cell display value
 
       if (cellDisplay == cellPulse) {
         cellDisplay = lastPulseOn ? cellOn : cellOff;
@@ -231,14 +266,16 @@ void refreshLedColumn(unsigned long now) {               // output: none
 
     if (++ledCol >= NUMCOLS) ledCol = 0;
   }
+  else {
+    return;
+  }
 
   ledColShifted = actualCol << 2;
   if ((actualCol & 16) == 0) ledColShifted |= B10000000;          // if column address 4 is 0, set bit 7
 
-  digitalWrite(37, HIGH);                                         // enable the outputs of the LED driver chips
   SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
   SPI.transfer(SPI_LEDS, blue, SPI_CONTINUE);                     // send blue byte
   SPI.transfer(SPI_LEDS, green, SPI_CONTINUE);                    // send green byte
   SPI.transfer(SPI_LEDS, red);                                    // send red byte
-  digitalWrite(37, LOW);                                          // disable the outputs of the LED driver chips
+  digitalWrite(37, LOW);                                          // enable the outputs of the LED driver chips
 }

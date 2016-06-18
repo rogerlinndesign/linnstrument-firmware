@@ -38,21 +38,37 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
   }
 }
 
-inline void performContinuousTasks(unsigned long now) {
-  if (checkRefreshLedColumn(now)) {
-    checkStopBlinkingLeds();
-    checkTimeToReadFootSwitches(now);
-    checkRefreshGlobalSettingsDisplay(now);
+inline void performContinuousTasks(unsigned long nowMicros) {
+  if (displayMode == displaySleep) {
+    return;
   }
 
-  checkAdvanceArpeggiator(now);  
+  // keeps track when continuous tasks are currently active in order to prevent infinite recursive calls
+  static boolean continuousTasksActive = false;
+  if (continuousTasksActive) {
+    return;
+  }
+  continuousTasksActive = true;
+
+  if (checkRefreshLedColumn(nowMicros)) {
+    unsigned long nowMillis = millis();
+
+    checkStopBlinkingLeds(nowMillis);
+    checkTimeToReadFootSwitches(nowMicros);
+    checkRefreshGlobalSettingsDisplay(nowMicros);
+    checkSleep(nowMillis);
+  }
+
+  checkAdvanceArpeggiator(nowMicros);  
   if (Device.serialMode) {
-    handleExtStorage();
+    handleSerialIO();
   }
   else {
-    handleMidiInput(now);
-    handlePendingMidi(now);
+    handleMidiInput(nowMicros);
+    handlePendingMidi(nowMicros);
   }
+
+  continuousTasksActive = false;
 }
 
 // checks to see if it's time to refresh the next LED column, and if so, does it
@@ -77,21 +93,32 @@ inline void checkTimeToReadFootSwitches(unsigned long now) {
 
 // checks to see if it's time to refresh the global settings display, and if so, does it
 inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
-  if (calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > 30000 &&                                      // is it time to refresh the global settings display
-      (displayMode == displayGlobal || displayMode == displayGlobalWithTempo)) {
+  if ((displayMode == displayGlobal || displayMode == displayGlobalWithTempo) &&
+      calcTimeDelta(now, prevGlobalSettingsDisplayTimerCount) > 30000) {                                      // is it time to refresh the global settings display
     paintGlobalSettingsFlashTempo(now);                                                                       // yes, refresh the display...
     prevGlobalSettingsDisplayTimerCount = now;                                                                // and reset the timer count to current time
   }
 }
 
-// checks whether it's time to stop blinking various LEDs
-inline void checkStopBlinkingLeds() {
-  unsigned long nowMillis = millis();
+// checks to see if it's time to sleep LinnStrument
+inline void checkSleep(unsigned long now) {
+  if (Device.sleepActive && Device.sleepDelay > 0 && displayMode != displayPromo && displayMode != displaySleep &&
+      calcTimeDelta(now, lastTouchMoment) > Device.sleepDelay * 60000) {
+    if (Device.sleepAnimation) {
+      playPromoAnimation();
+    }
+    else {
+      activateSleepMode();
+    }
+  }
+}
 
+// checks whether it's time to stop blinking various LEDs
+inline void checkStopBlinkingLeds(unsigned long now) {
   // should the blinking middle root note be stopped blinking
   if ((displayMode == displayNormal || displayMode == displaySplitPoint) && 
       blinkMiddleRootNote &&
-      calcTimeDelta(nowMillis, displayModeStart) > (Device.operatingLowPower ? 1200 : 600)) {
+      calcTimeDelta(now, displayModeStart) > (Device.operatingLowPower ? 1200 : 600)) {
     blinkMiddleRootNote = false;
     updateDisplay();
   }
@@ -99,7 +126,7 @@ inline void checkStopBlinkingLeds() {
   // check if there are blinking preset LEDs that need to be reset
   if (displayMode == displayPreset) {
     for (byte p = 0; p < NUMPRESETS; ++p) {
-      if (presetBlinkStart[p] != 0 && calcTimeDelta(nowMillis, presetBlinkStart[p]) > 1200) {
+      if (presetBlinkStart[p] != 0 && calcTimeDelta(now, presetBlinkStart[p]) > 1200) {
         setLed(NUMCOLS-2, p+2, globalColor, cellOn);
         presetBlinkStart[p] = 0;
       }

@@ -112,9 +112,13 @@ NRPN   Value   Description
 48     0-1     Split Left LowRow X Behavior (0: Hold, 1: Fader)
 49     0-127   Split Left MIDI CC For LowRow X
 50     0-1     Split Left LowRow XYZ Behavior (0: Hold, 1: Fader)
-51     0-99    Split Left MIDI CC For LowRow XYZ X
-52     0-99    Split Left MIDI CC For LowRow XYZ Y
-53     0-99    Split Left MIDI CC For LowRow XYZ Z
+51     0-127   Split Left MIDI CC For LowRow XYZ X
+52     0-127   Split Left MIDI CC For LowRow XYZ Y
+53     0-127   Split Left MIDI CC For LowRow XYZ Z
+54     0-127   Split Left Minimum CC Value For Y
+55     0-127   Split Left Maximum CC Value For Y
+56     0-127   Split Left Minimum CC Value For Z
+57     0-127   Split Left Maximum CC Value For Z
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -166,9 +170,13 @@ NRPN   Value   Description
 148    0-1     Split Right LowRow X Behavior (0: Hold, 1: Fader)
 149    0-127   Split Right MIDI CC For LowRow X
 150    0-1     Split Right LowRow XYZ Behavior (0: Hold, 1: Fader)
-151    0-99    Split Right MIDI CC For LowRow XYZ X
-152    0-99    Split Right MIDI CC For LowRow XYZ Y
-153    0-99    Split Right MIDI CC For LowRow XYZ Z
+151    0-127   Split Right MIDI CC For LowRow XYZ X
+152    0-127   Split Right MIDI CC For LowRow XYZ Y
+153    0-127   Split Right MIDI CC For LowRow XYZ Z
+154    0-127   Split Right Minimum CC Value For Y
+155    0-127   Split Right Maximum CC Value For Y
+156    0-127   Split Right Minimum CC Value For Z
+157    0-127   Split Right Maximum CC Value For Z
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column
@@ -196,7 +204,7 @@ NRPN   Value   Description
 224    0-1     Global Accent Note Light A (0: Off, 1: On)
 225    0-1     Global Accent Note Light A# (0: Off, 1: On)
 226    0-1     Global Accent Note Light B (0: Off, 1: On)
-227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar)
+227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar, 127: 0 offset)
 228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
 229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
 230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
@@ -216,6 +224,13 @@ NRPN   Value   Description
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
 245    0-1     User Firmware Mode (0: Off, 1: On)
 246    0-1     Global Left Handed Operation (0: Off, 1: On)
+247    0-11    Global Active Note Lights Preset
+248    0-127   Global MIDI CC For Switch CC65
+249    1-127   Global Minimum Value For Velocity
+250    1-127   Global Maximum Value For Velocity
+251    1-127   Global Value For Fixed Velocity
+252    0-512   Global Minimum Interval Between MIDI Bytes Over USB
+253    0-16    Global Custom Row Offset Instead Of Octave
 
 Color Values
 ============
