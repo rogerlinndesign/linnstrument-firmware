@@ -108,26 +108,32 @@ void writeSettingsToFlash() {
   clearDisplay();
   completelyRefreshLeds();
 
-  unsigned long zeromarker = 0;
-  unsigned long now = millis();
+  // read the marker to know which configuration version was last written successfully
+  byte marker = dueFlashStorage.read(4);
+  // update the marker and the flash memory offset to now write to the other configuration version
+  // ensuring that the previous one remains coherent
+  uint32_t configOffset;
+  if (marker == 0) {
+    marker = 1;
+    configOffset = sizeof(Configuration);
+  }
+  else {
+    marker = 0;
+    configOffset = 0;
+  }
 
   // batch and slow down the flash storage in low power mode
   if (Device.operatingLowPower) {
+    unsigned long now = millis();
+
     // ensure that there's at least 200 milliseconds between refreshing the display lights and writing to flash
     unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
     if (displayModeDelta < 200) {
       delayUsec((200 - displayModeDelta) * 1000);
     }
 
-    // clear out the second timestamp that is written after the configuration
-    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
-
-    // write the timestamp before starting to write the configuration data
-    dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
-    delayUsec(1000);
-
     // write the configuration data
-    uint32_t offset = 4+sizeof(unsigned long);
+    uint32_t offset = 4+sizeof(unsigned long)+configOffset;
 
     byte batchsize = 64;
     byte* source = (byte*)&config;
@@ -145,8 +151,8 @@ void writeSettingsToFlash() {
     }
     delayUsec(500);
 
-    // write the timestamp after the configuration data for verification
-    dueFlashStorage.write(offset+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
+    // write the marker after the configuration data so that this version becomes to latest coherent one
+    dueFlashStorage.write(4, marker);
     delayUsec(1000);
   }
   // do the faster possible flash storage in regular power mode
@@ -154,39 +160,24 @@ void writeSettingsToFlash() {
     byte b2[sizeof(Configuration)];
     memcpy(b2, &config, sizeof(Configuration));
 
-    // clear out the second timestamp that is written after the configuration
-    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&zeromarker, sizeof(unsigned long));
-    // write the timestamp before starting to write the configuration data
-    dueFlashStorage.write(4, (byte*)&now, sizeof(unsigned long));
     // write the configuration data
-    dueFlashStorage.write(4+sizeof(unsigned long), b2, sizeof(Configuration));
-    // write the timestamp after the configuration data for verification
-    dueFlashStorage.write(4+sizeof(unsigned long)+sizeof(Configuration), (byte*)&now, sizeof(unsigned long));
+    dueFlashStorage.write(4+sizeof(unsigned long)+configOffset, b2, sizeof(Configuration));
+    // write the marker after the configuration data so that this version becomes to latest coherent one
+    dueFlashStorage.write(4, marker);
   }
 
   updateDisplay();
 }
 
 void loadSettings() {
-  // read both of the timestamps that were stored to make sure they are identical
-  // this allows the detection of corrupted settings storage due to power being removed while writing
-  unsigned long now1 = 0;
-  unsigned long now2 = 0;
-  memcpy(&now1, dueFlashStorage.readAddress(4), sizeof(unsigned long));
-  memcpy(&now2, dueFlashStorage.readAddress(4+sizeof(unsigned long)+sizeof(Configuration)), sizeof(unsigned long));
+  // read the marker to know which configuration version was last written successfully
+  byte marker = dueFlashStorage.read(4);
 
-  // if both timestamps are the same, read the configuration that was stored
-  if (now1 == now2) {
-    memcpy(&config, dueFlashStorage.readAddress(4+sizeof(unsigned long)), sizeof(Configuration));
+  uint32_t configOffset = 0;
+  if (marker != 0) {
+    configOffset = sizeof(Configuration);
   }
-  // otherwise notify the user of the corrupt state and perform a global reset
-  else {
-    clearDisplay();
-    small_scroll_text("     SETTINGS RESET, SORRY ...", globalColor);
-
-    dueFlashStorage.write(0, 253);
-    initializeStorage();
-  }
+  memcpy(&config, dueFlashStorage.readAddress(4+sizeof(unsigned long)+configOffset), sizeof(Configuration));
 }
 
 void applyPresetSettings(PresetSettings& preset) {
