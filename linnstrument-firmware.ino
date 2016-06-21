@@ -288,7 +288,9 @@ struct __attribute__ ((packed)) TouchInfo {
 
   unsigned long lastTouch:32;                // the timestamp when this cell was last touched
   short initialX:16;                         // initial calibrated X value of each cell at the start of the touch
+  unsigned short initialReferenceX:16;       // initial calibrated reference X value of each cell at the start of the touch
   short quantizationOffsetX:16;              // quantization offset to be applied to the X value
+  unsigned short currentRawX:16;             // last raw X value of each cell
   short currentCalibratedX:16;               // last calibrated X value of each cell
   short lastMovedX:16;                       // the last X movement, so that we can compare movement jumps
   short lastValueX:16;                       // the last calculated X value based on the current settings
@@ -297,9 +299,7 @@ struct __attribute__ ((packed)) TouchInfo {
   int32_t fxdPrevPressure:32;                // used to average out the rate of change of the pressure when transitioning between cells
   int32_t fxdPrevTimbre:32;                  // used to average out the rate of change of the timbre
   signed char note:8;                        // note from 0 to 127, -1 meaning it's unassigned
-  signed char channel:6;                     // channel from 1 to 16, -1 meaning it's unassigned
-  unsigned short initialReferenceX:14;       // initial calibrated reference X value of each cell at the start of the touch
-  unsigned short currentRawX:12;             // last raw X value of each cell
+  signed char channel:8;                     // channel from 1 to 16, -1 meaning it's unassigned
   signed char octaveOffset:8;                // the octave offset when the note started, since this can change during playing
   byte phantomCol1:5;                        // stores the col 1 of a rectangle that possibly has a phantom touch
   byte phantomRow1:3;                        // stores the row 1 of a rectangle that possibly has a phantom touch
