@@ -77,7 +77,8 @@ void handleMidiInput(unsigned long now) {
 
   // check if we're dealing with a status byte
   if ((d & B10000000) == B10000000) {
-    midiMessage[0] = 0;
+    memset(midiMessage, 0, 4);
+    midiMessage[0] = d;
     midiMessageBytes = 0;
     midiMessageIndex = 0;
 
@@ -90,24 +91,32 @@ void handleMidiInput(unsigned long now) {
         break;
       case MIDIStart:
       case MIDIContinue:
+        midiMessageBytes = 1;
+        midiMessageIndex = 1;
+
         midiClockStarted = true;
         resetArpeggiatorAdvancement(now);
         lastMidiClockTime = 0;
         break;
       case MIDIStop:
+        midiMessageBytes = 1;
+        midiMessageIndex = 1;
+
         midiClockStarted = false;
         midiClockMessageCount = 0;
         lastMidiClockTime = 0;
         resetArpeggiatorAdvancement(now);
         break;
       case MIDISongPositionPointer:
-        midiMessage[0] = MIDISongPositionPointer;
         midiMessageBytes = 3;
         midiMessageIndex = 1;
         lastMidiClockTime = 0;
         break;
       case MIDITimingClock:
       {
+        midiMessageBytes = 1;
+        midiMessageIndex = 1;
+
         if (midiClockStarted) {
           if (lastMidiClockTime > 0) {
             unsigned long clockDelta;
@@ -154,13 +163,16 @@ void handleMidiInput(unsigned long now) {
         switch (channelStatus) {
           case MIDINoteOff:
           case MIDINoteOn:
+          case MIDIPolyphonicPressure:
           case MIDIControlChange:
+          case MIDIPitchBend:
             midiMessage[0] = channelStatus;
             midiMessage[3] = (d & B00001111);
             midiMessageBytes = 3;
             midiMessageIndex = 1;
             break;
           case MIDIProgramChange:
+          case MIDIChannelPressure:
             midiMessage[0] = channelStatus;
             midiMessage[3] = (d & B00001111);
             midiMessageBytes = 2;
@@ -178,193 +190,196 @@ void handleMidiInput(unsigned long now) {
 
   // we have all the bytes we need for the message that is being constituted
   if (midiMessageBytes && midiMessageIndex == midiMessageBytes) {
-    if (midiMessage[0] == MIDISongPositionPointer) {
-      unsigned pos = midiMessage[2] << 7 | midiMessage[1];
-      midiClockMessageCount = (pos * 6) % 24 + 1;
-    }
-    else {
-      byte midiStatus = midiMessage[0];
-      byte midiChannel = midiMessage[3];
-      byte midiData1 = midiMessage[1];
-      byte midiData2 = midiMessage[2];
+    MIDIStatus midiStatus = (MIDIStatus)midiMessage[0];
+    byte midiChannel = midiMessage[3];
+    byte midiData1 = midiMessage[1];
+    byte midiData2 = midiMessage[2];
 
-      int split = determineSplitForChannel(midiChannel);
+    queueMidiMessage(midiStatus, midiData1, midiData2, midiChannel);
 
-      switch (midiStatus) {
-        case MIDINoteOn:
-        {
-          // velocity 0 means the same as note off, so don't handle it further in this case
-          if (midiData2 > 0) {
-            if (split != -1 && (split == LEFT || splitActive)) {
-              // attempts to highlight the exact cell that belongs to a midi note and channel
-              if (!highlightExactNoteCell(split, midiData1, midiChannel)) {
-                // if there's not one exact location, we highlight all cells that could correspond to the note number
-                highlightPossibleNoteCells(split, midiData1);
+    int split = determineSplitForChannel(midiChannel);
+
+    switch (midiStatus) {
+      case MIDISongPositionPointer:
+      {
+        unsigned pos = midiData2 << 7 | midiData1;
+        midiClockMessageCount = (pos * 6) % 24 + 1;
+        break;
+      }
+
+      case MIDINoteOn:
+      {
+        // velocity 0 means the same as note off, so don't handle it further in this case
+        if (midiData2 > 0) {
+          if (split != -1 && (split == LEFT || splitActive)) {
+            // attempts to highlight the exact cell that belongs to a midi note and channel
+            if (!highlightExactNoteCell(split, midiData1, midiChannel)) {
+              // if there's not one exact location, we highlight all cells that could correspond to the note number
+              highlightPossibleNoteCells(split, midiData1);
+            }
+          }
+          break;
+        }
+        // purposely fall-through in case of velocity 0
+      }
+
+      case MIDINoteOff:
+      {
+        if (split != -1 && (split == LEFT || splitActive)) {
+          // attempts to reset the exact cell that belongs to a midi note and channel
+          if (!resetExactNoteCell(split, midiData1, midiChannel)) {
+            // if there's not one exact location, we reset all cells that could correspond to the note number
+            resetPossibleNoteCells(split, midiData1);
+          }
+        }
+        break;
+      }
+
+      case MIDIProgramChange:
+      {
+        if (split != -1) {
+          midiPreset[split] = midiData1;
+          if (displayMode == displayPreset) {
+            updateDisplay();
+          }
+        }
+        break;
+      }
+
+      case MIDIControlChange:
+      {
+        switch (midiData1) {
+          case 6:
+            // if an NRPN or RPN parameter was selected, start constituting the data
+            // otherwise control the fader of MIDI CC 6
+            if ((lastRpnMsb != 127 || lastRpnLsb != 127) ||
+                (lastNrpnMsb != 127 || lastNrpnLsb != 127)) {
+              lastDataMsb = midiData2;
+              break;
+            }
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 7:
+          case 8:
+            if (split != -1) {
+              unsigned short ccForFader = Split[split].ccForFader[midiData1-1];
+              ccFaderValues[split][ccForFader] = midiData2;
+              if ((displayMode == displayNormal && Split[split].ccFaders) ||
+                  displayMode == displayVolume) {
+                updateDisplay();
               }
             }
             break;
-          }
-          // purposely fall-through in case of velocity 0
-        }
-
-        case MIDINoteOff:
-        {
-          if (split != -1 && (split == LEFT || splitActive)) {
-            // attempts to reset the exact cell that belongs to a midi note and channel
-            if (!resetExactNoteCell(split, midiData1, midiChannel)) {
-              // if there's not one exact location, we reset all cells that could correspond to the note number
-              resetPossibleNoteCells(split, midiData1);
+          case 9:
+            if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+              userFirmwareSlideMode[midiChannel] = midiData2;
             }
-          }
-          break;
-        }
+            break;
+          case 10:
+            if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+              userFirmwareXActive[midiChannel] = midiData2;
+            }
+            break;
+          case 11:
+            if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+              userFirmwareYActive[midiChannel] = midiData2;
+            }
+            break;
+          case 12:
+            if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
+              userFirmwareZActive[midiChannel] = midiData2;
+            }
+            break;
+          case 13:
+            if (userFirmwareActive) {
+              unsigned long rate = midiData2 * 1000;
+              if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
+                midiDecimateRate = rate;
+              }
+            }
+            break;
+          case 20:
+            if (midiData2 < NUMCOLS) {
+              midiCellColCC = midiData2;
+            }
+            break;
+          case 21:
+            if (midiData2 < NUMROWS) {
+              midiCellRowCC = midiData2;
+            }
+            break;
+          case 22:
+            if (displayMode == displayNormal) {
+              byte layer = LED_LAYER_CUSTOM1;
+              // we light the LEDs of user firmware mode in a dedicated custom layer
+              // this will be cleared when switching back to regular firmware mode
+              if (userFirmwareActive) {
+                layer = LED_LAYER_CUSTOM2;
+              }
+              if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
+                setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, layer);
+              }
+              else {
+                setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, layer);
+              }
+              checkRefreshLedColumn(micros());
+            }
+            break;
+          case 38:
+            if (lastRpnMsb != 127 || lastRpnLsb != 127) {
+              lastDataLsb = midiData2;
+              receivedRpn((lastRpnMsb<<7)+lastRpnLsb, (lastDataMsb<<7)+lastDataLsb);
+              break;
+            }
+            if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
+              lastDataLsb = midiData2;
+              receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb);
+              break;
+            }
+          case 98:
+            lastNrpnLsb = midiData2;
+            break;
+          case 99:
+            lastNrpnMsb = midiData2;
+            break;
+          case 100:
+            lastRpnLsb = midiData2;
+            // resetting RPN numbers also resets NRPN numbers
+            if (lastRpnLsb == 127 && lastRpnMsb == 127) {
+              lastNrpnLsb = 127;
+              lastNrpnMsb = 127;
+            }
+            break;
+          case 101:
+            lastRpnMsb = midiData2;
+            break;
+          case 127:
+            // support for activating MPE mode with the standard MPE message
+            if (midiChannel == 0 || midiChannel == 15) {
+              byte split = LEFT;
+              if (midiChannel == 15) {
+                split = RIGHT;
+              }
 
-        case MIDIProgramChange:
-        {
-          if (split != -1) {
-            midiPreset[split] = midiData1;
-            if (displayMode == displayPreset) {
+              if (midiData2 == 0) {
+                disableMpe(split);
+              }
+              else {
+                enableMpe(split, midiChannel + 1, midiData2);
+              }
+
               updateDisplay();
             }
-          }
-          break;
-        }
-
-        case MIDIControlChange:
-        {
-          switch (midiData1) {
-            case 6:
-              // if an NRPN or RPN parameter was selected, start constituting the data
-              // otherwise control the fader of MIDI CC 6
-              if ((lastRpnMsb != 127 || lastRpnLsb != 127) ||
-                  (lastNrpnMsb != 127 || lastNrpnLsb != 127)) {
-                lastDataMsb = midiData2;
-                break;
-              }
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 7:
-            case 8:
-              if (split != -1) {
-                unsigned short ccForFader = Split[split].ccForFader[midiData1-1];
-                ccFaderValues[split][ccForFader] = midiData2;
-                if ((displayMode == displayNormal && Split[split].ccFaders) ||
-                    displayMode == displayVolume) {
-                  updateDisplay();
-                }
-              }
-              break;
-            case 9:
-              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
-                userFirmwareSlideMode[midiChannel] = midiData2;
-              }
-              break;
-            case 10:
-              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
-                userFirmwareXActive[midiChannel] = midiData2;
-              }
-              break;
-            case 11:
-              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
-                userFirmwareYActive[midiChannel] = midiData2;
-              }
-              break;
-            case 12:
-              if (userFirmwareActive && midiChannel < NUMROWS && (midiData2 == 0 || midiData2 == 1)) {
-                userFirmwareZActive[midiChannel] = midiData2;
-              }
-              break;
-            case 13:
-              if (userFirmwareActive) {
-                unsigned long rate = midiData2 * 1000;
-                if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
-                  midiDecimateRate = rate;
-                }
-              }
-              break;
-            case 20:
-              if (midiData2 < NUMCOLS) {
-                midiCellColCC = midiData2;
-              }
-              break;
-            case 21:
-              if (midiData2 < NUMROWS) {
-                midiCellRowCC = midiData2;
-              }
-              break;
-            case 22:
-              if (displayMode == displayNormal) {
-                byte layer = LED_LAYER_CUSTOM1;
-                // we light the LEDs of user firmware mode in a dedicated custom layer
-                // this will be cleared when switching back to regular firmware mode
-                if (userFirmwareActive) {
-                  layer = LED_LAYER_CUSTOM2;
-                }
-                if (midiData2 <= COLOR_BLACK && midiData2 != COLOR_OFF) {
-                  setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, layer);
-                }
-                else {
-                  setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, layer);
-                }
-                checkRefreshLedColumn(micros());
-              }
-              break;
-            case 38:
-              if (lastRpnMsb != 127 || lastRpnLsb != 127) {
-                lastDataLsb = midiData2;
-                receivedRpn((lastRpnMsb<<7)+lastRpnLsb, (lastDataMsb<<7)+lastDataLsb);
-                break;
-              }
-              if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
-                lastDataLsb = midiData2;
-                receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb);
-                break;
-              }
-            case 98:
-              lastNrpnLsb = midiData2;
-              break;
-            case 99:
-              lastNrpnMsb = midiData2;
-              break;
-            case 100:
-              lastRpnLsb = midiData2;
-              // resetting RPN numbers also resets NRPN numbers
-              if (lastRpnLsb == 127 && lastRpnMsb == 127) {
-                lastNrpnLsb = 127;
-                lastNrpnMsb = 127;
-              }
-              break;
-            case 101:
-              lastRpnMsb = midiData2;
-              break;
-            case 127:
-              // support for activating MPE mode with the standard MPE message
-              if (midiChannel == 0 || midiChannel == 15) {
-                byte split = LEFT;
-                if (midiChannel == 15) {
-                  split = RIGHT;
-                }
-
-                if (midiData2 == 0) {
-                  disableMpe(split);
-                }
-                else {
-                  enableMpe(split, midiChannel + 1, midiData2);
-                }
-
-                updateDisplay();
-              }
-              break;
-          }
+            break;
         }
       }
     }
 
     // reset the message
-    midiMessage[0] = 0;
+    memset(midiMessage, 0, 4);
     midiMessageBytes = 0;
     midiMessageIndex = 0;
   }
@@ -1395,10 +1410,18 @@ void handlePendingMidi(unsigned long now) {
         midiOutQueue.pop();
         inMsgIndex++;
 
+        // in case of MIDI clock messages, the MIDI message length is two shorter,
+        // so automatically remove the third and fourth byte from the queue since it's unused
+        if (inMsgIndex == 2 &&
+            (lastType == MIDIStart || lastType == MIDIContinue || lastType == MIDIStop || lastType == MIDITimingClock)) {
+          midiOutQueue.pop();
+          midiOutQueue.pop();
+          inMsgIndex += 2;
+        }
         // in case of program change and channel pressure, the MIDI message length is one shorter,
         // so automatically remove the fourth byte from the queue since it's unused
-        if (inMsgIndex == 3 &&
-            (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
+        else if (inMsgIndex == 3 &&
+                 (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {
           midiOutQueue.pop();
           inMsgIndex++;
         }
