@@ -211,7 +211,7 @@ NRPN   Value   Description
 231    0-5     Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
 232    0-3     Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
 233    0-2     Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
-234    0-1     Global MIDI I/O (0: MIDI Jacks, 1: USB)
+234    0-1     Device MIDI I/O (0: MIDI Jacks, 1: USB)
 235    0-4     Global Arp Direction (0: Up, 1: Down, 2: Up Down, 3: Random, 4: Replay All)
 236    1-7     Global Arp Tempo Note Value (1: 8, 2: 8 Tri, 3: 16, 4: 16 Swing, 5: 16 Tri, 6: 32, 7: 32 Tri)
 237    0-2     Global Arp Octave Extension (0: None, 1: +1, 2: +2)
@@ -222,15 +222,16 @@ NRPN   Value   Description
 242    0-1     Global Foot Right Both Splits (0: Off, 1: On)
 243    0-3     Global Settings Preset Load
 244    0-1     Global Pressure Aftertouch (0: Off, 1: On)
-245    0-1     User Firmware Mode (0: Off, 1: On)
-246    0-1     Global Left Handed Operation (0: Off, 1: On)
+245    0-1     Device User Firmware Mode (0: Off, 1: On)
+246    0-1     Device Left Handed Operation (0: Off, 1: On)
 247    0-11    Global Active Note Lights Preset
 248    0-127   Global MIDI CC For Switch CC65
 249    1-127   Global Minimum Value For Velocity
 250    1-127   Global Maximum Value For Velocity
 251    1-127   Global Value For Fixed Velocity
-252    0-512   Global Minimum Interval Between MIDI Bytes Over USB
+252    0-512   Device Minimum Interval Between MIDI Bytes Over USB
 253    0-16    Global Custom Row Offset Instead Of Octave
+254    0-1     Device MIDI Through (0: Off, 1: On)
 
 Color Values
 ============

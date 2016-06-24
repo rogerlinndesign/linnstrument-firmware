@@ -39,6 +39,7 @@ displayEditAudienceMessage   : edit an audience message
 displaySleep                 : sleeping
 displaySleepConfig           : sleep mode configuration
 displayRowOffset             : custom row offset selection
+displayMIDIThrough           : MIDI through configuration
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -163,6 +164,9 @@ void updateDisplay() {
       break;
     case displayRowOffset:
       paintRowOffset();
+      break;
+    case displayMIDIThrough:
+      paintMIDIThrough();
       break;
   }
 
@@ -855,6 +859,16 @@ void paintRowOffset() {
   paintNumericDataDisplay(globalColor, Global.customRowOffset, 0, false);
 }
 
+void paintMIDIThrough() {
+  clearDisplay();
+  if (Device.midiThrough) {
+    bigfont_draw_string(0, 0, "THRU", globalColor, true);
+  }
+  else {
+    bigfont_draw_string(0, 0, "NORM", globalColor, true);
+  }
+}
+
 void paintMinUSBMIDIIntervalDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
@@ -1122,7 +1136,7 @@ void paintGlobalSettingsDisplay() {
   if (Global.midiIO == 1) {
     setLed(15, 0, getMIDIUSBColor(), cellOn); // for MIDI over USB
   } else {
-    lightLed(15, 1);       // for MIDI jacks
+    setLed(15, 1, getMIDIThroughColor(), cellOn); // for MIDI jacks
   }
 
   // set light for sleep mode
@@ -1325,6 +1339,13 @@ byte getFixedVelocityColor() {
 
 byte getMIDIUSBColor() {
   if (Device.minUSBMIDIInterval != DEFAULT_MIN_USB_MIDI_INTERVAL) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getMIDIThroughColor() {
+  if (Device.midiThrough) {
     return globalAltColor;
   }
   return globalColor;

@@ -565,6 +565,9 @@ void handleNonPlayingTouch() {
     case displayMinUSBMIDIInterval:
       handleMinUSBMIDIIntervalNewTouch();
       break;
+    case displayMIDIThrough:
+      handleMIDIThroughNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -1288,6 +1291,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displayMinUSBMIDIInterval:
         handleMinUSBMIDIIntervalRelease();
+        break;
+      case displayMIDIThrough:
+        handleMIDIThroughRelease();
         break;
       case displayValueForFixedVelocity:
         handleValueForFixedVelocityRelease();

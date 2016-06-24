@@ -195,7 +195,9 @@ void handleMidiInput(unsigned long now) {
     byte midiData1 = midiMessage[1];
     byte midiData2 = midiMessage[2];
 
-    queueMidiMessage(midiStatus, midiData1, midiData2, midiChannel);
+    if (Device.midiThrough) {
+      queueMidiMessage(midiStatus, midiData1, midiData2, midiChannel);
+    }
 
     int split = determineSplitForChannel(midiChannel);
 
@@ -829,7 +831,7 @@ void receivedNrpn(int parameter, int value) {
         Global.pressureSensitivity = (PressureSensitivity)value;
       }
       break;
-    // Global MIDI I/O
+    // Device MIDI I/O
     case 234:
       if (inRange(value, 0, 1)) {
         changeMidiIO(value);
@@ -895,13 +897,13 @@ void receivedNrpn(int parameter, int value) {
         Global.pressureAftertouch = value;
       }
       break;
-    // User Firmware Mode Active
+    // Device User Firmware Mode Active
     case 245:
       if (inRange(value, 0, 1)) {
         changeUserFirmwareMode(value);
       }
       break;
-    // Left Handed Operation Active
+    // Device Left Handed Operation Active
     case 246:
       if (inRange(value, 0, 1)) {
         Device.leftHanded = value;
@@ -943,7 +945,7 @@ void receivedNrpn(int parameter, int value) {
         Global.valueForFixedVelocity = value;
       }
       break;
-    // Global Minimum Interval Between MIDI Bytes Over USB
+    // Device Minimum Interval Between MIDI Bytes Over USB
     case 252:
       if (inRange(value, 0, 512)) {
         Device.minUSBMIDIInterval = value;
@@ -954,6 +956,12 @@ void receivedNrpn(int parameter, int value) {
     case 253:
       if (inRange(value, 0, 16)) {
         Global.customRowOffset = value;
+      }
+      break;
+    // Global MIDI Through
+    case 254:
+      if (inRange(value, 0, 1)) {
+        Device.midiThrough = value;
       }
       break;
   }

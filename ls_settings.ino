@@ -216,6 +216,7 @@ void initializeDeviceSettings() {
   Device.operatingLowPower = false;
   Device.leftHanded = false;
   Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
+  Device.midiThrough = false;
 
   initializeAudienceMessages();
 }
@@ -1747,6 +1748,14 @@ void handleMinUSBMIDIIntervalRelease() {
   applyMidiInterval();
 }
 
+void handleMIDIThroughNewTouch() {
+  handleNumericDataNewTouchCol(Device.midiThrough);
+}
+
+void handleMIDIThroughRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
 void handleSensorLoZNewTouch() {
   handleNumericDataNewTouchCol(Device.sensorLoZ, max(100, Device.sensorFeatherZ), 1024, false);
 }
@@ -2041,10 +2050,10 @@ void handleGlobalSettingNewTouch() {
     case 15:
       switch (sensorRow) {
         case 0:
-          changeMidiIO(1);
+          // handled at release
           break;
         case 1:
-          changeMidiIO(0);
+          // handled at release
           break;
         case 2:
           // handled at release
@@ -2419,6 +2428,9 @@ void handleGlobalSettingNewTouch() {
         case 0:
           setLed(sensorCol, sensorRow, getMIDIUSBColor(), cellSlowPulse);
           break;
+        case 1:
+          setLed(sensorCol, sensorRow, getMIDIThroughColor(), cellSlowPulse);
+          break;
         case 2:
           setLed(sensorCol, sensorRow, getSleepColor(), cellSlowPulse);
           break;
@@ -2501,6 +2513,11 @@ void handleGlobalSettingHold() {
             setDisplayMode(displayMinUSBMIDIInterval);
             updateDisplay();
             break;
+          case 1:
+            resetNumericDataChange();
+            setDisplayMode(displayMIDIThrough);
+            updateDisplay();
+            break;
           case 2:
             resetNumericDataChange();
             setDisplayMode(displaySleepConfig);
@@ -2580,16 +2597,23 @@ void handleGlobalSettingRelease() {
       ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
     Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
   }
-  else if (sensorCol == 15 && sensorRow == 2 &&
-      ensureCellBeforeHoldWait(globalColor, Device.sleepActive ? cellOn : cellOff)) {
-    Device.sleepActive = !Device.sleepActive;
-    if (Device.sleepActive && Device.sleepDelay == 0) {
-      Device.sleepActive = false;
-      if (Device.sleepAnimation) {
-        playPromoAnimation();
-      }
-      else {
-        activateSleepMode();
+  else if (sensorCol == 15) {
+    if (sensorRow == 0 && ensureCellBeforeHoldWait(globalColor, Global.midiIO == 1 ? cellOn : cellOff)) {
+          changeMidiIO(1);
+    }
+    else if (sensorRow == 1 && ensureCellBeforeHoldWait(globalColor, Global.midiIO == 0 ? cellOn : cellOff)) {
+          changeMidiIO(0);
+    }
+    else if (sensorRow == 2 && ensureCellBeforeHoldWait(globalColor, Device.sleepActive ? cellOn : cellOff)) {
+      Device.sleepActive = !Device.sleepActive;
+      if (Device.sleepActive && Device.sleepDelay == 0) {
+        Device.sleepActive = false;
+        if (Device.sleepAnimation) {
+          playPromoAnimation();
+        }
+        else {
+          activateSleepMode();
+        }
       }
     }
   }

@@ -428,7 +428,8 @@ enum DisplayMode {
   displayEditAudienceMessage,
   displaySleep,
   displaySleepConfig,
-  displayRowOffset
+  displayRowOffset,
+  displayMIDIThrough
 };
 DisplayMode displayMode = displayNormal;
 
@@ -576,6 +577,7 @@ struct DeviceSettings {
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  bool midiThrough;                          // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
 };
 #define Device config.device
 
