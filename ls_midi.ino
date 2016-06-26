@@ -95,7 +95,7 @@ void handleMidiInput(unsigned long now) {
         midiMessageIndex = 1;
 
         midiClockStarted = true;
-        resetArpeggiatorAdvancement(now);
+        resetClockAdvancement(now);
         lastMidiClockTime = 0;
         break;
       case MIDIStop:
@@ -105,7 +105,7 @@ void handleMidiInput(unsigned long now) {
         midiClockStarted = false;
         midiClockMessageCount = 0;
         lastMidiClockTime = 0;
-        resetArpeggiatorAdvancement(now);
+        resetClockAdvancement(now);
         break;
       case MIDISongPositionPointer:
         midiMessageBytes = 3;
@@ -150,7 +150,9 @@ void handleMidiInput(unsigned long now) {
           }
 
           // play the next arpeggiator step if needed
-          checkAdvanceArpeggiator(now);
+          if (checkUpdateClock(now)) {
+            checkAdvanceArpeggiator();
+          }
 
           // flash the tempo led in the global display when it is on
           updateGlobalSettingsFlashTempo(now);

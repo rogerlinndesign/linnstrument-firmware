@@ -59,7 +59,9 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     checkSleep(nowMillis);
   }
 
-  checkAdvanceArpeggiator(nowMicros);  
+  if (checkUpdateClock(nowMicros)) {
+    checkAdvanceArpeggiator();  
+  }
   if (Device.serialMode) {
     handleSerialIO();
   }

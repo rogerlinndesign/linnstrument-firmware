@@ -4,21 +4,11 @@ To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
 These routines implement the internal LinnStrument arpeggiator. They closely work together with the
-MIDI clock when that is active and with the internal tracking of how notes map for each split to the
-actual cell that was pressed, allowing velocity to be continuously varied during the arpeggiator
+system clock when that is active and with the internal tracking of how notes map for each split to
+the actual cell that was pressed, allowing velocity to be continuously varied during the arpeggiator
 sequence.
 ***************************************************************************************************/
-
-unsigned long arpeggiatorRefreshInterval = 500;
-unsigned long prevArpeggiatorTimerCount = 0;
-
-const unsigned long internalClockUnitBase = 2500000;  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
-
-unsigned long lastInternalClockMoment;                // the last time the internal clock stepped
-signed char lastInternalClockCount;                   // the count of the internal clock steps, from 0 to 23
      
-signed char lastArpMidiClock;                         // the last MIDI clock that the arpeggiator played on
-signed char lastArpInternalClock;                     // the last internal clock that the arpeggiator played on
 signed char lastArpNote[NUMSPLITS];                   // the last note played by the arpeggiator or -1 if it should be starting from scratch
 signed char lastArpChannel[NUMSPLITS];                // the last channel played by the arpeggiator or -1 if it should be starting from scratch
 boolean lastArpStepOdd[NUMSPLITS];                    // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
@@ -29,30 +19,13 @@ unsigned long lastTapTempo = 0;
 
 #define MICROS_PER_MINUTE 60000000UL
 
-short getInternalClockCount() {
-  return lastInternalClockCount;
-}
-
 void initializeArpeggiator() {
   randomSeed(analogRead(0));
-
-  prevArpeggiatorTimerCount = micros();
-  lastArpMidiClock = 0;
-  lastInternalClockCount = 0;
 
   for (byte split = 0; split < NUMSPLITS; ++split) {
     noteTouchMapping[split].initialize();
     resetArpeggiatorState(split);
   }
-
-  resetArpeggiatorAdvancement(0);
-}
-
-void resetArpeggiatorAdvancement(unsigned long now) {
-  lastInternalClockMoment = now;
-  lastInternalClockCount = 0;
-  lastArpMidiClock = -1;
-  lastArpInternalClock = -1;
 }
 
 void resetArpeggiatorState(byte split) {
@@ -142,64 +115,22 @@ void sendArpeggiatorStepMidiOff(byte split) {
   }
 }
 
-inline void checkAdvanceArpeggiator(unsigned long now) {
-  if (calcTimeDelta(now, prevArpeggiatorTimerCount) <= arpeggiatorRefreshInterval) {
-    return;
-  }
-  prevArpeggiatorTimerCount = now;
-
-  short clockCount;
-
-  if (isMidiClockRunning()) {
-    clockCount = getMidiClockCount();
-    if (lastArpMidiClock == clockCount) {
-      return;
-    }
-
-    lastArpMidiClock = clockCount;
-  }
-  else {
-    // calculate the time since the last arpeggiator step
-    unsigned long internalClockDelta = calcTimeDelta(now, lastInternalClockMoment);
-
-    // check if the time since the last arpeggiator step
-    unsigned long clockUnit = FXD4_TO_INT(FXD4_DIV(FXD4_FROM_INT(internalClockUnitBase), fxd4CurrentTempo));
-
-    // check if the time since the last arpeggiator step and now has exceeded the delay for the next step, but only if within 10ms of the intended step duration
-    if (internalClockDelta >= clockUnit && (internalClockDelta % clockUnit) < 10000) {
-      lastInternalClockCount = (lastInternalClockCount + 1) % 24;
-      lastInternalClockMoment += ((now - lastInternalClockMoment) / clockUnit) * clockUnit;
-
-      // flash the tempo led in the global display when it is on
-      updateGlobalSettingsFlashTempo(now);
-
-      if (lastArpInternalClock == lastInternalClockCount) {
-        return;
-      }
-
-      clockCount = lastInternalClockCount;
-      lastArpInternalClock = clockCount;
-    }
-    else {
-      return;
-    }
-  }
-
-  checkAdvanceArpeggiatorForSplit(clockCount, LEFT);
-  checkAdvanceArpeggiatorForSplit(clockCount, RIGHT);
+inline void checkAdvanceArpeggiator() {
+  checkAdvanceArpeggiatorForSplit(LEFT);
+  checkAdvanceArpeggiatorForSplit(RIGHT);
 }
 
 #define TEMPO_SIXTEENTH_SWING 0xff
 byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
 
-inline void checkAdvanceArpeggiatorForSplit(short clockCount, byte split) {
+inline void checkAdvanceArpeggiatorForSplit(byte split) {
   if (isArpeggiatorEnabled(split)) {
 
     byte combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
     byte combinedTempo = tempoChoices[combinedTempoIndex];
 
-    if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clockCount % 12 == 0) || (clockCount % 12 == 7))) ||  // we need to handle swing differently since it's irregular
-        (combinedTempo != TEMPO_SIXTEENTH_SWING && (clockCount % combinedTempo == 0 ))) {
+    if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clock24PPQ % 12 == 0) || (clock24PPQ % 12 == 7))) ||  // we need to handle swing differently since it's irregular
+        (combinedTempo != TEMPO_SIXTEENTH_SWING && (clock24PPQ % combinedTempo == 0 ))) {
       advanceArpeggiatorForSplit(split);
     }
   }
@@ -467,7 +398,7 @@ inline boolean isArpeggiatorEnabled(byte split) {
 
 void tapTempoPress() {
   unsigned long now = micros();
-  resetArpeggiatorAdvancement(now);
+  resetClockAdvancement(now);
 
   unsigned long tapDelta = calcTimeDelta(now, lastTapTempo);
 

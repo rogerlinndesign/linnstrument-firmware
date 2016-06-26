@@ -1103,8 +1103,7 @@ void updateGlobalSettingsFlashTempo(unsigned long now) {
 inline void paintGlobalSettingsFlashTempo(unsigned long now) {
   if (!animationActive && !userFirmwareActive) {
     // flash the tap tempo cell at the beginning of the beat
-    if ((isMidiClockRunning() && getMidiClockCount() == 0) ||
-        (!isMidiClockRunning() && getInternalClockCount() == 0)) {
+    if (clock24PPQ == 0) {
       lightLed(14, 3);
       tapTempoLedOn = now;
     }
