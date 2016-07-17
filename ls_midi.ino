@@ -9,6 +9,8 @@ These are the MIDI functions for the LinnStrument
 #include "ls_bytebuffer.h"
 #include "ls_midi.h"
 
+#define MAX_SYSEX_LENGTH 256
+
 // first byte is the status byte, the two following bytes are the data bytes and
 // the channel will be encoded in the 4th byte if applicable
 byte midiMessage[4];
@@ -17,6 +19,12 @@ byte midiMessageIndex = 0; // the message array index of the message that is bei
 
 byte midiCellColCC = 0;
 byte midiCellRowCC = 0;
+
+ByteBuffer<4096> midiOutQueue;
+ByteBuffer<MAX_SYSEX_LENGTH * 2> sysexOutQueue;
+
+byte midiSysExBuffer[MAX_SYSEX_LENGTH];
+short midiSysExLength = -1;
 
 // MIDI Clock State
 const int32_t fxd4MidiClockUnit = FXD4_FROM_INT(2500000);  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
@@ -159,6 +167,19 @@ void handleMidiInput(unsigned long now) {
         }
         break;
       }
+      case MIDISystemExclusive:
+        midiSysExLength = 0;
+        break;
+      case MIDIEndOfExclusive:
+        if (Device.midiThrough) {
+          sysexOutQueue.push(MIDISystemExclusive);
+          for (short i = 0; i < midiSysExLength; ++i) {
+            sysexOutQueue.push(midiSysExBuffer[i]);
+          }
+          sysexOutQueue.push(MIDIEndOfExclusive);
+        }
+        midiSysExLength = -1;
+        break;
       default:
       {
         byte channelStatus = (d & B11110000); // remove channel nibble
@@ -183,6 +204,12 @@ void handleMidiInput(unsigned long now) {
         }
         break;
       }
+    }
+  }
+  // constitute the sysex message
+  else if (midiSysExLength != -1) {
+    if (midiSysExLength < MAX_SYSEX_LENGTH) {
+      midiSysExBuffer[midiSysExLength++] = d;
     }
   }
   // otherwise this is a data byte
@@ -1079,8 +1106,6 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
   return col;
 }
 
-ByteBuffer<4096> midiOutQueue;
-
 // Arrays to keep track of the last sent MIDI values to allow the MIDI output
 // routines to not unnecessarily send out duplicate data
 byte lastValueMidiCC[16*128];
@@ -1376,6 +1401,14 @@ void handlePendingMidi(unsigned long now) {
   static byte lastType = 0;
   static byte outMsgBuffer[3];
   static byte outMsgIndex = 0;
+
+  // if there's a sysex message ready to be sent out, do that first
+  if (!sysexOutQueue.empty()) {
+    while (Serial.availableForWrite()) {
+      Serial.write(sysexOutQueue.pop());
+    }
+    return;
+  }
 
   // when there are MIDI messages queued and the serial queue has room
   // for at least one full MIDI message start sending it out
