@@ -18,22 +18,32 @@ calculate for each cell the ratio that converts this to usable CC values.
 #if LINNMODEL == 200
   #define CALROWNUM 4
   #define CALCOLNUM 9
+
+  // these are default starting points for uncalibrated LinnStruments, might need tweaking
+  const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(188);
+  const int32_t CALX_DEFAULT_FIRST_CELL = FXD_MAKE(248);
+  const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(157);
+  const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+
+  // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
+  const int32_t CALX_BORDER_OFFSET = FXD_MAKE(10);
 #elif LINNMODEL == 128
   #define CALROWNUM 4
   #define CALCOLNUM 6
-#endif
 
-// these are default starting points for uncalibrated LinnStruments, might need tweaking
-const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_FROM_INT(188);
-const int32_t CALX_DEFAULT_FIRST_CELL = FXD_FROM_INT(248);
-const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_FROM_INT(157);
-const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_FROM_INT(4064);
+  // these are default starting points for uncalibrated LinnStruments, might need tweaking
+  const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(293.75);
+  const int32_t CALX_DEFAULT_FIRST_CELL = FXD_MAKE(387.5);
+  const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(245.3125);
+  const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+
+  // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
+  const int32_t CALX_BORDER_OFFSET = FXD_MAKE(15.625);
+#endif
 
 const short CALY_DEFAULT_MIN[NUMROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
 const short CALY_DEFAULT_MAX[NUMROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
 
-// the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-const int32_t CALX_BORDER_OFFSET = FXD_FROM_INT(10);
 
 // only use a portion of the Y distance, since the fingers can't comfortably reach until the real edges
 const int32_t CALY_MARGIN_FRACTION = 4;
@@ -67,7 +77,7 @@ void initializeCalibrationData() {
     Device.calRows[0][row].fxdRatio = 0;
 
     for (byte col = 1; col < NUMCOLS; ++col) {
-      Device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // multiply by 1/24th of 4095 to be centered in the middle of the cells
+      Device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
       Device.calRows[col][row].fxdMeasuredX = CALX_DEFAULT_FIRST_CELL + FXD_MUL(CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
       Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, CALX_DEFAULT_CELL_WIDTH);
     }
@@ -111,8 +121,8 @@ short calculateCalibratedX(short rawX) {
   short result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
 
   // constrain the calibrated X position to have a full 4095 range between the centers of the left and right cells,
-  // but still have values for the remaining left and right halves (4095 / 48)
-  result = constrain(result, -85, 4180);
+  // but still have values for the remaining left and right halves
+  result = constrain(result, -CALX_VALUE_MARGIN, 4095+CALX_VALUE_MARGIN);
 
   return result;
 }
