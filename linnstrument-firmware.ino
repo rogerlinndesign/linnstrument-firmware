@@ -46,6 +46,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 #include <SPI.h>
 #include <limits.h>
 #include <DueFlashStorage.h>
+#include <efc.h>
+#include <flash_efc.h>
 
 #include "ls_debug.h"
 #include "ls_channelbucket.h"
@@ -54,8 +56,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-char* OSVersion = "126.";
-char* OSVersionBuild = ".035";
+const char* OSVersion = "126.";
+const char* OSVersionBuild = ".035";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -858,6 +860,8 @@ void cellTouched(TouchState state);
 void cellTouched(byte col, byte row, TouchState state);
 
 VelocityState calcVelocity(unsigned short z);
+
+inline unsigned short readZ();
 
 /********************************************** SETUP ********************************************/
 

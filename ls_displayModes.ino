@@ -156,8 +156,14 @@ void updateDisplay() {
     case displaySensorRangeZ:
       paintSensorRangeZDisplay();
       break;
+    case displayPromo:
+      // promo display is handled independently
+      break;
     case displayEditAudienceMessage:
       paintEditAudienceMessage();
+      break;
+    case displaySleep:
+      // sleep display is handled independently
       break;
     case displaySleepConfig:
       paintSleepConfig();
@@ -181,6 +187,9 @@ void exitDisplayMode(DisplayMode mode) {
     case displayEditAudienceMessage:
       trimEditedAudienceMessage();
       storeSettings();
+      break;
+    default:
+      // no logic tied to exiting the display mode
       break;
   }
 }
@@ -384,8 +393,8 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
 
   // if the low row is anything but normal, set it to the appropriate color
   if (row == 0 && Split[split].lowRowMode != lowRowNormal) {
-    if (Split[split].lowRowMode == lowRowCCX && Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader ||
-        Split[split].lowRowMode == lowRowCCXYZ && Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+    if ((Split[split].lowRowMode == lowRowCCX && Split[sensorSplit].lowRowCCXBehavior == lowRowCCFader) ||
+        (Split[split].lowRowMode == lowRowCCXYZ && Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader)) {
       colour = COLOR_BLACK;
       cellDisplay = cellOff;
     }
@@ -896,7 +905,7 @@ void paintSplitNumericDataDisplay(byte side, unsigned short value, byte offset, 
 
 void paintNumericDataDisplay(byte color, unsigned short value, byte offset, boolean condensed) {
   char str[10];
-  char* format;
+  const char* format;
   byte pos;
 
   if (value < 100) {
@@ -1272,6 +1281,10 @@ void paintGlobalSettingsDisplay() {
         lightLed(13, 2);
         lightLed(13, 3);
         break;
+      case ArpFourth:
+      case ArpSixtyfourthTriplet:
+        // not available as panel settings
+        break;
     }
 
     // show the arpeggiator octave
@@ -1288,7 +1301,7 @@ void paintGlobalSettingsDisplay() {
   if (displayMode == displayGlobalWithTempo) {
     byte color = Split[LEFT].colorMain;
     char str[4];
-    char* format = "%3d";
+    const char* format = "%3d";
     snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
     tinyfont_draw_string(0, 4, str, color);
   }

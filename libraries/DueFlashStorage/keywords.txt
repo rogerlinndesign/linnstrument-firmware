@@ -1,0 +1,18 @@
+#######################################
+# Syntax Coloring Map For DueFlashStorage
+#######################################
+
+#######################################
+# Class (KEYWORD1)
+#######################################
+
+DueFlashStorage	KEYWORD1	DueFlashStorage
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+# DueFlashStorage Class
+read	KEYWORD2
+readAddress	KEYWORD2
+write	KEYWORD2

@@ -507,6 +507,7 @@ byte takeChannel(byte split) {
     }
 
     case oneChannel:
+    default:
     {
       return Split[split].midiChanMain;
     }
@@ -517,6 +518,14 @@ byte takeChannel(byte split) {
 
 void handleNonPlayingTouch() {
   switch (displayMode) {
+    case displayNormal:
+    case displaySplitPoint:
+    case displayVolume:
+    case displayReset:
+    case displayPromo:
+    case displaySleep:
+      // handled elsewhere
+      break;
     case displayPerSplit:
       handlePerSplitSettingNewTouch();
       break;
@@ -628,6 +637,9 @@ boolean handleXYZupdate() {
       case displayGlobalWithTempo:
         handleGlobalSettingHold();
         return false;
+      default:
+        // other displays don't need hold features
+        break;
     }
   }
   
@@ -648,6 +660,11 @@ boolean handleXYZupdate() {
 
       // mark this as a valid new velocity and process it as such further down the method
       newVelocity = true;
+      break;
+
+    case velocityCalculated:
+      // velocity has been calculated, no need to short-circuit anymore and we can continue
+      // with the main touch logic
       break;
   }
 

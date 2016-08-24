@@ -147,7 +147,7 @@ void serialRestoreSettings() {
   // retrieve the actual settings
   lastSerialMoment = millis();
   byte buff2[confSize];
-  for (unsigned j = 0; j < confSize; ++j) {
+  for (int32_t j = 0; j < confSize; ++j) {
     if (j % 32 == 0) {
       Serial.write(ackCode);
     }

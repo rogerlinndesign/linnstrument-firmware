@@ -10,9 +10,9 @@ The new firmware is then responsible of applying the received settings and possi
 some transformation logic is the settings structure changed for the new firmware.
 **************************************************************************************************/
 
-/**************************************** Configuration V1 ***************************************/
-/* This is used by firmware v1.0.9 and earlier
-/*************************************************************************************************/
+/**************************************** Configuration V1 ****************************************
+This is used by firmware v1.0.9 and earlier
+**************************************************************************************************/
 struct GlobalSettingsV1 {
   byte version;                              // to prepare for versioning
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -71,9 +71,9 @@ struct ConfigurationV1 {
   SplitSettingsV1 left;
   SplitSettingsV1 right;
 };
-/**************************************** Configuration V2 ***************************************/
-/* This is used by firmware v1.1.0
-/*************************************************************************************************/
+/**************************************** Configuration V2 ****************************************
+This is used by firmware v1.1.0
+**************************************************************************************************/
 struct GlobalSettingsV2 {
   void setSwitchAssignment(byte, byte);
 
@@ -140,9 +140,9 @@ struct ConfigurationV2 {
   DeviceSettingsV2 device;
   PresetSettingsV2 preset[NUMPRESETS];
 };
-/**************************************** Configuration V3 ***************************************/
-/* This is used by firmware v1.1.1-beta1, v1.1.1-beta2 and v1.1.1-beta3
-/*************************************************************************************************/
+/**************************************** Configuration V3 ****************************************
+This is used by firmware v1.1.1-beta1, v1.1.1-beta2 and v1.1.1-beta3
+**************************************************************************************************/
 struct GlobalSettingsV3 {
   void setSwitchAssignment(byte, byte);
 
@@ -183,9 +183,9 @@ struct ConfigurationV3 {
   DeviceSettingsV3 device;
   PresetSettingsV3 preset[NUMPRESETS];
 };
-/**************************************** Configuration V4 ***************************************/
-/* This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
-/*************************************************************************************************/
+/**************************************** Configuration V4 ****************************************
+This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
+**************************************************************************************************/
 struct DeviceSettingsV4 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -205,9 +205,9 @@ struct ConfigurationV4 {
   PresetSettingsV3 settings;
   PresetSettingsV3 preset[NUMPRESETS];
 };
-/**************************************** Configuration V5 ***************************************/
-/* This is used by firmware v1.2.0-beta1, v1.2.0-beta2 and v1.2.0
-/*************************************************************************************************/
+/**************************************** Configuration V5 ****************************************
+This is used by firmware v1.2.0-beta1, v1.2.0-beta2 and v1.2.0
+**************************************************************************************************/
 struct GlobalSettingsV4 {
   void setSwitchAssignment(byte, byte);
 
@@ -274,9 +274,9 @@ struct ConfigurationV5 {
   PresetSettingsV4 settings;
   PresetSettingsV4 preset[NUMPRESETS];
 };
-/**************************************** Configuration V6 ***************************************/
-/* This is used by firmware v1.2.1 and v1.2.2
-/*************************************************************************************************/
+/**************************************** Configuration V6 ****************************************
+This is used by firmware v1.2.1 and v1.2.2
+**************************************************************************************************/
 struct GlobalSettingsV5 {
   void setSwitchAssignment(byte, byte);
 
@@ -308,9 +308,9 @@ struct ConfigurationV6 {
   PresetSettingsV5 settings;
   PresetSettingsV5 preset[NUMPRESETS];
 };
-/**************************************** Configuration V7 ***************************************/
-/* This is used by firmware v1.2.3-beta1, v1.2.3-beta2, v1.2.3-beta3, v1.2.3 and v1.2.4-beta1
-/*************************************************************************************************/
+/**************************************** Configuration V7 ****************************************
+This is used by firmware v1.2.3-beta1, v1.2.3-beta2, v1.2.3-beta3, v1.2.3 and v1.2.4-beta1
+**************************************************************************************************/
 struct DeviceSettingsV5 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor

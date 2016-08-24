@@ -103,8 +103,8 @@ short calculateCalibratedX(short rawX) {
   byte sector = (sensorRow / 3);
   byte sectorTop = sector + 1;
 
-  byte bottomRow;
-  byte topRow;
+  byte bottomRow = 0;
+  byte topRow = 2;
   switch (sector) {
     case 0: bottomRow = 0; topRow = 2; break;
     case 1: bottomRow = 2; topRow = 5; break;

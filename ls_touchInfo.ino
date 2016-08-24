@@ -244,6 +244,7 @@ VelocityState calcVelocity(unsigned short z) {
           curve = Z_CURVE_HIGH;
           break;
         case velocityMedium:
+        default:
           scale = VELOCITY_SCALE_MEDIUM;
           curve = Z_CURVE_MEDIUM;
           break;
@@ -430,6 +431,9 @@ inline void TouchInfo::refreshZ() {
         break;
       case velocityLow:
         sensorRangeVelocity += 127;
+        break;
+      case velocityFixed:
+        // no change
         break;
     }
     switch (Global.pressureSensitivity) {

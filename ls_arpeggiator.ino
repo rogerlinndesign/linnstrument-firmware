@@ -366,6 +366,10 @@ void advanceArpeggiatorForSplit(byte split) {
           }
           break;
         }
+
+        case ArpReplayAll:
+          // handled above, at the beginning of the function
+          break;
       }
 
       if (arpNote != -1) {

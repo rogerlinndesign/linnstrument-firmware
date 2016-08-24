@@ -407,6 +407,9 @@ void handleMidiInput(unsigned long now) {
             break;
         }
       }
+      default:
+        // don't handle other MIDI messages
+        break;
     }
 
     // reset the message
@@ -540,7 +543,7 @@ void receivedNrpn(int parameter, int value) {
     case 25:
       if (inRange(value, 0, 127)) {
         if (Split[split].expressionForY == timbreCC1 && value != 1) {
-          Split[split].expressionForY == timbreCC74;
+          Split[split].expressionForY = timbreCC74;
         }
         Split[split].customCCForY = value;
       }
@@ -799,10 +802,10 @@ void receivedNrpn(int parameter, int value) {
     case 209: case 210: case 211: case 212: case 213: case 214:
       if (inRange(value, 0, 1)) {
         if (value) {
-          Global.mainNotes[Global.activeNotes] |= 1 << parameter-203;
+          Global.mainNotes[Global.activeNotes] |= (1 << (parameter-203));
         }
         else {
-          Global.mainNotes[Global.activeNotes] &= ~(1 << parameter-203);
+          Global.mainNotes[Global.activeNotes] &= ~(1 << (parameter-203));
         }
       }
       break;
@@ -811,10 +814,10 @@ void receivedNrpn(int parameter, int value) {
     case 221: case 222: case 223: case 224: case 225: case 226:
       if (inRange(value, 0, 1)) {
         if (value) {
-          Global.accentNotes[Global.activeNotes] |= 1 << parameter-215;
+          Global.accentNotes[Global.activeNotes] |= (1 << (parameter-215));
         }
         else {
-          Global.accentNotes[Global.activeNotes] &= ~(1 << parameter-215);
+          Global.accentNotes[Global.activeNotes] &= ~(1 << (parameter-215));
         }
       }
       break;
@@ -1067,8 +1070,11 @@ boolean resetExactNoteCell(byte split, byte notenum, byte channel) {
     short col = getNoteNumColumn(split, notenum, row);
     if (col > 0) {
       setLed(col, row, COLOR_OFF, cellOff, LED_LAYER_PLAYED);
+      return true;
     }
   }
+
+  return false;
 }
 
 void resetPossibleNoteCells(byte split, byte notenum) {
@@ -1747,7 +1753,7 @@ void midiSendNoteOffForAllTouches(byte split) {
 }
 
 void midiSendPitchBend(int pitchval, byte channel) {
-  unsigned int bend = constrain(pitchval + 8192, 0, 16383);
+  int bend = constrain(pitchval + 8192, 0, 16383);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();

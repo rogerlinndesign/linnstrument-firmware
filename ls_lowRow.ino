@@ -61,6 +61,8 @@ boolean lowRowRequiresSlideTracking() {
     case lowRowCCX:
     case lowRowCCXYZ:
       return true;
+    default:
+      return false;
   }
 }
 
@@ -76,6 +78,8 @@ boolean allowNewTouchOnLowRow() {
       return true;
     case lowRowSustain:
       return lowRowSplitState[sensorSplit] == inactive;
+    default:
+      return false;
   }
 }
 
@@ -137,7 +141,7 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          short xDelta = constrain(sensorCell->calibratedX() - sensorCell->initialX >> 3, 0, 127);
+          short xDelta = constrain((sensorCell->calibratedX() - sensorCell->initialX) >> 3, 0, 127);
           short xPosition = calculateFaderValue(sensorCell->calibratedX(), faderLeft, faderLength);
 
           switch (Split[sensorSplit].lowRowMode)
