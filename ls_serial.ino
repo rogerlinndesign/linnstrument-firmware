@@ -181,7 +181,7 @@ void serialRestoreSettings() {
 
     storeSettings();
   }
-  // turn on calibration instead of no new settings were applied and default settings are used
+  // turn on calibration instead if no new settings were applied and default settings are used
   else {
     setDisplayMode(displayCalibration);
     controlButton = 0;
