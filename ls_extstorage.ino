@@ -26,8 +26,8 @@ struct GlobalSettingsV1 {
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
@@ -127,8 +127,8 @@ struct PresetSettingsV2 {
 struct DeviceSettingsV2 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -164,8 +164,8 @@ struct GlobalSettingsV3 {
 struct DeviceSettingsV3 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -189,8 +189,8 @@ This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
 struct DeviceSettingsV4 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -314,8 +314,8 @@ This is used by firmware v1.2.3-beta1, v1.2.3-beta2, v1.2.3-beta3, v1.2.3 and v1
 struct DeviceSettingsV5 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
@@ -468,14 +468,14 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   return result;
 }
 
-void copyCalibration(CalibrationX (*calRowsTarget)[NUMCOLS+1][4], CalibrationX (*calRowsSource)[NUMCOLS+1][4], CalibrationY (*calColsTarget)[9][NUMROWS], CalibrationY (*calColsSource)[9][NUMROWS]) {
-  for (int i = 0; i < NUMCOLS+1; ++i) {
+void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationY (*calColsSource)[9][MAXROWS]) {
+  for (int i = 0; i < MAXCOLS+1; ++i) {
     for (int j = 0; j < 4; ++j) {
       (*calRowsTarget)[i][j] = (*calRowsSource)[i][j];
     }
   }
   for (int i = 0; i < 9; ++i) {
-    for (int j = 0; j < NUMROWS; ++j) {
+    for (int j = 0; j < MAXROWS; ++j) {
       (*calColsTarget)[i][j] = (*calColsSource)[i][j];
     }
   }

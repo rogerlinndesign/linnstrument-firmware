@@ -33,22 +33,32 @@ These functions handle the low-level communication with LinnStrument's 208 RGB L
   redRow7   redRow6   redRow5   redRow4   redRow3   redRow2   redRow1   redRow0
 */
 
-#if LINNMODEL == 200
-  byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
-#elif LINNMODEL == 128
-  byte colIndex[NUMCOLS] = {0, 1, 6, 11, 16, 2, 7, 12, 3, 8, 13, 4, 9, 14, 5, 10, 15};
-#endif
+byte COL_INDEX[MAXCOLS];
+const byte COL_INDEX_200[MAXCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
+const byte COL_INDEX_128[MAXCOLS] = {0, 1, 6, 11, 16, 2, 7, 12, 3, 8, 13, 4, 9, 14, 5, 10, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-// leds[BUFFERS][NUMCOLS][NUMROWS]:
 // Two buffers of ...
 // A 26 by 8 byte array containing one byte for each LED:
 // bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
 // bits 0-2: 0:off, 1: on, 2: pulse
-byte leds[2][LED_LAYERS+1][NUMCOLS][NUMROWS];             // array holding contents of display
+byte leds[2][LED_LAYERS+1][MAXCOLS][MAXROWS];             // array holding contents of display
 byte visibleLeds = 0;
 byte bufferedLeds = 0;
 
 void initializeLeds() {
+  if (LINNMODEL == 200) {
+    for (byte i = 0; i < MAXCOLS; ++i) {
+      COL_INDEX[i] = COL_INDEX_200[i];
+    }
+  }
+  else if (LINNMODEL == 128) {
+    for (byte i = 0; i < MAXCOLS; ++i) {
+      COL_INDEX[i] = COL_INDEX_128[i];
+    }
+  }
+}
+
+void initializeLedLayers() {
   for (byte layer = 0; layer < LED_LAYERS+1; ++layer) {
     initializeLedsLayer(layer);
   }
@@ -211,14 +221,14 @@ void refreshLedColumn(unsigned long now) {
   byte red = 0;                                           // red value to be sent
   byte green = 0;                                         // green value to be sent
   byte blue = 0;                                          // blue value to be sent
-  byte actualCol = 0;                                     // actual column being refreshed, permitting columns to be lit non-sequentially by using colIndex[] array
+  byte actualCol = 0;                                     // actual column being refreshed, permitting columns to be lit non-sequentially by using COL_INDEX[] array
   byte ledColShifted = 0;                                 // LED column address, which is shifted 2 bits to left within byte
 
   if (++displayInterval >= 4) {                           // allow several levels of brightness by modulating LED's ON time
     displayInterval = 0;
   }
 
-  actualCol = colIndex[ledCol];                           // using colIndex[], permits non-sequential lighting of LED columns, which doesn't seem to improve appearance
+  actualCol = COL_INDEX[ledCol];                           // using COL_INDEX[], permits non-sequential lighting of LED columns, which doesn't seem to improve appearance
 
   if (!Device.operatingLowPower || displayInterval % 3 == 0) {
      // Initialize bytes to send to LEDs over SPI. Each bit represents a single LED on or off

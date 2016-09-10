@@ -74,16 +74,13 @@ const char* OSVersionBuild = ".035";
 // #define TESTING_SENSOR_DISABLE
 
 // Touch surface constants
-#define LINNMODEL 200
-// #define LINNMODEL 128
+byte LINNMODEL = 0;
 
-#if LINNMODEL == 200
-  #define NUMCOLS  26                  // number of touch sensor columns currently used for device
-  #define NUMROWS  8                   // number of touch sensor rows
-#elif LINNMODEL == 128
-  #define NUMCOLS  17                  // number of touch sensor columns currently used for device
-  #define NUMROWS  8                   // number of touch sensor rows
-#endif
+#define MAXCOLS 26
+#define MAXROWS 8
+
+byte NUMCOLS;                        // number of touch sensor columns currently used for device
+byte NUMROWS;                        // number of touch sensor rows
 
 #define NUMSPLITS  2                 // number of splits supported
 #define LEFT       0
@@ -327,12 +324,12 @@ int :1;
   unsigned short velSumY:12;                 // these are used to calculate the intial velocity slope based on the first Z samples
   unsigned short velSumXY:12;
 };
-TouchInfo touchInfo[NUMCOLS][NUMROWS];       // store as much touch information instances as there are cells
+TouchInfo touchInfo[MAXCOLS][MAXROWS];       // store as much touch information instances as there are cells
 
 TouchInfo* sensorCell = &cell(sensorCol, sensorRow);
 
-int32_t rowsInColsTouched[NUMCOLS];          // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
-int32_t colsInRowsTouched[NUMROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
+int32_t rowsInColsTouched[MAXCOLS];       // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
+int32_t colsInRowsTouched[MAXROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
 unsigned short cellsTouched;                 // counts the number of active touches on cells
 
 struct VirtualTouchInfo {
@@ -344,7 +341,7 @@ struct VirtualTouchInfo {
   signed char note;                          // note from 0 to 127
   signed char channel;                       // channel from 1 to 16
 };
-VirtualTouchInfo virtualTouchInfo[NUMROWS];  // store as much touch virtual instances as there are rows, this is used for simulating strumming open strings
+VirtualTouchInfo virtualTouchInfo[MAXROWS];  // store as much touch virtual instances as there are rows, this is used for simulating strumming open strings
 
 // Reverse mapping to find the touch information based on the MIDI note and channel,
 // this is used for the arpeggiator to know which notes are active and which cells
@@ -450,8 +447,8 @@ struct __attribute__ ((packed)) CalibrationSample {
   unsigned short maxValue:12;
   byte pass:4;
 };
-CalibrationSample calSampleRows[NUMCOLS][4]; // store four rows of calibration measurements
-CalibrationSample calSampleCols[9][NUMROWS]; // store nine columns of calibration measurements
+CalibrationSample calSampleRows[MAXCOLS][4]; // store four rows of calibration measurements
+CalibrationSample calSampleCols[9][MAXROWS]; // store nine columns of calibration measurements
 
 struct CalibrationX {
   int32_t fxdMeasuredX;
@@ -565,8 +562,8 @@ struct SplitSettings {
 struct DeviceSettings {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[NUMCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][NUMROWS];          // store nine columns of calibration data
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
@@ -736,17 +733,10 @@ const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
 const int32_t FXD_CONST_1016 = FXD_FROM_INT(1016);
 
-#if LINNMODEL == 200
-  const int CALX_VALUE_MARGIN = 85;                         // 4095 / 48
-  const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);         // 4095 / 48
-  const int32_t CALX_PHANTOM_RANGE = FXD_MAKE(128);         // 4095 / 32
-  const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);         // 4095 / 24
-#elif LINNMODEL == 128
-  const int CALX_VALUE_MARGIN = 136;                        // 4095 / 30
-  const int32_t CALX_HALF_UNIT = FXD_MAKE(136.5);           // 4095 / 30
-  const int32_t CALX_PHANTOM_RANGE = FXD_MAKE(182);         // 4095 / 22.5
-  const int32_t CALX_FULL_UNIT = FXD_MAKE(273);             // 4095 / 15
-#endif
+const int CALX_VALUE_MARGIN = 85;                         // 4095 / 48
+const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);         // 4095 / 48
+const int32_t CALX_PHANTOM_RANGE = FXD_MAKE(128);         // 4095 / 32
+const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);         // 4095 / 24
 
 const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
 
@@ -769,7 +759,7 @@ boolean changedSplitPoint = false;                  // reflects whether the spli
 boolean splitButtonDown = false;                    // reflects state of Split button
 
 signed char controlButton = -1;                     // records the row of the current controlButton being held down
-unsigned long lastControlPress[NUMROWS];
+unsigned long lastControlPress[MAXROWS];
 
 byte mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;         // loop divider at which continuous tasks are ran
 unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
@@ -798,10 +788,10 @@ byte midiChannelSelect = MIDICHANNEL_MAIN;          // determines which midi cha
 byte lightSettings = LIGHTS_MAIN;                   // determines which Lights array is being displayed/changed
 
 boolean userFirmwareActive = false;                 // indicates whether user firmware mode is active or not
-boolean userFirmwareSlideMode[NUMROWS];             // indicates whether slide mode is on for a particular row
-boolean userFirmwareXActive[NUMROWS];               // indicates whether X data is on for a particular row
-boolean userFirmwareYActive[NUMROWS];               // indicates whether Y data is on for a particular row
-boolean userFirmwareZActive[NUMROWS];               // indicates whether Z data is on for a particular row
+boolean userFirmwareSlideMode[MAXROWS];             // indicates whether slide mode is on for a particular row
+boolean userFirmwareXActive[MAXROWS];               // indicates whether X data is on for a particular row
+boolean userFirmwareYActive[MAXROWS];               // indicates whether Y data is on for a particular row
+boolean userFirmwareZActive[MAXROWS];               // indicates whether Z data is on for a particular row
 
 boolean animationActive = false;                    // indicates whether animation is active, preventing any other display
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
@@ -877,7 +867,9 @@ void reset() {
     lastControlPress[i] = 0;
   }
 
-  initializeLeds();
+  initializeLedLayers();
+
+  initializeTouchHandling();
 
   initializeTouchInfo();
 
@@ -969,7 +961,17 @@ void setup() {
   //**************** IMPORTANT, DONT CHANGE ANYTHING REGARDING THIS CODE BLOCK AT THE RISK OF BRICKING THE LINNSTRUMENT !!!!! ***********************
   //*************************************************************************************************************************************************
   /*!!*/
-  /*!!*/  initializeDeviceSensorSettings();
+  /*!!*/  pinMode(38, INPUT);
+  /*!!*/  if (digitalRead(38) == HIGH) {
+  /*!!*/    LINNMODEL = 200;
+  /*!!*/  }
+  /*!!*/  else {
+  /*!!*/    LINNMODEL = 128;
+  /*!!*/  }
+  /*!!*/
+  /*!!*/  initializeSensors();
+  /*!!*/  initializeCalibration();
+  /*!!*/  initializeLeds();
   /*!!*/
   /*!!*/  // Initialize output pin 35 (midi/SERIAL) and set it HIGH for serial operation
   /*!!*/  // IMPORTANT: IF YOU UPLOAD DEBUG CODE THAT DISABLES THE UI'S ABILITY TO SET THIS BACK TO SERIAL MODE, YOU WILL BRICK THE LINNSTRUMENT!!!!!

@@ -31,6 +31,26 @@ void debugPrintln(int level, int val) {
   }
 }
 
+void displayDigitalPins() {
+  static unsigned long lastFrame = 0;
+  unsigned long now = micros();
+  if (sensorCol == 1 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
+    lastFrame = now;
+
+    Serial.println();
+    for (byte p = 0; p < 54; ++p) {
+      Serial.print(p);
+      Serial.print("\t");
+    }
+    Serial.println();
+    for (byte p = 0; p < 54; ++p) {
+      Serial.print(digitalRead(p));
+      Serial.print("\t");
+    }
+    Serial.println();
+  }
+}
+
 // displayXFrame:
 // For debug, displays an entire frame of raw X values in the Arduino serial monitor. Values are collected during each full read of the touch surface.
 void displayXFrame() {

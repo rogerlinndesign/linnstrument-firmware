@@ -229,12 +229,6 @@ void initializeAudienceMessages() {
   }
 }
 
-void initializeDeviceSensorSettings() {
-  Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  Device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  Device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
-}
-
 void initializeNoteLights(GlobalSettings& g) {
     g.activeNotes = 0;
 
@@ -360,11 +354,13 @@ void initializePresetSettings() {
     PresetSettings& p = config.preset[n];
     GlobalSettings& g = p.global;
 
-#if LINNMODEL == 200
-    g.splitPoint = 12;
-#elif LINNMODEL == 128
-    g.splitPoint = 9;
-#endif
+    if (LINNMODEL == 200) {
+      g.splitPoint = 12;
+    }
+    else if (LINNMODEL == 128) {
+      g.splitPoint = 9;
+    }
+
     g.currentPerSplit = LEFT;
 
     g.rowOffset = 5;

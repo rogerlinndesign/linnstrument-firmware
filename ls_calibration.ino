@@ -15,38 +15,52 @@ For the Y values, it simply measures the top and bottom extremes for cells in 5 
 calculate for each cell the ratio that converts this to usable CC values.
 ***************************************************************************************************/
 
-#if LINNMODEL == 200
-  #define CALROWNUM 4
-  #define CALCOLNUM 9
+byte CALROWNUM;
+byte CALCOLNUM;
 
-  // these are default starting points for uncalibrated LinnStruments, might need tweaking
-  const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(188);
-  const int32_t CALX_DEFAULT_FIRST_CELL = FXD_MAKE(248);
-  const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(157);
-  const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+// these are default starting points for uncalibrated LinnStruments, might need tweaking
+int32_t CALX_DEFAULT_LEFT_EDGE;
+int32_t CALX_DEFAULT_FIRST_CELL;
+int32_t CALX_DEFAULT_CELL_WIDTH;
+int32_t CALX_DEFAULT_RIGHT_EDGE;
 
-  // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-  const int32_t CALX_BORDER_OFFSET = FXD_MAKE(10);
-#elif LINNMODEL == 128
-  #define CALROWNUM 4
-  #define CALCOLNUM 6
+// the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
+int32_t CALX_BORDER_OFFSET;
 
-  // these are default starting points for uncalibrated LinnStruments, might need tweaking
-  const int32_t CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(293.75);
-  const int32_t CALX_DEFAULT_FIRST_CELL = FXD_MAKE(387.5);
-  const int32_t CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(245.3125);
-  const int32_t CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
-
-  // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-  const int32_t CALX_BORDER_OFFSET = FXD_MAKE(15.625);
-#endif
-
-const short CALY_DEFAULT_MIN[NUMROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
-const short CALY_DEFAULT_MAX[NUMROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
-
+const short CALY_DEFAULT_MIN[MAXROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
+const short CALY_DEFAULT_MAX[MAXROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
 
 // only use a portion of the Y distance, since the fingers can't comfortably reach until the real edges
-const int32_t CALY_MARGIN_FRACTION = 4;
+const byte CALY_MARGIN_FRACTION = 4;
+
+void initializeCalibration() {
+  if (LINNMODEL == 200) {
+    CALROWNUM = 4;
+    CALCOLNUM = 9;
+
+    // these are default starting points for uncalibrated LinnStruments, might need tweaking
+    CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(188);
+    CALX_DEFAULT_FIRST_CELL = FXD_MAKE(248);
+    CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(157);
+    CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+
+    // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
+    CALX_BORDER_OFFSET = FXD_MAKE(10);
+  }
+  else if (LINNMODEL == 128) {
+    CALROWNUM = 4;
+    CALCOLNUM = 6;
+
+    // these are default starting points for uncalibrated LinnStruments, might need tweaking
+    CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(293.75);
+    CALX_DEFAULT_FIRST_CELL = FXD_MAKE(387.5);
+    CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(245.3125);
+    CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+
+    // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
+    CALX_BORDER_OFFSET = FXD_MAKE(15.625);
+  }
+}
 
 void initializeCalibrationSamples() {
   calibrationPhase = calibrationRows;

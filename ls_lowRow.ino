@@ -17,7 +17,7 @@ enum ColumnState {
   continuous
 };
 
-ColumnState lowRowColumnState[NUMCOLS];
+ColumnState lowRowColumnState[MAXCOLS];
 ColumnState lowRowSplitState[NUMSPLITS];
 boolean lowRowBendActive[NUMSPLITS];
 boolean lowRowCCXActive[NUMSPLITS];
