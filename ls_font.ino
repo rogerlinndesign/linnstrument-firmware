@@ -1940,7 +1940,7 @@ unsigned font_width_string(const char* str, struct Font* font) {
 
 // Draw a string of characters starting at a specific column/row
 void font_draw_string(int col, int row, const char* str, byte color, struct Font* font, boolean erase, boolean reversed, byte seperationColor) {
-  unsigned int i;
+  int i;
   if (reversed) { i = strlen(str) - 1; }
   else          { i = 0; }
 
