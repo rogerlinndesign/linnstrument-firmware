@@ -9,8 +9,8 @@ These functions handle the sensing of touches on the LinnStrument's touch surfac
 // These are the rectified pressure sensititivies for each column
 // CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
 // actual values in a spreadsheet
-short Z_BIAS_SEPTEMBER[MAXROWS][MAXCOLS];
-const short Z_BIAS_SEPTEMBER_200[MAXROWS][MAXCOLS] =  {
+short Z_BIAS[MAXROWS][MAXCOLS];
+const short Z_BIAS_200_SEPTEMBER2014[MAXROWS][MAXCOLS] =  {
     {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256},
     {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
     {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1193},
@@ -20,18 +20,17 @@ const short Z_BIAS_SEPTEMBER_200[MAXROWS][MAXCOLS] =  {
     {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
     {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256}
   };
-// TODO : This needs proper measurements once we have a real 16 column sensor board
-const short Z_BIAS_SEPTEMBER_128[MAXROWS][MAXCOLS] =  {
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+const short Z_BIAS_128_SEPTEMBER2016[MAXROWS][MAXCOLS] =  {
+    {500, 2560, 2320, 2150, 2020, 1920, 1840, 1780, 1720, 1700, 1730, 1790, 1860, 1940, 2020, 2100, 2160, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2220, 2040, 1900, 1780, 1680, 1600, 1560, 1520, 1500, 1530, 1570, 1640, 1720, 1800, 1900, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2200, 1980, 1860, 1720, 1600, 1510, 1470, 1440, 1440, 1460, 1470, 1500, 1580, 1680, 1780, 1900, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2100, 1960, 1820, 1700, 1580, 1500, 1440, 1420, 1400, 1440, 1500, 1560, 1640, 1740, 1860, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 1920, 1840, 1740, 1660, 1600, 1540, 1520, 1490, 1480, 1500, 1560, 1660, 1760, 1840, 1960, 2040, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2080, 1920, 1800, 1720, 1640, 1580, 1524, 1500, 1480, 1520, 1580, 1660, 1760, 1860, 1960, 2080, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2240, 2080, 1940, 1800, 1720, 1640, 1580, 1540, 1540, 1560, 1600, 1660, 1760, 1880, 2000, 2140, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {500, 2320, 2120, 1980, 1900, 1820, 1740, 1680, 1650, 1660, 1700, 1760, 1820, 1880, 1960, 2060, 2200, 0, 0, 0, 0, 0, 0, 0, 0, 0}
   };
-const short Z_BIAS_MULTIPLIER_SEPTEMBER = 1400;
+const short Z_BIAS_MULTIPLIER = 1400;
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -48,7 +47,7 @@ void initializeSensors() {
 
     for (byte r = 0; r < MAXROWS; ++r) {
       for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS_SEPTEMBER[r][c] = Z_BIAS_SEPTEMBER_200[r][c];
+        Z_BIAS[r][c] = Z_BIAS_200_SEPTEMBER2014[r][c];
       }
     }
   }
@@ -58,7 +57,7 @@ void initializeSensors() {
 
     for (byte r = 0; r < MAXROWS; ++r) {
       for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS_SEPTEMBER[r][c] = Z_BIAS_SEPTEMBER_128[r][c];
+        Z_BIAS[r][c] = Z_BIAS_128_SEPTEMBER2016[r][c];
       }
     }
   }
@@ -170,7 +169,7 @@ inline unsigned short readZ() {                       // returns the raw Z value
   }
 
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  rawZ = (rawZ * Z_BIAS_MULTIPLIER_SEPTEMBER) / Z_BIAS_SEPTEMBER[sensorRow][sensorCol];
+  rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
 
   return rawZ;
 }
