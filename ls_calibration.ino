@@ -19,13 +19,13 @@ byte CALROWNUM;
 byte CALCOLNUM;
 
 // these are default starting points for uncalibrated LinnStruments, might need tweaking
-int32_t CALX_DEFAULT_LEFT_EDGE;
-int32_t CALX_DEFAULT_FIRST_CELL;
-int32_t CALX_DEFAULT_CELL_WIDTH;
-int32_t CALX_DEFAULT_RIGHT_EDGE;
+int32_t FXD_CALX_DEFAULT_LEFT_EDGE;
+int32_t FXD_CALX_DEFAULT_FIRST_CELL;
+int32_t FXD_CALX_DEFAULT_CELL_WIDTH;
+int32_t FXD_CALX_DEFAULT_RIGHT_EDGE;
 
 // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-int32_t CALX_BORDER_OFFSET;
+int32_t FXD_CALX_BORDER_OFFSET;
 
 const short CALY_DEFAULT_MIN[MAXROWS] = {243, 781, 1299, 1810, 2281, 2718, 3187, 3599};
 const short CALY_DEFAULT_MAX[MAXROWS] = {473, 991, 1486, 1965, 2449, 2925, 3401, 3851};
@@ -39,26 +39,26 @@ void initializeCalibration() {
     CALCOLNUM = 9;
 
     // these are default starting points for uncalibrated LinnStruments, might need tweaking
-    CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(188);
-    CALX_DEFAULT_FIRST_CELL = FXD_MAKE(248);
-    CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(157);
-    CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+    FXD_CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(188);
+    FXD_CALX_DEFAULT_FIRST_CELL = FXD_MAKE(248);
+    FXD_CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(157);
+    FXD_CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
 
     // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-    CALX_BORDER_OFFSET = FXD_MAKE(10);
+    FXD_CALX_BORDER_OFFSET = FXD_MAKE(10);
   }
   else if (LINNMODEL == 128) {
     CALROWNUM = 4;
     CALCOLNUM = 6;
 
     // these are default starting points for uncalibrated LinnStruments, might need tweaking
-    CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(293.75);
-    CALX_DEFAULT_FIRST_CELL = FXD_MAKE(387.5);
-    CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(245.3125);
-    CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
+    FXD_CALX_DEFAULT_LEFT_EDGE = FXD_MAKE(293.75);
+    FXD_CALX_DEFAULT_FIRST_CELL = FXD_MAKE(387.5);
+    FXD_CALX_DEFAULT_CELL_WIDTH = FXD_MAKE(245.3125);
+    FXD_CALX_DEFAULT_RIGHT_EDGE = FXD_MAKE(4064);
 
     // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
-    CALX_BORDER_OFFSET = FXD_MAKE(15.625);
+    FXD_CALX_BORDER_OFFSET = FXD_MAKE(15.625);
   }
 }
 
@@ -86,18 +86,18 @@ void initializeCalibrationData() {
 
   // Initialize default X calibration data
   for (byte row = 0; row < CALROWNUM; ++row) {
-    Device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + CALX_BORDER_OFFSET;
-    Device.calRows[0][row].fxdMeasuredX = CALX_DEFAULT_LEFT_EDGE;
+    Device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + FXD_CALX_BORDER_OFFSET;
+    Device.calRows[0][row].fxdMeasuredX = FXD_CALX_DEFAULT_LEFT_EDGE;
     Device.calRows[0][row].fxdRatio = 0;
 
     for (byte col = 1; col < NUMCOLS; ++col) {
       Device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
-      Device.calRows[col][row].fxdMeasuredX = CALX_DEFAULT_FIRST_CELL + FXD_MUL(CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
-      Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, CALX_DEFAULT_CELL_WIDTH);
+      Device.calRows[col][row].fxdMeasuredX = FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
+      Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, FXD_CALX_DEFAULT_CELL_WIDTH);
     }
 
-    Device.calRows[NUMCOLS][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - CALX_BORDER_OFFSET;
-    Device.calRows[NUMCOLS][row].fxdMeasuredX = CALX_DEFAULT_RIGHT_EDGE;
+    Device.calRows[NUMCOLS][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - FXD_CALX_BORDER_OFFSET;
+    Device.calRows[NUMCOLS][row].fxdMeasuredX = FXD_CALX_DEFAULT_RIGHT_EDGE;
     Device.calRows[NUMCOLS][row].fxdRatio = 0;
   }
 

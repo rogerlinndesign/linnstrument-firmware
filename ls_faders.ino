@@ -10,6 +10,14 @@ These functions handle the CC faders for each split
 
 void handleFaderTouch(boolean newVelocity) {
   if (sensorCell->velocity) {
+    byte faderLeft, faderLength;
+    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
+    handleFaderTouch(newVelocity, faderLeft, faderLength);
+  }
+}
+
+void handleFaderTouch(boolean newVelocity, byte faderLeft, byte faderLength) {
+  if (sensorCell->velocity) {
     unsigned short ccForFader = Split[sensorSplit].ccForFader[sensorRow];
 
     // only proceed when this is the touch on the highest row in the same split when the CC numbers
@@ -19,9 +27,6 @@ void handleFaderTouch(boolean newVelocity) {
         return;
       }
     }
-
-    byte faderLeft, faderLength;
-    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
 
     short value = -1;
 
@@ -69,10 +74,14 @@ void handleFaderTouch(boolean newVelocity) {
 }
 
 void handleFaderRelease() {
+  byte faderLeft, faderLength;
+  determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
+  handleFaderRelease(faderLeft, faderLength);
+}
+
+void handleFaderRelease(byte faderLeft, byte faderLength) {
   // if another touch is already down on the same row, make it take over the touch
   if (sensorCell->velocity) {
-    byte faderLeft, faderLength;
-    determineFaderBoundaries(sensorSplit, faderLeft, faderLength);
     if (faderLength > 0) {
       for (byte col = faderLength + faderLeft; col >= faderLeft; --col) {
         if (col != sensorCol && cell(col, sensorRow).touched == touchedCell) {

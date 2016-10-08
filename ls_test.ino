@@ -261,3 +261,32 @@ void modeLoopManufacturingTest() {
   checkRefreshLedColumn(now);
   nextSensorCell();
 }
+
+#ifdef DEBUG_ENABLED
+
+#include <malloc.h>
+
+extern char _end;
+extern "C" char* sbrk(int i);
+char* ramstart = (char*)0x20070000;
+char* ramend = (char*)0x20088000;
+
+void debugFreeRam() {
+  static unsigned long lastFrame = 0;
+  unsigned long now = micros();
+  if (Device.serialMode && sensorCol == 1 && sensorRow == 0 && calcTimeDelta(now, lastFrame) >= 500000) {
+    lastFrame = now;
+
+    char* heapend = sbrk(0);
+    register char* stack_ptr asm ("sp");
+    struct mallinfo mi = mallinfo();
+    Serial.print("RAM dynamic:");
+    Serial.print(mi.uordblks);
+    Serial.print(" static:");
+    Serial.print(&_end - ramstart);
+    Serial.print(" free:");
+    Serial.println(stack_ptr - heapend + mi.fordblks);
+  }
+}
+
+#endif

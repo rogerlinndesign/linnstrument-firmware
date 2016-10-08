@@ -614,6 +614,16 @@ static Character small_T = { 3,
   " 0 "
   "   " };
 
+static Character small_t = { 3,
+  "   "
+  "   "
+  "0  "
+  "000"
+  "0  "
+  "0  "
+  " 00"
+  "   " };
+
 static Character small_U = { 4,
   "    "
   "    "
@@ -1737,6 +1747,26 @@ static Character cond_blank = { 3,
   "   "
   "   " };
 
+static Character cond_dot = { 1,
+  " "
+  " "
+  " "
+  " "
+  " "
+  " "
+  "0"
+  " " };
+
+static Character cond_div = { 3,
+  "   "
+  "   "
+  "   "
+  "  0"
+  " 0 "
+  "0  "
+  "   "
+  "   " };
+
 static Character cond_0 = { 3,
   "   "
   " 0 "
@@ -1747,15 +1777,15 @@ static Character cond_0 = { 3,
   " 0 "
   "     " };
 
-static Character cond_1 = { 3,
-  "   "
-  " 0 "
-  "00 "
-  " 0 "
-  " 0 "
-  " 0 "
-  " 0 "
-  "   " };
+static Character cond_1 = { 2,
+  "  "
+  " 0"
+  "00"
+  " 0"
+  " 0"
+  " 0"
+  " 0"
+  "  " };
 
 static Character cond_2 = { 3,
   "   "
@@ -1837,6 +1867,16 @@ static Character cond_9 = { 3,
   " 0 "
   "   " };
 
+static Character cond_B = { 3,
+  "   "
+  "00 "
+  "0 0"
+  "00 "
+  "0 0"
+  "0 0"
+  "00 "
+  "   " };
+
 static Character cond_H = { 3,
   "   "
   "0 0"
@@ -1855,6 +1895,16 @@ static Character cond_L = { 3,
   "0  "
   "0  "
   "000"
+  "   " };
+
+static Character cond_T = { 3,
+  "   "
+  "000"
+  " 0 "
+  " 0 "
+  " 0 "
+  " 0 "
+  " 0 "
   "   " };
 
 static Character cond_X = { 3,
@@ -1903,10 +1953,11 @@ Character* smallChars[] = {
   &small_0, &small_1, &small_2, &small_3, &small_4, &small_5, &small_6, &small_7, &small_8, &small_9,
   &small_colon, &small_semi, &small_lt, &small_eq, &small_gt, &small_quest, &small_at,
   &small_A, &small_B, &small_C, &small_D, &small_E, &small_F, &small_G, &small_H, &small_I, &small_J, &small_K, &small_L, &small_M, &small_N, &small_O, &small_P, &small_Q, &small_R, &small_S, &small_T, &small_U, &small_V, &small_W, &small_X, &small_Y, &small_Z,
+  &small_t,
   &small_lsqbrack, &small_backslash, &small_rsqbrack, &small_pow, &small_under, &small_backtick,
   &small_lbrace, &small_pipe, &small_rbrace, &small_tilde
 };
-struct Font smallFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`{|}~", smallChars };
+struct Font smallFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZt[\\]^_`{|}~", smallChars };
 
 Character* bigChars[] = {
   &big_blank, &big_excl, &big_quot, &big_hash, &big_dollar, &big_perc, &big_amp, &big_squot, &big_lparen, &big_rparen, &big_mult, &big_plus, &big_comma, &big_minus, &big_dot, &big_div,
@@ -1920,9 +1971,9 @@ Character* bigChars[] = {
 struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", bigChars };
 
 Character* condChars[] = {
-  &cond_blank, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9, &cond_H, &cond_L, &cond_X, &cond_Y, &cond_Z
+  &cond_blank, &cond_dot, &cond_div, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9, &cond_B, &cond_H, &cond_L, &cond_T, &cond_X, &cond_Y, &cond_Z
 };
-struct Font condFont = { 8, " 0123456789HLXYZ", condChars };
+struct Font condFont = { 8, " ./0123456789BHLTXYZ", condChars };
 
 
 unsigned font_width_string(const char* str, struct Font* font) {
@@ -1944,7 +1995,7 @@ void font_draw_string(int col, int row, const char* str, byte color, struct Font
   if (reversed) { i = strlen(str) - 1; }
   else          { i = 0; }
 
-  while ((reversed && i >= 0) || (!reversed && i < strlen(str))) {
+  while ((reversed && i >= 0) || (!reversed && i < (int)strlen(str))) {
     char c = str[i];
     char* p = strchr(font->chars, c);
     if (p) {

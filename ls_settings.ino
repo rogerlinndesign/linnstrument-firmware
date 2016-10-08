@@ -45,7 +45,8 @@ void switchSerialMode(boolean flag) {
 
   if (Device.operatingLowPower) {
     Device.operatingLowPower = false;
-    applyLowPowerMode();
+    applyLedInterval();
+    applyMidiInterval();
   }
   
   Device.serialMode = flag;
@@ -87,7 +88,8 @@ void initializeStorage() {
     
     setLed(0, GLOBAL_SETTINGS_ROW, globalColor, cellOn);
     controlButton = GLOBAL_SETTINGS_ROW;
-  } else {
+  }
+  else {
     loadSettings();                                       // On subsequent startups, load settings from Flash
   }
 
@@ -95,8 +97,12 @@ void initializeStorage() {
 }
 
 void storeSettings() {
-  writeSettingsToFlash();
+  if (!sequencerIsRunning()) {
+    writeSettingsToFlash();
+  }
 }
+
+const int SETTINGS_OFFSET = 4+18*sizeof(SequencerProject);
 
 void writeSettingsToFlash() {
   DEBUGPRINT((2,"storeSettings flash size="));
@@ -109,7 +115,7 @@ void writeSettingsToFlash() {
   completelyRefreshLeds();
 
   // read the marker to know which configuration version was last written successfully
-  byte marker = dueFlashStorage.read(4);
+  byte marker = dueFlashStorage.read(SETTINGS_OFFSET);
   // update the marker and the flash memory offset to now write to the other configuration version
   // ensuring that the previous one remains coherent
   uint32_t configOffset;
@@ -126,34 +132,34 @@ void writeSettingsToFlash() {
   if (Device.operatingLowPower) {
     unsigned long now = millis();
 
-    // ensure that there's at least 200 milliseconds between refreshing the display lights and writing to flash
+    // ensure that there's at least 50 milliseconds between refreshing the display lights and writing to flash
     unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
-    if (displayModeDelta < 200) {
-      delayUsec((200 - displayModeDelta) * 1000);
+    if (displayModeDelta < 50) {
+      delayUsec((50 - displayModeDelta) * 1000);
     }
 
     // write the configuration data
-    uint32_t offset = 4+sizeof(unsigned long)+configOffset;
+    uint32_t offset = SETTINGS_OFFSET+sizeof(unsigned long)+configOffset;
 
-    byte batchsize = 64;
+    byte batchsize = 128;
     byte* source = (byte*)&config;
     int total = sizeof(Configuration);
     int i = 0;
     while (i+batchsize < total) {
       dueFlashStorage.write(offset+i, source+i, batchsize);
       i += batchsize;
-      delayUsec(500);
+      delayUsec(100);
     }
 
     int remaining = total - i;
     if (remaining > 0) {
       dueFlashStorage.write(offset+i, source+i, remaining);
     }
-    delayUsec(500);
+    delayUsec(100);
 
     // write the marker after the configuration data so that this version becomes to latest coherent one
-    dueFlashStorage.write(4, marker);
-    delayUsec(1000);
+    dueFlashStorage.write(SETTINGS_OFFSET, marker);
+    delayUsec(100);
   }
   // do the faster possible flash storage in regular power mode
   else {
@@ -161,9 +167,9 @@ void writeSettingsToFlash() {
     memcpy(b2, &config, sizeof(Configuration));
 
     // write the configuration data
-    dueFlashStorage.write(4+sizeof(unsigned long)+configOffset, b2, sizeof(Configuration));
+    dueFlashStorage.write(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset, b2, sizeof(Configuration));
     // write the marker after the configuration data so that this version becomes to latest coherent one
-    dueFlashStorage.write(4, marker);
+    dueFlashStorage.write(SETTINGS_OFFSET, marker);
   }
 
   updateDisplay();
@@ -171,17 +177,16 @@ void writeSettingsToFlash() {
 
 void loadSettings() {
   // read the marker to know which configuration version was last written successfully
-  byte marker = dueFlashStorage.read(4);
+  byte marker = dueFlashStorage.read(SETTINGS_OFFSET);
 
   uint32_t configOffset = 0;
   if (marker != 0) {
     configOffset = sizeof(Configuration);
   }
-  memcpy(&config, dueFlashStorage.readAddress(4+sizeof(unsigned long)+configOffset), sizeof(Configuration));
+  memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));
 }
 
 void applyPresetSettings(PresetSettings& preset) {
-  focusedSplit = Global.currentPerSplit;
   applyPitchCorrectHold();
   applyLimitsForY();
   applyLimitsForZ();
@@ -416,6 +421,7 @@ void initializePresetSettings() {
         p.split[s].minForZ = 0;
         p.split[s].maxForZ = 127;
         p.split[s].customCCForZ = 11;
+        p.split[s].ccForZ14Bit = false;
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
@@ -432,6 +438,23 @@ void initializePresetSettings() {
         p.split[s].ccFaders = false;
         p.split[s].strum = false;
         p.split[s].mpe = false;
+
+        p.split[s].sequencer = false;
+        p.split[s].seqDrumNotes[0] = 36;  // Bass Drum
+        p.split[s].seqDrumNotes[1] = 38;  // Snare Drum
+        p.split[s].seqDrumNotes[2] = 37;  // Sidestick
+        p.split[s].seqDrumNotes[3] = 42;  // Hihat Closed
+        p.split[s].seqDrumNotes[4] = 46;  // Hihat Open
+        p.split[s].seqDrumNotes[5] = 54;  // Tamborine
+        p.split[s].seqDrumNotes[6] = 69;  // Cabasa
+
+        p.split[s].seqDrumNotes[7] = 43;  // Low Tom
+        p.split[s].seqDrumNotes[8] = 47;  // Mid Tom
+        p.split[s].seqDrumNotes[9] = 50;  // High Tom
+        p.split[s].seqDrumNotes[10] = 49; // Crash Cymbal
+        p.split[s].seqDrumNotes[11] = 51; // Ride Cymbal
+        p.split[s].seqDrumNotes[12] = 55; // Splash Cymbal
+        p.split[s].seqDrumNotes[13] = 39; // Hand Clap
     }
 
     // initialize values that differ between the keyboard splits
@@ -445,8 +468,9 @@ void initializePresetSettings() {
     }
     p.split[LEFT].midiChanPerRow = 1;
     p.split[LEFT].colorMain = COLOR_GREEN;
-    p.split[LEFT].colorNoteon = COLOR_RED;
+    p.split[LEFT].colorPlayed = COLOR_RED;
     p.split[LEFT].lowRowMode = lowRowNormal;
+    p.split[LEFT].sequencerView = sequencerNotes;
 
     p.split[RIGHT].midiChanMain = 16;
     for (byte chan = 0; chan < 8; ++chan) {
@@ -458,8 +482,12 @@ void initializePresetSettings() {
     p.split[RIGHT].midiChanSet[15] = false;
     p.split[RIGHT].midiChanPerRow = 9;
     p.split[RIGHT].colorMain = COLOR_BLUE;
-    p.split[RIGHT].colorNoteon = COLOR_MAGENTA;
+    p.split[RIGHT].colorPlayed = COLOR_MAGENTA;
     p.split[RIGHT].lowRowMode = lowRowNormal;
+    p.split[RIGHT].sequencerView = sequencerDrums;
+
+    // we're initializing the sequencer settings with the split settings
+    memcpy(&p.sequencer, &p.split, sizeof(SplitSettings) * 2);
   }
 
   // we're initializing the current settings with preset 0
@@ -600,6 +628,12 @@ void handleControlButtonNewTouch() {
     cellTouched(0, 2, untouchedCell);
   }
 
+  // allow the sequencer to short-circuit the control button new touch
+  if (handleSequencerControlButtonNewTouch()) {
+    lastControlPress[sensorRow] = millis();            // keep track of the last press
+    return;
+  }
+
   // only allow one control button to be pressed at the same time
   // this prevents phantom presses to occur for the control buttons
   // this is not detectable with the regular phantom press algorithm
@@ -645,13 +679,11 @@ void handleControlButtonNewTouch() {
       resetAllTouches();
       splitButtonDown = true;
       changedSplitPoint = false;
-      setLed(0, SPLIT_ROW, globalColor, cellOn);
       setDisplayMode(displaySplitPoint);
 
       // handle double-tap
       if (doubleTap) {
-        Global.currentPerSplit = !Global.currentPerSplit;
-        focusedSplit = Global.currentPerSplit;
+        Global.currentPerSplit = otherSplit(Global.currentPerSplit);
       }
 
       updateDisplay();
@@ -711,12 +743,17 @@ void handleControlButtonRelease() {
     return;
   }
 
+  // allow the sequencer to short-circuit the control button touch release
+  if (handleSequencerControlButtonRelease()) {
+    return;
+  }
+
   if (sensorRow != SWITCH_1_ROW &&
       sensorRow != SWITCH_2_ROW) {                                          // don't allow simultaneous control buttons except for the switches
 
-    if (controlButton != sensorRow ||                                       // only handle the release of the control button that's currently pressed
-        (millis() - lastControlPress[sensorRow] <= SWITCH_HOLD_DELAY &&     // however if this was not a hold press, don't process the release either
-         controlButton != SPLIT_ROW)) {                                     // except for the split row, who has its own hold behavior
+    if (controlButton != sensorRow ||                                                   // only handle the release of the control button that's currently pressed
+        (calcTimeDelta(millis(), lastControlPress[sensorRow]) <= SWITCH_HOLD_DELAY &&   // however if this was not a hold press, don't process the release either
+         controlButton != SPLIT_ROW)) {                                                 // except for the split row, who has its own hold behavior
       return;
     }
 
@@ -752,16 +789,23 @@ void handleControlButtonRelease() {
       break;
 
     case SPLIT_ROW:                                          // SPLIT button released
-      splitButtonDown = false;
-      if (changedSplitPoint) {
-        storeSettings();
-      } else {
-        splitActive = !splitActive;
-        focusedSplit = Global.currentPerSplit;
+      if (Split[otherSplit(Global.currentPerSplit)].sequencer) {
+        Global.currentPerSplit = otherSplit(Global.currentPerSplit);
+        setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
+        updateDisplay();
       }
-      setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
-      setDisplayMode(displayNormal);
-      updateDisplay();
+      else if (splitButtonDown) {
+        splitButtonDown = false;
+        if (changedSplitPoint) {
+          storeSettings();
+        }
+        else {
+          splitActive = !splitActive;
+        }
+        setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
+        setDisplayMode(displayNormal);
+        updateDisplay();
+      }
       break;
 
     case SWITCH_2_ROW:                                       // SWITCH 2 released
@@ -786,7 +830,7 @@ void toggleChannel(byte chan) {
 
         // adapt the per-note MPE channels based on the new main channel
         if (Split[Global.currentPerSplit].mpe) {
-          activateMpeChannels(Global.currentPerSplit, Split[Global.currentPerSplit].midiChanMain, countMpePolyphonny(Global.currentPerSplit));
+          activateMpeChannels(Global.currentPerSplit, Split[Global.currentPerSplit].midiChanMain, countMpePolyphony(Global.currentPerSplit));
         }
       }
       break;
@@ -832,7 +876,7 @@ void updateSplitMidiChannels(byte sp) {
   }
 }
 
-byte countMpePolyphonny(byte split) {
+byte countMpePolyphony(byte split) {
   if (!Split[split].mpe) {
     return 0;
   }
@@ -916,9 +960,13 @@ void setSplitMpeMode(byte split, boolean enabled) {
 }
 
 // Return the next color in the color cycle (1 through 6)
-byte colorCycle(byte color, boolean includeBlack) {
-  if (++color > 6) {
-    if (includeBlack) {
+byte colorCycle(byte color, boolean includeOff) {
+  color += 1;
+  if (color == COLOR_BLACK) {
+    color += 1;
+  }
+  if (color > 11) {
+    if (includeOff) {
       color = 0;
     }
     else {
@@ -939,8 +987,12 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
   return false;
 }
 
-boolean isCellPastHoldWait() {
+boolean isCellPastEditHoldWait() {
   return sensorCell->lastTouch != 0 && calcTimeDelta(millis(), sensorCell->lastTouch) > EDIT_MODE_HOLD_DELAY;
+}
+
+boolean isCellPastConfirmHoldWait() {
+  return sensorCell->lastTouch != 0 && calcTimeDelta(millis(), sensorCell->lastTouch) > CONFIRM_HOLD_DELAY;
 }
 
 void applyTimbreCC74(byte split) {
@@ -1106,7 +1158,7 @@ void handlePerSplitSettingNewTouch() {
           Split[Global.currentPerSplit].colorAccent = colorCycle(Split[Global.currentPerSplit].colorAccent, false);
           break;
         case 5:
-          Split[Global.currentPerSplit].colorNoteon = colorCycle(Split[Global.currentPerSplit].colorNoteon, true);
+          Split[Global.currentPerSplit].colorPlayed = colorCycle(Split[Global.currentPerSplit].colorPlayed, true);
           break;
         case 4:
           Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
@@ -1158,6 +1210,7 @@ void handlePerSplitSettingNewTouch() {
           if (Split[Global.currentPerSplit].arpeggiator) {
             Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].ccFaders = false;
+            Split[Global.currentPerSplit].sequencer = false;
           }
           randomSeed(analogRead(0));
           break;
@@ -1168,6 +1221,16 @@ void handlePerSplitSettingNewTouch() {
           Split[Global.currentPerSplit].strum = !Split[Global.currentPerSplit].strum;
           if (Split[Global.currentPerSplit].strum) {
             Split[RIGHT - Global.currentPerSplit].strum = false; // there can only be one strum split
+            Split[Global.currentPerSplit].arpeggiator = false;
+            Split[Global.currentPerSplit].ccFaders = false;
+            Split[Global.currentPerSplit].sequencer = false;
+          }
+          break;
+        case 4:
+          Split[Global.currentPerSplit].sequencer = !Split[Global.currentPerSplit].sequencer;
+          splitActive = false;
+          if (Split[Global.currentPerSplit].strum) {
+            Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].arpeggiator = false;
             Split[Global.currentPerSplit].ccFaders = false;
           }
@@ -1240,7 +1303,7 @@ void handlePerSplitSettingNewTouch() {
 }
 
 void handlePerSplitSettingHold() {
-  if (isCellPastHoldWait()) {
+  if (isCellPastEditHoldWait()) {
     sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
@@ -1413,6 +1476,7 @@ void handlePerSplitSettingRelease() {
             if (Split[Global.currentPerSplit].ccFaders) {
               Split[Global.currentPerSplit].arpeggiator = false;
               Split[Global.currentPerSplit].strum = false;
+              Split[Global.currentPerSplit].sequencer = false;
             }
           }
           break;
@@ -1455,10 +1519,11 @@ boolean handleShowSplit() {
       // otherwise switch the split for the currently active panel
       else {
         Global.currentPerSplit = newSplit;
-        focusedSplit = newSplit;
       }
       resetNumericDataChange();
       updateDisplay();
+
+      return true;
     }
   }
 
@@ -1501,13 +1566,13 @@ void startPresetLEDBlink(byte p, byte color) {
   }
   presetBlinkStart[p] = now;
 
-  setLed(NUMCOLS-2, p+2, color, cellPulse);
+  setLed(NUMCOLS-2, p+2, color, cellFastPulse);
 }
 
 void handlePresetHold() {
   if (sensorCol == NUMCOLS-2 &&
       sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
-      isCellPastHoldWait()) {
+      isCellPastEditHoldWait()) {
     // store to the selected preset
     byte preset = sensorRow-2;
     storeSettingsToPreset(preset);
@@ -1567,7 +1632,7 @@ void handleLimitsForYNewTouch() {
 }
 
 void handleLimitsForYRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
   handleNumericDataReleaseRow(true);
   applyLimitsForY();
 }
@@ -1595,18 +1660,21 @@ void handleCCForYRelease() {
 
 void handleLimitsForZNewTouch() {
   switch (limitsForZConfigState) {
-    case 1:
+    case 2:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].minForZ, 0, 127, false);
       break;
-    case 0:
+    case 1:
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].maxForZ, 0, 127, false);
       break;
+    case 0:
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForZ14Bit);
+      break;
   }
-  handleNumericDataNewTouchRow(limitsForZConfigState, 0, 1);
+  handleNumericDataNewTouchRow(limitsForZConfigState, 0, 2);
 }
 
 void handleLimitsForZRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
   handleNumericDataReleaseRow(true);
   applyLimitsForZ();
 }
@@ -1649,7 +1717,7 @@ void handleLowRowCCXConfigNewTouch() {
 }
 
 void handleLowRowCCXConfigRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
   handleNumericDataReleaseRow(true);
 }
 
@@ -1672,7 +1740,7 @@ void handleLowRowCCXYZConfigNewTouch() {
 }
 
 void handleLowRowCCXYZConfigRelease() {
-  handleNumericDataReleaseCol(true);
+  handleNumericDataReleaseCol(false);
   handleNumericDataReleaseRow(true);
 }
 
@@ -1874,11 +1942,13 @@ void handleOctaveTransposeNewTouchSplit(byte side) {
       case 13: Split[side].transposeOctave = 60; break;
     }
 
-  } else if (sensorRow == SWITCH_1_ROW) {
+  }
+  else if (sensorRow == SWITCH_1_ROW) {
     if (sensorCol > 0 && sensorCol < 16) {
       Split[side].transposePitch = sensorCol - 8;
     }
-  } else if (sensorRow == SWITCH_2_ROW) {
+  }
+  else if (sensorRow == SWITCH_2_ROW) {
     if (sensorCol > 0 && sensorCol < 16) {
       Split[side].transposeLights = sensorCol - 8;
     }
@@ -2057,7 +2127,8 @@ void handleGlobalSettingNewTouch() {
         case 3:
           if (!Device.serialMode) {
             Device.operatingLowPower = !Device.operatingLowPower;
-            applyLowPowerMode();
+            applyLedInterval();
+            applyMidiInterval();
           }
           break;
       }
@@ -2464,7 +2535,7 @@ void changeMidiIO(byte where) {
 
 void handleGlobalSettingHold() {
 
-  if (isCellPastHoldWait()) {
+  if (isCellPastEditHoldWait()) {
     sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
@@ -2643,7 +2714,8 @@ void handleGlobalSettingRelease() {
         if (splitActive) {
           midiSendAllNotesOff(LEFT);
           midiSendAllNotesOff(RIGHT);
-        } else {
+        }
+        else {
           midiSendAllNotesOff(Global.currentPerSplit);
         }
         delayUsec(100000);

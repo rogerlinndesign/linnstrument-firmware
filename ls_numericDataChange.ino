@@ -136,7 +136,8 @@ int handleNumericDataNewTouchColRaw(int currentData, int minimum, int maximum, b
 
       if (sensorCol > numericDataChangeCol) {
         newData = constrain(currentData + increment, minimum, maximum);
-      } else if (sensorCol < numericDataChangeCol) {
+      }
+      else if (sensorCol < numericDataChangeCol) {
         newData = constrain(currentData - increment, minimum, maximum);
       }
 
@@ -250,7 +251,8 @@ int handleNumericDataNewTouchRowRaw(int currentData, int minimum, int maximum) {
 
       if (sensorRow > numericDataChangeRow) {
         newData = constrain(currentData + increment, minimum, maximum);
-      } else if (sensorRow < numericDataChangeRow) {
+      }
+      else if (sensorRow < numericDataChangeRow) {
         newData = constrain(currentData - increment, minimum, maximum);
       }
 

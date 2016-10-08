@@ -120,17 +120,26 @@ inline void checkAdvanceArpeggiator() {
   checkAdvanceArpeggiatorForSplit(RIGHT);
 }
 
-#define TEMPO_SIXTEENTH_SWING 0xff
-byte tempoChoices[9] { 24, 12, 8, 6, TEMPO_SIXTEENTH_SWING, 4, 3, 2, 1 };
+byte arpTempoChoices[9] {
+   24, // ArpFourth
+   12, // ArpEighth
+   8,  // ArpEighthTriplet
+   6,  // ArpSixteenth
+   TEMPO_ARP_SIXTEENTH_SWING, // ArpSixteenthSwing
+   4,  // ArpSixteenthTriplet
+   3,  // ArpThirtysecond
+   2,  // ArpThirtysecondTriplet
+   1   // ArpSixtyfourthTriplet
+ };
 
 inline void checkAdvanceArpeggiatorForSplit(byte split) {
   if (isArpeggiatorEnabled(split)) {
 
     byte combinedTempoIndex = constrain(Global.arpTempo + arpTempoDelta[split], 0, 8);
-    byte combinedTempo = tempoChoices[combinedTempoIndex];
+    byte combinedTempo = arpTempoChoices[combinedTempoIndex];
 
-    if ((combinedTempo == TEMPO_SIXTEENTH_SWING && ((clock24PPQ % 12 == 0) || (clock24PPQ % 12 == 7))) ||  // we need to handle swing differently since it's irregular
-        (combinedTempo != TEMPO_SIXTEENTH_SWING && (clock24PPQ % combinedTempo == 0 ))) {
+    if ((combinedTempo == TEMPO_ARP_SIXTEENTH_SWING && ((clock24PPQ % 12 == 0) || (clock24PPQ % 12 == 7))) ||  // we need to handle swing differently since it's irregular
+        (combinedTempo != TEMPO_ARP_SIXTEENTH_SWING && (clock24PPQ % combinedTempo == 0 ))) {
       advanceArpeggiatorForSplit(split);
     }
   }
@@ -376,7 +385,8 @@ void advanceArpeggiatorForSplit(byte split) {
         // if this is the first step in a new sequence, this will be an odd step (starting at one)
         if (lastArpNote[split] == -1) {
           lastArpStepOdd[split] = true;
-        } else {
+        }
+        else {
           lastArpStepOdd[split] = !lastArpStepOdd[split];
         }
 
@@ -398,18 +408,4 @@ void advanceArpeggiatorForSplit(byte split) {
 
 inline boolean isArpeggiatorEnabled(byte split) {
   return Split[split].arpeggiator || isLowRowArpeggiatorPressed(split);
-}
-
-void tapTempoPress() {
-  unsigned long now = micros();
-  resetClockAdvancement(now);
-
-  unsigned long tapDelta = calcTimeDelta(now, lastTapTempo);
-
-  if (tapDelta < 6000000) { // minimum 6 seconds between taps
-      fxd4CurrentTempo -= FXD4_DIV(fxd4CurrentTempo, FXD4_FROM_INT(4));
-      fxd4CurrentTempo += FXD4_DIV(FXD4_FROM_INT(60000000 / tapDelta), FXD4_FROM_INT(4));
-  }
-
-  lastTapTempo = now;
 }

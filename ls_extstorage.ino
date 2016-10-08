@@ -55,7 +55,7 @@ struct SplitSettingsV1 {
   unsigned short ccForZ;               // 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
-  byte colorNoteon;                    // color for played notes
+  byte colorPlayed;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
   unsigned short preset;               // preset number 0-127
@@ -110,7 +110,7 @@ struct SplitSettingsV2 {
   unsigned short ccForZ;               // 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
-  byte colorNoteon;                    // color for played notes
+  byte colorPlayed;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
   signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
@@ -248,7 +248,7 @@ struct SplitSettingsV3 {
   unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
   byte colorMain;                      // color for non-accented cells
   byte colorAccent;                    // color for accented cells
-  byte colorNoteon;                    // color for played notes
+  byte colorPlayed;                    // color for played notes
   byte colorLowRow;                    // color for low row if on
   byte lowRowMode;                     // see LowRowMode values
   byte lowRowCCXBehavior;              // see LowRowCCBehavior values
@@ -518,6 +518,7 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
+  t->device.midiThrough = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -584,10 +585,11 @@ void copySplitSettingsV1(void* target, void* source) {
   }
   t->minForZ = 0;
   t->maxForZ = 127;
+  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
-  t->colorNoteon = s->colorNoteon;
+  t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
@@ -619,6 +621,7 @@ void copyConfigurationV2(void* target, void* source) {
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   t->device.leftHanded = false;
+  t->device.midiThrough = false;
   initializeAudienceMessages();
 
   copyPresetSettingsOfConfigurationV2(t, s);
@@ -675,10 +678,11 @@ void copySplitSettingsV2(void* target, void* source) {
   }
   t->minForZ = 0;
   t->maxForZ = 127;
+  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
-  t->colorNoteon = s->colorNoteon;
+  t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
@@ -744,6 +748,7 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.operatingLowPower = false;
   copyAudienceMessages(&(t->device.audienceMessages), &(s->device.audienceMessages));
   t->device.leftHanded = false;
+  t->device.midiThrough = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     copyPresetSettingsOfConfigurationV3(t, s);
@@ -821,6 +826,7 @@ void copyDeviceSettingsV4(void* target, void* source) {
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = false;
+  t->midiThrough = false;
 }
 
 void copyPresetSettingsV3(void* target, void* source) {
@@ -921,10 +927,11 @@ void copySplitSettingsV3(void* target, void* source) {
   t->customCCForZ = s->customCCForZ;
   t->minForZ = 0;
   t->maxForZ = 127;
+  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
-  t->colorNoteon = s->colorNoteon;
+  t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = s->lowRowCCXBehavior;
@@ -1019,6 +1026,7 @@ void copyDeviceSettingsV5(void* target, void* source) {
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = false;
+  t->midiThrough = false;
 }
 
 void copyPresetSettingsV6(void* target, void* source) {

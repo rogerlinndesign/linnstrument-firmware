@@ -199,39 +199,49 @@ void updateSwitchLeds() {
     return;
   }
 
-  CellDisplay displaySwitch1 = switchState[SWITCH_SWITCH_1][focusedSplit] ? cellOn : cellOff;
+  CellDisplay displaySwitch1 = switchState[SWITCH_SWITCH_1][Global.currentPerSplit] ? cellOn : cellOff;
   if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR) {
-    displaySwitch1 = isArpeggiatorEnabled(focusedSplit) ? cellOn : cellOff;
+    displaySwitch1 = isArpeggiatorEnabled(Global.currentPerSplit) ? cellOn : cellOff;
   }
-  else if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
+  else if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSustainEnabled(Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65Pressed(Global.currentPerSplit))) {
     displaySwitch1 = cellOn;
   }
   setLed(0, SWITCH_1_ROW, globalColor, displaySwitch1);
 
-  CellDisplay displaySwitch2 = switchState[SWITCH_SWITCH_2][focusedSplit] ? cellOn : cellOff;
+  CellDisplay displaySwitch2 = switchState[SWITCH_SWITCH_2][Global.currentPerSplit] ? cellOn : cellOff;
   if (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_ARPEGGIATOR) {
-    displaySwitch2 = isArpeggiatorEnabled(focusedSplit) ? cellOn : cellOff;
+    displaySwitch2 = isArpeggiatorEnabled(Global.currentPerSplit) ? cellOn : cellOff;
   }
-  else if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSustainEnabled(focusedSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(focusedSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65Pressed(focusedSplit))) {
+  else if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSustainEnabled(Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65Pressed(Global.currentPerSplit))) {
     displaySwitch2 = cellOn;
   }
   setLed(0, SWITCH_2_ROW, globalColor, displaySwitch2);
 
-  if (splitActive) {
-    setLed(0, SPLIT_ROW, Split[focusedSplit].colorMain, cellOn);
+  if (Split[Global.currentPerSplit].sequencer) {
+    setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
+  }
+  else if (splitActive) {
+    setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
   }
   else {
     clearLed(0, SPLIT_ROW);
   }
+
+  updateSequencerSwitchLeds();
 }
 
 // paintNormalDisplay:
 // Paints all non-switch columns of the display with the normal performance colors
 void paintNormalDisplay() {
+  if (Split[Global.currentPerSplit].sequencer) {
+    paintSequencerDisplay(Global.currentPerSplit);
+    return;
+  }
+
   // highlight global settings red when user firmware mode is active
   if (userFirmwareActive) {
     setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);
@@ -361,7 +371,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
 
-  short displayedNote = getNoteNumber(split, col, row) - Split[split].transposeLights;
+  short displayedNote = getNoteNumber(split, col, row);
   short actualnote = transposedNote(split, col, row);
 
   // the note is out of MIDI note range, disable it
@@ -388,7 +398,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   // show pulsating middle root note
   if (blinkMiddleRootNote && displayedNote == 60) {
     colour = Split[split].colorAccent;
-    cellDisplay = cellPulse;
+    cellDisplay = cellFastPulse;
   }
 
   // if the low row is anything but normal, set it to the appropriate color
@@ -528,7 +538,7 @@ void paintPerSplitDisplay(byte side) {
   // Set "Color" lights
   setLed(11, 7, Split[side].colorMain, cellOn);
   setLed(11, 6, Split[side].colorAccent, cellOn);
-  setLed(11, 5, Split[side].colorNoteon, cellOn);
+  setLed(11, 5, Split[side].colorPlayed, cellOn);
   setLed(11, 4, Split[side].colorLowRow, cellOn);
 
   // Set "Low row" lights
@@ -560,18 +570,23 @@ void paintPerSplitDisplay(byte side) {
   }
 
   // set Arpeggiator
-  if (Split[side].arpeggiator == true)  {
+  if (Split[side].arpeggiator)  {
     setLed(14, 7, Split[side].colorMain, cellOn);
   }
 
   // set CC faders
-  if (Split[side].ccFaders == true)  {
+  if (Split[side].ccFaders)  {
     setLed(14, 6, getCCFadersColor(side), cellOn);
   }
 
   // set strum
-  if (Split[side].strum == true)  {
+  if (Split[side].strum)  {
     setLed(14, 5, Split[side].colorMain, cellOn);
+  }
+
+  // set sequencer
+  if (Split[side].sequencer)  {
+    setLed(14, 4, Split[side].colorMain, cellOn);
   }
 
   // set "show split" led
@@ -612,7 +627,7 @@ byte getCCForYColor(byte side) {
 
 byte getLimitsForZColor(byte side) {
   byte color = Split[side].colorMain;
-  if (Split[side].minForZ != 0 || Split[side].maxForZ != 127) {
+  if (Split[side].minForZ != 0 || Split[side].maxForZ != 127 || Split[side].ccForZ14Bit) {
     color = Split[side].colorAccent;
   }
   return color;
@@ -734,13 +749,22 @@ void paintLimitsForZDisplay(byte side) {
   clearDisplay();
 
   switch (limitsForZConfigState) {
-    case 1:
+    case 2:
       condfont_draw_string(0, 0, "L", Split[side].colorMain, true);
       paintSplitNumericDataDisplay(side, Split[side].minForZ, 4, true);
       break;
-    case 0:
+    case 1:
       condfont_draw_string(0, 0, "H", Split[side].colorMain, true);
       paintSplitNumericDataDisplay(side, Split[side].maxForZ, 4, true);
+      break;
+    case 0:
+      if (Split[side].ccForZ14Bit) {
+        condfont_draw_string(0, 0, "14BT", Split[side].colorMain, true);
+      }
+      else {
+        condfont_draw_string(3, 0, "7BT", Split[side].colorMain, true);
+      }
+      paintShowSplitSelection(side);
       break;
   }
 }
@@ -903,7 +927,7 @@ void paintSplitNumericDataDisplay(byte side, unsigned short value, byte offset, 
   paintNumericDataDisplay(Split[side].colorMain, value, offset, condensed);
 }
 
-void paintNumericDataDisplay(byte color, unsigned short value, byte offset, boolean condensed) {
+void paintNumericDataDisplay(byte color, short value, short offset, boolean condensed) {
   char str[10];
   const char* format;
   byte pos;
@@ -1143,7 +1167,8 @@ void paintGlobalSettingsDisplay() {
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {
     setLed(15, 0, getMIDIUSBColor(), cellOn); // for MIDI over USB
-  } else {
+  }
+  else {
     setLed(15, 1, getMIDIThroughColor(), cellOn); // for MIDI jacks
   }
 

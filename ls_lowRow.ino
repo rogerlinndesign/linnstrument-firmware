@@ -29,6 +29,7 @@ inline boolean isLowRow() {
   if (sensorRow != 0) return false;
   if (Split[sensorSplit].lowRowMode == lowRowNormal) return false;
   if (Split[sensorSplit].ccFaders) return false;
+  if (Split[sensorSplit].sequencer) return false;
   if (isStrummingSplit(sensorSplit)) return false;
 
   return true;

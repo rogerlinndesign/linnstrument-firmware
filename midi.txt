@@ -96,7 +96,7 @@ NRPN   Value   Description
 32     0-6     Split Left Color Played (see color value table below)
 33     1-6     Split Left Color LowRow (see color value table below)
 34     0-7     Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum))
+35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
 36     0-10    Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
@@ -119,6 +119,7 @@ NRPN   Value   Description
 55     0-127   Split Left Maximum CC Value For Y
 56     0-127   Split Left Minimum CC Value For Z
 57     0-127   Split Left Maximum CC Value For Z
+58     0-1     Split Left CC Value For Z in 14-bit
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -154,7 +155,7 @@ NRPN   Value   Description
 132    0-6     Split Right Color Played (see color value table below)
 133    1-6     Split Right Color LowRow (see color value table below)
 134    0-7     Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum)
+135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer
 136    0-10    Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
@@ -177,6 +178,7 @@ NRPN   Value   Description
 155    0-127   Split Right Maximum CC Value For Y
 156    0-127   Split Right Minimum CC Value For Z
 157    0-127   Split Right Maximum CC Value For Z
+158    0-1     Split Right CC Value For Z in 14-bit
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column

@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v1.2.6 =========================================
+======================================== LinnStrument Operating System v2.0.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,7 +56,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "126.";
+const char* OSVersion = "200.";
 const char* OSVersionBuild = ".035";
 
 // SPI addresses
@@ -71,6 +71,7 @@ const char* OSVersionBuild = ".035";
 // #define DISPLAY_YFRAME_AT_LAUNCH
 // #define DISPLAY_ZFRAME_AT_LAUNCH
 // #define DISPLAY_SURFACESCAN_AT_LAUNCH
+// #define DISPLAY_FREERAM_AT_LAUNCH
 // #define TESTING_SENSOR_DISABLE
 
 // Touch surface constants
@@ -106,6 +107,10 @@ byte NUMROWS;                        // number of touch sensor rows
 #define COLOR_BLUE     5
 #define COLOR_MAGENTA  6
 #define COLOR_BLACK    7
+#define COLOR_WHITE    8
+#define COLOR_ORANGE   9
+#define COLOR_LIME     10
+#define COLOR_PINK     11
 
 // Special row offset values, for legacy reasons
 #define ROWOFFSET_NOOVERLAP        0x00
@@ -114,16 +119,18 @@ byte NUMROWS;                        // number of touch sensor rows
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
 
-#define DEFAULT_MAINLOOP_DIVIDER 3
-#define DEFAULT_LED_REFRESH      500
-#define DEFAULT_MIDI_DECIMATION  0
-#define DEFAULT_MIDI_INTERVAL    0
+#define DEFAULT_MAINLOOP_DIVIDER      2
+#define DEFAULT_LED_REFRESH           333
+#define DEFAULT_MIDI_DECIMATION       8000
+#define DEFAULT_MIDI_INTERVAL         235
 
 // Differences for low power mode
-#define LOWPOWER_MAINLOOP_DIVIDER 2        // increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
-#define LOWPOWER_LED_REFRESH      240      // accelerate led refresh so that they can be lit only one third of the time
-#define LOWPOWER_MIDI_DECIMATION  12000    // use a decimation rate of 12 ms in low power mode
-#define LOWPOWER_MIDI_INTERVAL    350      // use a minimum interval of 350 microseconds between MIDI messages in low power mode
+// increase the number of call to continuous tasks in low power mode since the leds are refreshed more often
+// accelerate led refresh so that they can be lit only a fraction of the time
+#define LOWPOWER_MAINLOOP_DIVIDER     2
+#define LOWPOWER_LED_REFRESH          250
+#define LOWPOWER_MIDI_DECIMATION      12000    // use a decimation rate of 12 ms in low power mode
+#define LOWPOWER_MIDI_INTERVAL        350      // use a minimum interval of 350 microseconds between MIDI messages in low power mode
 
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_LO_Z        120                 // lowest acceptable raw Z value to start a touch
@@ -132,6 +139,13 @@ byte NUMROWS;                        // number of touch sensor rows
 #define MAX_SENSOR_RANGE_Z         1016                // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN  3
+
+// Sequencer constants
+#define MAX_SEQUENCERS            2
+#define MAX_SEQUENCER_PATTERNS    4
+#define MAX_SEQUENCER_STEPS       32
+#define MAX_SEQUENCER_STEP_EVENTS 4
+#define SEQ_DRUM_NOTES            14
 
 // Pitch correction behavior
 #define PITCH_CORRECT_HOLD_SAMPLES_FAST    8
@@ -145,8 +159,8 @@ byte NUMROWS;                        // number of touch sensor rows
 #define RATEX_THRESHOLD_SLOW    1.6
 #define RATEX_THRESHOLD_DEFAULT 2.0
 
-#define SENSOR_PITCH_Z               173               // lowest acceptable raw Z value for which pitchbend is sent
-#define ROGUE_PITCH_SWEEP_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
+#define SENSOR_PITCH_Z           173               // lowest acceptable raw Z value for which pitchbend is sent
+#define ROGUE_SWEEP_X_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
 
 // The values here MUST be the same as the row numbers of the cells in per-split settings
 #define MIDICHANNEL_MAIN     7
@@ -158,8 +172,9 @@ byte NUMROWS;                        // number of touch sensor rows
 #define LED_LAYER_CUSTOM1   1
 #define LED_LAYER_CUSTOM2   2
 #define LED_LAYER_PLAYED    3
-#define LED_LAYER_COMBINED  4
-#define LED_LAYERS          4
+#define LED_LAYER_SEQUENCER 4
+#define LED_LAYER_COMBINED  5
+#define LED_LAYERS          5
 
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0
@@ -193,21 +208,25 @@ byte NUMROWS;                        // number of touch sensor rows
 #define SENSOR_HOLD_DELAY  300
 
 #define EDIT_MODE_HOLD_DELAY  1000
+#define CONFIRM_HOLD_DELAY    800
 
-#define DEFAULT_MIN_USB_MIDI_INTERVAL  0
+#define DEFAULT_MIN_USB_MIDI_INTERVAL  DEFAULT_MIDI_INTERVAL
+
+#define TEMPO_ARP_SIXTEENTH_SWING 0xff
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 /******************************************** VELOCITY *******************************************/
 
 #define VELOCITY_SAMPLES       4
+#define VELOCITY_TOTAL_SAMPLES (VELOCITY_SAMPLES * 2)
 #define VELOCITY_ZERO_POINTS   1
 #define VELOCITY_N             (VELOCITY_SAMPLES + VELOCITY_ZERO_POINTS)
 #define VELOCITY_SUMX          10   // x1 + x2 + x3 + ... + xn
 #define VELOCITY_SUMXSQ        30   // x1^2 + x2^2 + x3^2 + ... + xn^2
-#define VELOCITY_SCALE_LOW     41
+#define VELOCITY_SCALE_LOW     43
 #define VELOCITY_SCALE_MEDIUM  41
-#define VELOCITY_SCALE_HIGH    41
+#define VELOCITY_SCALE_HIGH    40
 
 #define DEFAULT_MIN_VELOCITY   1    // default minimum velocity value
 #define DEFAULT_MAX_VELOCITY   127  // default maximum velocity value
@@ -260,13 +279,13 @@ enum TouchState {
 
 struct __attribute__ ((packed)) TouchInfo {
   void shouldRefreshData();                  // indicate that the X, Y and Z data should be refreshed
-  short rawX();                              // ensure that X is updated to the latest scan and return its raw value
+  unsigned short rawX();                     // ensure that X is updated to the latest scan and return its raw value
   short calibratedX();                       // ensure that X is updated to the latest scan and return its calibrated value
   inline void refreshX();                    // ensure that X is updated to the latest scan
-  short rawY();                              // ensure that Y is updated to the latest scan and return its raw value
-  signed char calibratedY();                 // ensure that Y is updated to the latest scan and return its calibrated value
+  unsigned short rawY();                     // ensure that Y is updated to the latest scan and return its raw value
+  byte calibratedY();                        // ensure that Y is updated to the latest scan and return its calibrated value
   inline void refreshY();                    // ensure that Y is updated to the latest scan
-  short rawZ();                              // ensure that Z is updated to the latest scan and return its raw value
+  unsigned short rawZ();                     // ensure that Z is updated to the latest scan and return its raw value
   inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
   inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
   inline boolean isStableYTouch();           // ensure that Z is updated to the latest scan and check if the touch is capable of providing stable Y reading
@@ -277,6 +296,8 @@ struct __attribute__ ((packed)) TouchInfo {
   boolean hasPhantoms();                     // indicates whether there are phantom coordinates
   void setPhantoms(byte, byte, byte, byte);  // set the phantoom coordinates
   boolean isHigherPhantomPressure(short);    // checks whether this is a possible phantom candidate and has higher pressure than the argument
+  boolean hasRogueSweepX();                  // indicates whether the current X information is a rogue sweep
+  boolean hasUsableX();                      // indicates whether the X data is usable
   void clearMusicalData();                   // clear the musical data
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
@@ -312,17 +333,19 @@ struct __attribute__ ((packed)) TouchInfo {
   byte percentRawZ:7;                        // percentage of Z compared to the raw offset and range
   boolean shouldRefreshX:1;                  // indicate whether it's necessary to refresh X
   TouchState touched:2;                      // touch status of all sensor cells
-  byte vcount:3;                             // the number of times the pressure was measured to obtain a velocity
-  byte pendingReleaseCount:2;                // counter before which the note release will be effective
-int :1;
+  byte vcount:4;                             // the number of times the pressure was measured to obtain a velocity
+  boolean slideTransfer:1;                   // indicates whether this touch is part of a slide transfer
+  boolean rogueSweepX:1;                     // indicates whether the last X position is a rogue sweep
+  byte pendingReleaseCount:3;                // counter before which the note release will be effective
   boolean featherTouch:1;                    // indicates whether this is a feather touch
-  byte pressureZ:7;                          // the Z value with pressure sensitivity
+  unsigned short pressureZ:10;               // the Z value with pressure sensitivity
+int :2;
+  unsigned short previousRawZ:12;            // the previous raw Z value
+int :4;
   bool phantomSet:1;                         // indicates whether phantom touch coordinates are set
   byte velocity:7;                           // velocity from 0 to 127
   boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
   byte velocityZ:7;                          // the Z value with velocity sensitivity
-  unsigned short velSumY:12;                 // these are used to calculate the intial velocity slope based on the first Z samples
-  unsigned short velSumXY:12;
 };
 TouchInfo touchInfo[MAXCOLS][MAXROWS];       // store as much touch information instances as there are cells
 
@@ -391,8 +414,9 @@ NoteTouchMapping noteTouchMapping[NUMSPLITS];
 enum CellDisplay {
   cellOff = 0,
   cellOn = 1,
-  cellPulse = 2,
-  cellSlowPulse = 3
+  cellFastPulse = 2,
+  cellSlowPulse = 3,
+  cellFocusPulse = 4
 };
 
 enum DisplayMode {
@@ -514,49 +538,66 @@ enum LoudnessExpression {
   loudnessCC11
 };
 
+enum SequencerView {
+  sequencerNotes,
+  sequencerScales,
+  sequencerDrums
+};
+
+enum SequencerDirection {
+  sequencerForward,
+  sequencerBackward,
+  sequencerPingPong
+};
+
 // per-split settings
 struct SplitSettings {
-  byte midiMode;                       // 0 = one channel, 1 = note per channel, 2 = row per channel
-  byte midiChanMain;                   // main midi channel, 1 to 16
-  byte midiChanPerRow;                 // per-row midi channel, 1 to 16
-  boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
-  BendRangeOption bendRangeOption;     // see BendRangeOption
-  byte customBendRange;                // 1 - 96
-  boolean sendX;                       // true to send continuous X, false if not
-  boolean sendY;                       // true to send continuous Y, false if not
-  boolean sendZ;                       // true to send continuous Z, false if not
-  boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
-  byte pitchCorrectHold;               // See PitchCorrectHoldSpeed values
-  boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
-  TimbreExpression expressionForY;     // the expression that should be used for timbre
-  unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
-  unsigned short minForY;              // 0-127
-  unsigned short maxForY;              // 0-127
-  boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
-  LoudnessExpression expressionForZ;   // the expression that should be used for loudness
-  unsigned short customCCForZ;         // 0-127
-  unsigned short minForZ;              // 0-127
-  unsigned short maxForZ;              // 0-127
-  unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
-  byte colorMain;                      // color for non-accented cells
-  byte colorAccent;                    // color for accented cells
-  byte colorNoteon;                    // color for played notes
-  byte colorLowRow;                    // color for low row if on
-  byte lowRowMode;                     // see LowRowMode values
-  byte lowRowCCXBehavior;              // see LowRowCCBehavior values
-  unsigned short ccForLowRow;          // 0-127
-  byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
-  unsigned short ccForLowRowX;         // 0-127
-  unsigned short ccForLowRowY;         // 0-127
-  unsigned short ccForLowRowZ;         // 0-127
-  signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
-  signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
-  signed char transposeLights;         // transpose lights on display. Range is -12 to +12
-  boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
-  boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
-  boolean strum;                       // true when this split strums the touches of the other split
-  boolean mpe;                         // true when MPE is active for this split
+  byte midiMode;                          // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                      // main midi channel, 1 to 16
+  byte midiChanPerRow;                    // per-row midi channel, 1 to 16
+  boolean midiChanSet[16];                // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  BendRangeOption bendRangeOption;        // see BendRangeOption
+  byte customBendRange;                   // 1 - 96
+  boolean sendX;                          // true to send continuous X, false if not
+  boolean sendY;                          // true to send continuous Y, false if not
+  boolean sendZ;                          // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;           // true to quantize pitch of initial touch, false if not
+  byte pitchCorrectHold;                  // See PitchCorrectHoldSpeed values
+  boolean pitchResetOnRelease;            // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;        // the expression that should be used for timbre
+  unsigned short customCCForY;            // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;                 // 0-127
+  unsigned short maxForY;                 // 0-127
+  boolean relativeY;                      // true when Y should be sent relative to the initial touch, false when it's absolute
+  LoudnessExpression expressionForZ;      // the expression that should be used for loudness
+  unsigned short customCCForZ;            // 0-127
+  unsigned short minForZ;                 // 0-127
+  unsigned short maxForZ;                 // 0-127
+  boolean ccForZ14Bit;                    // true when 14-bit messages should be sent when Z CC is between 0-31, false when only 7-bit messages should be sent
+  unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-127
+  byte colorMain;                         // color for non-accented cells
+  byte colorAccent;                       // color for accented cells
+  byte colorPlayed;                       // color for played notes
+  byte colorLowRow;                       // color for low row if on
+  byte lowRowMode;                        // see LowRowMode values
+  byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
+  unsigned short ccForLowRow;             // 0-127
+  byte lowRowCCXYZBehavior;               // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;            // 0-127
+  unsigned short ccForLowRowY;            // 0-127
+  unsigned short ccForLowRowZ;            // 0-127
+  signed char transposeOctave;            // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;             // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;            // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                       // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                    // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                          // true when this split strums the touches of the other split
+  boolean mpe;                            // true when MPE is active for this split
+  boolean sequencer;                      // true when the sequencer of this split is displayed
+  SequencerView sequencerView;            // see SequencerView
+  byte seqDrumNotes[SEQ_DRUM_NOTES];      // note numbers from 0 to 127
 };
+
 #define Split config.settings.split
 
 struct DeviceSettings {
@@ -650,25 +691,104 @@ struct GlobalSettings {
 struct PresetSettings {
   GlobalSettings global;
   SplitSettings split[NUMSPLITS];
+  SplitSettings sequencer[NUMSPLITS];
 };
+
+enum SequencerStepSize {
+  StepSixteenthTriplet = 4,
+  StepSixteenth = 6,
+  StepEighthTriplet = 8,
+  StepSixteenthDotted = 9,
+  StepEighth = 12,
+  StepFourthTriplet = 16,
+  StepEighthDotted = 18,
+  StepFourth = 24,
+  StepFourthDotted = 36
+};
+
+struct StepEvent {
+  boolean hasData();
+  void clear();
+
+  void setNewEvent(byte note, byte velocity, unsigned short duration, byte timbre, byte row);
+  byte getNote();
+  void setNote(byte note);
+  unsigned short getDuration();
+  void setDuration(unsigned short duration);
+  byte getVelocity();
+  void setVelocity(byte velocity);
+  short getPitchOffset();
+  void setPitchOffset(short pitchOffset);
+  byte getTimbre();
+  void setTimbre(byte timbre);
+  byte getRow();
+  void setRow(byte row);
+  int getFaderValue(byte fader);
+  void setFaderValue(byte fader, int value);
+  int getFaderMin(byte fader);
+  int getFaderMax(byte fader);
+  int getFaderNeutral(byte fader, byte split);
+  boolean calculateSequencerFaderValue(boolean newVelocity);
+
+  void operator=(const StepEvent& e);
+
+  // the bit-wise arrangement is like below,
+  // we can't rely on structure packing since
+  // it will align each element on byte boundaries
+  // byte note:7;         // 0 to 127
+  // byte duration:10;    // 1 to 768 in 24 PPQ ticks
+  // byte velocity:7;     // 1 to 127
+  // char pitchOffset:8;  // -96 to 96 semitones
+  // byte timbre:7;       // 0 to 127
+  // byte row:3;          // 1 to 7
+  byte data[6];
+};
+struct StepData {
+  void clear();
+
+  void operator=(const StepData& d);
+  
+  StepEvent events[MAX_SEQUENCER_STEP_EVENTS];  // the events for each step
+};
+struct SequencerPattern {
+  void clear();
+
+  void operator=(const SequencerPattern& p);
+
+  StepData steps[MAX_SEQUENCER_STEPS];
+  SequencerStepSize stepSize;             // see SequencerStepSize
+  SequencerDirection sequencerDirection;  // see SequencerDirection
+  bool loopScreen;                        // on or off
+  bool swing;                             // on or off
+  byte length;                            // between 1 to 32 steps
+};
+struct StepSequencer {
+  SequencerPattern patterns[MAX_SEQUENCER_PATTERNS];  // patterns available for each sequencer
+};
+struct SequencerProject {
+  StepSequencer sequencer[MAX_SEQUENCERS];            // the sequencers available in a project
+  unsigned short tempo;
+};
+#define Project config.project
 
 #define NUMPRESETS 4 
 struct Configuration {
   DeviceSettings device;
   PresetSettings settings;
   PresetSettings preset[NUMPRESETS];
+  SequencerProject project;
 };
 struct Configuration config;
 
-
 /**************************************** SECRET SWITCHES ****************************************/
 
-#define SECRET_SWITCHES 5
+#define SECRET_SWITCHES 6
 #define SWITCH_DEBUGMIDI secretSwitch[0]
 #define SWITCH_XFRAME secretSwitch[1]
 #define SWITCH_YFRAME secretSwitch[2]
 #define SWITCH_ZFRAME secretSwitch[3]
 #define SWITCH_SURFACESCAN secretSwitch[4]
+#define SWITCH_FREERAM secretSwitch[5]
 
 boolean secretSwitch[SECRET_SWITCHES];  // The secretSwitch* values are controlled by cells in column 18
 
@@ -779,7 +899,6 @@ boolean footSwitchState[2];                         // holds the last read foots
 boolean footSwitchOffState[2];                      // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
 unsigned long prevFootSwitchTimerCount;             // time interval (in microseconds) between foot switch reads
 
-byte focusedSplit = LEFT;                           // the split that currently has focus, either by taking up the whole instrument or by being played last
 boolean splitActive = false;                        // false = split off, true = split on
 boolean doublePerSplit = false;                     // false when only one per split is active, true if they both are
 
@@ -797,7 +916,7 @@ boolean animationActive = false;                    // indicates whether animati
 boolean stopAnimation = false;                      // indicates whether animation should be stopped
 
 int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);               // the current tempo
-unsigned long midiDecimateRate = 0;                          // by default no decimation
+unsigned long midiDecimateRate = DEFAULT_MIDI_DECIMATION;    // default MIDI decimation rate
 unsigned long midiMinimumInterval = DEFAULT_MIDI_INTERVAL;   // minimum interval between sending two MIDI bytes
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];               // for each split, keep track of MIDI note on to filter out note off messages that are not needed
 unsigned short pitchHoldDuration[NUMSPLITS];                 // for each split the actual pitch hold duration in samples
@@ -816,7 +935,7 @@ int32_t fxdMinVelOffset;                            // the offset to apply to th
 int32_t fxdVelRatio;                                // the ratio to convert the full range of velocity into the range applied by the limits
 
 byte limitsForYConfigState = 1;                     // the last state of the Y value limit configuration, this counts down to go to further pages
-byte limitsForZConfigState = 1;                     // the last state of the Z value limit configuration, this counts down to go to further pages
+byte limitsForZConfigState = 2;                     // the last state of the Z value limit configuration, this counts down to go to further pages
 byte limitsForVelocityConfigState = 1;              // the last state of the velocity value limit configuration, this counts down to go to further pages
 byte lowRowCCXConfigState = 1;                      // the last state of the advanced low row CCX configuration, this counts down to go to further pages
 byte lowRowCCXYZConfigState = 3;                    // the last state of the advanced low row CCXYZ configuration, this counts down to go to further pages
@@ -859,7 +978,6 @@ void reset() {
   lastReset = millis();
 
   Global.currentPerSplit = LEFT;
-  focusedSplit = Global.currentPerSplit;
   splitActive = false;
 
   controlButton = -1;
@@ -907,7 +1025,7 @@ void activateSleepMode() {
   setDisplayMode(displaySleep);
 }
 
-void applyLowPowerMode() {
+void applyLedInterval() {
   // change the behavior for low power mode
   if (Device.operatingLowPower) {
     mainLoopDivider = LOWPOWER_MAINLOOP_DIVIDER;
@@ -917,8 +1035,6 @@ void applyLowPowerMode() {
     mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;
     ledRefreshInterval = DEFAULT_LED_REFRESH;
   }
-
-  applyMidiInterval();
 }
 
 void applyMidiInterval() {
@@ -950,7 +1066,7 @@ void applyMidiDecimationRate() {
 void applyMpeMode() {
   for (byte s = 0; s < NUMSPLITS; ++s) {
     if (Split[s].mpe) {
-      midiSendMpeState(Split[s].midiChanMain, countMpePolyphonny(s));
+      midiSendMpeState(Split[s].midiChanMain, countMpePolyphony(s));
       midiSendMpePitchBendRange(s);
     }
   }
@@ -1046,6 +1162,8 @@ void setup() {
   // initialize the calibration data for it to be a no-op, unless it's loaded from a previous calibration sample result
   initializeCalibrationData();
 
+  initializeSequencer();
+
   reset();
 
   // ensure that the switches that are pressed down for the global reset at boot are not taken into account any further
@@ -1102,7 +1220,8 @@ void setup() {
       cellTouched(0, 4, touchedCell);
     }
 
-    applyLowPowerMode();
+    applyLedInterval();
+    applyMidiInterval();
 
     applyMpeMode();
 
@@ -1132,6 +1251,12 @@ void setup() {
   #define DEBUG_ENABLED
   Device.serialMode = true;
   SWITCH_SURFACESCAN = true;
+#endif
+
+#ifdef DISPLAY_FREERAM_AT_LAUNCH
+  #define DEBUG_ENABLED
+  Device.serialMode = true;
+  SWITCH_FREERAM = true;
 #endif
 
   setupDone = true;
@@ -1212,6 +1337,7 @@ inline void modeLoopPerformance() {
   if (SWITCH_YFRAME) displayYFrame();                            // Turn on secret switch to display the Y value of all cells in grid at the end of each total surface scan
   if (SWITCH_ZFRAME) displayZFrame();                            // Turn on secret switch to display the pressure value of all cells in grid at the end of each total surface scan
   if (SWITCH_SURFACESCAN) displaySurfaceScanTime();              // Turn on secret switch to display the total time for a total surface scan
+  if (SWITCH_FREERAM) debugFreeRam();                            // Turn on secret switch to display the available free RAM
 #endif
 
   nextSensorCell();                                              // done-- move on to the next sensor cell

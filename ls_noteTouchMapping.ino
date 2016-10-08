@@ -75,17 +75,19 @@ void NoteTouchMapping::initialize() {
   firstChannel = -1;
   lastNote = -1;
   lastChannel = -1;
-  for (byte n = 0; n < 128; ++n) {
-    for (byte c = 0; c < 16; ++c) {
+  for (byte c = 0; c < 16; ++c) {
+    for (byte n = 0; n < 128; ++n) {
       mapping[n][c].colRow = 0;
       mapping[n][c].nextNote = -1;
       mapping[n][c].previousNote = -1;
       mapping[n][c].nextPreviousChannel = 0;
     }
+    performContinuousTasks(micros());
   }
   for (byte c = 0; c < 16; ++c) {
     musicalTouchCount[c] = 0;
   }
+  performContinuousTasks(micros());
 }
 
 inline byte NoteTouchMapping::getMusicalTouchCount(signed char noteChannel) {

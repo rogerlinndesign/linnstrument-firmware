@@ -43,34 +43,93 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     return;
   }
 
-  // keeps track when continuous tasks are currently active in order to prevent infinite recursive calls
-  static boolean continuousTasksActive = false;
-  if (continuousTasksActive) {
-    return;
-  }
-  continuousTasksActive = true;
+  static boolean continuousRefreshLeds = false;
+  static boolean continuousStopBlinkingLeds = false;
+  static boolean continuousFootSwitches = false;
+  static boolean continuousRefreshGlobalSettingsDisplay = false;
+  static boolean continuousSleep = false;
+  static boolean continuousUpdateClock = false;
+  static boolean continuousAdvanceArpeggiator = false;
+  static boolean continuousAdvanceSequencer = false;
+  static boolean continuousSerialIO = false;
+  static boolean continuousMidiInput = false;
+  static boolean continuousPendingMidi = false;
 
-  if (checkRefreshLedColumn(nowMicros)) {
+  bool ledsRefreshed = false;
+  if (!continuousRefreshLeds && !continuousSerialIO) {
+    continuousRefreshLeds = true;
+    ledsRefreshed = checkRefreshLedColumn(nowMicros);
+    continuousRefreshLeds = false;
+  }
+  if (ledsRefreshed) {
     unsigned long nowMillis = millis();
 
-    checkStopBlinkingLeds(nowMillis);
-    checkTimeToReadFootSwitches(nowMicros);
-    checkRefreshGlobalSettingsDisplay(nowMicros);
-    checkSleep(nowMillis);
+    if (!continuousStopBlinkingLeds) {
+      continuousStopBlinkingLeds = true;
+      checkStopBlinkingLeds(nowMillis);
+      continuousStopBlinkingLeds = false;
+    }
+
+    if (!continuousFootSwitches) {
+      continuousFootSwitches = true;
+      checkTimeToReadFootSwitches(nowMicros);
+      continuousFootSwitches = false;
+    }
+
+    if (!continuousRefreshGlobalSettingsDisplay) {
+      continuousRefreshGlobalSettingsDisplay = true;
+      checkRefreshGlobalSettingsDisplay(nowMicros);
+      continuousRefreshGlobalSettingsDisplay = false;
+    }
+
+    if (!continuousSleep) {
+      continuousSleep = true;
+      checkSleep(nowMillis);
+      continuousSleep = false;
+    }
   }
 
-  if (checkUpdateClock(nowMicros)) {
-    checkAdvanceArpeggiator();  
+  bool clockUpdated = false;
+  if (!continuousUpdateClock) {
+    continuousUpdateClock = true;
+    clockUpdated = checkUpdateClock(nowMicros);
+    continuousUpdateClock = false;
   }
+
+  if (clockUpdated) {
+    if (!continuousAdvanceArpeggiator) {
+      continuousAdvanceArpeggiator = true;
+      checkAdvanceArpeggiator();
+      continuousAdvanceArpeggiator = false;
+    }
+
+    if (!continuousAdvanceSequencer) {
+      continuousAdvanceSequencer = true;
+      checkAdvanceSequencer();
+      continuousAdvanceSequencer = false;
+    }
+  }
+
   if (Device.serialMode) {
-    handleSerialIO();
+    if (!continuousSerialIO) {
+      continuousSerialIO = true;
+      handleSerialIO();
+      continuousSerialIO = false;
+    }
   }
   else {
-    handleMidiInput(nowMicros);
-    handlePendingMidi(nowMicros);
-  }
+    if (!continuousMidiInput) {
+      continuousMidiInput = true;
+      handleMidiInput(nowMicros);
+      continuousMidiInput = false;
+    }
 
-  continuousTasksActive = false;
+    if (!continuousPendingMidi) {
+      continuousPendingMidi = true;
+      handlePendingMidi(nowMicros);
+      continuousPendingMidi = false;
+    }
+  }
 }
 
 // checks to see if it's time to refresh the next LED column, and if so, does it

@@ -42,15 +42,6 @@ void cellTouched(byte col, byte row, TouchState state) {
   cell(col, row).touched = state;
 }
 
-// Re-initialize the velocity detection
-void initVelocity() {
-  sensorCell->velSumY = 0;
-  sensorCell->velSumXY = 0;
-
-  sensorCell->vcount = 0;
-  sensorCell->velocity = 0;
-}
-
 #define TRANSFER_SLIDE_PROXIMITY 100
 
 byte countTouchesForMidiChannel(byte split, byte col, byte row) {
@@ -68,6 +59,9 @@ boolean potentialSlideTransferCandidate(byte col) {
   if (col < 1) return false;
   if (userFirmwareActive) {
     if (!userFirmwareSlideMode[sensorRow]) return false;
+  }
+  else if (Split[Global.currentPerSplit].sequencer) {
+    if (!requiresSequencerSlideTracking()) return false;
   }
   else {
     if (sensorSplit != getSplitOf(col)) return false;
@@ -111,7 +105,9 @@ void transferFromSameRowCell(byte col) {
   sensorCell->quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
   sensorCell->lastMovedX = fromCell->lastMovedX;
   sensorCell->fxdRateX = fromCell->fxdRateX;
-  sensorCell->fxdRateCountX = fromCell->fxdRateCountX;  
+  sensorCell->fxdRateCountX = fromCell->fxdRateCountX;
+  sensorCell->slideTransfer = true;
+  sensorCell->rogueSweepX = fromCell->rogueSweepX;
   sensorCell->initialY = fromCell->initialY;
   sensorCell->note = fromCell->note;
   sensorCell->channel = fromCell->channel;
@@ -129,6 +125,8 @@ void transferFromSameRowCell(byte col) {
   fromCell->lastMovedX = 0;
   fromCell->fxdRateX = 0;
   fromCell->fxdRateCountX = 0;
+  fromCell->slideTransfer = true;
+  fromCell->rogueSweepX = false;
   fromCell->initialY = -1;
   fromCell->pendingReleaseCount = 0;
 
@@ -157,6 +155,8 @@ void transferToSameRowCell(byte col) {
   toCell->lastMovedX = sensorCell->lastMovedX;
   toCell->fxdRateX = sensorCell->fxdRateX;
   toCell->fxdRateCountX = sensorCell->fxdRateCountX;
+  toCell->slideTransfer = true;
+  toCell->rogueSweepX = sensorCell->rogueSweepX;
   toCell->initialY = sensorCell->initialY;
   toCell->note = sensorCell->note;
   toCell->channel = sensorCell->channel;
@@ -174,6 +174,8 @@ void transferToSameRowCell(byte col) {
   sensorCell->lastMovedX = 0;
   sensorCell->fxdRateX = 0;
   sensorCell->fxdRateCountX = 0;
+  sensorCell->slideTransfer = true;
+  sensorCell->rogueSweepX = false;
   sensorCell->initialY = -1;
   sensorCell->pendingReleaseCount = 0;
 
@@ -348,6 +350,7 @@ boolean handleNewTouch() {
 
   if (animationActive) {                                    // allow any new touch to cancel scrolling
     stopAnimation = true;
+    cellTouched(ignoredCell);
     return false;
   }
 
@@ -437,12 +440,12 @@ boolean handleNewTouch() {
 }
 
 // Calculate the transposed note number for the current cell by taken the transposition settings into account
-short cellTransposedNote() {
-  return transposedNote(sensorSplit, sensorCol, sensorRow);
+short cellTransposedNote(byte split) {
+  return transposedNote(split, sensorCol, sensorRow);
 }
 
 short transposedNote(byte split, byte col, byte row) {
-  return getNoteNumber(split, col, row) - Split[split].transposeLights + Split[split].transposePitch;
+  return getNoteNumber(split, col, row) + Split[split].transposePitch;
 }
 
 // Check if the currently scanned cell is a focused cell
@@ -699,6 +702,7 @@ boolean handleXYZupdate() {
   else if (isLowRow() ||
       displayMode == displayVolume ||
       Split[sensorSplit].ccFaders ||
+      Split[Global.currentPerSplit].sequencer ||
       isStrummingSplit(sensorSplit)) {
     handleNotes = false;
   }
@@ -727,7 +731,7 @@ boolean handleXYZupdate() {
       handleSplitStrum();
     }
     else if (handleNotes) {
-      short notenum = cellTransposedNote();
+      short notenum = cellTransposedNote(sensorSplit);
 
       // if there was a previous note and automatic octave switching is enabled,
       // check if the conditions are met to change the octave up or down while playing
@@ -770,7 +774,8 @@ boolean handleXYZupdate() {
   // get the processed expression data
   short valueX = INVALID_DATA;
   short valueY = INVALID_DATA;
-  byte valueZ = handleZExpression();
+  unsigned short valueZHi = handleZExpression();
+  byte valueZ = scale1016to127(valueZHi, true);
   performContinuousTasks(micros());
 
   // Only process x and y data when there's meaningful pressure on the cell
@@ -806,6 +811,11 @@ boolean handleXYZupdate() {
       handleFaderTouch(newVelocity);
     }
   }
+  else if (Split[Global.currentPerSplit].sequencer) {
+    if (sensorCell->isMeaningfulTouch()) {
+      handleSequencerTouch(newVelocity);
+    }
+  }
   else if (handleNotes && sensorCell->hasNote()) {
     if (userFirmwareActive) {
       // don't send expression data for the control switches
@@ -822,7 +832,7 @@ boolean handleXYZupdate() {
           // compensate for the -85 offset at the left side since 0 is positioned at the center of the left-most cell
           positionX = positionX + 85;
           
-          midiSendControlChange14Bit(sensorCol, sensorCol+32, positionX, sensorCell->channel);
+          midiSendControlChange14BitUserFirmware(sensorCol, sensorCol+32, positionX, sensorCell->channel);
         }
 
         // Y-axis movements are encoded using MIDI CC 64-89 as the column and the channel as the row
@@ -912,7 +922,7 @@ boolean handleXYZupdate() {
         // reset pressure to 0 before sending the note, the actually pressure value will
         // be sent right after the note on
         if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-          preSendLoudness(sensorSplit, 0, sensorCell->note, sensorCell->channel);
+          preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
         }
 
         sendNewNote();
@@ -921,7 +931,7 @@ boolean handleXYZupdate() {
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-        preSendLoudness(sensorSplit, valueZ, sensorCell->note, sensorCell->channel);
+        preSendLoudness(sensorSplit, valueZ, valueZHi, sensorCell->note, sensorCell->channel);
       }
 
       // after the initial velocity, new velocity values are continuously being calculated simply based
@@ -1029,7 +1039,7 @@ void prepareNewNote(signed char notenum) {
   noteTouchMapping[sensorSplit].noteOn(notenum, channel, sensorCol, sensorRow);
 
   // highlight the same notes if this is activated
-  if (Split[sensorSplit].colorNoteon) {
+  if (Split[sensorSplit].colorPlayed) {
     highlightPossibleNoteCells(sensorSplit, sensorCell->note);
   }
 
@@ -1059,31 +1069,30 @@ void handleNewControlModeTouch() {
   sensorCell->note = sensorCol;
   sensorCell->channel = sensorRow+1;
 
-  setLed(sensorCol, sensorRow, Split[focusedSplit].colorNoteon, cellOn, LED_LAYER_PLAYED);
+  setLed(sensorCol, sensorRow, Split[Global.currentPerSplit].colorPlayed, cellOn, LED_LAYER_PLAYED);
 }
 
-byte handleZExpression() {
-  byte preferredPressure = sensorCell->pressureZ;
+unsigned short handleZExpression() {
+  unsigned short preferredPressure = sensorCell->pressureZ;
 
   // handle pressure transition between adjacent cells if they are not playing their own note
-  byte adjacentZ = 0;
+  unsigned short adjacentZ = 0;
   if (cell(sensorCol-1, sensorRow).currentRawZ && !cell(sensorCol-1, sensorRow).hasNote()) {
     adjacentZ = cell(sensorCol-1, sensorRow).currentRawZ;
   }
   else if (cell(sensorCol+1, sensorRow).currentRawZ && !cell(sensorCol+1, sensorRow).hasNote()) {
     adjacentZ = cell(sensorCol+1, sensorRow).currentRawZ;
   }
-  // the adjacent Z value is adapted so that it can be added the active cell's pressure to make
+  // the adjacent Z value is added the active cell's pressure to make
   // up for the pressure differential while moving across cells
-  adjacentZ = (adjacentZ / 5) & 0x7F;
-  preferredPressure = constrain(preferredPressure + adjacentZ, 0, 127);
+  preferredPressure = constrain(preferredPressure + adjacentZ, 0, 1016);
 
   // the faster we move the slower the slew rate becomes,
   // if we're holding still the pressure changes are almost instant, if we're moving faster they are averaged out
   int32_t slewRate = sensorCell->fxdRateX;
 
   // adapt the slew rate based on the rate of change on the pressure, the smaller the change, the higher the slew rate
-  slewRate += FXD_CONST_2 - FXD_DIV(abs(FXD_FROM_INT(preferredPressure) - sensorCell->fxdPrevPressure), FXD_FROM_INT(64));
+  slewRate += FXD_CONST_2 - FXD_DIV(abs(FXD_FROM_INT(preferredPressure) - sensorCell->fxdPrevPressure), FXD_FROM_INT(508));
 
   if (slewRate > FXD_CONST_1) {
     // we also keep track of the previous pressure on the cell and average it out with
@@ -1094,7 +1103,7 @@ byte handleZExpression() {
     sensorCell->fxdPrevPressure = fxdAveragedPressure;
 
     // calculate the final pressure value
-    preferredPressure = constrain(FXD_TO_INT(fxdAveragedPressure), 0, 127);
+    preferredPressure = constrain(FXD_TO_INT(fxdAveragedPressure), 0, 1016);
   }
   else {
     sensorCell->fxdPrevPressure = FXD_FROM_INT(preferredPressure);
@@ -1165,11 +1174,13 @@ short handleXExpression() {
 
   // calculate how much change there was since the last X update
   short deltaX = abs(movedX - sensorCell->lastMovedX);
+
+  // determine if the last X movement was a rogue sweep
+  sensorCell->rogueSweepX = (deltaX >= ROGUE_SWEEP_X_THRESHOLD);
         
   if ((countTouchesInColumn() < 2 ||
        sensorCell->currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z)) &&  // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to prevent unwanted pitch slides
-      (!sensorCell->hasPhantoms() ||                                      // if no phantom presses are active, send the pitch bend change
-       deltaX < ROGUE_PITCH_SWEEP_THRESHOLD)) {                           // if there are phantom presses, only send those changes that are small and gradual to prevent rogue pitch sweeps
+      sensorCell->hasUsableX()) {                                         // if no phantom presses are active, send the pitch bend change, otherwise only send those changes that are small and gradual to prevent rogue pitch sweeps
 
     // calculate the average rate of X value changes over a number of samples
     sensorCell->fxdRateX -= FXD_DIV(sensorCell->fxdRateX, fxdRateXSamples);
@@ -1259,8 +1270,6 @@ void releaseChannel(byte split, byte channel) {
   }
 }
 
-#define PENDING_RELEASE_MOVEMENT   3
-
 boolean handleNonPlayingRelease() {
   if (sensorCell->velocity) {
     switch (displayMode) {
@@ -1347,6 +1356,9 @@ boolean handleNonPlayingRelease() {
   return false;
 }
 
+#define PENDING_RELEASE_CONTROL    3
+#define PENDING_RELEASE_MOVEMENT   3
+
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
   DEBUGPRINT((1,"handleTouchRelease"));
@@ -1359,7 +1371,10 @@ void handleTouchRelease() {
     sensorCell->pendingReleaseCount--;
   }
   // if no release is pending, start a pending release
-  else  if (sensorCell->fxdRateX > PENDING_RELEASE_RATE_X) {
+  else if (sensorCol == 0) {
+    sensorCell->pendingReleaseCount = PENDING_RELEASE_CONTROL;
+  }
+  else if (sensorCell->fxdRateX > PENDING_RELEASE_RATE_X) {
     sensorCell->pendingReleaseCount = PENDING_RELEASE_MOVEMENT;
   }
 
@@ -1368,10 +1383,15 @@ void handleTouchRelease() {
     return;
   }
 
+  // remember whether this cell was ignored
+  boolean wasIgnored = (sensorCell->touched == ignoredCell);
+
   // mark this cell as no longer touched
   cellTouched(untouchedCell);
 
-  if (displayMode == displaySleep) {
+  if (wasIgnored ||
+      displayMode == displaySleep) {
+    postTouchRelease();
     return;
   }
 
@@ -1415,6 +1435,10 @@ void handleTouchRelease() {
   else if (Split[sensorSplit].ccFaders) {
     handleFaderRelease();
   }
+  // sequencer has its own operation mode
+  else if (Split[Global.currentPerSplit].sequencer) {
+    handleSequencerRelease();
+  }
   // is this cell used for low row functionality
   else if (isLowRow()) {
     lowRowStop();
@@ -1423,7 +1447,7 @@ void handleTouchRelease() {
 
     // reset the pressure when the note is release and that settings is active
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, sensorCell->note, sensorCell->channel);
+      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
     }
 
     // unregister the note <> cell mapping
@@ -1432,12 +1456,13 @@ void handleTouchRelease() {
     // send the Note Off
     if (isArpeggiatorEnabled(sensorSplit)) {
       handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
-    } else {
-      midiSendNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+    }
+    else {
+      midiSendNoteOffWithVelocity(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
     }
 
     // unhighlight the same notes if this is activated
-    if (Split[sensorSplit].colorNoteon) {
+    if (Split[sensorSplit].colorPlayed) {
       // calculate the difference between the octave offset when the note was turned on and the octave offset
       // that is currently in use on the split, since the octave can change on the fly, while playing,
       // hence changing the position of notes on the surface
@@ -1491,6 +1516,10 @@ void handleTouchRelease() {
     sensorCell->clearMusicalData();
   }
 
+  postTouchRelease();
+}
+
+void postTouchRelease() {
   sensorCell->clearAllPhantoms();
 
   // reset velocity calculations
@@ -1499,10 +1528,6 @@ void handleTouchRelease() {
 
   sensorCell->clearSensorData();
 
-  postTouchRelease();
-}
-
-void postTouchRelease() {
 #ifdef TESTING_SENSOR_DISABLE
     sensorCell->disabled = true;
 #endif  
@@ -1619,7 +1644,7 @@ byte getNoteNumber(byte split, byte col, byte row) {
 
   notenum = lowest + (row * offset) + noteCol - 1 + Split[split].transposeOctave;
 
-  return notenum;
+  return notenum - Split[split].transposeLights;
 }
 
 void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lowest) {
@@ -1645,13 +1670,15 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
       lowest -= 12;
     }
 
-  } else if (Global.rowOffset == 13) {                // if rowOffset is set to guitar tuning...
+  }
+  else if (Global.rowOffset == 13) {                  // if rowOffset is set to guitar tuning...
     offset = 5;                                       // standard guitar offset is 5 semitones
 
     if (row >= 6) {                                   // except from row 6 onwards where it's shifted by one
       lowest -= 1;
     }
-  } else if (Global.rowOffset == ROWOFFSET_ZERO) {    // if rowOffset is set to zero...
+  }
+  else if (Global.rowOffset == ROWOFFSET_ZERO) {      // if rowOffset is set to zero...
     offset = 0;
   }
 }
@@ -1728,8 +1755,7 @@ inline byte splitLowestEdge(byte split) {
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
 inline byte getSplitOf(byte col) {
-  if (splitActive)
-  {
+  if (splitActive && !Split[Global.currentPerSplit].sequencer) {
     if (col < Global.splitPoint) {
       return LEFT;
     }

@@ -51,7 +51,7 @@ boolean isStatefulSwitchAssignment(byte assignment) {
 void doSwitchPressed(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
   if (!splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
-    doSwitchPressedForSplit(whichSwitch, assignment, focusedSplit);
+    doSwitchPressedForSplit(whichSwitch, assignment, Global.currentPerSplit);
   }
   else {
     doSwitchPressedForSplit(whichSwitch, assignment, LEFT);
@@ -88,7 +88,7 @@ void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
 void doSwitchReleased(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
   if (!splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
-    doSwitchReleasedForSplit(whichSwitch, assignment, focusedSplit);
+    doSwitchReleasedForSplit(whichSwitch, assignment, Global.currentPerSplit);
   }
   else {
     doSwitchReleasedForSplit(whichSwitch, assignment, LEFT);
@@ -99,7 +99,7 @@ void doSwitchReleased(byte whichSwitch) {
 void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
   // check whether this is a hold operation by comparing the release time with
   // the last time the switch was pressed
-  boolean isHeld = (millis() - lastSwitchPress[whichSwitch] > SWITCH_HOLD_DELAY);
+  boolean isHeld = (calcTimeDelta(millis(), lastSwitchPress[whichSwitch]) > SWITCH_HOLD_DELAY);
 
   // foot switches have no hold or toggle havior based on time, but rather based on function
   if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
@@ -218,8 +218,7 @@ void performArpeggiatorToggle() {
 
 void performAltSplitAssignment() {
   resetAllTouches();
-  Global.currentPerSplit = !Global.currentPerSplit;
-  focusedSplit = Global.currentPerSplit;
+  Global.currentPerSplit = otherSplit(Global.currentPerSplit);
   updateDisplay();
 }
 
@@ -280,7 +279,7 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
 
     // merely light leds in test mode
     if (operatingMode == modeManufacturingTest) {
-      switchState[whichSwitch][focusedSplit] = state;
+      switchState[whichSwitch][Global.currentPerSplit] = state;
       if (state) {
         setLed(24 + whichSwitch, 6, COLOR_GREEN, cellOn);
       }
@@ -297,9 +296,9 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
         doSwitchReleased(whichSwitch);
       }
     }
+    
+    updateSwitchLeds();
   }
-
-  updateSwitchLeds();
 }
 
 void resetSwitchStates(byte whichSwitch) {
