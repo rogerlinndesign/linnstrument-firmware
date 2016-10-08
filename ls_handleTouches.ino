@@ -445,7 +445,7 @@ short cellTransposedNote(byte split) {
 }
 
 short transposedNote(byte split, byte col, byte row) {
-  return getNoteNumber(split, col, row) + Split[split].transposePitch;
+  return getNoteNumber(split, col, row) + Split[split].transposePitch + Split[split].transposeOctave;
 }
 
 // Check if the currently scanned cell is a focused cell
@@ -1642,7 +1642,7 @@ byte getNoteNumber(byte split, byte col, byte row) {
     noteCol = (NUMCOLS - col);
   }
 
-  notenum = lowest + (row * offset) + noteCol - 1 + Split[split].transposeOctave;
+  notenum = lowest + (row * offset) + noteCol - 1;
 
   return notenum - Split[split].transposeLights;
 }

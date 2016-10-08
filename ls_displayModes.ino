@@ -371,7 +371,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
 
-  short displayedNote = getNoteNumber(split, col, row);
+  short displayedNote = getNoteNumber(split, col, row) + Split[split].transposeOctave;
   short actualnote = transposedNote(split, col, row);
 
   // the note is out of MIDI note range, disable it

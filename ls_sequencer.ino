@@ -3,7 +3,7 @@ This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unpo
 To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
-
+These implement the polyphonic expressive step sequencer, independently for each split.
 **************************************************************************************************/
 
 const byte SEQ_FADER_LENGTH = 7;
@@ -1380,7 +1380,7 @@ boolean StepEventState::isActive() {
 void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
   split = splitNum;
   channel = takeChannel(split);
-  note = event.getNote();
+  note = event.getNote() + Split[splitNum].transposePitch + Split[sensorSplit].transposeOctave;
   remainingDuration = event.getDuration();
 
   if (Split[split].sendX) {
@@ -1961,7 +1961,7 @@ int StepSequencerState::getRowNoteNum(byte noteRow) {
 }
 
 byte StepSequencerState::getSensorNotesNoteNum() {
-  return cellTransposedNote(split);
+  return getNoteNumber(split, sensorCol, sensorRow);
 }
 
 int StepSequencerState::getSensorRowNoteNum() {
@@ -1987,7 +1987,7 @@ bool StepSequencerState::findNoteSequencerCoordinate(StepEvent& event, byte& col
     short r = event.getRow() + rowDistance;
     if (r >= 0 && r < NUMROWS) {
       for (byte c = 1; c <= SEQ_EVENTS_WIDTH; ++c) {
-        short noteNum = transposedNote(split, c, r);
+        short noteNum = getNoteNumber(split, c, r);
         if (noteNum == event.getNote()) {
           event.setRow(r);
           col = c;
