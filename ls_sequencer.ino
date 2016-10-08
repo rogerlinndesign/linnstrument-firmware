@@ -1938,13 +1938,13 @@ int StepSequencerState::getRowNoteNum(byte noteRow) {
       return -1;
     case sequencerScales: {
       int row = -1;
-      for (byte i = 0; i < 24; ++i) {
+      for (byte i = 0; i < 128; ++i) {
         if (((Global.mainNotes[Global.activeNotes] >> (i % 12)) & 1) ||
             ((Global.accentNotes[Global.activeNotes] >> (i % 12)) & 1)) {
           row += 1;
         }
         if (noteRow + rowOffset == row) {
-          return min(max(i + Split[split].transposeOctave + 48, 0), 127);
+          return min(max(i + 48, 0), 127);
         }
       }
       return -1;
