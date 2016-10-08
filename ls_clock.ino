@@ -52,13 +52,12 @@ inline boolean checkUpdateClock(unsigned long now) {
     previousMidiClockCount = clockCount;
   }
   else {
-    // calculate the time since the last arpeggiator step
+    // calculate the time since the last clock tick
     unsigned long internalClockDelta = calcTimeDelta(now, lastInternalClockMoment);
 
-    // check if the time since the last arpeggiator step
     unsigned long clockUnit = FXD4_TO_INT(FXD4_DIV(FXD4_FROM_INT(internalClockUnitBase), fxd4CurrentTempo));
 
-    // check if the time since the last arpeggiator step now has exceeded the delay for the next step, but only if within 10ms of the intended step duration
+    // check if the time since the last clock step now has exceeded the delay for the next step, but only if within 10ms of the intended step duration
     if (internalClockDelta >= clockUnit && (internalClockDelta % clockUnit) < 10000) {
       lastInternalClockCount = (lastInternalClockCount + 1) % 24;
       lastInternalClockMoment += ((now - lastInternalClockMoment) / clockUnit) * clockUnit;
