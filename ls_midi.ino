@@ -2032,6 +2032,39 @@ void midiSendMpePitchBendRange(byte split) {
   }
 }
 
+void midiSendStart() {
+  if (Device.serialMode) {
+    if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
+      Serial.println("midiSendStart");
+    }
+  }
+  else {
+    queueMidiMessage(MIDIStart, 0, 0, 0);
+  }
+}
+
+void midiSendTimingClock() {
+  if (Device.serialMode) {
+    if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
+      Serial.println("midiSendTimingClock");
+    }
+  }
+  else {
+    queueMidiMessage(MIDITimingClock, 0, 0, 0);
+  }
+}
+
+void midiSendStop() {
+  if (Device.serialMode) {
+    if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
+      Serial.println("midiSendStop");
+    }
+  }
+  else {
+    queueMidiMessage(MIDIStop, 0, 0, 0);
+  }
+}
+
 inline boolean isSustainEnabled(byte split) {
   return isLowRowSustainPressed(split) || isSwitchSustainPressed(split);
 }

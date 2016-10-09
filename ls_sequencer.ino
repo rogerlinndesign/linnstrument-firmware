@@ -1615,6 +1615,11 @@ void StepSequencerState::turnOn() {
     return;
   }
 
+  if (!sequencerIsRunning()) {
+    midiSendStart();
+    midiSendTimingClock();
+  }
+
   if (isMidiClockRunning()) {
     int clockModulo = clock24PPQ % getCurrentPattern().stepSize;
     if (clockModulo == 0) {
@@ -1664,6 +1669,10 @@ void StepSequencerState::turnOff() {
   }
 
   storeSettings();
+
+  if (!sequencerIsRunning()) {
+    midiSendStop();
+  }
 }
 
 void StepSequencerState::turnOffEvents() {
