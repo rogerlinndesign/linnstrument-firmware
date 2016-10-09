@@ -36,11 +36,6 @@ void resetClockAdvancement(unsigned long now) {
 }
 
 inline boolean checkUpdateClock(unsigned long now) {
-  if (calcTimeDelta(now, prevClockTimerCount) <= 500) {
-    return false;
-  }
-  prevClockTimerCount = now;
-
   short clockCount;
 
   if (isMidiClockRunning()) {
@@ -52,6 +47,11 @@ inline boolean checkUpdateClock(unsigned long now) {
     previousMidiClockCount = clockCount;
   }
   else {
+    if (calcTimeDelta(now, prevClockTimerCount) <= 500) {
+      return false;
+    }
+    prevClockTimerCount = now;
+
     // calculate the time since the last clock tick
     unsigned long internalClockDelta = calcTimeDelta(now, lastInternalClockMoment);
 

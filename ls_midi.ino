@@ -30,7 +30,13 @@ short midiSysExLength = -1;
 const int32_t fxd4MidiClockUnit = FXD4_FROM_INT(2500000);  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
 const int32_t fxd4MidiClockSamples = FXD4_FROM_INT(6);
 
-boolean midiClockStarted = false;                          // indicates whether the MIDI clock transport is running
+enum MidiClock {
+  midiClockOff,
+  midiClockStart,
+  midiClockOn
+};
+
+MidiClock midiClockStatus = midiClockOff;                  // indicates whether the MIDI clock transport is running
 unsigned long lastMidiClockTime = 0;                       // the last time we received a MIDI clock message in micros
 int32_t fxd4MidiTempoAverage = fxd4CurrentTempo;           // the current average of the MIDI clock tempo, in fixes precision
 byte midiClockMessageCount = 0;                            // the number of MIDI clock messages we've received, from 1 to 24, with 0 meaning none has been received yet
@@ -68,9 +74,9 @@ void applyMidiIo() {
   applyMidiInterval();
 }
 
-void handleMidiInput(unsigned long now) {
+void handleMidiInput(unsigned long nowMicros) {
   // handle turning off the MIDI clock led after minimum 30ms
-  if (midiClockLedOn != 0 && calcTimeDelta(now, midiClockLedOn) > LED_FLASH_DELAY) {
+  if (midiClockLedOn != 0 && calcTimeDelta(nowMicros, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
     clearLed( 0, 0);
   }
@@ -102,20 +108,18 @@ void handleMidiInput(unsigned long now) {
         midiMessageBytes = 1;
         midiMessageIndex = 1;
 
-        midiClockStarted = true;
-        resetClockAdvancement(now);
+        midiClockStatus = midiClockStart;
+        resetClockAdvancement(nowMicros);
         lastMidiClockTime = 0;
-        
-        sequencersTurnOn();
         break;
       case MIDIStop:
         midiMessageBytes = 1;
         midiMessageIndex = 1;
 
-        midiClockStarted = false;
+        midiClockStatus = midiClockOff;
         midiClockMessageCount = 0;
         lastMidiClockTime = 0;
-        resetClockAdvancement(now);
+        resetClockAdvancement(nowMicros);
 
         sequencersTurnOff();
         break;
@@ -129,16 +133,16 @@ void handleMidiInput(unsigned long now) {
         midiMessageBytes = 1;
         midiMessageIndex = 1;
 
-        if (midiClockStarted) {
+        if (midiClockStatus != midiClockOff) {
           if (lastMidiClockTime > 0) {
             unsigned long clockDelta;
             // check if the micros timer has overflown
-            if (now < lastMidiClockTime) {
-              clockDelta = now + ~lastMidiClockTime;
+            if (nowMicros < lastMidiClockTime) {
+              clockDelta = nowMicros + ~lastMidiClockTime;
             }
             // otherwise simply substract
             else {
-              clockDelta = now - lastMidiClockTime;
+              clockDelta = nowMicros - lastMidiClockTime;
             }
 
             if (clockDelta > 0) {
@@ -148,9 +152,24 @@ void handleMidiInput(unsigned long now) {
             }
           }
 
-          lastMidiClockTime = now;
+          lastMidiClockTime = nowMicros;
 
-          midiClockMessageCount++;
+          // differentiate between the first clock message right after the start message
+          // and all the other ones
+          if (midiClockStatus == midiClockStart) {
+            midiClockStatus = midiClockOn;
+            bool clockUpdated = checkUpdateClock(nowMicros);
+            sequencersTurnOn();
+            if (clockUpdated) {
+              performCheckAdvanceArpeggiator();
+              performCheckAdvanceSequencer();
+            }
+          }
+          else {
+            midiClockMessageCount += 1;
+          }
+
+          // wrap around the MIDI clock message count
           if (midiClockMessageCount == 25) {
             midiClockMessageCount = 1;
           }
@@ -158,16 +177,17 @@ void handleMidiInput(unsigned long now) {
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != 0 && midiClockMessageCount == 1) {
             setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
-            midiClockLedOn = now;
+            midiClockLedOn = nowMicros;
           }
 
-          // play the next arpeggiator step if needed
-          if (checkUpdateClock(now)) {
-            checkAdvanceArpeggiator();
+          // play the next arpeggiator and sequencer steps if needed
+          if (checkUpdateClock(nowMicros)) {
+            performCheckAdvanceArpeggiator();
+            performCheckAdvanceSequencer();
           }
 
           // flash the tempo led in the global display when it is on
-          updateGlobalSettingsFlashTempo(now);
+          updateGlobalSettingsFlashTempo(nowMicros);
         }
         break;
       }
@@ -1021,11 +1041,11 @@ void receivedNrpn(int parameter, int value) {
   updateDisplay();
 }
 
-boolean isMidiClockRunning() {
-  return midiClockStarted;
+inline boolean isMidiClockRunning() {
+  return midiClockStatus == midiClockOn;
 }
 
-short getMidiClockCount() {
+inline short getMidiClockCount() {
   return midiClockMessageCount - 1;
 }
 

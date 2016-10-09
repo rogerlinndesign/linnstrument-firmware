@@ -38,6 +38,24 @@ inline void delayUsecWithScanning(unsigned long delayTime) {
   }
 }
 
+inline void performCheckAdvanceArpeggiator() {
+  static boolean continuousAdvanceArpeggiator = false;
+  if (!continuousAdvanceArpeggiator) {
+    continuousAdvanceArpeggiator = true;
+    checkAdvanceArpeggiator();
+    continuousAdvanceArpeggiator = false;
+  }
+}
+
+inline void performCheckAdvanceSequencer() {
+  static boolean continuousAdvanceSequencer = false;
+  if (!continuousAdvanceSequencer) {
+    continuousAdvanceSequencer = true;
+    checkAdvanceSequencer();
+    continuousAdvanceSequencer = false;
+  }
+}
+
 inline void performContinuousTasks(unsigned long nowMicros) {
   if (displayMode == displaySleep) {
     return;
@@ -49,8 +67,6 @@ inline void performContinuousTasks(unsigned long nowMicros) {
   static boolean continuousRefreshGlobalSettingsDisplay = false;
   static boolean continuousSleep = false;
   static boolean continuousUpdateClock = false;
-  static boolean continuousAdvanceArpeggiator = false;
-  static boolean continuousAdvanceSequencer = false;
   static boolean continuousSerialIO = false;
   static boolean continuousMidiInput = false;
   static boolean continuousPendingMidi = false;
@@ -97,17 +113,8 @@ inline void performContinuousTasks(unsigned long nowMicros) {
   }
 
   if (clockUpdated) {
-    if (!continuousAdvanceArpeggiator) {
-      continuousAdvanceArpeggiator = true;
-      checkAdvanceArpeggiator();
-      continuousAdvanceArpeggiator = false;
-    }
-
-    if (!continuousAdvanceSequencer) {
-      continuousAdvanceSequencer = true;
-      checkAdvanceSequencer();
-      continuousAdvanceSequencer = false;
-    }
+    performCheckAdvanceArpeggiator();
+    performCheckAdvanceSequencer();
   }
 
   if (Device.serialMode) {

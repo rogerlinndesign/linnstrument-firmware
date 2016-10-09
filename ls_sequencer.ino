@@ -1616,7 +1616,13 @@ void StepSequencerState::turnOn() {
   }
 
   if (isMidiClockRunning()) {
-    ticksUntilNextStep = clock24PPQ;
+    int clockModulo = clock24PPQ % getCurrentPattern().stepSize;
+    if (clockModulo == 0) {
+      ticksUntilNextStep = 0;
+    }
+    else {
+      ticksUntilNextStep = getCurrentPattern().stepSize - clockModulo;
+    }
   }
   else {
     ticksUntilNextStep = 0;
