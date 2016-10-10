@@ -1215,10 +1215,10 @@ void handleSequencerSettingsLowRowTouch() {
 
   unsigned long nowMillis = millis();
 
+  unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
   if (sensorCol == NUMCOLS/2 - 1) {
-    if (nextSequencerSettingsDisplay == displaySequencerProjects) {
-      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
-      if (delta > 100 && delta < 2000) {
+    if (nextSequencerSettingsDisplay == displaySequencerProjects && delta < 2000) {
+      if (delta > 100) {
         resetNumericDataChange();
         setDisplayMode(displaySequencerProjects);
         updateDisplay();
@@ -1230,9 +1230,8 @@ void handleSequencerSettingsLowRowTouch() {
     }
   }
   else if (sensorCol == NUMCOLS/2) {
-    if (nextSequencerSettingsDisplay == displaySequencerDrum0107) {
-      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
-      if (delta > 100 && delta < 2000) {
+    if (nextSequencerSettingsDisplay == displaySequencerDrum0107 && delta < 2000) {
+      if (delta > 100) {
         resetNumericDataChange();
         setDisplayMode(displaySequencerDrum0107);
         updateDisplay();
@@ -1244,9 +1243,8 @@ void handleSequencerSettingsLowRowTouch() {
     }
   }
   else if (sensorCol == NUMCOLS/2 + 1) {
-    if (nextSequencerSettingsDisplay == displaySequencerDrum0814) {
-      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
-      if (delta > 100 && delta < 2000) {
+    if (nextSequencerSettingsDisplay == displaySequencerDrum0814 && delta < 2000) {
+      if (delta > 100) {
         resetNumericDataChange();
         setDisplayMode(displaySequencerDrum0814);
         updateDisplay();
