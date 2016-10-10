@@ -61,17 +61,10 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     return;
   }
 
-  static boolean continuousRefreshLeds = false;
-  static boolean continuousStopBlinkingLeds = false;
-  static boolean continuousFootSwitches = false;
-  static boolean continuousRefreshGlobalSettingsDisplay = false;
-  static boolean continuousSleep = false;
-  static boolean continuousUpdateClock = false;
   static boolean continuousSerialIO = false;
-  static boolean continuousMidiInput = false;
-  static boolean continuousPendingMidi = false;
 
-  bool ledsRefreshed = false;
+  boolean ledsRefreshed = false;
+  static boolean continuousRefreshLeds = false;
   if (!continuousRefreshLeds && !continuousSerialIO) {
     continuousRefreshLeds = true;
     ledsRefreshed = checkRefreshLedColumn(nowMicros);
@@ -80,24 +73,35 @@ inline void performContinuousTasks(unsigned long nowMicros) {
   if (ledsRefreshed) {
     unsigned long nowMillis = millis();
 
+    static boolean continuousStopBlinkingLeds = false;
     if (!continuousStopBlinkingLeds) {
       continuousStopBlinkingLeds = true;
       checkStopBlinkingLeds(nowMillis);
       continuousStopBlinkingLeds = false;
     }
 
+    static boolean continuousLegendDisplayTimeout = false;
+    if (!continuousLegendDisplayTimeout) {
+      continuousLegendDisplayTimeout = true;
+      checkLegendDisplayTimeout(nowMillis);
+      continuousLegendDisplayTimeout = false;
+    }
+
+    static boolean continuousFootSwitches = false;
     if (!continuousFootSwitches) {
       continuousFootSwitches = true;
       checkTimeToReadFootSwitches(nowMicros);
       continuousFootSwitches = false;
     }
 
+    static boolean continuousRefreshGlobalSettingsDisplay = false;
     if (!continuousRefreshGlobalSettingsDisplay) {
       continuousRefreshGlobalSettingsDisplay = true;
       checkRefreshGlobalSettingsDisplay(nowMicros);
       continuousRefreshGlobalSettingsDisplay = false;
     }
 
+    static boolean continuousSleep = false;
     if (!continuousSleep) {
       continuousSleep = true;
       checkSleep(nowMillis);
@@ -105,7 +109,8 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     }
   }
 
-  bool clockUpdated = false;
+  static boolean continuousUpdateClock = false;
+  boolean clockUpdated = false;
   if (!continuousUpdateClock) {
     continuousUpdateClock = true;
     clockUpdated = checkUpdateClock(nowMicros);
@@ -125,12 +130,14 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     }
   }
   else {
+    static boolean continuousMidiInput = false;
     if (!continuousMidiInput) {
       continuousMidiInput = true;
       handleMidiInput(nowMicros);
       continuousMidiInput = false;
     }
 
+    static boolean continuousPendingMidi = false;
     if (!continuousPendingMidi) {
       continuousPendingMidi = true;
       handlePendingMidi(nowMicros);

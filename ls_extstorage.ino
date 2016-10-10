@@ -489,7 +489,7 @@ void copyAudienceMessages(char (*target)[16][31], char (*source)[16][31]) {
   }
 }
 
-void setPromoAnimation(void* target, bool flag) {
+void setPromoAnimation(void* target, boolean flag) {
   DeviceSettings* t = (DeviceSettings*)target;
   if (flag) {
     t->sleepActive = true;

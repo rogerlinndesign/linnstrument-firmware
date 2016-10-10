@@ -336,13 +336,13 @@ struct __attribute__ ((packed)) TouchInfo {
   byte vcount:4;                             // the number of times the pressure was measured to obtain a velocity
   boolean slideTransfer:1;                   // indicates whether this touch is part of a slide transfer
   boolean rogueSweepX:1;                     // indicates whether the last X position is a rogue sweep
-  byte pendingReleaseCount:3;                // counter before which the note release will be effective
+  byte pendingReleaseCount:2;                // counter before which the note release will be effective
   boolean featherTouch:1;                    // indicates whether this is a feather touch
   unsigned short pressureZ:10;               // the Z value with pressure sensitivity
 int :2;
   unsigned short previousRawZ:12;            // the previous raw Z value
 int :4;
-  bool phantomSet:1;                         // indicates whether phantom touch coordinates are set
+  boolean phantomSet:1;                      // indicates whether phantom touch coordinates are set
   byte velocity:7;                           // velocity from 0 to 127
   boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
   byte velocityZ:7;                          // the Z value with velocity sensitivity
@@ -452,7 +452,10 @@ enum DisplayMode {
   displaySleep,
   displaySleepConfig,
   displayRowOffset,
-  displayMIDIThrough
+  displayMIDIThrough,
+  displaySequencerProjects,
+  displaySequencerDrum0107,
+  displaySequencerDrum0814
 };
 DisplayMode displayMode = displayNormal;
 
@@ -617,7 +620,7 @@ struct DeviceSettings {
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
-  bool midiThrough;                          // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
 };
 #define Device config.device
 
@@ -717,8 +720,8 @@ struct StepEvent {
   void setDuration(unsigned short duration);
   byte getVelocity();
   void setVelocity(byte velocity);
-  short getPitchOffset();
-  void setPitchOffset(short pitchOffset);
+  signed char getPitchOffset();
+  void setPitchOffset(signed char pitchOffset);
   byte getTimbre();
   void setTimbre(byte timbre);
   byte getRow();
@@ -735,12 +738,12 @@ struct StepEvent {
   // the bit-wise arrangement is like below,
   // we can't rely on structure packing since
   // it will align each element on byte boundaries
-  // byte note:7;         // 0 to 127
-  // byte duration:10;    // 1 to 768 in 24 PPQ ticks
-  // byte velocity:7;     // 1 to 127
-  // char pitchOffset:8;  // -96 to 96 semitones
-  // byte timbre:7;       // 0 to 127
-  // byte row:3;          // 1 to 7
+  // byte note:7;                // 0 to 127
+  // byte duration:10;           // 1 to 768 in 24 PPQ ticks
+  // byte velocity:7;            // 1 to 127
+  // signed char pitchOffset:8;  // -96 to 96 semitones
+  // byte timbre:7;              // 0 to 127
+  // byte row:3;                 // 1 to 7
   byte data[6];
 };
 struct StepData {
@@ -758,8 +761,8 @@ struct SequencerPattern {
   StepData steps[MAX_SEQUENCER_STEPS];
   SequencerStepSize stepSize;             // see SequencerStepSize
   SequencerDirection sequencerDirection;  // see SequencerDirection
-  bool loopScreen;                        // on or off
-  bool swing;                             // on or off
+  boolean loopScreen;                     // on or off
+  boolean swing;                          // on or off
   byte length;                            // between 1 to 32 steps
 };
 struct StepSequencer {
@@ -848,6 +851,8 @@ inline int32_t FXD4_DIV(int32_t a, int32_t b) {
 const int32_t FXD_CONST_1 = FXD_FROM_INT(1);
 const int32_t FXD_CONST_2 = FXD_FROM_INT(2);
 const int32_t FXD_CONST_3 = FXD_FROM_INT(3);
+const int32_t FXD_CONST_50 = FXD_FROM_INT(50);
+const int32_t FXD_CONST_99 = FXD_FROM_INT(99);
 const int32_t FXD_CONST_100 = FXD_FROM_INT(100);
 const int32_t FXD_CONST_127 = FXD_FROM_INT(127);
 const int32_t FXD_CONST_255 = FXD_FROM_INT(255);

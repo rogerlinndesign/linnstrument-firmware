@@ -158,7 +158,7 @@ void handleMidiInput(unsigned long nowMicros) {
           // and all the other ones
           if (midiClockStatus == midiClockStart) {
             midiClockStatus = midiClockOn;
-            bool clockUpdated = checkUpdateClock(nowMicros);
+            boolean clockUpdated = checkUpdateClock(nowMicros);
             sequencersTurnOn();
             if (clockUpdated) {
               performCheckAdvanceArpeggiator();
@@ -266,7 +266,7 @@ void handleMidiInput(unsigned long nowMicros) {
       {
         // velocity 0 means the same as note off, so don't handle it further in this case
         if (midiData2 > 0) {
-          if (split != -1 && (split == LEFT || splitActive)) {
+          if (split != -1 && (split == Global.currentPerSplit || splitActive) && !isVisibleSequencerForSplit(split)) {
             // attempts to highlight the exact cell that belongs to a midi note and channel
             if (!highlightExactNoteCell(split, midiData1, midiChannel)) {
               // if there's not one exact location, we highlight all cells that could correspond to the note number
@@ -280,7 +280,7 @@ void handleMidiInput(unsigned long nowMicros) {
 
       case MIDINoteOff:
       {
-        if (split != -1 && (split == LEFT || splitActive)) {
+        if (split != -1 && (split == Global.currentPerSplit || splitActive) && !isVisibleSequencerForSplit(split)) {
           // attempts to reset the exact cell that belongs to a midi note and channel
           if (!resetExactNoteCell(split, midiData1, midiChannel)) {
             // if there's not one exact location, we reset all cells that could correspond to the note number

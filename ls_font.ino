@@ -1775,7 +1775,7 @@ static Character cond_0 = { 3,
   "0 0"
   "0 0"
   " 0 "
-  "     " };
+  "   " };
 
 static Character cond_1 = { 2,
   "  "
@@ -1867,6 +1867,16 @@ static Character cond_9 = { 3,
   " 0 "
   "   " };
 
+static Character cond_A = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  "000"
+  "0 0"
+  "0 0"
+  "0 0"
+  "   " };
+
 static Character cond_B = { 3,
   "   "
   "00 "
@@ -1876,6 +1886,56 @@ static Character cond_B = { 3,
   "0 0"
   "00 "
   "   " };
+
+static Character cond_C = { 3,
+  "   "
+  " 00"
+  "0  "
+  "0  "
+  "0  "
+  "0  "
+  " 00"
+  "   " };
+
+static Character cond_D = { 3,
+  "   "
+  "00 "
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  "00 "
+  "   " };
+
+static Character cond_E = { 3,
+  "   "
+  "000"
+  "0  "
+  "00 "
+  "0  "
+  "0  "
+  "000"
+  "   " };
+
+static Character cond_F = { 3,
+  "   "
+  "000"
+  "0  "
+  "00 "
+  "0  "
+  "0  "
+  "0  "
+  "   " };
+
+static Character cond_G = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  "0   "
+  "0 00"
+  "0  0"
+  " 00 "
+  "    " };
 
 static Character cond_H = { 3,
   "   "
@@ -1887,6 +1947,37 @@ static Character cond_H = { 3,
   "0 0"
   "   " };
 
+static Character cond_I = { 3,
+  "   "
+  "000"
+  " 0 "
+  " 0 "
+  " 0 "
+  " 0 "
+  "000"
+  "   " };
+
+static Character cond_J = { 3,
+  "   "
+  "  0"
+  "  0"
+  "  0"
+  "0 0"
+  "0 0"
+  " 0 "
+  "   " };
+
+static Character cond_K = { 4,
+  "    "
+  "0  0"
+  "0 0 "
+  "00  "
+  "00  "
+  "0 0 "
+  "0  0"
+  "    " };
+
+
 static Character cond_L = { 3,
   "   "
   "0  "
@@ -1895,6 +1986,76 @@ static Character cond_L = { 3,
   "0  "
   "0  "
   "000"
+  "   " };
+
+static Character cond_M = { 5,
+  "     "
+  "0   0"
+  "00 00"
+  "0 0 0"
+  "0   0"
+  "0   0"
+  "0   0"
+  "     " };
+
+static Character cond_N = { 4,
+  "    "
+  "0  0"
+  "00 0"
+  "0 00"
+  "0  0"
+  "0  0"
+  "0  0"
+  "    " };
+
+static Character cond_O = { 3,
+  "   "
+  " 0 "
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  " 0 "
+  "   " };
+
+static Character cond_P = { 3,
+  "   "
+  "00 "
+  "0 0"
+  "0 0"
+  "00 "
+  "0  "
+  "0  "
+  "   " };
+
+static Character cond_Q = { 4,
+  "    "
+  " 00 "
+  "0  0"
+  "0  0"
+  "0  0"
+  "0 0 "
+  " 0 0"
+  "    " };
+
+static Character cond_R = { 3,
+  "   "
+  "00 "
+  "0 0"
+  "0 0"
+  "00 "
+  "00 "
+  "0 0"
+  "   " };
+
+static Character cond_S = { 3,
+  "   "
+  " 00"
+  "0  "
+  " 0 "
+  "  0"
+  "  0"
+  "00 "
   "   " };
 
 static Character cond_T = { 3,
@@ -1906,6 +2067,36 @@ static Character cond_T = { 3,
   " 0 "
   " 0 "
   "   " };
+
+static Character cond_U = { 4,
+  "    "
+  "0  0"
+  "0  0"
+  "0  0"
+  "0  0"
+  "0  0"
+  " 00 "
+  "    " };
+
+static Character cond_V = { 5,
+  "     "
+  "0   0"
+  "0   0"
+  "0   0"
+  "0   0"
+  " 0 0 "
+  "  0  "
+  "     " };
+
+static Character cond_W = { 5,
+  "     "
+  "0   0"
+  "0   0"
+  "0   0"
+  "0 0 0"
+  "0 0 0"
+  " 0 0 "
+  "     " };
 
 static Character cond_X = { 3,
   "   "
@@ -1971,9 +2162,10 @@ Character* bigChars[] = {
 struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", bigChars };
 
 Character* condChars[] = {
-  &cond_blank, &cond_dot, &cond_div, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9, &cond_B, &cond_H, &cond_L, &cond_T, &cond_X, &cond_Y, &cond_Z
+  &cond_blank, &cond_dot, &cond_div, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9,
+  &cond_A, &cond_B, &cond_C, &cond_D, &cond_E, &cond_F, &cond_G, &cond_H, &cond_I, &cond_J, &cond_K, &cond_L, &cond_M, &cond_N, &cond_O, &cond_P, &cond_Q, &cond_R, &cond_S, &cond_T, &cond_U, &cond_V, &cond_W, &cond_X, &cond_Y, &cond_Z
 };
-struct Font condFont = { 8, " ./0123456789BHLTXYZ", condChars };
+struct Font condFont = { 8, " ./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", condChars };
 
 
 unsigned font_width_string(const char* str, struct Font* font) {

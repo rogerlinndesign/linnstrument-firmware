@@ -192,11 +192,11 @@ void refreshLedColumn(unsigned long now) {
 
   // keep a steady pulsating going for those leds that need it
   static unsigned long lastPulse = 0;
-  static bool lastPulseOn = true;
+  static boolean lastPulseOn = true;
   static unsigned long lastSlowPulse = 0;
-  static bool lastSlowPulseOn = true;
+  static boolean lastSlowPulseOn = true;
   static unsigned long lastFocusPulse = 0;
-  static bool lastFocusPulseOn = true;
+  static boolean lastFocusPulseOn = true;
 
   if (calcTimeDelta(now, lastPulse) > 80000) {
     lastPulse = now;

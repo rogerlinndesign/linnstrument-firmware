@@ -610,6 +610,15 @@ void handleNonPlayingTouch() {
     case displayEditAudienceMessage:
       handleEditAudienceMessageNewTouch();
       break;
+    case displaySequencerProjects:
+      handleSequencerProjectsNewTouch();
+      break;
+    case displaySequencerDrum0107:
+      handleSequencerDrum0107NewTouch();
+      break;
+    case displaySequencerDrum0814:
+      handleSequencerDrum0814NewTouch();
+      break;
   }
 }
 
@@ -1346,6 +1355,15 @@ boolean handleNonPlayingRelease() {
       case displayEditAudienceMessage:
         handleEditAudienceMessageRelease();
         break;
+      case displaySequencerProjects:
+        handleSequencerProjectsRelease();
+        break;
+      case displaySequencerDrum0107:
+        handleSequencerDrum0107Release();
+        break;
+      case displaySequencerDrum0814:
+        handleSequencerDrum0814Release();
+        break;
       default:
         return false;
     }
@@ -1356,7 +1374,7 @@ boolean handleNonPlayingRelease() {
   return false;
 }
 
-#define PENDING_RELEASE_CONTROL    3
+#define PENDING_RELEASE_CONTROL    1
 #define PENDING_RELEASE_MOVEMENT   3
 
 // Called when a touch is released to handle note off or other release events

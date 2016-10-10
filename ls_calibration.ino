@@ -161,7 +161,7 @@ signed char calculateCalibratedY(short rawY) {
   return result;
 }
 
-bool handleCalibrationSample() {
+boolean handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
     // only calibrate a deliberate touch that is at least half-way through the pressure sensitivity range
@@ -222,7 +222,7 @@ boolean handleCalibrationRelease() {
       // Scan all the calibration samples to see if at least two passes were made
       // for each cell of the rows
       if (calibrationPhase == calibrationRows) {
-        bool rowsOk = true;
+        boolean rowsOk = true;
         for (byte col = 1; col < NUMCOLS && rowsOk; ++col) {
           for (byte row = 0; row < CALROWNUM && rowsOk; ++row) {
             if (calSampleRows[col][row].pass < 2) {
@@ -239,7 +239,7 @@ boolean handleCalibrationRelease() {
       // Scan all the calibration samples to see if at least two passes were made
       // for each cell of the columns
       else if (calibrationPhase == calibrationCols) {
-        bool colsOk = true;
+        boolean colsOk = true;
 
         for (byte row = 0; row < NUMROWS && colsOk; ++row) {
           for (byte col = 0; col < CALCOLNUM && colsOk; ++col) {

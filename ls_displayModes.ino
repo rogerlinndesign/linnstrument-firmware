@@ -40,6 +40,9 @@ displaySleep                 : sleeping
 displaySleepConfig           : sleep mode configuration
 displayRowOffset             : custom row offset selection
 displayMIDIThrough           : MIDI through configuration
+displaySequencerProjects     : sequencer projects
+displaySequencerDrum0107     : sequencer first 7 drum notes
+displaySequencerDrum0814     : sequencer second 7 drum notes
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -47,7 +50,7 @@ These routines handle the painting of these display modes on LinnStument's 208 L
 
 unsigned long tapTempoLedOn = 0;       // indicates when the tap tempo clock led was turned on
 unsigned long displayModeStart = 0;    // indicates when the current display mode was activated
-bool blinkMiddleRootNote = false;      // indicates whether the middle root note should be blinking
+boolean blinkMiddleRootNote = false;   // indicates whether the middle root note should be blinking
 
 // changes the active display mode
 void setDisplayMode(DisplayMode mode) {
@@ -173,6 +176,15 @@ void updateDisplay() {
       break;
     case displayMIDIThrough:
       paintMIDIThrough();
+      break;
+    case displaySequencerProjects:
+      paintSequencerProjects();
+      break;
+    case displaySequencerDrum0107:
+      paintSequencerDrum0107();
+      break;
+    case displaySequencerDrum0814:
+      paintSequencerDrum0814();
       break;
   }
 

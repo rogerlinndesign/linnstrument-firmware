@@ -6,8 +6,8 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These implement the polyphonic expressive step sequencer, independently for each split.
 **************************************************************************************************/
 
-const byte SEQ_FADER_LENGTH = 7;
 const byte SEQ_FADER_TOP = 3;
+byte SEQ_FADER_LENGTH;
 byte SEQ_FADER_RIGHT;
 byte SEQ_FADER_LEFT;
 
@@ -50,7 +50,7 @@ byte SEQ_EVENTS_WIDTH;
 
 const byte SEQ_DURATION_EDIT_PANEL_COUNT = 17;
 
-const int32_t FXD_SEQ_DURATION_FADER_RATIO = FXD_DIV(FXD_FROM_INT(SEQ_FADER_LENGTH), FXD_FROM_INT(SEQ_DURATION_EDIT_PANEL_COUNT));
+int32_t FXD_SEQ_DURATION_FADER_RATIO;
 
 static unsigned long sequencerFaderChangeTime[4];
 static short sequencerFaderLastX[4];
@@ -59,6 +59,8 @@ static int sequencerDurationFaderValue = 0;
 static short sequencerCopyPatternSource = -1;
 static short sequencerCopySplitSource = -1;
 static short sequencerCopyStepSource = -1;
+
+static boolean sequencerSwitch1WasUsed = false;
 
 const byte seqDurationEditPanelChoices[SEQ_DURATION_EDIT_PANEL_COUNT] {
    1,  // StepSixtyfourthTriplet
@@ -149,7 +151,7 @@ struct StepSequencerState {
   StepData& getSensorStep();
   StepDataState& getSensorStepState();
   StepDataState& getStepState(byte stepNum);
-  bool findNoteSequencerCoordinate(StepEvent& event, byte& col, byte& row);
+  boolean findNoteSequencerCoordinate(StepEvent& event, byte& col, byte& row);
   void paintCurrentPatternStep(byte stepNum);
   void clearSequencer();
   void paintSequencer();
@@ -162,7 +164,7 @@ struct StepSequencerState {
   byte getDirectionColor();
   void paintFocusFaders();
   void clearFocusFader(byte row);
-  void paintFocusFader(byte row, int32_t fxdFaderPosition);
+  void paintFocusFader(byte row, byte value);
   void paintDurationFader(byte row, unsigned short duration);
   void paintPitchOffsetFader(byte row, short pitchOffset);
   void updateFocusState();
@@ -170,6 +172,7 @@ struct StepSequencerState {
   boolean getFocusStep(byte& stepNum);
   StepEvent* getFocusEvent(byte& stepNum);
   void changeFocus(byte stepNum, short eventNum);
+  void setEventFocus(byte stepNum, short eventNum, boolean focused);
   void cycleFocus(byte stepNum);
   CellDisplay getEventCellDisplay(byte stepNum, byte eventNum);
   byte getPositionLedColor(byte stepNum);
@@ -193,6 +196,8 @@ struct StepSequencerState {
   boolean muted;
   boolean advancingForward;
   boolean switch2Waiting;
+
+  StepEventState previewEvent;
 };
 StepSequencerState seqState[MAX_SEQUENCERS];
 
@@ -215,8 +220,11 @@ void initializeSequencer() {
   SEQ_CLEAR_COLUMN = NUMCOLS - 1;
   SEQ_COPY_COLUMN = NUMCOLS - 1;
 
+  SEQ_FADER_LENGTH = 8;
   SEQ_FADER_RIGHT = NUMCOLS - 1;
-  SEQ_FADER_LEFT = SEQ_FADER_RIGHT - SEQ_FADER_LENGTH;
+  SEQ_FADER_LEFT = SEQ_FADER_RIGHT - (SEQ_FADER_LENGTH - 1);
+
+  FXD_SEQ_DURATION_FADER_RATIO = FXD_DIV(FXD_FROM_INT(SEQ_FADER_LENGTH), FXD_FROM_INT(SEQ_DURATION_EDIT_PANEL_COUNT));
 
   SEQ_EVENTS_WIDTH = 16;
 
@@ -276,19 +284,47 @@ boolean sequencerIsRunning() {
   return seqState[LEFT].isRunning() || seqState[RIGHT].isRunning();
 }
 
-bool handleSequencerControlButtonNewTouch() {
-  if (!isVisibleSequencerForSplit(Global.currentPerSplit) &&
-      !(sensorRow == SPLIT_ROW &&
-        (Split[LEFT].sequencer || Split[RIGHT].sequencer))) {
+boolean isSequencerSettingsDisplayMode() {
+  return displayMode == displaySequencerProjects ||
+    displayMode == displaySequencerDrum0107 ||
+    displayMode == displaySequencerDrum0814;
+}
+
+boolean isControlButtonForSequencer() {
+  if (isVisibleSequencerForSplit(Global.currentPerSplit) ||
+      isSequencerSettingsDisplayMode()) {
+    switch (sensorRow) {
+      case SWITCH_1_ROW:
+      case SWITCH_2_ROW:
+      case SPLIT_ROW:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  if (sensorRow == SPLIT_ROW && (Split[LEFT].sequencer || Split[RIGHT].sequencer)) {
+    return true;
+  }
+
+  return false;
+}
+
+boolean handleSequencerControlButtonNewTouch() {
+  if (!isControlButtonForSequencer()) {
     return false;
   }
 
   switch (sensorRow) {
     case SWITCH_1_ROW:
+      sequencerSwitch1WasUsed = false;
       setLed(0, SWITCH_1_ROW, globalColor, cellOn);
-      return true;
+      break;
 
     case SWITCH_2_ROW:
+      if (isSwitch1Pressed()) {
+        sequencerSwitch1WasUsed = true;      
+      }
       seqState[Global.currentPerSplit].switch2Waiting = true;
       if (!seqState[Global.currentPerSplit].running) {
         seqState[Global.currentPerSplit].turnOn();
@@ -298,28 +334,38 @@ bool handleSequencerControlButtonNewTouch() {
           seqState[otherSplit(Global.currentPerSplit)].turnOn();
         }
       }
-      return true;
+      break;
 
     case SPLIT_ROW:
       resetAllTouches();
       setLed(0, SPLIT_ROW, globalColor, cellOn);
-      return true;
+      break;
   }
 
-  return false;
+  return true;
 }
 
-bool handleSequencerControlButtonRelease() {
-  if (!isVisibleSequencerForSplit(Global.currentPerSplit) &&
-      !(sensorRow == SPLIT_ROW &&
-        (Split[LEFT].sequencer || Split[RIGHT].sequencer))) {
+boolean handleSequencerControlButtonRelease() {
+  if (!isControlButtonForSequencer()) {
     return false;
   }
-  
+
   switch (sensorRow) {
     case SWITCH_1_ROW:
-      setLed(0, SWITCH_1_ROW, COLOR_OFF, cellOff);
-      return true;
+      clearLed(0, SWITCH_1_ROW);
+      if (!sequencerSwitch1WasUsed) {
+        if (isSequencerSettingsDisplayMode()) {
+          setDisplayMode(displayNormal);
+          updateDisplay();
+          storeSettings();
+        }
+        else {
+          setDisplayMode(displaySequencerProjects);
+          resetNumericDataChange();
+          updateDisplay();
+        }
+      }
+      break;
 
     case SWITCH_2_ROW:
       if (seqState[Global.currentPerSplit].switch2Waiting && calcTimeDelta(millis(), lastControlPress[sensorRow]) <= SWITCH_HOLD_DELAY) {
@@ -333,16 +379,21 @@ bool handleSequencerControlButtonRelease() {
         }
       }
       seqState[Global.currentPerSplit].switch2Waiting = false;
-      return true;
+      if (displayMode != displayNormal) {
+        setDisplayMode(displayNormal);
+        updateDisplay();
+      }
+      break;
 
     case SPLIT_ROW:
       setLed(0, SPLIT_ROW, COLOR_OFF, cellOff);
       Global.currentPerSplit = otherSplit(Global.currentPerSplit);
+      setDisplayMode(displayNormal);
       updateDisplay();
-      return true;
+      break;
   }
 
-  return false;
+  return true;
 }
 
 void handleSequencerTouch(boolean newVelocity) {
@@ -440,19 +491,19 @@ void handleSequencerRelease() {
   }
 }
 
-bool isWithinSequencerMuterArea() {
+boolean isWithinSequencerMuterArea() {
   return sensorCol == SEQ_MUTER_COLUMN && sensorRow >= SEQ_MUTER_BOTTOM && sensorRow <= SEQ_MUTER_TOP;
 }
 
-bool isOnSequencerClearAction() {
+boolean isOnSequencerClearAction() {
   return sensorCol == SEQ_CLEAR_COLUMN && sensorRow == SEQ_CLEAR_ROW;
 }
 
-bool isOnSequencerCopyAction() {
+boolean isOnSequencerCopyAction() {
   return sensorCol == SEQ_COPY_COLUMN && sensorRow == SEQ_COPY_ROW;
 }
 
-bool isWithinSequencerNavigationArea() {
+boolean isWithinSequencerNavigationArea() {
   if (sensorCol >= SEQ_NAVIGATION_LEFT && sensorCol <= SEQ_NAVIGATION_RIGHT) {
     switch (Split[sensorSplit].sequencerView) {
       case sequencerNotes:
@@ -467,15 +518,15 @@ bool isWithinSequencerNavigationArea() {
   return false;
 }
 
-bool isWithinSequencerPatternArea() {
+boolean isWithinSequencerPatternArea() {
   return sensorCol >= SEQ_PATTERN_SELECTOR_LEFT && sensorCol <= SEQ_PATTERN_SELECTOR_RIGHT && sensorRow >= SEQ_PATTERN_SELECTOR_BOTTOM && sensorRow <= SEQ_PATTERN_SELECTOR_TOP;
 }
 
-bool isWithinSequencerPerformanceSettingsArea() {
+boolean isWithinSequencerPerformanceSettingsArea() {
   return sensorCol >= SEQ_VIEW_COLUMN && sensorRow <= SEQ_VIEW_TOP && sensorCol <= SEQ_DIRECTION_COLUMN && sensorRow >= SEQ_VIEW_BOTTOM;
 }
 
-bool isWithinSequencerFaderArea() {
+boolean isWithinSequencerFaderArea() {
   return sensorCol >= SEQ_FADER_LEFT && sensorRow <= SEQ_FADER_TOP;
 }
 
@@ -532,6 +583,7 @@ void handleSequencerLowRowTouch(boolean newVelocity) {
       cellTouched(ignoredCell);
     }
     else if (isSwitch1Pressed()) {
+      sequencerSwitch1WasUsed = true;
       state.getCurrentPattern().length = sensorCol + state.positionOffset;
       state.paintLowRow();
     }
@@ -634,7 +686,7 @@ void handleSequencerStepSizeRelease() {
 
   const SequencerStepSize currentStepSize = state.getCurrentPattern().stepSize;
   SequencerStepSize newStepSize = currentStepSize;
-  bool newSwing = state.getCurrentPattern().swing;
+  boolean newSwing = state.getCurrentPattern().swing;
 
   if (sensorCol == SEQ_STEPSIZE_RIGHT) {
     if ((sensorRow == SEQ_STEPSIZE_TOP && cell(sensorCol, SEQ_STEPSIZE_BOTTOM).touched != untouchedCell) ||
@@ -779,6 +831,19 @@ void handleSequencerStepSizeRelease() {
   }
 
   if (newStepSize != currentStepSize || newSwing != state.getCurrentPattern().swing) {
+    if (state.isRunning()) {
+      // adapt the remaining ticks until the next step to ensure that it falls on a multiple of the new step size
+      short currentPositionTicks = state.currentPosition * currentStepSize + (currentStepSize - state.ticksUntilNextStep);
+
+      short newRemaining = (currentPositionTicks % newStepSize);
+      if (newRemaining == 0) {
+        state.ticksUntilNextStep = 0;
+      }
+      else {
+        state.ticksUntilNextStep = ((currentPositionTicks / newStepSize) + 1) * newStepSize - currentPositionTicks;
+      }
+    }
+
     state.getCurrentPattern().stepSize = newStepSize;
     state.getCurrentPattern().swing = newSwing;
     seqState[sensorSplit].paintSequencer();
@@ -858,7 +923,7 @@ void handleSequencerNavigationTouch() {
       newRowOffset = 7;
     }
   }
-  bool refreshDisplay = false;
+  boolean refreshDisplay = false;
   if (newPositionOffset != -1 && newPositionOffset != state.positionOffset) {
     state.positionOffset = newPositionOffset;
     refreshDisplay = true;
@@ -952,13 +1017,9 @@ void handleSequencerFaderTouch(boolean newVelocity) {
   if (focus && sensorCell->hasUsableX()) {
     boolean changed = false;
     if (newVelocity) {
-      // clear the sequencer area to be able to show the value display
-      state.clearSequencer();
-
       // if a new touch happens on the same row, set the fader to its neutral value
       for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
         if (col != sensorCol && cell(col, sensorRow).velocity) {
-          cellTouched(col, sensorRow, ignoredCell);
           cellTouched(sensorCol, sensorRow, ignoredCell);
           focus->setFaderValue(sensorRow, focus->getFaderNeutral(sensorRow, sensorSplit));
           changed = true;
@@ -992,7 +1053,7 @@ void handleSequencerFaderTouch(boolean newVelocity) {
         case 3:
         {
           paintNumericDataDisplay(Split[sensorSplit].colorMain, focus->getVelocity(), 0, false);
-          state.paintFocusFader(3, fxdCalculateFaderPosition(focus->getVelocity(), SEQ_FADER_LEFT, SEQ_FADER_LENGTH));
+          state.paintFocusFader(3, focus->getVelocity());
           break;
         }
         case 2:
@@ -1018,7 +1079,7 @@ void handleSequencerFaderTouch(boolean newVelocity) {
         case 0:
         {
           paintNumericDataDisplay(Split[sensorSplit].colorMain, focus->getTimbre(), 0, false);
-          state.paintFocusFader(0, fxdCalculateFaderPosition(focus->getTimbre(), SEQ_FADER_LEFT, SEQ_FADER_LENGTH));
+          state.paintFocusFader(0, focus->getTimbre());
           break;
         }
       }
@@ -1041,6 +1102,14 @@ void handleSequencerFaderRelease() {
   }
 
   if (!transfered) {
+    // preview the event when the fader is released
+    if (!state.running && !state.muted) {
+      byte focusStepNum;
+      StepEvent* focus = state.getFocusEvent(focusStepNum);
+      state.previewEvent.sendNoteOn(*focus, state.split);
+    }
+
+    // repaint the sequencer and remove the numeric display
     state.paintSequencer();
   }
 }
@@ -1090,15 +1159,18 @@ void handleStepEditingReleaseDrums() {
 }
 
 void updateSequencerSwitchLeds() {
-  if (!isVisibleSequencerForSplit(Global.currentPerSplit)) {
-    return;
+  if (isVisibleSequencerForSplit(Global.currentPerSplit) ||
+      isSequencerSettingsDisplayMode()) {
+    if (seqState[Global.currentPerSplit].running) {
+      setLed(0, SWITCH_2_ROW, COLOR_GREEN, cellOn);
+    }
+    else {
+      clearLed(0, SWITCH_2_ROW);
+    }
   }
 
-  if (seqState[Global.currentPerSplit].running) {
-    setLed(0, SWITCH_2_ROW, COLOR_GREEN, cellOn);
-  }
-  else {
-    clearLed(0, SWITCH_2_ROW);
+  if (isSequencerSettingsDisplayMode()) {
+    lightLed(0, SWITCH_1_ROW);
   }
 }
 
@@ -1107,6 +1179,167 @@ void paintSequencerDisplay(byte split) {
   clearDisplay();
   seqState[split].paintSequencerUnbuffered();
   finishBufferedLeds();
+}
+
+
+//
+// Sequencer settings panels
+//
+
+static unsigned long lastLegendDisplay = millis();
+static boolean legendVisible = false;
+
+void checkLegendDisplayTimeout(unsigned long nowMillis) {
+  if (legendVisible && calcTimeDelta(nowMillis, lastLegendDisplay) >= 2000) {
+    updateDisplay();
+    legendVisible = false;
+  }
+}
+
+void displaySettingsLegend(unsigned long nowMillis, const char* str) {
+  for (byte row = 1; row < NUMROWS; ++row) {
+    for (byte col = 1; col < NUMCOLS; ++col) {
+      clearLed(col, row);
+    }
+    performContinuousTasks(micros());
+  }
+
+  condfont_draw_string(0, 0, str, Split[Global.currentPerSplit].colorMain, false);
+  lastLegendDisplay = nowMillis;
+  legendVisible = true;
+}
+
+void handleSequencerSettingsLowRowTouch() {
+  static DisplayMode nextSequencerSettingsDisplay = displayNormal;
+  static unsigned long lastLowRowTouch = 0;
+
+  unsigned long nowMillis = millis();
+
+  if (sensorCol == NUMCOLS/2 - 1) {
+    if (nextSequencerSettingsDisplay == displaySequencerProjects) {
+      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
+      if (delta > 100 && delta < 2000) {
+        resetNumericDataChange();
+        setDisplayMode(displaySequencerProjects);
+        updateDisplay();
+      }
+    }
+    else {
+      nextSequencerSettingsDisplay = displaySequencerProjects;
+      displaySettingsLegend(nowMillis, "PROJ");
+    }
+  }
+  else if (sensorCol == NUMCOLS/2) {
+    if (nextSequencerSettingsDisplay == displaySequencerDrum0107) {
+      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
+      if (delta > 100 && delta < 2000) {
+        resetNumericDataChange();
+        setDisplayMode(displaySequencerDrum0107);
+        updateDisplay();
+      }
+    }
+    else {
+      nextSequencerSettingsDisplay = displaySequencerDrum0107;
+      displaySettingsLegend(nowMillis, "DRU1");
+    }
+  }
+  else if (sensorCol == NUMCOLS/2 + 1) {
+    if (nextSequencerSettingsDisplay == displaySequencerDrum0814) {
+      unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
+      if (delta > 100 && delta < 2000) {
+        resetNumericDataChange();
+        setDisplayMode(displaySequencerDrum0814);
+        updateDisplay();
+      }
+    }
+    else {
+      nextSequencerSettingsDisplay = displaySequencerDrum0814;
+      displaySettingsLegend(nowMillis, "DRU2");
+    }
+  }
+
+  lastLowRowTouch = nowMillis;
+}
+
+void paintSequencerSettingsLowRow() {
+  setLed(NUMCOLS/2 - 1, 0, displayMode == displaySequencerProjects ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2    , 0, displayMode == displaySequencerDrum0107 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2 + 1, 0, displayMode == displaySequencerDrum0814 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+}
+
+void paintSequencerProjects() {
+  clearDisplay();
+  paintSequencerSettingsLowRow();
+}
+
+void handleSequencerProjectsNewTouch() {
+  if (sensorRow == 0) {
+    handleSequencerSettingsLowRowTouch();
+  }
+}
+
+void handleSequencerProjectsRelease() {
+
+}
+
+static byte sequencerDrum0107RowNum = 1;
+
+void paintSequencerDrum0107() {
+  clearDisplay();
+
+  for (byte r = 1; r < NUMROWS; ++r) {
+    setLed(1, r, sequencerDrum0107RowNum == r ? Split[Global.currentPerSplit].colorAccent : Split[Global.currentPerSplit].colorMain, cellOn);
+  }
+
+  paintSplitNumericDataDisplay(Global.currentPerSplit, Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 2, true);
+  paintSequencerSettingsLowRow();
+}
+
+void handleSequencerDrum0107NewTouch() {
+  if (sensorRow == 0) {
+    handleSequencerSettingsLowRowTouch();
+  }
+  else if (sensorCol == 1) {
+    sequencerDrum0107RowNum = sensorRow;
+    updateDisplay();
+  }
+  else {
+    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 0, 127, true);
+  }
+}
+
+void handleSequencerDrum0107Release() {
+  handleNumericDataReleaseCol(true);
+}
+
+static byte sequencerDrum0814RowNum = 1;
+
+void paintSequencerDrum0814() {
+  clearDisplay();
+
+  for (byte r = 1; r < NUMROWS; ++r) {
+    setLed(1, r, sequencerDrum0814RowNum == r ? Split[Global.currentPerSplit].colorAccent : Split[Global.currentPerSplit].colorMain, cellOn);
+  }
+
+  paintSplitNumericDataDisplay(Global.currentPerSplit, Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 2, true);
+  paintSequencerSettingsLowRow();
+}
+
+void handleSequencerDrum0814NewTouch() {
+  if (sensorRow == 0) {
+    handleSequencerSettingsLowRowTouch();
+  }
+  else if (sensorCol == 1) {
+    sequencerDrum0814RowNum = sensorRow;
+    updateDisplay();
+  }
+  else {
+    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 0, 127, true);
+  }
+}
+
+void handleSequencerDrum0814Release() {
+  handleNumericDataReleaseCol(true);
 }
 
 
@@ -1198,11 +1431,11 @@ void StepEvent::setVelocity(byte note) {
   data[2] = (data[2] & B10000000) | (note & B01111111);
 }
 
-short StepEvent::getPitchOffset() {
+signed char StepEvent::getPitchOffset() {
   return (signed char)data[3];
 }
 
-void StepEvent::setPitchOffset(short pitchOffset) {
+void StepEvent::setPitchOffset(signed char pitchOffset) {
   data[3] = pitchOffset;
 }
 
@@ -1262,7 +1495,7 @@ int StepEvent::getFaderMin(byte fader) {
     case 2:
       return 0;
     case 1:
-      return -96;
+      return -50;
     case 0:
       return 0;
   }
@@ -1276,7 +1509,7 @@ int StepEvent::getFaderMax(byte fader) {
     case 2:
       return SEQ_DURATION_EDIT_PANEL_COUNT-1;
     case 1:
-      return 96;
+      return 50;
     case 0:
       return 127;
   }
@@ -1312,8 +1545,8 @@ boolean StepEvent::calculateSequencerFaderValue(boolean newVelocity) {
   byte fader = sensorRow;
   int prev = getFaderValue(fader);
   int value = prev;
-  byte sensitivity = FXD_TO_INT(FXD_DIV(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_3));
-  if (sensorRow == 1 || sensorRow == 2) {
+  byte sensitivity = FXD_TO_INT(FXD_DIV(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2));
+  if (sensorRow == 2) {
     sensitivity = FXD_TO_INT(FXD_CALX_DEFAULT_CELL_WIDTH);
   }
 
@@ -1326,13 +1559,13 @@ boolean StepEvent::calculateSequencerFaderValue(boolean newVelocity) {
     unsigned long now = micros();
 
     byte increment = 1;
-    if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 30000) {
+    if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 70000) {
       increment = 5;
     }
-    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 50000) {
+    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 80000) {
       increment = 3;
     }
-    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 80000) {
+    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 100000) {
       increment = 2;
     }
 
@@ -1378,6 +1611,10 @@ boolean StepEventState::isActive() {
 }
 
 void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
+  if (isActive()) {
+    sendNoteOff();
+  }
+
   split = splitNum;
   channel = takeChannel(split);
   note = event.getNote() + Split[splitNum].transposePitch + Split[sensorSplit].transposeOctave;
@@ -1385,8 +1622,7 @@ void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
 
   if (Split[split].sendX) {
     short range = getBendRange(split);
-    short offset = constrain(event.getPitchOffset(), -range, range);
-    midiSendPitchBend((offset * 8192) / range, channel);
+    midiSendPitchBend((event.getPitchOffset() * 8192) / (100 * range), channel);
   }
 
   if (Split[split].sendY) {
@@ -1478,6 +1714,8 @@ void StepSequencerState::clear() {
     advancingForward = true;
     switch2Waiting = false;
     focused = false;
+
+    previewEvent.reset();
   }
 }
 
@@ -1563,11 +1801,6 @@ void StepSequencerState::createNewEvent(int noteNum, byte stepNum, byte eventNum
   // create a new event
   event.setNewEvent(noteNum, sensorCell->velocity, getCurrentPattern().stepSize, sensorCell->calibratedY(), sensorRow);
 
-  // if the sequencer is not running and is not muted, send out the note for this event
-  if (!running && !muted) {
-    stepState.events[eventNum].sendNoteOn(event, split);
-  }
-
   // set the focus to this event
   changeFocus(stepNum, eventNum);
 }
@@ -1598,9 +1831,6 @@ void StepSequencerState::handleStepEditingRelease(int noteNum, byte stepNum) {
         eventState.reset();
 
         deletedEvent = true;
-    }
-    else if (event.getNote() == noteNum) {
-      eventState.sendNoteOff();
     }
   }
 
@@ -1711,6 +1941,16 @@ boolean StepSequencerState::isRunning() {
 }
 
 void StepSequencerState::advanceSequencer() {
+  // handle the preview event's duration
+  if (previewEvent.isActive()) {
+    previewEvent.tick();
+    if (previewEvent.remainingDuration == 0) {
+      previewEvent.sendNoteOff();
+      previewEvent.reset();
+    }
+  }
+
+  // step sequencer advancement logic
   if (isRunning()) {
 
     // count down all active step events
@@ -1920,7 +2160,7 @@ void StepSequencerState::setPosition(byte stepNum) {
     if (event.hasData()) {
       StepEventState& eventState = steps[stepNum].events[e];
       // if this event still is ongoing, stop it first
-      if (eventState.remainingDuration > 0) {
+      if (eventState.isActive()) {
         eventState.sendNoteOff();
       }
       if (!muted) {
@@ -1995,8 +2235,8 @@ StepDataState& StepSequencerState::getSensorStepState() {
   return getStepState(getSensorSequencerPosition());
 }
 
-bool StepSequencerState::findNoteSequencerCoordinate(StepEvent& event, byte& col, byte& row) {
-  bool foundMatch = false;
+boolean StepSequencerState::findNoteSequencerCoordinate(StepEvent& event, byte& col, byte& row) {
+  boolean foundMatch = false;
   short rowDistance = 0;
   while (!foundMatch && abs(rowDistance) < NUMROWS) {
     short r = event.getRow() + rowDistance;
@@ -2284,10 +2524,10 @@ void StepSequencerState::paintFocusFaders() {
   StepEvent* focus = getFocusEvent(focusStepNum);
 
   if (focus) {
-    paintFocusFader(3, fxdCalculateFaderPosition(focus->getVelocity(), SEQ_FADER_LEFT, SEQ_FADER_LENGTH));
+    paintFocusFader(3, focus->getVelocity());
     paintDurationFader(2, focus->getDuration());
     paintPitchOffsetFader(1, focus->getPitchOffset());
-    paintFocusFader(0, fxdCalculateFaderPosition(focus->getTimbre(), SEQ_FADER_LEFT, SEQ_FADER_LENGTH));
+    paintFocusFader(0, focus->getTimbre());
   }
   else {
     for (byte row = 0; row <= 3; ++row) {
@@ -2302,7 +2542,9 @@ void StepSequencerState::clearFocusFader(byte row) {
   }
 }
 
-void StepSequencerState::paintFocusFader(byte row, int32_t fxdFaderPosition) {
+void StepSequencerState::paintFocusFader(byte row, byte value) {
+  int32_t fxdFaderPosition = fxdCalculateFaderPosition(value, SEQ_FADER_LEFT, SEQ_FADER_LENGTH) - CALX_HALF_UNIT;
+
   for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
     if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
       setLed(col, row, Split[split].colorAccent, cellOn);
@@ -2341,36 +2583,26 @@ void StepSequencerState::paintDurationFader(byte row, unsigned short duration) {
 }
 
 void StepSequencerState::paintPitchOffsetFader(byte row, short pitchOffset) {
-  byte color;
+  int32_t fxdFaderPosition = fxdCalculateFaderPosition(abs(pitchOffset), SEQ_FADER_LEFT, SEQ_FADER_LENGTH, FXD_CONST_50) - CALX_HALF_UNIT;
+
   if (pitchOffset >= 0) {
-    color = Split[split].colorMain;
+    for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
+      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+        clearLed(col, row);
+      }
+      else {
+        setLed(col, row, Split[split].colorMain, cellOn);
+      }
+    }
   }
   else {
-    color = Split[split].colorPlayed;
-  }
-
-  CellDisplay display;
-  if (abs(pitchOffset) <= SEQ_FADER_LENGTH + 1) {
-    display = cellOn;
-  }
-  else {
-    display = cellFocusPulse;
-  }
-
-  for (short index = SEQ_FADER_LENGTH; index >= 0; --index) {
-    byte col;
-    if (pitchOffset >= 0) {
-      col = index + SEQ_FADER_LEFT;
-    }
-    else {
-      col = SEQ_FADER_RIGHT - index;
-    }
-
-    if (index + 1 <= abs(pitchOffset)) {
-      setLed(col, row, color, display);
-    }
-    else {
-      setLed(col, row, Split[split].colorAccent, display);
+    for (byte col = SEQ_FADER_LEFT; col <= SEQ_FADER_RIGHT; ++col) {
+      if (Device.calRows[SEQ_FADER_RIGHT - col + SEQ_FADER_LEFT][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+        clearLed(col, row);
+      }
+      else {
+        setLed(col, row, Split[split].colorPlayed, cellOn);
+      }
     }
   }
 }
@@ -2419,7 +2651,7 @@ void StepSequencerState::changeFocus(byte stepNum, short eventNum) {
     if (s != stepNum && !steps[s].focused) continue;
 
     for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
-      steps[s].events[e].focused = (stepNum == s) && (eventNum == e);
+      setEventFocus(s, e, (stepNum == s) && (eventNum == e));
     }
 
     boolean focusedStep = (stepNum == s);
@@ -2435,6 +2667,19 @@ void StepSequencerState::changeFocus(byte stepNum, short eventNum) {
 
   paintLowRow();
   paintFocusFaders();
+}
+
+void StepSequencerState::setEventFocus(byte stepNum, short eventNum, boolean focused) {
+  StepEventState& eventState = steps[stepNum].events[eventNum];
+  eventState.focused = focused;
+
+  if (focused) {
+    StepData& step = seqState[split].getCurrentPatternStep(stepNum);
+    StepEvent& event = step.events[eventNum];
+    if (!running && !muted) {
+      previewEvent.sendNoteOn(event, split);
+    }
+  }
 }
 
 void StepSequencerState::cycleFocus(byte stepNum) {
@@ -2466,7 +2711,7 @@ void StepSequencerState::cycleFocus(byte stepNum) {
               }
             }
             if (focusedEventIdx >= 0) {
-              steps[s].events[focusedEventIdx].focused = true;
+              setEventFocus(s, focusedEventIdx, true);
             }
             break;
           }
@@ -2478,7 +2723,7 @@ void StepSequencerState::cycleFocus(byte stepNum) {
               for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
                 StepEvent& event = step.events[e];
                 if (event.hasData() && getRowNoteNum(seqRow) == event.getNote()) {
-                  steps[s].events[e].focused = true;
+                  setEventFocus(s, e, true);
                   focusedStep = true;
                   break;
                 }
@@ -2518,7 +2763,7 @@ void StepSequencerState::cycleFocus(byte stepNum) {
                 }
               }
               if (focusedEventIdx >= 0) {
-                steps[s].events[focusedEventIdx].focused = true;
+                setEventFocus(s, focusedEventIdx, true);
                 focusedStep = true;
               }
             }
@@ -2537,7 +2782,7 @@ void StepSequencerState::cycleFocus(byte stepNum) {
                     unfocusedEvent = true;
                   }
                   else if (unfocusedEvent && !focusedStep && !steps[s].events[e].focused) {
-                    steps[s].events[e].focused = true;
+                    setEventFocus(s, e, true);
                     focusedStep = true;
                     break;
                   }

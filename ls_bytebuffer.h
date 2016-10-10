@@ -37,7 +37,7 @@ public:
     return result;
   }
 
-  bool empty() const {
+  boolean empty() const {
     return write_ == read_;
   }
 

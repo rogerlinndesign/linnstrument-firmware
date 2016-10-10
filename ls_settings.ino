@@ -662,7 +662,7 @@ void handleControlButtonNewTouch() {
   }
  
   // determine whether a double-tap happened on the switch (ie. second tap within 500 ms)
-  bool doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 500);
+  boolean doubleTap = (calcTimeDelta(millis(), lastControlPress[sensorRow]) < 500);
 
   lastControlPress[sensorRow] = millis();              // keep track of the last press
 
@@ -1512,7 +1512,7 @@ boolean handleShowSplit() {
       // if we're in sub-menus of the per-split settings and the active split cell is tapped again
       // it goes back to the main per-split settings menu
       if (Global.currentPerSplit == newSplit) {
-        if (displayMode != displayVolume && displayMode != displayOctaveTranspose) {
+        if (displayMode != displayVolume && displayMode != displayOctaveTranspose && !isSequencerSettingsDisplayMode()) {
           setDisplayMode(displayPerSplit);
         }
       }
