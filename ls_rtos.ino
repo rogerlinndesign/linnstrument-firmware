@@ -207,4 +207,14 @@ inline void checkStopBlinkingLeds(unsigned long now) {
       }
     }
   }
+
+  // check if there are blinking project LEDs that need to be reset
+  if (displayMode == displaySequencerProjects) {
+    for (byte p = 0; p < MAX_PROJECTS; ++p) {
+      if (projectBlinkStart[p] != 0 && calcTimeDelta(now, projectBlinkStart[p]) > 1200) {
+        setLed(6 + p%4, 2 + p/4, globalColor, cellOn);
+        projectBlinkStart[p] = 0;
+      }
+    }
+  }
 }

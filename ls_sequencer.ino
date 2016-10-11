@@ -1274,6 +1274,11 @@ void paintSequencerSettingsLowRow() {
 
 void paintSequencerProjects() {
   clearDisplay();
+
+  for (byte p = 0; p < MAX_PROJECTS; ++p) {
+    setLed(6 + p%4, 2 + p/4, globalColor, cellOn);
+  }
+
   paintSequencerSettingsLowRow();
 }
 
@@ -1281,10 +1286,55 @@ void handleSequencerProjectsNewTouch() {
   if (sensorRow == 0) {
     handleSequencerSettingsLowRowTouch();
   }
+  if (sensorCol >= 6 && sensorCol < 10 && sensorRow >= 2 && sensorRow < 6) {
+    // start tracking the touch duration to be able detect a long press
+    sensorCell->lastTouch = millis();
+    // indicate that a hold operation is being waited for
+    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+  }
+}
+
+void startProjectLEDBlink(byte p, byte color) {
+  unsigned long now = millis();
+  if (now == 0) {
+    now = ~now;
+  }
+  projectBlinkStart[p] = now;
+
+  setLed(6 + p%4, 2 + p/4, color, cellFastPulse);
+}
+
+void handleSequencerProjectsHold() {
+  if (sensorCol >= 6 && sensorCol < 10 &&
+      sensorRow >= 2 && sensorRow < 6 &&
+      isCellPastEditHoldWait()) {
+    // store to the selected project
+    sequencersTurnOff();
+
+    byte project = sensorCol-6 + (sensorRow-2) * 4;
+
+    writeProjectToFlash(project);
+    sensorCell->lastTouch = 0;
+
+    updateDisplay();
+    startProjectLEDBlink(project, COLOR_RED);
+  }
 }
 
 void handleSequencerProjectsRelease() {
+  if (sensorCol >= 6 && sensorCol < 10 &&
+      sensorRow >= 2 && sensorRow < 6 &&
+      ensureCellBeforeHoldWait(globalColor, cellOn)) {
+    // load the selected project
+    sequencersTurnOff();
 
+    byte project = sensorCol-6 + (sensorRow-2) * 4;
+    loadProject(project);
+    sensorCell->lastTouch = 0;
+
+    updateDisplay();
+    startProjectLEDBlink(project, COLOR_GREEN);
+  }
 }
 
 static byte sequencerDrum0107RowNum = 1;

@@ -649,6 +649,11 @@ boolean handleXYZupdate() {
       case displayGlobalWithTempo:
         handleGlobalSettingHold();
         return false;
+
+      case displaySequencerProjects:
+        handleSequencerProjectsHold();
+        break;
+
       default:
         // other displays don't need hold features
         break;

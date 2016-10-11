@@ -141,6 +141,7 @@ byte NUMROWS;                        // number of touch sensor rows
 #define MAX_TOUCHES_IN_COLUMN  3
 
 // Sequencer constants
+#define MAX_PROJECTS              16
 #define MAX_SEQUENCERS            2
 #define MAX_SEQUENCER_PATTERNS    4
 #define MAX_SEQUENCER_STEPS       32
@@ -947,6 +948,7 @@ byte lowRowCCXYZConfigState = 3;                    // the last state of the adv
 byte sleepConfigState = 1;                          // the last state of the sleep configuration, this counts down to go to further pages
 
 unsigned long presetBlinkStart[NUMPRESETS];         // the moments at which the preset LEDs started blinking
+unsigned long projectBlinkStart[MAX_PROJECTS];      // the moments at which the project LEDs started blinking
 
 boolean controlModeActive = false;                  // indicates whether control mode is active, detecting no expression but very sensitive cell presses intended for fast typing
 

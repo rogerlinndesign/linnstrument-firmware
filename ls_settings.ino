@@ -80,6 +80,7 @@ void initializeStorage() {
       Device.serialMode = false;
     }
 
+    writeInitialProjectSettings();
     writeSettingsToFlash();                               // Store the initial default settings
 
     dueFlashStorage.write(0, 0);                          // Zero out the firstTime location.
@@ -102,16 +103,62 @@ void storeSettings() {
   }
 }
 
-const int SETTINGS_OFFSET = 4+18*sizeof(SequencerProject);
+static int alignToByteBoundary(int value) {
+  if (value % 4 == 0) {
+    return value;
+  }
+
+  return ((value / 4) + 1) * 4;
+}
+const int PROJECTS_OFFSET = 4;
+const int PROJECT_VERSION_MARKER_SIZE = 4;
+const int PROJECT_INDEXES_COUNT = 20;
+const int PROJECTS_MARKERS_SIZE = alignToByteBoundary(PROJECT_VERSION_MARKER_SIZE + 2 * PROJECT_INDEXES_COUNT);    // one version marker, two series on indexes for project references
+const int SINGLE_PROJECT_SIZE = alignToByteBoundary(sizeof(SequencerProject));
+const int ALL_PROJECTS_SIZE = PROJECTS_MARKERS_SIZE + 17*SINGLE_PROJECT_SIZE;
+const int SETTINGS_OFFSET = PROJECTS_OFFSET + alignToByteBoundary(ALL_PROJECTS_SIZE);
+
+void writeAdaptivelyToFlash(uint32_t offset, byte* source, int length) {
+  // batch and slow down the flash storage in low power mode
+  if (Device.operatingLowPower) {
+    unsigned long now = millis();
+
+    // ensure that there's at least 50 milliseconds between refreshing the display lights and writing to flash
+    unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
+    if (displayModeDelta < 50) {
+      delayUsec((50 - displayModeDelta) * 1000);
+    }
+
+    // write the configuration data
+    byte batchsize = 128;
+    int total = length;
+    int i = 0;
+    while (i+batchsize < total) {
+      dueFlashStorage.write(offset+i, source+i, batchsize);
+      i += batchsize;
+      delayUsec(100);
+    }
+
+    int remaining = total - i;
+    if (remaining > 0) {
+      dueFlashStorage.write(offset+i, source+i, remaining);
+    }
+    delayUsec(100);
+  }
+  // do the faster possible flash storage in regular power mode
+  else {
+    dueFlashStorage.write(offset, source, length);
+  }
+}
 
 void writeSettingsToFlash() {
-  DEBUGPRINT((2,"storeSettings flash size="));
+  DEBUGPRINT((2,"writeSettingsToFlash size="));
   DEBUGPRINT((2,sizeof(Configuration)));
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
   clearDisplayImmediately();
-  clearDisplay();
+  clearFullDisplay();
   completelyRefreshLeds();
 
   // read the marker to know which configuration version was last written successfully
@@ -128,49 +175,11 @@ void writeSettingsToFlash() {
     configOffset = 0;
   }
 
-  // batch and slow down the flash storage in low power mode
-  if (Device.operatingLowPower) {
-    unsigned long now = millis();
+  // write to flash, taking low power mode into account
+  writeAdaptivelyToFlash(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset, (byte*)&config, sizeof(Configuration));
 
-    // ensure that there's at least 50 milliseconds between refreshing the display lights and writing to flash
-    unsigned long displayModeDelta = calcTimeDelta(now, displayModeStart);
-    if (displayModeDelta < 50) {
-      delayUsec((50 - displayModeDelta) * 1000);
-    }
-
-    // write the configuration data
-    uint32_t offset = SETTINGS_OFFSET+sizeof(unsigned long)+configOffset;
-
-    byte batchsize = 128;
-    byte* source = (byte*)&config;
-    int total = sizeof(Configuration);
-    int i = 0;
-    while (i+batchsize < total) {
-      dueFlashStorage.write(offset+i, source+i, batchsize);
-      i += batchsize;
-      delayUsec(100);
-    }
-
-    int remaining = total - i;
-    if (remaining > 0) {
-      dueFlashStorage.write(offset+i, source+i, remaining);
-    }
-    delayUsec(100);
-
-    // write the marker after the configuration data so that this version becomes to latest coherent one
-    dueFlashStorage.write(SETTINGS_OFFSET, marker);
-    delayUsec(100);
-  }
-  // do the faster possible flash storage in regular power mode
-  else {
-    byte b2[sizeof(Configuration)];
-    memcpy(b2, &config, sizeof(Configuration));
-
-    // write the configuration data
-    dueFlashStorage.write(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset, b2, sizeof(Configuration));
-    // write the marker after the configuration data so that this version becomes to latest coherent one
-    dueFlashStorage.write(SETTINGS_OFFSET, marker);
-  }
+  // write the marker after the configuration data so that this version becomes to latest coherent one
+  dueFlashStorage.write(SETTINGS_OFFSET, marker);
 
   updateDisplay();
 }
@@ -184,6 +193,67 @@ void loadSettings() {
     configOffset = sizeof(Configuration);
   }
   memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));
+}
+
+#define PROJECT_INDEX_OFFSET(marker, index)   (PROJECTS_OFFSET + PROJECT_VERSION_MARKER_SIZE + marker * PROJECT_INDEXES_COUNT + index)
+
+void writeInitialProjectSettings() {
+  dueFlashStorage.write(PROJECTS_OFFSET, 0);
+
+  for (byte i = 0; i < PROJECT_INDEXES_COUNT; ++i) {
+    dueFlashStorage.write(PROJECT_INDEX_OFFSET(0, i), i);
+    dueFlashStorage.write(PROJECT_INDEX_OFFSET(1, i), i);
+  }
+
+  for (byte p = 0; p < 17; ++p) {
+    writeProjectToFlashRaw(p);
+  }
+}
+
+void writeProjectToFlashRaw(byte project) {
+  // write to flash, taking low power mode into account
+  uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + project * SINGLE_PROJECT_SIZE;
+  writeAdaptivelyToFlash(projectOffset, (byte*)&Project, sizeof(SequencerProject));
+}
+
+void writeProjectToFlash(byte project) {
+  DEBUGPRINT((2,"writeProjectToFlash size="));
+  DEBUGPRINT((2,sizeof(SequencerProject)));
+  DEBUGPRINT((2," bytes"));
+  DEBUGPRINT((2,"\n"));
+
+  clearDisplayImmediately();
+  clearFullDisplay();
+  completelyRefreshLeds();
+
+  // read marker of the current index marker
+  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+
+  // read the location of the temporary project storage
+  byte previousIndexes[PROJECT_INDEXES_COUNT];
+  memcpy(&previousIndexes, dueFlashStorage.readAddress(PROJECT_INDEX_OFFSET(marker, 0)), PROJECT_INDEXES_COUNT);
+  byte tmpIndex = previousIndexes[16];
+  byte prjIndex = previousIndexes[project];
+
+  writeProjectToFlashRaw(tmpIndex);
+
+  // write the marker after the project data so that this version becomes to latest coherent one
+  byte newMarker = 1 - marker;
+  previousIndexes[project] = tmpIndex;
+  previousIndexes[16] = prjIndex;
+  dueFlashStorage.write(PROJECT_INDEX_OFFSET(newMarker, 0), previousIndexes, PROJECT_INDEXES_COUNT);
+  dueFlashStorage.write(PROJECTS_OFFSET, newMarker);
+
+  updateDisplay();
+}
+
+void loadProject(byte project) {
+  // read the marker to know which configuration version was last written successfully
+  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+  byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, project));
+
+  uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
+  memcpy(&Project, dueFlashStorage.readAddress(projectOffset), sizeof(SequencerProject));
 }
 
 void applyPresetSettings(PresetSettings& preset) {
