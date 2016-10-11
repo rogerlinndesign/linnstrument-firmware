@@ -298,9 +298,7 @@ boolean isSequencerSettingsDisplayMode() {
 }
 
 boolean isSequencerDisplayMode() {
-  return isVisibleSequencerForSplit(Global.currentPerSplit) ||
-      isSequencerSettingsDisplayMode() ||
-      (Split[Global.currentPerSplit].sequencer && (displayMode == displayPreset || displayMode == displayVolume || displayMode == displayOctaveTranspose));
+  return Split[Global.currentPerSplit].sequencer;
 }
 
 boolean isControlButtonForSequencer() {
@@ -366,6 +364,7 @@ boolean handleSequencerControlButtonRelease() {
     case SWITCH_1_ROW:
       clearLed(0, SWITCH_1_ROW);
       if (!sequencerSwitch1WasUsed) {
+        clearSwitches();
         if (isSequencerSettingsDisplayMode()) {
           setDisplayMode(displayNormal);
           updateDisplay();

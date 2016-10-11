@@ -630,7 +630,8 @@ void handleControlButtonNewTouch() {
 
   // allow the sequencer to short-circuit the control button new touch
   if (handleSequencerControlButtonNewTouch()) {
-    lastControlPress[sensorRow] = millis();            // keep track of the last press
+    lastControlPress[sensorRow] = millis();
+    controlButton = -1;
     return;
   }
 
