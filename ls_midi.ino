@@ -628,37 +628,37 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Split Special
     case 35:
-      if (inRange(value, 0, 3)) {
+      if (inRange(value, 0, 4)) {
         switch (value) {
           case 0:
             Split[split].arpeggiator = false;
             Split[split].ccFaders = false;
             Split[split].strum = false;
-            Split[split].sequencer = false;
+            setSplitSequencerEnabled(split, false);
             break;
           case 1:
             Split[split].arpeggiator = true;
             Split[split].ccFaders = false;
             Split[split].strum = false;
-            Split[split].sequencer = false;
+            setSplitSequencerEnabled(split, false);
             break;
           case 2:
             Split[split].arpeggiator = false;
             Split[split].ccFaders = true;
             Split[split].strum = false;
-            Split[split].sequencer = false;
+            setSplitSequencerEnabled(split, false);
             break;
           case 3:
             Split[split].arpeggiator = false;
             Split[split].ccFaders = false;
             Split[split].strum = true;
-            Split[split].sequencer = false;
+            setSplitSequencerEnabled(split, false);
             break;
           case 4:
             Split[split].arpeggiator = false;
             Split[split].ccFaders = false;
             Split[split].strum = false;
-            Split[split].sequencer = true;
+            setSplitSequencerEnabled(split, true);
             break;
         }
       }

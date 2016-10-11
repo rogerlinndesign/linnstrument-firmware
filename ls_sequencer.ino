@@ -270,6 +270,13 @@ boolean isVisibleSequencerForSplit(byte split) {
   return Split[split].sequencer && displayMode == displayNormal && Global.currentPerSplit == split;
 }
 
+void setSplitSequencerEnabled(byte split, boolean flag) {
+  if (!flag && Split[split].sequencer) {
+    seqState[split].turnOff();
+  }
+  Split[split].sequencer = flag;
+}
+
 void sequencersTurnOn() {
   seqState[LEFT].turnOn();
   seqState[RIGHT].turnOn();
@@ -290,9 +297,14 @@ boolean isSequencerSettingsDisplayMode() {
     displayMode == displaySequencerDrum0814;
 }
 
+boolean isSequencerDisplayMode() {
+  return isVisibleSequencerForSplit(Global.currentPerSplit) ||
+      isSequencerSettingsDisplayMode() ||
+      (Split[Global.currentPerSplit].sequencer && (displayMode == displayPreset || displayMode == displayVolume || displayMode == displayOctaveTranspose));
+}
+
 boolean isControlButtonForSequencer() {
-  if (isVisibleSequencerForSplit(Global.currentPerSplit) ||
-      isSequencerSettingsDisplayMode()) {
+  if (isSequencerDisplayMode()) {
     switch (sensorRow) {
       case SWITCH_1_ROW:
       case SWITCH_2_ROW:
@@ -379,10 +391,7 @@ boolean handleSequencerControlButtonRelease() {
         }
       }
       seqState[Global.currentPerSplit].switch2Waiting = false;
-      if (displayMode != displayNormal) {
-        setDisplayMode(displayNormal);
-        updateDisplay();
-      }
+      updateSwitchLeds();
       break;
 
     case SPLIT_ROW:
@@ -1159,8 +1168,7 @@ void handleStepEditingReleaseDrums() {
 }
 
 void updateSequencerSwitchLeds() {
-  if (isVisibleSequencerForSplit(Global.currentPerSplit) ||
-      isSequencerSettingsDisplayMode()) {
+  if (isSequencerDisplayMode()) {
     if (seqState[Global.currentPerSplit].running) {
       setLed(0, SWITCH_2_ROW, COLOR_GREEN, cellOn);
     }
@@ -1615,7 +1623,7 @@ void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
 
   split = splitNum;
   channel = takeChannel(split);
-  note = event.getNote() + Split[splitNum].transposePitch + Split[sensorSplit].transposeOctave;
+  note = event.getNote() + Split[splitNum].transposePitch + Split[splitNum].transposeOctave;
   remainingDuration = event.getDuration();
 
   if (Split[split].sendX) {

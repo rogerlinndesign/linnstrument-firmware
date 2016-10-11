@@ -1210,7 +1210,7 @@ void handlePerSplitSettingNewTouch() {
           if (Split[Global.currentPerSplit].arpeggiator) {
             Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].ccFaders = false;
-            Split[Global.currentPerSplit].sequencer = false;
+            setSplitSequencerEnabled(Global.currentPerSplit, false);
           }
           randomSeed(analogRead(0));
           break;
@@ -1223,13 +1223,13 @@ void handlePerSplitSettingNewTouch() {
             Split[RIGHT - Global.currentPerSplit].strum = false; // there can only be one strum split
             Split[Global.currentPerSplit].arpeggiator = false;
             Split[Global.currentPerSplit].ccFaders = false;
-            Split[Global.currentPerSplit].sequencer = false;
+            setSplitSequencerEnabled(Global.currentPerSplit, false);
           }
           break;
         case 4:
-          Split[Global.currentPerSplit].sequencer = !Split[Global.currentPerSplit].sequencer;
+          setSplitSequencerEnabled(Global.currentPerSplit, !Split[Global.currentPerSplit].sequencer);
           splitActive = false;
-          if (Split[Global.currentPerSplit].strum) {
+          if (Split[Global.currentPerSplit].sequencer) {
             Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].arpeggiator = false;
             Split[Global.currentPerSplit].ccFaders = false;
@@ -1476,7 +1476,7 @@ void handlePerSplitSettingRelease() {
             if (Split[Global.currentPerSplit].ccFaders) {
               Split[Global.currentPerSplit].arpeggiator = false;
               Split[Global.currentPerSplit].strum = false;
-              Split[Global.currentPerSplit].sequencer = false;
+              setSplitSequencerEnabled(Global.currentPerSplit, false);
             }
           }
           break;
