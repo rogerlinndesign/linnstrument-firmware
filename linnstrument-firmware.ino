@@ -456,7 +456,8 @@ enum DisplayMode {
   displayMIDIThrough,
   displaySequencerProjects,
   displaySequencerDrum0107,
-  displaySequencerDrum0814
+  displaySequencerDrum0814,
+  displaySequencerColors
 };
 DisplayMode displayMode = displayNormal;
 
@@ -583,6 +584,9 @@ struct SplitSettings {
   byte colorAccent;                       // color for accented cells
   byte colorPlayed;                       // color for played notes
   byte colorLowRow;                       // color for low row if on
+  byte colorSequencerEmpty;               // color for sequencer low row step with no events
+  byte colorSequencerEvent;               // color for sequencer low row step with events
+  byte colorSequencerDisabled;            // color for sequencer low row step that's not being played
   byte lowRowMode;                        // see LowRowMode values
   byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
   unsigned short ccForLowRow;             // 0-127

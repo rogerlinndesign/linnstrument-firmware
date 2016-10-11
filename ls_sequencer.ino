@@ -310,7 +310,8 @@ boolean sequencerIsRunning() {
 boolean isSequencerSettingsDisplayMode() {
   return displayMode == displaySequencerProjects ||
     displayMode == displaySequencerDrum0107 ||
-    displayMode == displaySequencerDrum0814;
+    displayMode == displaySequencerDrum0814 ||
+    displayMode == displaySequencerColors;
 }
 
 boolean isSequencerDisplayMode() {
@@ -1240,7 +1241,7 @@ void handleSequencerSettingsLowRowTouch() {
   unsigned long nowMillis = millis();
 
   unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
-  if (sensorCol == NUMCOLS/2 - 1) {
+  if (sensorCol == NUMCOLS/2 - 2) {
     if (displayMode == displaySequencerProjects) {
       if (delta > 100) {
         ensureLegendHidden();
@@ -1254,7 +1255,7 @@ void handleSequencerSettingsLowRowTouch() {
       displaySettingsLegend("PROJ");
     }
   }
-  else if (sensorCol == NUMCOLS/2) {
+  else if (sensorCol == NUMCOLS/2 - 1) {
     if (displayMode == displaySequencerDrum0107) {
       if (delta > 100) {
         ensureLegendHidden();
@@ -1268,7 +1269,7 @@ void handleSequencerSettingsLowRowTouch() {
       displaySettingsLegend("DRU1");
     }
   }
-  else if (sensorCol == NUMCOLS/2 + 1) {
+  else if (sensorCol == NUMCOLS/2 + 0) {
     if (displayMode == displaySequencerDrum0814) {
       if (delta > 100) {
         ensureLegendHidden();
@@ -1282,14 +1283,29 @@ void handleSequencerSettingsLowRowTouch() {
       displaySettingsLegend("DRU2");
     }
   }
+  else if (sensorCol == NUMCOLS/2 + 1) {
+    if (displayMode == displaySequencerColors) {
+      if (delta > 100) {
+        ensureLegendHidden();
+      }
+    }
+    else {
+      resetNumericDataChange();
+      setDisplayMode(displaySequencerColors);
+      updateDisplay();
+
+      displaySettingsLegend("CLRS");
+    }
+  }
 
   lastLowRowTouch = nowMillis;
 }
 
 void paintSequencerSettingsLowRow() {
-  setLed(NUMCOLS/2 - 1, 0, displayMode == displaySequencerProjects ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
-  setLed(NUMCOLS/2    , 0, displayMode == displaySequencerDrum0107 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
-  setLed(NUMCOLS/2 + 1, 0, displayMode == displaySequencerDrum0814 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2 - 2, 0, displayMode == displaySequencerProjects ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2 - 1, 0, displayMode == displaySequencerDrum0107 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2 + 0, 0, displayMode == displaySequencerDrum0814 ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
+  setLed(NUMCOLS/2 + 1, 0, displayMode == displaySequencerColors ? Split[Global.currentPerSplit].colorPlayed : Split[Global.currentPerSplit].colorLowRow, cellOn);
 }
 
 void paintSequencerProjects() {
@@ -1433,6 +1449,50 @@ void handleSequencerDrum0814NewTouch() {
 
 void handleSequencerDrum0814Release() {
   handleNumericDataReleaseCol(true);
+}
+
+void paintSequencerColors() {
+  clearDisplay();
+
+  paintShowSplitSelection(Global.currentPerSplit);
+
+  setLed(NUMCOLS/2 - 1, 4, Split[Global.currentPerSplit].colorMain, cellOn);
+  setLed(NUMCOLS/2 + 0, 5, Split[Global.currentPerSplit].colorAccent, cellOn);
+
+  setLed(NUMCOLS/2 - 3, 3, Split[Global.currentPerSplit].colorSequencerEmpty, cellOn);
+  setLed(NUMCOLS/2 - 2, 3, Split[Global.currentPerSplit].colorSequencerEmpty, cellOn);
+  setLed(NUMCOLS/2 - 1, 3, Split[Global.currentPerSplit].colorSequencerEvent, cellOn);
+  setLed(NUMCOLS/2 + 0, 3, Split[Global.currentPerSplit].colorSequencerEvent, cellOn);
+  setLed(NUMCOLS/2 + 1, 3, Split[Global.currentPerSplit].colorSequencerDisabled, cellOn);
+  setLed(NUMCOLS/2 + 2, 3, Split[Global.currentPerSplit].colorSequencerDisabled, cellOn);
+
+  paintSequencerSettingsLowRow();
+}
+
+void handleSequencerColorsNewTouch() {
+  if (sensorRow == 0) {
+    handleSequencerSettingsLowRowTouch();
+  }
+  else if (ensureLegendHidden()) {
+    if (sensorRow == 3) {
+      if (sensorCol == NUMCOLS/2 - 3 || sensorCol == NUMCOLS/2 - 2) {
+        Split[Global.currentPerSplit].colorSequencerEmpty = colorCycle(Split[Global.currentPerSplit].colorSequencerEmpty, false);
+        updateDisplay();
+      }
+      else if (sensorCol == NUMCOLS/2 - 1 || sensorCol == NUMCOLS/2 - 0) {
+        Split[Global.currentPerSplit].colorSequencerEvent = colorCycle(Split[Global.currentPerSplit].colorSequencerEvent, false);
+        updateDisplay();
+      }
+      else if (sensorCol == NUMCOLS/2 + 1 || sensorCol == NUMCOLS/2 + 2) {
+        Split[Global.currentPerSplit].colorSequencerDisabled = colorCycle(Split[Global.currentPerSplit].colorSequencerDisabled, false);
+        updateDisplay();
+      }
+    }
+  }
+}
+
+void handleSequencerColorsRelease() {
+  handleShowSplit();
 }
 
 
@@ -2195,15 +2255,15 @@ CellDisplay StepSequencerState::getEventCellDisplay(byte stepNum, byte eventNum)
 }
 
 byte StepSequencerState::getPositionLedColor(byte stepNum) {
-  byte color = getOtherPositionColor();
+  byte color = Split[split].colorSequencerEmpty;
 
   if (isVisibleSequencerForSplit(split) && stepNum >= positionOffset && stepNum < positionOffset + SEQ_EVENTS_WIDTH) {
     if (getCurrentPatternStep(stepNum).events[0].hasData()) {
-      color = Split[split].colorAccent;
+      color = Split[split].colorSequencerEvent;
     }
 
     if (stepNum >= getCurrentPattern().length) {
-      color = Split[split].colorMain;
+      color = Split[split].colorSequencerDisabled;
     }
 
     if (running && stepNum == currentPosition) {

@@ -619,6 +619,9 @@ void handleNonPlayingTouch() {
     case displaySequencerDrum0814:
       handleSequencerDrum0814NewTouch();
       break;
+    case displaySequencerColors:
+      handleSequencerColorsNewTouch();
+      break;
   }
 }
 
@@ -1368,6 +1371,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displaySequencerDrum0814:
         handleSequencerDrum0814Release();
+        break;
+      case displaySequencerColors:
+        handleSequencerColorsRelease();
         break;
       default:
         return false;

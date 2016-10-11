@@ -43,6 +43,7 @@ displayMIDIThrough           : MIDI through configuration
 displaySequencerProjects     : sequencer projects
 displaySequencerDrum0107     : sequencer first 7 drum notes
 displaySequencerDrum0814     : sequencer second 7 drum notes
+displaySequencerColors       : sequencer low row colors
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -185,6 +186,9 @@ void updateDisplay() {
       break;
     case displaySequencerDrum0814:
       paintSequencerDrum0814();
+      break;
+    case displaySequencerColors:
+      paintSequencerColors();
       break;
   }
 

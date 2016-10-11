@@ -497,6 +497,9 @@ void initializePresetSettings() {
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
+        p.split[s].colorSequencerEmpty = COLOR_YELLOW;
+        p.split[s].colorSequencerEvent = COLOR_ORANGE;
+        p.split[s].colorSequencerDisabled = COLOR_LIME;
         p.split[s].lowRowCCXBehavior = lowRowCCHold;
         p.split[s].ccForLowRow = 1;
         p.split[s].lowRowCCXYZBehavior = lowRowCCHold;
