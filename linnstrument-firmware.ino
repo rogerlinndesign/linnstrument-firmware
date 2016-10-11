@@ -599,7 +599,6 @@ struct SplitSettings {
   boolean mpe;                            // true when MPE is active for this split
   boolean sequencer;                      // true when the sequencer of this split is displayed
   SequencerView sequencerView;            // see SequencerView
-  byte seqDrumNotes[SEQ_DRUM_NOTES];      // note numbers from 0 to 127
 };
 
 #define Split config.settings.split
@@ -768,6 +767,7 @@ struct SequencerPattern {
 };
 struct StepSequencer {
   SequencerPattern patterns[MAX_SEQUENCER_PATTERNS];  // patterns available for each sequencer
+  byte seqDrumNotes[SEQ_DRUM_NOTES];                  // note numbers from 0 to 127
 };
 struct SequencerProject {
   StepSequencer sequencer[MAX_SEQUENCERS];            // the sequencers available in a project

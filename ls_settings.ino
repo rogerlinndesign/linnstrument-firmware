@@ -213,6 +213,7 @@ void writeInitialProjectSettings() {
 void writeProjectToFlashRaw(byte project) {
   // write to flash, taking low power mode into account
   uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + project * SINGLE_PROJECT_SIZE;
+  Project.tempo = FXD4_TO_INT(fxd4CurrentTempo);
   writeAdaptivelyToFlash(projectOffset, (byte*)&Project, sizeof(SequencerProject));
 }
 
@@ -254,6 +255,7 @@ void loadProject(byte project) {
 
   uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
   memcpy(&Project, dueFlashStorage.readAddress(projectOffset), sizeof(SequencerProject));
+  fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
 }
 
 void applyPresetSettings(PresetSettings& preset) {
@@ -510,21 +512,6 @@ void initializePresetSettings() {
         p.split[s].mpe = false;
 
         p.split[s].sequencer = false;
-        p.split[s].seqDrumNotes[0] = 36;  // Bass Drum
-        p.split[s].seqDrumNotes[1] = 38;  // Snare Drum
-        p.split[s].seqDrumNotes[2] = 37;  // Sidestick
-        p.split[s].seqDrumNotes[3] = 42;  // Hihat Closed
-        p.split[s].seqDrumNotes[4] = 46;  // Hihat Open
-        p.split[s].seqDrumNotes[5] = 54;  // Tamborine
-        p.split[s].seqDrumNotes[6] = 69;  // Cabasa
-
-        p.split[s].seqDrumNotes[7] = 43;  // Low Tom
-        p.split[s].seqDrumNotes[8] = 47;  // Mid Tom
-        p.split[s].seqDrumNotes[9] = 50;  // High Tom
-        p.split[s].seqDrumNotes[10] = 49; // Crash Cymbal
-        p.split[s].seqDrumNotes[11] = 51; // Ride Cymbal
-        p.split[s].seqDrumNotes[12] = 55; // Splash Cymbal
-        p.split[s].seqDrumNotes[13] = 39; // Hand Clap
     }
 
     // initialize values that differ between the keyboard splits

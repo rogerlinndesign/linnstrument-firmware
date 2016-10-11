@@ -244,6 +244,22 @@ void initializeSequencer() {
       Project.sequencer[q].patterns[p].length = 32;
     }
 
+    Project.sequencer[q].seqDrumNotes[0] = 36;  // Bass Drum
+    Project.sequencer[q].seqDrumNotes[1] = 38;  // Snare Drum
+    Project.sequencer[q].seqDrumNotes[2] = 37;  // Sidestick
+    Project.sequencer[q].seqDrumNotes[3] = 42;  // Hihat Closed
+    Project.sequencer[q].seqDrumNotes[4] = 46;  // Hihat Open
+    Project.sequencer[q].seqDrumNotes[5] = 54;  // Tamborine
+    Project.sequencer[q].seqDrumNotes[6] = 69;  // Cabasa
+
+    Project.sequencer[q].seqDrumNotes[7] = 43;  // Low Tom
+    Project.sequencer[q].seqDrumNotes[8] = 47;  // Mid Tom
+    Project.sequencer[q].seqDrumNotes[9] = 50;  // High Tom
+    Project.sequencer[q].seqDrumNotes[10] = 49; // Crash Cymbal
+    Project.sequencer[q].seqDrumNotes[11] = 51; // Ride Cymbal
+    Project.sequencer[q].seqDrumNotes[12] = 55; // Splash Cymbal
+    Project.sequencer[q].seqDrumNotes[13] = 39; // Hand Clap
+
     seqState[q].init(q);
   }
 }
@@ -1197,13 +1213,15 @@ static unsigned long lastLegendDisplay = millis();
 static boolean legendVisible = false;
 
 void checkLegendDisplayTimeout(unsigned long nowMillis) {
-  if (legendVisible && calcTimeDelta(nowMillis, lastLegendDisplay) >= 2000) {
+  if (legendVisible && calcTimeDelta(nowMillis, lastLegendDisplay) >= 1000) {
     updateDisplay();
     legendVisible = false;
   }
 }
 
-void displaySettingsLegend(unsigned long nowMillis, const char* str) {
+void displaySettingsLegend(const char* str) {
+  unsigned long nowMillis = millis();
+
   for (byte row = 1; row < NUMROWS; ++row) {
     for (byte col = 1; col < NUMCOLS; ++col) {
       clearLed(col, row);
@@ -1217,49 +1235,51 @@ void displaySettingsLegend(unsigned long nowMillis, const char* str) {
 }
 
 void handleSequencerSettingsLowRowTouch() {
-  static DisplayMode nextSequencerSettingsDisplay = displayNormal;
   static unsigned long lastLowRowTouch = 0;
 
   unsigned long nowMillis = millis();
 
   unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
   if (sensorCol == NUMCOLS/2 - 1) {
-    if (nextSequencerSettingsDisplay == displaySequencerProjects && delta < 2000) {
+    if (displayMode == displaySequencerProjects) {
       if (delta > 100) {
-        resetNumericDataChange();
-        setDisplayMode(displaySequencerProjects);
-        updateDisplay();
+        ensureLegendHidden();
       }
     }
     else {
-      nextSequencerSettingsDisplay = displaySequencerProjects;
-      displaySettingsLegend(nowMillis, "PROJ");
+      resetNumericDataChange();
+      setDisplayMode(displaySequencerProjects);
+      updateDisplay();
+
+      displaySettingsLegend("PROJ");
     }
   }
   else if (sensorCol == NUMCOLS/2) {
-    if (nextSequencerSettingsDisplay == displaySequencerDrum0107 && delta < 2000) {
+    if (displayMode == displaySequencerDrum0107) {
       if (delta > 100) {
-        resetNumericDataChange();
-        setDisplayMode(displaySequencerDrum0107);
-        updateDisplay();
+        ensureLegendHidden();
       }
     }
     else {
-      nextSequencerSettingsDisplay = displaySequencerDrum0107;
-      displaySettingsLegend(nowMillis, "DRU1");
+      resetNumericDataChange();
+      setDisplayMode(displaySequencerDrum0107);
+      updateDisplay();
+
+      displaySettingsLegend("DRU1");
     }
   }
   else if (sensorCol == NUMCOLS/2 + 1) {
-    if (nextSequencerSettingsDisplay == displaySequencerDrum0814 && delta < 2000) {
+    if (displayMode == displaySequencerDrum0814) {
       if (delta > 100) {
-        resetNumericDataChange();
-        setDisplayMode(displaySequencerDrum0814);
-        updateDisplay();
+        ensureLegendHidden();
       }
     }
     else {
-      nextSequencerSettingsDisplay = displaySequencerDrum0814;
-      displaySettingsLegend(nowMillis, "DRU2");
+      resetNumericDataChange();
+      setDisplayMode(displaySequencerDrum0814);
+      updateDisplay();
+
+      displaySettingsLegend("DRU2");
     }
   }
 
@@ -1282,15 +1302,29 @@ void paintSequencerProjects() {
   paintSequencerSettingsLowRow();
 }
 
+boolean ensureLegendHidden() {
+  if (legendVisible) {
+    updateDisplay();
+    legendVisible = false;
+
+    cellTouched(ignoredCell);
+    return false;
+  }
+
+  return true;
+}
+
 void handleSequencerProjectsNewTouch() {
   if (sensorRow == 0) {
     handleSequencerSettingsLowRowTouch();
   }
-  if (sensorCol >= 6 && sensorCol < 10 && sensorRow >= 2 && sensorRow < 6) {
-    // start tracking the touch duration to be able detect a long press
-    sensorCell->lastTouch = millis();
-    // indicate that a hold operation is being waited for
-    setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+  else if (ensureLegendHidden()) {
+    if (sensorCol >= 6 && sensorCol < 10 && sensorRow >= 2 && sensorRow < 6) {
+      // start tracking the touch duration to be able detect a long press
+      sensorCell->lastTouch = millis();
+      // indicate that a hold operation is being waited for
+      setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+    }
   }
 }
 
@@ -1346,7 +1380,7 @@ void paintSequencerDrum0107() {
     setLed(1, r, sequencerDrum0107RowNum == r ? Split[Global.currentPerSplit].colorAccent : Split[Global.currentPerSplit].colorMain, cellOn);
   }
 
-  paintSplitNumericDataDisplay(Global.currentPerSplit, Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 2, true);
+  paintSplitNumericDataDisplay(Global.currentPerSplit, Project.sequencer[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 2, true);
   paintSequencerSettingsLowRow();
 }
 
@@ -1354,12 +1388,14 @@ void handleSequencerDrum0107NewTouch() {
   if (sensorRow == 0) {
     handleSequencerSettingsLowRowTouch();
   }
-  else if (sensorCol == 1) {
-    sequencerDrum0107RowNum = sensorRow;
-    updateDisplay();
-  }
-  else {
-    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 0, 127, true);
+  else if (ensureLegendHidden()) {
+    if (sensorCol == 1) {
+      sequencerDrum0107RowNum = sensorRow;
+      updateDisplay();
+    }
+    else {
+      handleNumericDataNewTouchCol(Project.sequencer[Global.currentPerSplit].seqDrumNotes[sequencerDrum0107RowNum-1], 0, 127, true);
+    }
   }
 }
 
@@ -1376,7 +1412,7 @@ void paintSequencerDrum0814() {
     setLed(1, r, sequencerDrum0814RowNum == r ? Split[Global.currentPerSplit].colorAccent : Split[Global.currentPerSplit].colorMain, cellOn);
   }
 
-  paintSplitNumericDataDisplay(Global.currentPerSplit, Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 2, true);
+  paintSplitNumericDataDisplay(Global.currentPerSplit, Project.sequencer[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 2, true);
   paintSequencerSettingsLowRow();
 }
 
@@ -1384,12 +1420,14 @@ void handleSequencerDrum0814NewTouch() {
   if (sensorRow == 0) {
     handleSequencerSettingsLowRowTouch();
   }
-  else if (sensorCol == 1) {
-    sequencerDrum0814RowNum = sensorRow;
-    updateDisplay();
-  }
-  else {
-    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 0, 127, true);
+  else if (ensureLegendHidden()) {
+    if (sensorCol == 1) {
+      sequencerDrum0814RowNum = sensorRow;
+      updateDisplay();
+    }
+    else {
+      handleNumericDataNewTouchCol(Project.sequencer[Global.currentPerSplit].seqDrumNotes[sequencerDrum0814RowNum - 1 + 7], 0, 127, true);
+    }
   }
 }
 
@@ -2262,7 +2300,7 @@ int StepSequencerState::getRowNoteNum(byte noteRow) {
     case sequencerDrums: {
       byte row = noteRow + rowOffset;
       if (row < SEQ_DRUM_NOTES) {
-        return Split[split].seqDrumNotes[row];
+        return Project.sequencer[split].seqDrumNotes[row];
       }
       return -1;
     }
