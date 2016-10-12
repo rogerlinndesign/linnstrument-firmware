@@ -1214,7 +1214,7 @@ static unsigned long lastLegendDisplay = millis();
 static boolean legendVisible = false;
 
 void checkLegendDisplayTimeout(unsigned long nowMillis) {
-  if (legendVisible && calcTimeDelta(nowMillis, lastLegendDisplay) >= 1000) {
+  if (legendVisible && calcTimeDelta(nowMillis, lastLegendDisplay) >= 1500) {
     updateDisplay();
     legendVisible = false;
   }
@@ -1242,7 +1242,7 @@ void handleSequencerSettingsLowRowTouch() {
 
   unsigned long delta = calcTimeDelta(nowMillis, lastLowRowTouch);
   if (sensorCol == NUMCOLS/2 - 2) {
-    if (displayMode == displaySequencerProjects) {
+    if (displayMode == displaySequencerProjects && legendVisible) {
       if (delta > 100) {
         ensureLegendHidden();
       }
@@ -1256,7 +1256,7 @@ void handleSequencerSettingsLowRowTouch() {
     }
   }
   else if (sensorCol == NUMCOLS/2 - 1) {
-    if (displayMode == displaySequencerDrum0107) {
+    if (displayMode == displaySequencerDrum0107 && legendVisible) {
       if (delta > 100) {
         ensureLegendHidden();
       }
@@ -1270,7 +1270,7 @@ void handleSequencerSettingsLowRowTouch() {
     }
   }
   else if (sensorCol == NUMCOLS/2 + 0) {
-    if (displayMode == displaySequencerDrum0814) {
+    if (displayMode == displaySequencerDrum0814 && legendVisible) {
       if (delta > 100) {
         ensureLegendHidden();
       }
@@ -1284,7 +1284,7 @@ void handleSequencerSettingsLowRowTouch() {
     }
   }
   else if (sensorCol == NUMCOLS/2 + 1) {
-    if (displayMode == displaySequencerColors) {
+    if (displayMode == displaySequencerColors && legendVisible) {
       if (delta > 100) {
         ensureLegendHidden();
       }
