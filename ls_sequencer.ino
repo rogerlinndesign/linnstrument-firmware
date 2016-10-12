@@ -1312,7 +1312,11 @@ void paintSequencerProjects() {
   clearDisplay();
 
   for (byte p = 0; p < MAX_PROJECTS; ++p) {
-    setLed(6 + p%4, 2 + p/4, globalColor, cellOn);
+    int color = globalColor;
+    if (p == lastLoadedProject) {
+      color = COLOR_CYAN;
+    }
+    setLed(6 + p%4, 2 + p/4, color, cellOn);
   }
 
   paintSequencerSettingsLowRow();
@@ -1379,6 +1383,7 @@ void handleSequencerProjectsRelease() {
     sequencersTurnOff();
 
     byte project = sensorCol-6 + (sensorRow-2) * 4;
+    lastLoadedProject = project;
     loadProject(project);
     sensorCell->lastTouch = 0;
 

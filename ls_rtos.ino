@@ -212,7 +212,11 @@ inline void checkStopBlinkingLeds(unsigned long now) {
   if (displayMode == displaySequencerProjects) {
     for (byte p = 0; p < MAX_PROJECTS; ++p) {
       if (projectBlinkStart[p] != 0 && calcTimeDelta(now, projectBlinkStart[p]) > 1200) {
-        setLed(6 + p%4, 2 + p/4, globalColor, cellOn);
+        int color = globalColor;
+        if (p == lastLoadedProject) {
+          color = COLOR_CYAN;
+        }
+        setLed(6 + p%4, 2 + p/4, color, cellOn);
         projectBlinkStart[p] = 0;
       }
     }
