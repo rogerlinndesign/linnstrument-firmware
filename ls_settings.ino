@@ -756,8 +756,16 @@ void handleControlButtonNewTouch() {
       break;
 
     case SWITCH_1_ROW:                                 // SWITCH 1 pressed
-      doSwitchPressed(SWITCH_SWITCH_1);
-      updateSwitchLeds();
+      if (isSequencerSettingsDisplayMode()) {
+        setDisplayMode(displayNormal);
+        cellTouched(ignoredCell);
+        updateDisplay();
+        updateSwitchLeds();
+      }
+      else {
+        doSwitchPressed(SWITCH_SWITCH_1);
+        updateSwitchLeds();
+      }
       break;
   
     case OCTAVE_ROW:                                   // OCTAVE button pressed
