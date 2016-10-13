@@ -70,15 +70,7 @@ void initializeStorage() {
   byte bootblock = dueFlashStorage.read(0);
 
   if (bootblock != 0) {                                   // See if we need to boot from scratch
-    if (bootblock == 255) {                               // When a new firmware is uploaded, the first flash byte will be 255
-      switchSerialMode(true);                             // Start in serial mode after OS upgrade to be able to receive the settings
-      Device.serialMode = true;
-      firstTimeBoot = true;
-    }
-    else {
-      switchSerialMode(false);                            // Start in MIDI mode for all other bootblock values
-      Device.serialMode = false;
-    }
+    firstTimeBoot = true;
 
     writeInitialProjectSettings();
     writeSettingsToFlash();                               // Store the initial default settings
@@ -93,8 +85,6 @@ void initializeStorage() {
   else {
     loadSettings();                                       // On subsequent startups, load settings from Flash
   }
-
-  applyConfiguration();
 }
 
 void storeSettings() {
@@ -102,21 +92,6 @@ void storeSettings() {
     writeSettingsToFlash();
   }
 }
-
-static int alignToByteBoundary(int value) {
-  if (value % 4 == 0) {
-    return value;
-  }
-
-  return ((value / 4) + 1) * 4;
-}
-const int PROJECTS_OFFSET = 4;
-const int PROJECT_VERSION_MARKER_SIZE = 4;
-const int PROJECT_INDEXES_COUNT = 20;
-const int PROJECTS_MARKERS_SIZE = alignToByteBoundary(PROJECT_VERSION_MARKER_SIZE + 2 * PROJECT_INDEXES_COUNT);    // one version marker, two series on indexes for project references
-const int SINGLE_PROJECT_SIZE = alignToByteBoundary(sizeof(SequencerProject));
-const int ALL_PROJECTS_SIZE = PROJECTS_MARKERS_SIZE + 17*SINGLE_PROJECT_SIZE;
-const int SETTINGS_OFFSET = PROJECTS_OFFSET + alignToByteBoundary(ALL_PROJECTS_SIZE);
 
 void writeAdaptivelyToFlash(uint32_t offset, byte* source, int length) {
   // batch and slow down the flash storage in low power mode
@@ -272,6 +247,10 @@ void applyPresetSettings(PresetSettings& preset) {
 
 void applyConfiguration() {
   applyPresetSettings(config.settings);
+}
+
+void applySystemState() {
+  applyConfiguration();
   applySerialMode();
 }
 
@@ -284,8 +263,8 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 8;
-  Device.serialMode = false;
+  Device.version = 9;
+  Device.serialMode = true;
   Device.promoAnimationActive = false;
   Device.sleepActive = false;
   Device.sleepDelay = 0;
@@ -545,9 +524,6 @@ void initializePresetSettings() {
     p.split[RIGHT].colorPlayed = COLOR_MAGENTA;
     p.split[RIGHT].lowRowMode = lowRowNormal;
     p.split[RIGHT].sequencerView = sequencerDrums;
-
-    // we're initializing the sequencer settings with the split settings
-    memcpy(&p.sequencer, &p.split, sizeof(SplitSettings) * 2);
   }
 
   // we're initializing the current settings with preset 0

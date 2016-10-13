@@ -698,7 +698,6 @@ struct GlobalSettings {
 struct PresetSettings {
   GlobalSettings global;
   SplitSettings split[NUMSPLITS];
-  SplitSettings sequencer[NUMSPLITS];
 };
 
 enum SequencerStepSize {
@@ -809,6 +808,25 @@ enum OperatingMode {
   modeFirmware
 };
 OperatingMode operatingMode = modePerformance;
+
+
+/************************************** FLASH STORAGE LAYOUT *************************************/
+
+static int alignToByteBoundary(int value) {
+  if (value % 4 == 0) {
+    return value;
+  }
+
+  return ((value / 4) + 1) * 4;
+}
+
+const int PROJECTS_OFFSET = 4;
+const int PROJECT_VERSION_MARKER_SIZE = 4;
+const int PROJECT_INDEXES_COUNT = 20;
+const int PROJECTS_MARKERS_SIZE = alignToByteBoundary(PROJECT_VERSION_MARKER_SIZE + 2 * PROJECT_INDEXES_COUNT);    // one version marker, two series on indexes for project references
+const int SINGLE_PROJECT_SIZE = alignToByteBoundary(sizeof(SequencerProject));
+const int ALL_PROJECTS_SIZE = PROJECTS_MARKERS_SIZE + 17*SINGLE_PROJECT_SIZE;
+const int SETTINGS_OFFSET = PROJECTS_OFFSET + alignToByteBoundary(ALL_PROJECTS_SIZE);
 
 
 /**************************************** FIXED POINT MATH ***************************************/
@@ -1274,6 +1292,9 @@ void setup() {
 
   setupDone = true;
 
+  applySerialMode();
+  performContinuousTasks(micros());
+
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
   if (Device.promoAnimationActive) {
     playPromoAnimation();
@@ -1302,7 +1323,8 @@ void loop() {
 inline void modeLoopPerformance() {
   if (displayMode == displayReset) {                             // if reset is active, don't process any input data
     if (calcTimeDelta(millis(), lastReset) > 3000) {             // restore normal operations three seconds after the reset started
-      applyConfiguration();
+      applySystemState();
+
       storeSettings();
       setDisplayMode(displayNormal);                             // this should make the reset operation feel more predictable
       updateDisplay();

@@ -16,7 +16,6 @@ displaySplitPoint            : split point
 displayGlobal                : global settings
 displayGlobalWithTempo       : global settings with tempo
 displayOsVersion             : version number of the OS
-displayOsVersionSUb          : sub-version number of the OS
 displayCalibration           : calibration process
 displayReset                 : global reset confirmation and wait for touch release
 displayBendRange             ; custom bend range selection for X expression

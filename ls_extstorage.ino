@@ -13,6 +13,11 @@ some transformation logic is the settings structure changed for the new firmware
 /**************************************** Configuration V1 ****************************************
 This is used by firmware v1.0.9 and earlier
 **************************************************************************************************/
+struct CalibrationYV1 {
+  int minY;
+  int maxY;
+  int32_t fxdRatio;
+};
 struct GlobalSettingsV1 {
   byte version;                              // to prepare for versioning
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -27,7 +32,7 @@ struct GlobalSettingsV1 {
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
@@ -128,7 +133,7 @@ struct DeviceSettingsV2 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -165,7 +170,7 @@ struct DeviceSettingsV3 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -190,7 +195,7 @@ struct DeviceSettingsV4 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
@@ -299,9 +304,51 @@ struct GlobalSettingsV5 {
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
 };
+struct SplitSettingsV4 {
+  byte midiMode;                       // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                   // main midi channel, 1 to 16
+  byte midiChanPerRow;                 // per-row midi channel, 1 to 16
+  boolean midiChanSet[16];             // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  BendRangeOption bendRangeOption;     // see BendRangeOption
+  byte customBendRange;                // 1 - 96
+  boolean sendX;                       // true to send continuous X, false if not
+  boolean sendY;                       // true to send continuous Y, false if not
+  boolean sendZ;                       // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;        // true to quantize pitch of initial touch, false if not
+  byte pitchCorrectHold;               // See PitchCorrectHoldSpeed values
+  boolean pitchResetOnRelease;         // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;     // the expression that should be used for timbre
+  unsigned short customCCForY;         // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;              // 0-127
+  unsigned short maxForY;              // 0-127
+  boolean relativeY;                   // true when Y should be sent relative to the initial touch, false when it's absolute
+  LoudnessExpression expressionForZ;   // the expression that should be used for loudness
+  unsigned short customCCForZ;         // 0-127
+  unsigned short minForZ;              // 0-127
+  unsigned short maxForZ;              // 0-127
+  unsigned short ccForFader[8];        // each fader can control a CC number ranging from 0-127
+  byte colorMain;                      // color for non-accented cells
+  byte colorAccent;                    // color for accented cells
+  byte colorNoteon;                    // color for played notes
+  byte colorLowRow;                    // color for low row if on
+  byte lowRowMode;                     // see LowRowMode values
+  byte lowRowCCXBehavior;              // see LowRowCCBehavior values
+  unsigned short ccForLowRow;          // 0-127
+  byte lowRowCCXYZBehavior;            // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;         // 0-127
+  unsigned short ccForLowRowY;         // 0-127
+  unsigned short ccForLowRowZ;         // 0-127
+  signed char transposeOctave;         // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;          // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;         // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                    // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                 // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                       // true when this split strums the touches of the other split
+  boolean mpe;                         // true when MPE is active for this split
+};
 struct PresetSettingsV5 {
   GlobalSettingsV5 global;
-  SplitSettings split[NUMSPLITS];
+  SplitSettingsV4 split[NUMSPLITS];
 };
 struct ConfigurationV6 {
   DeviceSettingsV4 device;
@@ -315,7 +362,7 @@ struct DeviceSettingsV5 {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
@@ -352,12 +399,42 @@ struct GlobalSettingsV6 {
 };
 struct PresetSettingsV6 {
   GlobalSettingsV6 global;
-  SplitSettings split[NUMSPLITS];
+  SplitSettingsV4 split[NUMSPLITS];
 };
 struct ConfigurationV7 {
   DeviceSettingsV5 device;
-  PresetSettings settings;
-  PresetSettings preset[NUMPRESETS];
+  PresetSettingsV6 settings;
+  PresetSettingsV6 preset[NUMPRESETS];
+};
+/**************************************** Configuration V8 ****************************************
+This is used by firmware v1.2.4-beta2 and v1.2.5
+**************************************************************************************************/
+struct DeviceSettingsV6 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationYV1 calCols[9][MAXROWS];        // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+};
+struct PresetSettingsV7 {
+  GlobalSettings global;
+  SplitSettingsV4 split[NUMSPLITS];
+};
+struct ConfigurationV8 {
+  DeviceSettingsV6 device;
+  PresetSettingsV7 settings;
+  PresetSettingsV7 preset[NUMPRESETS];
 };
 /*************************************************************************************************/
 
@@ -371,61 +448,60 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
     result = false;
   }
   else {
-    void* targetConfig = NULL;
+    void* sourceConfig = buff2;
     void (*copyConfigurationFunction)(void* target, void* source) = NULL;
 
     switch (settingsVersion) {
       // if this is v1 of the configuration format, load it in the old structure and then convert it if the size is right
       case 1:
         if (confSize == sizeof(ConfigurationV1)) {
-          targetConfig = new ConfigurationV1();
           copyConfigurationFunction = &copyConfigurationV1;
         }
         break;
       // this is the v2 of the configuration configuration, apply it if the size is right
       case 2:
         if (confSize == sizeof(ConfigurationV2)) {
-          targetConfig = new ConfigurationV2();
           copyConfigurationFunction = &copyConfigurationV2;
         }
         break;
       // this is the v3 of the configuration configuration, apply it if the size is right
       case 3:
         if (confSize == sizeof(ConfigurationV3)) {
-          targetConfig = new ConfigurationV3();
           copyConfigurationFunction = &copyConfigurationV3;
         }
         break;
       // this is the v4 of the configuration configuration, apply it if the size is right
       case 4:
         if (confSize == sizeof(ConfigurationV4)) {
-          targetConfig = new ConfigurationV4();
           copyConfigurationFunction = &copyConfigurationV4;
         }
         break;
       // this is the v5 of the configuration configuration, apply it if the size is right
       case 5:
         if (confSize == sizeof(ConfigurationV5)) {
-          targetConfig = new ConfigurationV5();
           copyConfigurationFunction = &copyConfigurationV5;
         }
         break;
       // this is the v6 of the configuration configuration, apply it if the size is right
       case 6:
         if (confSize == sizeof(ConfigurationV6)) {
-          targetConfig = new ConfigurationV6();
           copyConfigurationFunction = &copyConfigurationV6;
         }
         break;
       // this is the v7 of the configuration configuration, apply it if the size is right
       case 7:
         if (confSize == sizeof(ConfigurationV7)) {
-          targetConfig = new ConfigurationV7();
           copyConfigurationFunction = &copyConfigurationV7;
         }
         break;
       // this is the v8 of the configuration configuration, apply it if the size is right
       case 8:
+        if (confSize == sizeof(ConfigurationV8)) {
+          copyConfigurationFunction = &copyConfigurationV8;
+        }
+        break;
+      // this is the v9 of the configuration configuration, apply it if the size is right
+      case 9:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -437,30 +513,11 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
     }
 
     // if a target config and a copy settings fuction were set, use them to transform the old settings into the new
-    if (targetConfig && copyConfigurationFunction) {
-      memcpy(targetConfig, buff2, confSize);
-
+    if (sourceConfig && copyConfigurationFunction) {
       byte currentVersion = Device.version;
-      copyConfigurationFunction(&config, targetConfig);
+      copyConfigurationFunction(&config, sourceConfig);
       Device.version = currentVersion;
-
-      switch (settingsVersion) {
-        case 1:
-          delete ((ConfigurationV1*)targetConfig);
-          break;
-        case 2:
-          delete ((ConfigurationV2*)targetConfig);
-          break;
-        case 3:
-          delete ((ConfigurationV3*)targetConfig);
-          break;
-        case 4:
-          delete ((ConfigurationV4*)targetConfig);
-          break;
-        case 5:
-          delete ((ConfigurationV5*)targetConfig);
-          break;
-      }
+      
       result = true;
     }
   }
@@ -468,7 +525,7 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   return result;
 }
 
-void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationY (*calColsSource)[9][MAXROWS]) {
+void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationYV1 (*calColsSource)[9][MAXROWS]) {
   for (int i = 0; i < MAXCOLS+1; ++i) {
     for (int j = 0; j < 4; ++j) {
       (*calRowsTarget)[i][j] = (*calRowsSource)[i][j];
@@ -476,7 +533,9 @@ void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (
   }
   for (int i = 0; i < 9; ++i) {
     for (int j = 0; j < MAXROWS; ++j) {
-      (*calColsTarget)[i][j] = (*calColsSource)[i][j];
+      (*calColsTarget)[i][j].minY = (*calColsSource)[i][j].minY;
+      (*calColsTarget)[i][j].maxY = (*calColsSource)[i][j].maxY;
+      (*calColsTarget)[i][j].fxdRatio = (*calColsSource)[i][j].fxdRatio;
     }
   }
 }
@@ -503,6 +562,8 @@ void setPromoAnimation(void* target, boolean flag) {
   }
 }
 
+/*************************************************************************************************/
+
 void copyConfigurationV1(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV1* s = (ConfigurationV1*)source;
@@ -511,14 +572,10 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.version = g->version;
   copyCalibration(&(t->device.calRows), &(g->calRows), &(t->device.calCols), &(g->calCols));
   t->device.calibrated = g->calibrated;
-  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = g->sensorRangeZ;
   setPromoAnimation(&t->device, g->promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
-  t->device.leftHanded = false;
-  t->device.midiThrough = false;
   initializeAudienceMessages();
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
@@ -526,21 +583,14 @@ void copyConfigurationV1(void* target, void* source) {
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, g->mainNotes, g->accentNotes);
     t->preset[p].global.rowOffset = g->rowOffset;
-    t->preset[p].global.customRowOffset = 12;
     t->preset[p].global.velocitySensitivity = g->velocitySensitivity;
-    t->preset[p].global.minForVelocity = 0;
-    t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
-    t->preset[p].global.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     t->preset[p].global.pressureSensitivity = g->pressureSensitivity;
-    t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, g->switchAssignment, sizeof(byte)*4);
     memcpy(t->preset[p].global.switchBothSplits, g->switchBothSplits, sizeof(boolean)*4);
-    t->preset[p].global.ccForSwitch = 65;
     t->preset[p].global.midiIO = g->midiIO;
     t->preset[p].global.arpDirection = g->arpDirection;
     t->preset[p].global.arpTempo = g->arpTempo;
     t->preset[p].global.arpOctave = g->arpOctave;
-    t->preset[p].global.sustainBehavior = sustainHold;
 
     copySplitSettingsV1(&t->preset[p].split[LEFT], &s->left);
     copySplitSettingsV1(&t->preset[p].split[RIGHT], &s->right);
@@ -573,8 +623,6 @@ void copySplitSettingsV1(void* target, void* source) {
     t->expressionForY = timbreCC74;
     t->customCCForY = s->ccForY;
   }
-  t->minForY = 0;
-  t->maxForY = 127;
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
   if (t->expressionForZ == loudnessCC11) {
@@ -583,9 +631,6 @@ void copySplitSettingsV1(void* target, void* source) {
   else {
     t->customCCForZ = 11;
   }
-  t->minForZ = 0;
-  t->maxForZ = 127;
-  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -593,19 +638,16 @@ void copySplitSettingsV1(void* target, void* source) {
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
-  t->ccForLowRow = 1;
   t->lowRowCCXYZBehavior = lowRowCCHold;
-  t->ccForLowRowX = 16;
-  t->ccForLowRowY = 17;
-  t->ccForLowRowZ = 18;
   t->transposeOctave = s->transposeOctave;
   t->transposePitch = s->transposePitch;
   t->transposeLights = s->transposeLights;
   t->ccFaders = s->ccFaders;
   t->arpeggiator = s->arpeggiator;
   t->strum = s->strum;
-  t->mpe = false;
 }
+
+/*************************************************************************************************/
 
 void copyConfigurationV2(void* target, void* source) {
   Configuration* t = (Configuration*)target;
@@ -614,14 +656,10 @@ void copyConfigurationV2(void* target, void* source) {
   t->device.version = s->device.version;
   copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
-  t->device.leftHanded = false;
-  t->device.midiThrough = false;
   initializeAudienceMessages();
 
   copyPresetSettingsOfConfigurationV2(t, s);
@@ -666,8 +704,6 @@ void copySplitSettingsV2(void* target, void* source) {
       }
       break;
   }
-  t->minForY = 0;
-  t->maxForY = 127;
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
   if (t->expressionForZ == loudnessCC11) {
@@ -676,9 +712,6 @@ void copySplitSettingsV2(void* target, void* source) {
   else {
     t->customCCForZ = 11;
   }
-  t->minForZ = 0;
-  t->maxForZ = 127;
-  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -686,18 +719,13 @@ void copySplitSettingsV2(void* target, void* source) {
   t->colorLowRow = s->colorLowRow;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
-  t->ccForLowRow = 1;
   t->lowRowCCXYZBehavior = lowRowCCHold;
-  t->ccForLowRowX = 16;
-  t->ccForLowRowY = 17;
-  t->ccForLowRowZ = 18;
   t->transposeOctave = s->transposeOctave;
   t->transposePitch = s->transposePitch;
   t->transposeLights = s->transposeLights;
   t->ccFaders = s->ccFaders;
   t->arpeggiator = s->arpeggiator;
   t->strum = s->strum;
-  t->mpe = false;
 }
 
 void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
@@ -709,21 +737,14 @@ void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
     t->preset[p].global.rowOffset = s->preset[p].global.rowOffset;
-    t->preset[p].global.customRowOffset = 12;
     t->preset[p].global.velocitySensitivity = s->preset[p].global.velocitySensitivity;
-    t->preset[p].global.minForVelocity = 0;
-    t->preset[p].global.maxForVelocity = DEFAULT_MAX_VELOCITY;
-    t->preset[p].global.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     t->preset[p].global.pressureSensitivity = s->preset[p].global.pressureSensitivity;
-    t->preset[p].global.pressureAftertouch = false;
     memcpy(t->preset[p].global.switchAssignment, s->preset[p].global.switchAssignment, sizeof(byte)*4);
     memcpy(t->preset[p].global.switchBothSplits, s->preset[p].global.switchBothSplits, sizeof(boolean)*4);
-    t->preset[p].global.ccForSwitch = 65;
     t->preset[p].global.midiIO = s->preset[p].global.midiIO;
     t->preset[p].global.arpDirection = s->preset[p].global.arpDirection;
     t->preset[p].global.arpTempo = s->preset[p].global.arpTempo;
     t->preset[p].global.arpOctave = s->preset[p].global.arpOctave;
-    t->preset[p].global.sustainBehavior = sustainHold;
 
     copySplitSettingsV2(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
     copySplitSettingsV2(&t->preset[p].split[RIGHT], &s->preset[p].split[RIGHT]);
@@ -733,6 +754,8 @@ void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
+/*************************************************************************************************/
+
 void copyConfigurationV3(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
@@ -740,15 +763,11 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.version = s->device.version;
   copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
-  t->device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  t->device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
   copyAudienceMessages(&(t->device.audienceMessages), &(s->device.audienceMessages));
-  t->device.leftHanded = false;
-  t->device.midiThrough = false;
 
   for (byte p = 0; p < NUMPRESETS; ++p) {
     copyPresetSettingsOfConfigurationV3(t, s);
@@ -766,16 +785,11 @@ void copyGlobalSettingsV3(void* target, void* source) {
   t->currentPerSplit = s->currentPerSplit;
   copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
-  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
-  t->minForVelocity = 0;
-  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
-  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = 65;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
@@ -798,6 +812,8 @@ void copyPresetSettingsOfConfigurationV3(void* target, void* source) {
   memcpy(&t->settings, &t->preset[0], sizeof(PresetSettings));
 }
 
+/*************************************************************************************************/
+
 void copyConfigurationV4(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV4* s = (ConfigurationV4*)source;
@@ -818,15 +834,10 @@ void copyDeviceSettingsV4(void* target, void* source) {
   t->serialMode = true;
   copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
-  t->minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
-  t->sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  t->sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   t->sensorRangeZ = s->sensorRangeZ;
   setPromoAnimation(t, s->promoAnimationAtStartup);
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = false;
-  t->midiThrough = false;
 }
 
 void copyPresetSettingsV3(void* target, void* source) {
@@ -838,6 +849,8 @@ void copyPresetSettingsV3(void* target, void* source) {
   copySplitSettingsV2(&t->split[LEFT], &s->split[LEFT]);
   copySplitSettingsV2(&t->split[RIGHT], &s->split[RIGHT]);
 }
+
+/*************************************************************************************************/
 
 void copyConfigurationV5(void* target, void* source) {
   Configuration* t = (Configuration*)target;
@@ -885,11 +898,7 @@ void copyGlobalSettingsV4(void* target, void* source) {
   t->currentPerSplit = s->currentPerSplit;
   copyGlobalSettingsNoteLights(t, s->mainNotes, s->accentNotes);
   t->rowOffset = s->rowOffset;
-  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
-  t->minForVelocity = 0;
-  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
-  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -920,14 +929,9 @@ void copySplitSettingsV3(void* target, void* source) {
   t->pitchResetOnRelease = s->pitchResetOnRelease;
   t->expressionForY = s->expressionForY;
   t->customCCForY = s->customCCForY;
-  t->minForY = 0;
-  t->maxForY = 127;
   t->relativeY = s->relativeY;
   t->expressionForZ = s->expressionForZ;
   t->customCCForZ = s->customCCForZ;
-  t->minForZ = 0;
-  t->maxForZ = 127;
-  t->ccForZ14Bit = false;
   memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
   t->colorMain = s->colorMain;
   t->colorAccent = s->colorAccent;
@@ -949,6 +953,8 @@ void copySplitSettingsV3(void* target, void* source) {
   t->mpe = s->mpe;
 }
 
+/*************************************************************************************************/
+
 void copyConfigurationV6(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV6* s = (ConfigurationV6*)source;
@@ -967,8 +973,8 @@ void copyPresetSettingsV5(void* target, void* source) {
 
   copyGlobalSettingsV5(&t->global, &s->global);
 
-  t->split[LEFT] = s->split[LEFT];
-  t->split[RIGHT] = s->split[RIGHT];
+  copySplitSettingsV4(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV4(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
 void copyGlobalSettingsV5(void* target, void* source) {
@@ -980,11 +986,7 @@ void copyGlobalSettingsV5(void* target, void* source) {
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
-  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
-  t->minForVelocity = 0;
-  t->maxForVelocity = DEFAULT_MAX_VELOCITY;
-  t->valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
   t->pressureSensitivity = s->pressureSensitivity;
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
@@ -996,6 +998,54 @@ void copyGlobalSettingsV5(void* target, void* source) {
   t->arpOctave = s->arpOctave;
   t->sustainBehavior = s->sustainBehavior;
 }
+
+void copySplitSettingsV4(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV4* s = (SplitSettingsV4*)source;
+
+  t->midiMode = s->midiMode;
+  t->midiChanMain = s->midiChanMain;
+  t->midiChanPerRow = s->midiChanPerRow;
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
+  t->bendRangeOption = s->bendRangeOption;
+  t->customBendRange = s->customBendRange;
+  t->sendX = s->sendX;
+  t->sendY = s->sendY;
+  t->sendZ = s->sendZ;
+  t->pitchCorrectQuantize = s->pitchCorrectQuantize;
+  t->pitchCorrectHold = s->pitchCorrectHold;
+  t->pitchResetOnRelease = s->pitchResetOnRelease;
+  t->expressionForY = s->expressionForY;
+  t->customCCForY = s->customCCForY;
+  t->minForY = s->minForY;
+  t->maxForY = s->maxForY;
+  t->relativeY = s->relativeY;
+  t->expressionForZ = s->expressionForZ;
+  t->customCCForZ = s->customCCForZ;
+  t->minForZ = s->minForZ;
+  t->maxForZ = s->maxForZ;
+  memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
+  t->colorMain = s->colorMain;
+  t->colorAccent = s->colorAccent;
+  t->colorPlayed = s->colorNoteon;
+  t->colorLowRow = s->colorLowRow;
+  t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = s->lowRowCCXBehavior;
+  t->ccForLowRow = s->ccForLowRow;
+  t->lowRowCCXYZBehavior = s->lowRowCCXYZBehavior;
+  t->ccForLowRowX = s->ccForLowRowX;
+  t->ccForLowRowY = s->ccForLowRowY;
+  t->ccForLowRowZ = s->ccForLowRowZ;
+  t->transposeOctave = s->transposeOctave;
+  t->transposePitch = s->transposePitch;
+  t->transposeLights = s->transposeLights;
+  t->ccFaders = s->ccFaders;
+  t->arpeggiator = s->arpeggiator;
+  t->strum = s->strum;
+  t->mpe = s->mpe;
+}
+
+/*************************************************************************************************/
 
 void copyConfigurationV7(void* target, void* source) {
   Configuration* t = (Configuration*)target;
@@ -1021,12 +1071,9 @@ void copyDeviceSettingsV5(void* target, void* source) {
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimationActive = false;
   setPromoAnimation(t, s->promoAnimation);
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = false;
-  t->midiThrough = false;
 }
 
 void copyPresetSettingsV6(void* target, void* source) {
@@ -1035,8 +1082,8 @@ void copyPresetSettingsV6(void* target, void* source) {
 
   copyGlobalSettingsV6(&t->global, &s->global);
 
-  t->split[LEFT] = s->split[LEFT];
-  t->split[RIGHT] = s->split[RIGHT];
+  copySplitSettingsV4(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV4(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
 void copyGlobalSettingsV6(void* target, void* source) {
@@ -1048,7 +1095,6 @@ void copyGlobalSettingsV6(void* target, void* source) {
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
-  t->customRowOffset = 12;
   t->velocitySensitivity = s->velocitySensitivity;
   t->minForVelocity = s->minForVelocity;
   t->maxForVelocity = s->maxForVelocity;
@@ -1063,4 +1109,49 @@ void copyGlobalSettingsV6(void* target, void* source) {
   t->arpTempo = s->arpTempo;
   t->arpOctave = s->arpOctave;
   t->sustainBehavior = s->sustainBehavior;
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV8(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV8* s = (ConfigurationV8*)source;
+
+  copyDeviceSettingsV6(&t->device, &s->device);
+
+  copyPresetSettingsV7(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV7(&t->preset[p], &s->preset[p]);
+  }
+}
+
+void copyDeviceSettingsV6(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV6* s = (DeviceSettingsV6*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepActive = s->sleepActive;
+  t->sleepDelay = s->sleepDelay;
+  t->sleepAnimation = s->sleepAnimation;
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->leftHanded = s->leftHanded;
+}
+
+void copyPresetSettingsV7(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV7* s = (PresetSettingsV7*)source;
+
+  memcpy(&t->global, &s->global, sizeof(GlobalSettings));
+
+  copySplitSettingsV4(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV4(&t->split[RIGHT], &s->split[RIGHT]);
 }

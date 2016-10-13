@@ -141,25 +141,45 @@ void serialRestoreSettings() {
     lastSerialMoment = millis();
   }
 
-  int32_t confSize;
-  memcpy(&confSize, buff1, sizeof(int32_t));
+  int32_t settingsSize;
+  memcpy(&settingsSize, buff1, sizeof(int32_t));
+
+  Serial.write(ackCode);
 
   // retrieve the actual settings
+  const uint8_t batchsize = 32;
+  byte buff2[batchsize];
   lastSerialMoment = millis();
-  byte buff2[confSize];
-  for (int32_t j = 0; j < confSize; ++j) {
-    if (j % 32 == 0) {
-      Serial.write(ackCode);
+  int32_t j = 0;
+  while(j+batchsize < settingsSize) {
+    for (byte k = 0; k < batchsize; ++k) {
+      if (!serialWaitForMaximumTwoSeconds()) return;
+      // read the next byte of the configuration data
+      buff2[k] = Serial.read();
+      lastSerialMoment = millis();
     }
-    
-    if (!serialWaitForMaximumTwoSeconds()) return;
 
-    // read the next byte of the configuration data
-    buff2[j] = Serial.read();
-    lastSerialMoment = millis();
+    dueFlashStorage.write(SETTINGS_OFFSET + j, buff2, batchsize);
+
+    j += batchsize;
+    Serial.write(ackCode);
   }
 
-  boolean settingsApplied = upgradeConfigurationSettings(confSize, buff2);
+  size_t remaining = settingsSize - j;
+  if (remaining > 0) {
+    for (byte k = 0; k < remaining; ++k) {
+      if (!serialWaitForMaximumTwoSeconds()) return;
+      // read the next byte of the configuration data
+      buff2[k] = Serial.read();
+      lastSerialMoment = millis();
+    }
+
+    dueFlashStorage.write(SETTINGS_OFFSET + j, buff2, remaining);
+
+    Serial.write(ackCode);
+  }
+
+  boolean settingsApplied = upgradeConfigurationSettings(settingsSize, dueFlashStorage.readAddress(SETTINGS_OFFSET));
 
   // activate the retrieved settings
   if (settingsApplied) {

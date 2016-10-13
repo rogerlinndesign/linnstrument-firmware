@@ -57,7 +57,7 @@ inline void performCheckAdvanceSequencer() {
 }
 
 inline void performContinuousTasks(unsigned long nowMicros) {
-  if (displayMode == displaySleep) {
+  if (!setupDone || displayMode == displaySleep) {
     return;
   }
 
@@ -70,6 +70,7 @@ inline void performContinuousTasks(unsigned long nowMicros) {
     ledsRefreshed = checkRefreshLedColumn(nowMicros);
     continuousRefreshLeds = false;
   }
+  
   if (ledsRefreshed) {
     unsigned long nowMillis = millis();
 

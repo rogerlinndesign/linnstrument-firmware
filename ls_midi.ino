@@ -61,12 +61,12 @@ void applyMidiIo() {
   }
 
   if (isMidiUsingDIN()) {
-    digitalWrite(36, 0);     // Set LOW for DIN jacks
+    digitalWrite(36, LOW);   // Set LOW for DIN jacks
     Serial.begin(31250);     // set serial port at MIDI DIN speed 31250
     Serial.flush();          // clear the serial port
   }
   else {
-    digitalWrite(36, 1);     // Set HIGH for USB
+    digitalWrite(36, HIGH);  // Set HIGH for USB
     Serial.begin(115200);    // set serial port at fastest speed 115200
     Serial.flush();          // clear the serial port
   }
