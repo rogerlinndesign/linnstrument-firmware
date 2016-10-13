@@ -170,8 +170,6 @@ void loadSettings() {
   memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));
 }
 
-#define PROJECT_INDEX_OFFSET(marker, index)   (PROJECTS_OFFSET + PROJECT_VERSION_MARKER_SIZE + marker * PROJECT_INDEXES_COUNT + index)
-
 void writeInitialProjectSettings() {
   dueFlashStorage.write(PROJECTS_OFFSET, 0);
 
@@ -180,7 +178,7 @@ void writeInitialProjectSettings() {
     dueFlashStorage.write(PROJECT_INDEX_OFFSET(1, i), i);
   }
 
-  for (byte p = 0; p < 17; ++p) {
+  for (byte p = 0; p <= MAX_PROJECTS; ++p) {
     writeProjectToFlashRaw(p);
   }
 }
@@ -208,7 +206,7 @@ void writeProjectToFlash(byte project) {
   // read the location of the temporary project storage
   byte previousIndexes[PROJECT_INDEXES_COUNT];
   memcpy(&previousIndexes, dueFlashStorage.readAddress(PROJECT_INDEX_OFFSET(marker, 0)), PROJECT_INDEXES_COUNT);
-  byte tmpIndex = previousIndexes[16];
+  byte tmpIndex = previousIndexes[MAX_PROJECTS];
   byte prjIndex = previousIndexes[project];
 
   writeProjectToFlashRaw(tmpIndex);
@@ -216,7 +214,7 @@ void writeProjectToFlash(byte project) {
   // write the marker after the project data so that this version becomes to latest coherent one
   byte newMarker = 1 - marker;
   previousIndexes[project] = tmpIndex;
-  previousIndexes[16] = prjIndex;
+  previousIndexes[MAX_PROJECTS] = prjIndex;
   dueFlashStorage.write(PROJECT_INDEX_OFFSET(newMarker, 0), previousIndexes, PROJECT_INDEXES_COUNT);
   dueFlashStorage.write(PROJECTS_OFFSET, newMarker);
 

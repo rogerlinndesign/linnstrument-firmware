@@ -825,8 +825,10 @@ const int PROJECT_VERSION_MARKER_SIZE = 4;
 const int PROJECT_INDEXES_COUNT = 20;
 const int PROJECTS_MARKERS_SIZE = alignToByteBoundary(PROJECT_VERSION_MARKER_SIZE + 2 * PROJECT_INDEXES_COUNT);    // one version marker, two series on indexes for project references
 const int SINGLE_PROJECT_SIZE = alignToByteBoundary(sizeof(SequencerProject));
-const int ALL_PROJECTS_SIZE = PROJECTS_MARKERS_SIZE + 17*SINGLE_PROJECT_SIZE;
+const int ALL_PROJECTS_SIZE = PROJECTS_MARKERS_SIZE + (MAX_PROJECTS + 1)*SINGLE_PROJECT_SIZE;
 const int SETTINGS_OFFSET = PROJECTS_OFFSET + alignToByteBoundary(ALL_PROJECTS_SIZE);
+
+#define PROJECT_INDEX_OFFSET(marker, index)   (PROJECTS_OFFSET + PROJECT_VERSION_MARKER_SIZE + marker * PROJECT_INDEXES_COUNT + index)
 
 
 /**************************************** FIXED POINT MATH ***************************************/

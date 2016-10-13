@@ -19,7 +19,9 @@ boolean waitingForCommands = false;
 enum linnCommands {
   SendSettings = 's',
   RestoreSettings = 'r',
-  LightLed = 'l'
+  LightLed = 'l',
+  SendProjects = 'p',
+  RestoreProject = 'q'
 };
 
 byte codePos = 0;
@@ -52,6 +54,18 @@ void handleSerialIO() {
       case LightLed:
       {
         serialLightLed();
+        break;
+      }
+
+      case SendProjects:
+      {
+        serialSendProjects();
+        break;
+      }
+
+      case RestoreProject:
+      {
+        serialRestoreProject();
         break;
       }
 
@@ -89,6 +103,13 @@ void handleSerialIO() {
   }
 }
 
+boolean waitForSerialAck() {
+  if (!serialWaitForMaximumTwoSeconds()) return false;
+  char ack = Serial.read();
+  if (ack != 'a') return false;
+  return true;
+}
+
 void serialSendSettings() {
   Serial.write(ackCode);
 
@@ -98,14 +119,22 @@ void serialSendSettings() {
   int32_t confSize = sizeof(Configuration);
 
   // send the size of the settings
-  byte buff1[sizeof(int32_t)];
-  memcpy(buff1, &confSize, sizeof(int32_t));
-  Serial.write(buff1, sizeof(int32_t));
+  Serial.write((byte*)&confSize, sizeof(int32_t));
 
   // send the actual settings
-  byte buff2[confSize];
-  memcpy(buff2, &config, confSize);
-  Serial.write(buff2, confSize);
+  const uint8_t batchsize = 96;
+  byte* src = (byte*)&config;
+  lastSerialMoment = millis();
+  while (confSize > 0) {
+    int actual = min(confSize, batchsize);
+    Serial.write(src, actual);
+
+    confSize -= actual;
+    src += actual;
+
+    if (!waitForSerialAck()) return;
+    lastSerialMoment = millis();
+  }
 
   Serial.write(ackCode);
 }
@@ -146,35 +175,25 @@ void serialRestoreSettings() {
 
   Serial.write(ackCode);
 
-  // retrieve the actual settings
-  const uint8_t batchsize = 32;
+  // restore the actual settings
+  uint32_t projectOffset = SETTINGS_OFFSET;
+  const uint8_t batchsize = 96;
   byte buff2[batchsize];
   lastSerialMoment = millis();
-  int32_t j = 0;
-  while(j+batchsize < settingsSize) {
-    for (byte k = 0; k < batchsize; ++k) {
+  int32_t remaining = settingsSize;
+  while (remaining > 0) {
+    int actual = min(remaining, batchsize);
+    for (byte k = 0; k < actual; ++k) {
       if (!serialWaitForMaximumTwoSeconds()) return;
       // read the next byte of the configuration data
       buff2[k] = Serial.read();
       lastSerialMoment = millis();
     }
 
-    dueFlashStorage.write(SETTINGS_OFFSET + j, buff2, batchsize);
+    dueFlashStorage.write(projectOffset, buff2, actual);
 
-    j += batchsize;
-    Serial.write(ackCode);
-  }
-
-  size_t remaining = settingsSize - j;
-  if (remaining > 0) {
-    for (byte k = 0; k < remaining; ++k) {
-      if (!serialWaitForMaximumTwoSeconds()) return;
-      // read the next byte of the configuration data
-      buff2[k] = Serial.read();
-      lastSerialMoment = millis();
-    }
-
-    dueFlashStorage.write(SETTINGS_OFFSET + j, buff2, remaining);
+    remaining -= actual;
+    projectOffset += actual;
 
     Serial.write(ackCode);
   }
@@ -227,4 +246,107 @@ void serialLightLed() {
   setLed(buff[0], buff[1], buff[2], cellOn);
 
   updateDisplay();
+}
+
+void serialSendProjects() {
+  Serial.write(ackCode);
+
+  clearDisplayImmediately();
+  delayUsec(1000);
+
+  // send the count of projects
+  Serial.write((byte)MAX_PROJECTS);
+
+  // send the size of a project
+  int32_t projectSize = sizeof(SequencerProject);
+  Serial.write((byte*)&projectSize, sizeof(int32_t));
+
+  // send the actual projects
+  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+
+  lastSerialMoment = millis();
+
+  // send the actual settings
+  const uint8_t batchsize = 96;
+
+  for (byte p = 0; p < MAX_PROJECTS; ++p) {
+    byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, p));
+    uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
+    int32_t remaining = projectSize;
+
+    byte* src = (byte*)dueFlashStorage.readAddress(projectOffset);
+    while (remaining > 0) {
+      int actual = min(remaining, batchsize);
+      Serial.write(src, actual);
+
+      remaining -= actual;
+      src += actual;
+
+      if (!waitForSerialAck()) return;
+      lastSerialMoment = millis();
+    }
+  }
+
+  Serial.write(ackCode);
+}
+
+void serialRestoreProject() {
+  Serial.write(ackCode);
+
+  clearDisplayImmediately();
+  delayUsec(1000);
+
+  // retrieve the size of a project
+  lastSerialMoment = millis();
+
+  byte buff1[sizeof(int32_t)];
+  for (byte i = 0; i < 4; ++i) {
+    if (!serialWaitForMaximumTwoSeconds()) return;
+
+    // read the next byte of the configuration size
+    buff1[i] = Serial.read();
+    lastSerialMoment = millis();
+  }
+
+  int32_t projectSize;
+  memcpy(&projectSize, buff1, sizeof(int32_t));
+
+  if (projectSize != sizeof(SequencerProject)) return;
+
+  Serial.write(ackCode);
+
+  if (!serialWaitForMaximumTwoSeconds()) return;
+
+  uint8_t p = Serial.read();
+  Serial.write(ackCode);
+
+  // write the actual project
+  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+  byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, p));
+  uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
+
+  const uint8_t batchsize = 96;
+  byte buff2[batchsize];
+  lastSerialMoment = millis();
+  int32_t remaining = projectSize;
+  while (remaining > 0) {
+    int actual = min(remaining, batchsize);
+    for (byte k = 0; k < actual; ++k) {
+      if (!serialWaitForMaximumTwoSeconds()) return;
+      // read the next byte of the configuration data
+      buff2[k] = Serial.read();
+      lastSerialMoment = millis();
+    }
+
+    dueFlashStorage.write(projectOffset, buff2, actual);
+
+    remaining -= actual;
+    projectOffset += actual;
+
+    Serial.write(ackCode);
+  }
+
+  // finished
+  Serial.write(ackCode);
+  delayUsec(500000);
 }
