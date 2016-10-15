@@ -70,7 +70,15 @@ void initializeStorage() {
   byte bootblock = dueFlashStorage.read(0);
 
   if (bootblock != 0) {                                   // See if we need to boot from scratch
-    firstTimeBoot = true;
+    if (bootblock == 255) {                               // When a new firmware is uploaded, the first flash byte will be 255
+      switchSerialMode(true);                             // Start in serial mode after OS upgrade to be able to receive the settings
+      Device.serialMode = true;
+      firstTimeBoot = true;
+    }
+    else {
+      switchSerialMode(false);                            // Start in MIDI mode for all other bootblock values
+      Device.serialMode = false;
+    }
 
     writeInitialProjectSettings();
     writeSettingsToFlash();                               // Store the initial default settings
@@ -262,7 +270,7 @@ void storeSettingsToPreset(byte p) {
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
   Device.version = 9;
-  Device.serialMode = true;
+  Device.serialMode = false;
   Device.promoAnimationActive = false;
   Device.sleepActive = false;
   Device.sleepDelay = 0;
