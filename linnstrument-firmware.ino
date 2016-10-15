@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.0.1 =========================================
+======================================== LinnStrument Operating System v2.0.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,7 +56,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "201.";
+const char* OSVersion = "200.";
 const char* OSVersionBuild = ".036";
 
 // SPI addresses
