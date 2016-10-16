@@ -2276,7 +2276,7 @@ byte StepSequencerState::getPositionLedColor(byte stepNum) {
       color = Split[split].colorSequencerDisabled;
     }
 
-    if (running && stepNum == currentPosition) {
+    if (running && stepNum < getCurrentPattern().length && stepNum == currentPosition) {
       color = getCurrentPositionColor();
     }
   }
@@ -2326,7 +2326,7 @@ void StepSequencerState::setPosition(byte stepNum) {
       if (eventState.isActive()) {
         eventState.sendNoteOff();
       }
-      if (!muted) {
+      if (!muted && stepNum < getCurrentPattern().length) {
         // start the event
         eventState.sendNoteOn(event, split);
       }
