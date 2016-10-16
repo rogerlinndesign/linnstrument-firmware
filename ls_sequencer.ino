@@ -1515,6 +1515,11 @@ void SequencerPattern::operator=(const SequencerPattern& p) {
   for (byte s = 0; s < MAX_SEQUENCER_STEPS; ++s) {
     steps[s] = p.steps[s];
   }
+  stepSize = p.stepSize;
+  sequencerDirection = p.sequencerDirection;
+  loopScreen = p.loopScreen;
+  swing = p.swing;
+  length = p.length;
 }
 
 
