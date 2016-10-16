@@ -2151,7 +2151,7 @@ void StepSequencerState::advanceSequencer() {
 
         if (getCurrentPattern().loopScreen) {
           start = positionOffset;
-          end = start + SEQ_EVENTS_WIDTH - 1;
+          end = min(end, start + SEQ_EVENTS_WIDTH - 1);
         }
 
         switch (getCurrentPattern().sequencerDirection) {
