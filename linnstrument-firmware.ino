@@ -980,6 +980,7 @@ unsigned long lastTouchMoment = 0;                  // last time someone touched
 
 unsigned short clock24PPQ = 0;                      // the current clock in 24PPQ, either internal or synced to incoming MIDI clock
 
+int lastLoadedPreset = -1;                          // the last settings preset that was loaded
 int lastLoadedProject = -1;                         // the last sequencer project that was loaded
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/

@@ -960,7 +960,7 @@ void receivedNrpn(int parameter, int value) {
     // Global Settings Preset Load
     case 243:
       if (inRange(value, 0, 3)) {
-        applyPresetSettings(config.preset[value]);
+        loadSettingsFromPreset(value);
       }
       break;
     // Global Pressure Aftertouch Active

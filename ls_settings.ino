@@ -260,6 +260,16 @@ void applySystemState() {
   applySerialMode();
 }
 
+void loadSettingsFromPreset(byte p) {
+  lastLoadedPreset = p;
+
+  memcpy(&Global, &config.preset[p].global, sizeof(GlobalSettings));
+  memcpy(&Split[LEFT], &config.preset[p].split[LEFT], sizeof(SplitSettings));
+  memcpy(&Split[RIGHT], &config.preset[p].split[RIGHT], sizeof(SplitSettings));
+
+  applyPresetSettings(config.settings);
+}
+
 void storeSettingsToPreset(byte p) {
   memcpy(&config.preset[p].global, &Global, sizeof(GlobalSettings));
   memcpy(&config.preset[p].split[LEFT], &Split[LEFT], sizeof(SplitSettings));
@@ -1653,7 +1663,7 @@ void handlePresetRelease() {
       byte preset = sensorRow-2;
 
       // load the selected preset
-      applyPresetSettings(config.preset[preset]);
+      loadSettingsFromPreset(preset);
       sensorCell->lastTouch = 0;
 
       updateDisplay();

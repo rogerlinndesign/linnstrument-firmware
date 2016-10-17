@@ -203,7 +203,11 @@ inline void checkStopBlinkingLeds(unsigned long now) {
   if (displayMode == displayPreset) {
     for (byte p = 0; p < NUMPRESETS; ++p) {
       if (presetBlinkStart[p] != 0 && calcTimeDelta(now, presetBlinkStart[p]) > 1200) {
-        setLed(NUMCOLS-2, p+2, globalColor, cellOn);
+        int color = globalColor;
+        if (p == lastLoadedPreset) {
+          color = COLOR_CYAN;
+        }
+        setLed(NUMCOLS-2, p+2, color, cellOn);
         presetBlinkStart[p] = 0;
       }
     }

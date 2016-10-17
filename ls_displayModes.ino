@@ -720,7 +720,11 @@ void paintPresetDisplay(byte side) {
   setLed(1, 7, COLOR_GREEN, cellOn);
   setLed(1, 6, COLOR_RED, cellOn);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    setLed(NUMCOLS-2, p+2, globalColor, cellOn);
+    int color = globalColor;
+    if (p == lastLoadedPreset) {
+      color = COLOR_CYAN;
+    }
+    setLed(NUMCOLS-2, p+2, color, cellOn);
   }
   paintSplitNumericDataDisplay(side, midiPreset[side]+1, 0, false);
 }
