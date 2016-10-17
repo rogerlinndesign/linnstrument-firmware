@@ -528,7 +528,9 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
 void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationYV1 (*calColsSource)[9][MAXROWS]) {
   for (int i = 0; i < MAXCOLS+1; ++i) {
     for (int j = 0; j < 4; ++j) {
-      (*calRowsTarget)[i][j] = (*calRowsSource)[i][j];
+      (*calRowsTarget)[i][j].fxdMeasuredX = (*calRowsSource)[i][j].fxdMeasuredX;
+      (*calRowsTarget)[i][j].fxdReferenceX = (*calRowsSource)[i][j].fxdReferenceX;
+      (*calRowsTarget)[i][j].fxdRatio = (*calRowsSource)[i][j].fxdRatio;
     }
   }
   for (int i = 0; i < 9; ++i) {
@@ -542,7 +544,7 @@ void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (
 
 void copyAudienceMessages(char (*target)[16][31], char (*source)[16][31]) {
   for (byte msg = 0; msg < 16; ++msg) {
-    memset((*target)[msg], '\0', sizeof((*target)[msg]));
+    memset((*target)[msg], '\0', 31);
     strncpy((*target)[msg], (*source)[msg], 30);
     (*target)[msg][30] = '\0';
   }
