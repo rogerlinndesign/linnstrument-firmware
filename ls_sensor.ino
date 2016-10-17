@@ -177,11 +177,8 @@ inline unsigned short readZ() {                       // returns the raw Z value
 // spiAnalogRead:
 // returns raw ADC output at current cell
 inline short spiAnalogRead() {
-  byte msb = SPI.transfer(SPI_ADC, 0, SPI_CONTINUE);         // read byte MSB
-  byte lsb = SPI.transfer(SPI_ADC, 0);                       // read byte LSB
+  short raw = SPI.transfer16(SPI_ADC, 0);         // read 16-bit byte pair
 
-  short raw = short(msb) << 8;             // assemble the 2 transfered bytes into an int
-  raw |= lsb;
   return raw >> 2;                         // shift the 14-bit value from bits 16-2 to bits 14-0
 }
 
@@ -246,6 +243,6 @@ inline void selectSensorCell(byte col, byte row, byte switchCode) {
     break;
   }
 
-  SPI.transfer(SPI_SENSOR, lsb, SPI_CONTINUE);    // to daisy-chained 595 (LSB)
-  SPI.transfer(SPI_SENSOR, msb);                  // to first 595 at MOSI (MSB, for both sensor columns and LED columns)
+  SPI.transfer16(SPI_SENSOR, (short)lsb<<8 | msb);    // to daisy-chained 595 (LSB)
+                                                      // to first 595 at MOSI (MSB, for both sensor columns and LED columns)
 }

@@ -1141,6 +1141,7 @@ void setup() {
   /*!!*/  // initialize the SPI port for setting one column of LEDs
   /*!!*/  SPI.begin(SPI_LEDS);
   /*!!*/  SPI.setDataMode(SPI_LEDS, SPI_MODE0);
+          SPI.setDataWidth(SPI_LEDS, SPI_CSR_BITS_16_BIT);
   /*!!*/  SPI.setClockDivider(SPI_LEDS, 4);                   // max clock is about 20 mHz. 4 = 21 mHz. Transferring all 4 bytes takes 1.9 uS.
   /*!!*/
   /*!!*/  // initialize the SPI port for setting analog switches in touch sensor
@@ -1148,12 +1149,16 @@ void setup() {
   /*!!*/  SPI.setDataMode(SPI_SENSOR, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_SENSOR, 4);                 // set clock speed to 84/4 = 21 mHz. Max clock is 25mHz @ 4.5v
   /*!!*/  selectSensorCell(0, 0, READ_Z);                     // set it analog switches to read column 0, row 0 and to read pressure
+            SPI.setDataWidth(SPI_SENSOR, SPI_CSR_BITS_16_BIT);
+
   /*!!*/
   /*!!*/  // initialize the SPI input port for reading the TI ADS7883 ADC
   /*!!*/  SPI.begin(SPI_ADC);
   /*!!*/  SPI.setDataMode(SPI_ADC, SPI_MODE0);
   /*!!*/  SPI.setClockDivider(SPI_ADC, 4);                    // set speed to 84/4 = 21 mHz. Max clock for ADC is 32 mHz @ 2.7-4.5v, 48mHz @ 4.5-5.5v
   /*!!*/
+          SPI.setDataWidth(SPI_ADC, SPI_CSR_BITS_16_BIT);
+
   /*!!*/  // Initialize the output enable line for the 2 LED display chips
   /*!!*/  pinMode(37, OUTPUT);
   /*!!*/  digitalWrite(37, HIGH);

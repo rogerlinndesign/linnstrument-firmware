@@ -324,9 +324,8 @@ void refreshLedColumn(unsigned long now) {
   ledColShifted = actualCol << 2;
   if ((actualCol & 16) == 0) ledColShifted |= B10000000;          // if column address 4 is 0, set bit 7
 
-  SPI.transfer(SPI_LEDS, ~ledColShifted, SPI_CONTINUE);           // send column address
-  SPI.transfer(SPI_LEDS, blue, SPI_CONTINUE);                     // send blue byte
-  SPI.transfer(SPI_LEDS, green, SPI_CONTINUE);                    // send green byte
-  SPI.transfer(SPI_LEDS, red);                                    // send red byte
+  SPI.transfer16(SPI_LEDS, ((((uint16_t)~ledColShifted) <<8) | blue), SPI_CONTINUE);           // send column address
+  SPI.transfer16(SPI_LEDS, (((uint16_t)green) << 8) | red);                    // send green byte
+  
   digitalWrite(37, LOW);                                          // enable the outputs of the LED driver chips
 }
