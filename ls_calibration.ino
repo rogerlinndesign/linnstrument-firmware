@@ -298,7 +298,7 @@ boolean handleCalibrationRelease() {
           // Draw the text OK and go back to normal display after a short delay
           calibrationPhase = calibrationInactive;
           clearDisplay();
-          bigfont_draw_string(6, 0, "OK", globalColor, false);
+          bigfont_draw_string((NUMCOLS-11)/2 - 1, 0, "OK", globalColor, false);
           delayUsec(500000);
 
           storeSettings();

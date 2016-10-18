@@ -752,11 +752,11 @@ void paintLimitsForYDisplay(byte side) {
 void paintCCForYDisplay(byte side) {
   clearDisplay();
   if (Split[side].customCCForY == 128) {
-    smallfont_draw_string(0, 0, "POPRS", Split[side].colorMain, false);
+    condfont_draw_string(0, 0, "POPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else if (Split[side].customCCForY == 129) {
-    smallfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
+    condfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
     paintShowSplitSelection(side);
   }
   else {
@@ -814,10 +814,10 @@ void paintLowRowCCXConfigDisplay(byte side) {
     case 1:
       switch (Split[Global.currentPerSplit].lowRowCCXBehavior) {
         case lowRowCCHold:
-          bigfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
+          adaptfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
           break;
         case lowRowCCFader:
-          bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
+          adaptfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
           break;
       }
       paintShowSplitSelection(side);
@@ -834,10 +834,10 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
     case 3:
       switch (Split[Global.currentPerSplit].lowRowCCXYZBehavior) {
         case lowRowCCHold:
-          bigfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
+          adaptfont_draw_string(0, 0, "HLD", Split[side].colorMain, true);
           break;
         case lowRowCCFader:
-          bigfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
+          adaptfont_draw_string(0, 0, "FDR", Split[side].colorMain, true);
           break;
       }
       paintShowSplitSelection(side);
@@ -888,18 +888,18 @@ void paintSleepConfig() {
   switch (sleepConfigState) {
     case 1:
       if (Device.sleepAnimation) {
-        bigfont_draw_string(0, 0, "ANI", globalColor, true);
+        adaptfont_draw_string(0, 0, "ANI", globalColor, true);
       }
       else {
-        bigfont_draw_string(0, 0, "SLP", globalColor, true);
+        adaptfont_draw_string(0, 0, "SLP", globalColor, true);
       }
       break;
     case 0:
       if (Device.sleepDelay == 0) {
-        bigfont_draw_string(0, 0, "NOW", globalColor, true);
+        adaptfont_draw_string(0, 0, "NOW", globalColor, true);
       }
       else {
-        bigfont_draw_string(0, 0, "D", globalColor, true);
+        adaptfont_draw_string(0, 0, "D", globalColor, true);
         paintNumericDataDisplay(globalColor, Device.sleepDelay, 4, true);
       }
       break;
@@ -914,10 +914,10 @@ void paintRowOffset() {
 void paintMIDIThrough() {
   clearDisplay();
   if (Device.midiThrough) {
-    bigfont_draw_string(0, 0, "THRU", globalColor, true);
+    adaptfont_draw_string(0, 0, "THRU", globalColor, true);
   }
   else {
-    bigfont_draw_string(0, 0, "NORM", globalColor, true);
+    adaptfont_draw_string(0, 0, LINNMODEL == 200 ? "NORM" : "NRM", globalColor, true);
   }
 }
 
@@ -1442,7 +1442,7 @@ void paintCalibrationDisplay() {
 void paintResetDisplay() {
   clearDisplay();
 
-  smallfont_draw_string(0, 0, "RESET", globalColor, true);
+  condfont_draw_string(0, 0, LINNMODEL == 200 ? "RESET" : "RSET", globalColor, true);
   for (byte row = 0; row < NUMROWS; ++row) {
     clearLed(0, row);
   }

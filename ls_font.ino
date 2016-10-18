@@ -2270,6 +2270,16 @@ void condfont_draw_string(int col, int row, const char* str, byte color, boolean
   font_draw_string(col, row, str, color, &condFont, erase, reversed, seperationColor);
 }
 
+void adaptfont_draw_string(int col, int row, const char* str, byte color) {
+  if (LINNMODEL == 200) bigfont_draw_string(col, row, str, color);
+  else                  condfont_draw_string(col, row, str, color);
+}
+
+void adaptfont_draw_string(int col, int row, const char* str, byte color, boolean erase) {
+  if (LINNMODEL == 200) bigfont_draw_string(col, row, str, color, erase);
+  else                  condfont_draw_string(col, row, str, color, erase);
+}
+
 // Draw a single character at col,row
 void font_draw_char(int col, int row, const char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
 {

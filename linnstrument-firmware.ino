@@ -1177,7 +1177,7 @@ void setup() {
   /*!!*/  
   /*!!*/      clearDisplay();
   /*!!*/  
-  /*!!*/      bigfont_draw_string(0, 0, "FWUP", COLOR_RED);
+  /*!!*/      adaptfont_draw_string(1, 0, "FWUP", COLOR_RED);
   /*!!*/      return;
   /*!!*/    }
   /*!!*/  }
