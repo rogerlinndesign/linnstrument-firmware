@@ -721,7 +721,7 @@ void paintPresetDisplay(byte side) {
   setLed(1, 6, COLOR_RED, cellOn);
   for (byte p = 0; p < NUMPRESETS; ++p) {
     int color = globalColor;
-    if (p == lastLoadedPreset) {
+    if (p == Device.lastLoadedPreset) {
       color = COLOR_CYAN;
     }
     setLed(NUMCOLS-2, p+2, color, cellOn);

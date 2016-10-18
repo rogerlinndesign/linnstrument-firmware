@@ -204,7 +204,7 @@ inline void checkStopBlinkingLeds(unsigned long now) {
     for (byte p = 0; p < NUMPRESETS; ++p) {
       if (presetBlinkStart[p] != 0 && calcTimeDelta(now, presetBlinkStart[p]) > 1200) {
         int color = globalColor;
-        if (p == lastLoadedPreset) {
+        if (p == Device.lastLoadedPreset) {
           color = COLOR_CYAN;
         }
         setLed(NUMCOLS-2, p+2, color, cellOn);
@@ -218,7 +218,7 @@ inline void checkStopBlinkingLeds(unsigned long now) {
     for (byte p = 0; p < MAX_PROJECTS; ++p) {
       if (projectBlinkStart[p] != 0 && calcTimeDelta(now, projectBlinkStart[p]) > 1200) {
         int color = globalColor;
-        if (p == lastLoadedProject) {
+        if (p == Device.lastLoadedProject) {
           color = COLOR_CYAN;
         }
         setLed(6 + p%4, 2 + p/4, color, cellOn);

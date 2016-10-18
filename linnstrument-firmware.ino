@@ -625,6 +625,8 @@ struct DeviceSettings {
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  short lastLoadedPreset;                    // the last settings preset that was loaded
+  short lastLoadedProject;                   // the last sequencer project that was loaded
 };
 #define Device config.device
 
@@ -979,9 +981,6 @@ boolean controlModeActive = false;                  // indicates whether control
 unsigned long lastTouchMoment = 0;                  // last time someone touched LinnStrument in milliseconds
 
 unsigned short clock24PPQ = 0;                      // the current clock in 24PPQ, either internal or synced to incoming MIDI clock
-
-int lastLoadedPreset = -1;                          // the last settings preset that was loaded
-int lastLoadedProject = -1;                         // the last sequencer project that was loaded
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 

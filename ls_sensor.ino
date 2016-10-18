@@ -180,9 +180,11 @@ inline short spiAnalogRead() {
   byte msb = SPI.transfer(SPI_ADC, 0, SPI_CONTINUE);         // read byte MSB
   byte lsb = SPI.transfer(SPI_ADC, 0);                       // read byte LSB
 
-  short raw = short(msb) << 8;             // assemble the 2 transfered bytes into an int
+  // assemble the 2 transfered bytes into an int
+  short raw = short(msb) << 8;
   raw |= lsb;
-  return raw >> 2;                         // shift the 14-bit value from bits 16-2 to bits 14-0
+  // shift the 14-bit value from bits 16-2 to bits 14-0
+  return (raw >> 2) & 0xFFF;
 }
 
 

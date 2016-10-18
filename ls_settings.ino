@@ -261,7 +261,7 @@ void applySystemState() {
 }
 
 void loadSettingsFromPreset(byte p) {
-  lastLoadedPreset = p;
+  Device.lastLoadedPreset = p;
 
   memcpy(&Global, &config.preset[p].global, sizeof(GlobalSettings));
   memcpy(&Split[LEFT], &config.preset[p].split[LEFT], sizeof(SplitSettings));
@@ -279,7 +279,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 9;
+  Device.version = 10;
   Device.serialMode = false;
   Device.promoAnimationActive = false;
   Device.sleepActive = false;
@@ -289,6 +289,8 @@ void initializeDeviceSettings() {
   Device.leftHanded = false;
   Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
   Device.midiThrough = false;
+  Device.lastLoadedPreset = -1;
+  Device.lastLoadedProject = -1;
 
   initializeAudienceMessages();
 }
@@ -2209,8 +2211,8 @@ void handleGlobalSettingNewTouch() {
         }
       }
       else if (sensorRow == 3) {
-        setDisplayMode(displayCalibration);
         initializeCalibrationSamples();
+        setDisplayMode(displayCalibration);
       }
       break;
 

@@ -275,8 +275,8 @@ boolean handleCalibrationRelease() {
             for (byte col = 0; col < CALCOLNUM; ++col) {
               int sampledRange = calSampleCols[col][row].maxValue - calSampleCols[col][row].minValue;
               int cellMarginY = (sampledRange / CALY_MARGIN_FRACTION);
-              Device.calCols[col][row].minY = calSampleCols[col][row].minValue + cellMarginY;
-              Device.calCols[col][row].maxY = calSampleCols[col][row].maxValue - cellMarginY;
+              Device.calCols[col][row].minY = max(0, calSampleCols[col][row].minValue + cellMarginY);
+              Device.calCols[col][row].maxY = min(4095, calSampleCols[col][row].maxValue - cellMarginY);
               Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), CALY_FULL_UNIT);
             }
           }

@@ -436,6 +436,34 @@ struct ConfigurationV8 {
   PresetSettingsV7 settings;
   PresetSettingsV7 preset[NUMPRESETS];
 };
+/**************************************** Configuration V9 ****************************************
+This is used by firmware v2.0.0-beta1 and v2.0.0-beta2
+**************************************************************************************************/
+struct DeviceSettingsV7 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+};
+struct ConfigurationV9 {
+  DeviceSettingsV7 device;
+  PresetSettings settings;
+  PresetSettings preset[NUMPRESETS];
+  SequencerProject project;
+};
 /*************************************************************************************************/
 
 boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
@@ -502,6 +530,12 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
         break;
       // this is the v9 of the configuration configuration, apply it if the size is right
       case 9:
+        if (confSize == sizeof(ConfigurationV9)) {
+          copyConfigurationFunction = &copyConfigurationV9;
+        }
+        break;
+      // this is the v10 of the configuration configuration, apply it if the size is right
+      case 10:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -525,7 +559,7 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
   return result;
 }
 
-void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationYV1 (*calColsSource)[9][MAXROWS]) {
+void copyCalibrationV1(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationYV1 (*calColsSource)[9][MAXROWS]) {
   for (int i = 0; i < MAXCOLS+1; ++i) {
     for (int j = 0; j < 4; ++j) {
       (*calRowsTarget)[i][j].fxdMeasuredX = (*calRowsSource)[i][j].fxdMeasuredX;
@@ -535,8 +569,25 @@ void copyCalibration(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (
   }
   for (int i = 0; i < 9; ++i) {
     for (int j = 0; j < MAXROWS; ++j) {
-      (*calColsTarget)[i][j].minY = (*calColsSource)[i][j].minY;
-      (*calColsTarget)[i][j].maxY = (*calColsSource)[i][j].maxY;
+      (*calColsTarget)[i][j].minY = min(max((*calColsSource)[i][j].minY, 0), 4095);
+      (*calColsTarget)[i][j].maxY = min(max((*calColsSource)[i][j].maxY, 0), 4095);
+      (*calColsTarget)[i][j].fxdRatio = (*calColsSource)[i][j].fxdRatio;
+    }
+  }
+}
+
+void copyCalibrationV2(CalibrationX (*calRowsTarget)[MAXCOLS+1][4], CalibrationX (*calRowsSource)[MAXCOLS+1][4], CalibrationY (*calColsTarget)[9][MAXROWS], CalibrationY (*calColsSource)[9][MAXROWS]) {
+  for (int i = 0; i < MAXCOLS+1; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      (*calRowsTarget)[i][j].fxdMeasuredX = (*calRowsSource)[i][j].fxdMeasuredX;
+      (*calRowsTarget)[i][j].fxdReferenceX = (*calRowsSource)[i][j].fxdReferenceX;
+      (*calRowsTarget)[i][j].fxdRatio = (*calRowsSource)[i][j].fxdRatio;
+    }
+  }
+  for (int i = 0; i < 9; ++i) {
+    for (int j = 0; j < MAXROWS; ++j) {
+      (*calColsTarget)[i][j].minY = min(max((*calColsSource)[i][j].minY, 0), 4095);
+      (*calColsTarget)[i][j].maxY = min(max((*calColsSource)[i][j].maxY, 0), 4095);
       (*calColsTarget)[i][j].fxdRatio = (*calColsSource)[i][j].fxdRatio;
     }
   }
@@ -572,7 +623,7 @@ void copyConfigurationV1(void* target, void* source) {
   GlobalSettingsV1* g = &(s->global);
 
   t->device.version = g->version;
-  copyCalibration(&(t->device.calRows), &(g->calRows), &(t->device.calCols), &(g->calCols));
+  copyCalibrationV1(&(t->device.calRows), &(g->calRows), &(t->device.calCols), &(g->calCols));
   t->device.calibrated = g->calibrated;
   t->device.sensorRangeZ = g->sensorRangeZ;
   setPromoAnimation(&t->device, g->promoAnimationAtStartup);
@@ -656,7 +707,7 @@ void copyConfigurationV2(void* target, void* source) {
   ConfigurationV2* s = (ConfigurationV2*)source;
 
   t->device.version = s->device.version;
-  copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
+  copyCalibrationV1(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
@@ -763,7 +814,7 @@ void copyConfigurationV3(void* target, void* source) {
   ConfigurationV3* s = (ConfigurationV3*)source;
 
   t->device.version = s->device.version;
-  copyCalibration(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
+  copyCalibrationV1(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
   t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
@@ -834,7 +885,7 @@ void copyDeviceSettingsV4(void* target, void* source) {
 
   t->version = s->version;
   t->serialMode = true;
-  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->sensorRangeZ = s->sensorRangeZ;
   setPromoAnimation(t, s->promoAnimationAtStartup);
@@ -1067,7 +1118,7 @@ void copyDeviceSettingsV5(void* target, void* source) {
 
   t->version = s->version;
   t->serialMode = true;
-  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
   t->sensorLoZ = s->sensorLoZ;
@@ -1133,7 +1184,7 @@ void copyDeviceSettingsV6(void* target, void* source) {
 
   t->version = s->version;
   t->serialMode = true;
-  copyCalibration(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
   t->sensorLoZ = s->sensorLoZ;
@@ -1156,4 +1207,42 @@ void copyPresetSettingsV7(void* target, void* source) {
 
   copySplitSettingsV4(&t->split[LEFT], &s->split[LEFT]);
   copySplitSettingsV4(&t->split[RIGHT], &s->split[RIGHT]);
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV9(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV9* s = (ConfigurationV9*)source;
+
+  copyDeviceSettingsV7(&t->device, &s->device);
+
+  memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
+  }
+
+  memcpy(&t->project, &s->project, sizeof(SequencerProject));
+}
+
+void copyDeviceSettingsV7(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV7* s = (DeviceSettingsV7*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepActive = s->sleepActive;
+  t->sleepDelay = s->sleepDelay;
+  t->sleepAnimation = s->sleepAnimation;
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->leftHanded = s->leftHanded;
+  t->midiThrough = s->midiThrough;
 }

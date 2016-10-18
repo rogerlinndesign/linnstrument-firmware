@@ -27,6 +27,31 @@ enum linnCommands {
 byte codePos = 0;
 uint32_t lastSerialMoment = 0;
 
+static PROGMEM prog_uint32_t crc_table[16] = {
+    0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
+    0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
+    0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c,
+    0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c
+};
+
+uint32_t crc_update(uint32_t crc, uint8_t data) {
+    uint8_t tbl_idx;
+    tbl_idx = crc ^ (data >> (0 * 4));
+    crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
+    tbl_idx = crc ^ (data >> (1 * 4));
+    crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
+    return crc;
+}
+
+uint32_t crc_byte_array(uint8_t* s, uint8_t size) {
+  uint32_t crc = ~0L;
+  for (uint8_t i = 0; i < size; ++i) {
+    crc = crc_update(crc, *s++);
+  }
+  crc = ~crc;
+  return crc;
+}
+
 void handleSerialIO() {
   // if no serial data is available, return
   if (Serial.available() <= 0) {
@@ -106,8 +131,56 @@ void handleSerialIO() {
 boolean waitForSerialAck() {
   if (!serialWaitForMaximumTwoSeconds()) return false;
   char ack = Serial.read();
+  lastSerialMoment = millis();
   if (ack != 'a') return false;
   return true;
+}
+
+boolean waitForSerialCheck() {
+  if (!serialWaitForMaximumTwoSeconds()) return false;
+  char ack = Serial.read();
+  lastSerialMoment = millis();
+  if (ack != 'c') return false;
+  return true;
+}
+
+char waitForSerialCRC() {
+  if (!serialWaitForMaximumTwoSeconds()) return 0;
+  char ack = Serial.read();
+  lastSerialMoment = millis();
+  return ack;
+}
+
+int negotiateOutgoingCRC(byte* buffer, uint8_t size) {
+  uint32_t crc = crc_byte_array(buffer, size);
+  Serial.write((byte*)&crc, sizeof(uint32_t));
+
+  char crcresponse = waitForSerialCRC();
+  if (crcresponse == 0) return -1;
+  if (crcresponse == 'w') return 0;
+  return 1;
+}
+
+int negotiateIncomingCRC(byte* buffer, uint8_t size) {
+  Serial.write('c');
+
+  byte buff_crc[sizeof(uint32_t)];
+  for (byte k = 0; k < sizeof(uint32_t); ++k) {
+    if (!serialWaitForMaximumTwoSeconds()) return -1;
+    buff_crc[k] = Serial.read();
+    lastSerialMoment = millis();
+  }
+  uint32_t remote_crc;
+  memcpy(&remote_crc, buff_crc, sizeof(uint32_t));
+
+  uint32_t local_crc = crc_byte_array(buffer, size);
+  if (local_crc != remote_crc) {
+    Serial.write('w');
+    return 0;
+  }
+
+  Serial.write('o');
+  return 1;
 }
 
 void serialSendSettings() {
@@ -129,11 +202,14 @@ void serialSendSettings() {
     int actual = min(confSize, batchsize);
     Serial.write(src, actual);
 
+    if (!waitForSerialCheck()) return;
+
+    int crc = negotiateOutgoingCRC(src, actual);
+    if (crc == -1)      return;
+    else if (crc == 0)  continue;
+
     confSize -= actual;
     src += actual;
-
-    if (!waitForSerialAck()) return;
-    lastSerialMoment = millis();
   }
 
   Serial.write(ackCode);
@@ -162,14 +238,11 @@ void serialRestoreSettings() {
   lastSerialMoment = millis();
 
   byte buff1[sizeof(int32_t)];
-  for (byte i = 0; i < 4; ++i) {
+  for (byte i = 0; i < sizeof(int32_t); ++i) {
     if (!serialWaitForMaximumTwoSeconds()) return;
-
-    // read the next byte of the configuration size
     buff1[i] = Serial.read();
     lastSerialMoment = millis();
   }
-
   int32_t settingsSize;
   memcpy(&settingsSize, buff1, sizeof(int32_t));
 
@@ -185,17 +258,18 @@ void serialRestoreSettings() {
     int actual = min(remaining, batchsize);
     for (byte k = 0; k < actual; ++k) {
       if (!serialWaitForMaximumTwoSeconds()) return;
-      // read the next byte of the configuration data
       buff2[k] = Serial.read();
       lastSerialMoment = millis();
     }
+
+    int crc = negotiateIncomingCRC(buff2, actual);
+    if (crc == -1)      return;
+    else if (crc == 0)  continue;
 
     dueFlashStorage.write(projectOffset, buff2, actual);
 
     remaining -= actual;
     projectOffset += actual;
-
-    Serial.write(ackCode);
   }
 
   boolean settingsApplied = upgradeConfigurationSettings(settingsSize, dueFlashStorage.readAddress(SETTINGS_OFFSET));
@@ -279,11 +353,14 @@ void serialSendProjects() {
       int actual = min(remaining, batchsize);
       Serial.write(src, actual);
 
+      if (!waitForSerialCheck()) return;
+
+      int crc = negotiateOutgoingCRC(src, actual);
+      if (crc == -1)      return;
+      else if (crc == 0)  continue;
+
       remaining -= actual;
       src += actual;
-
-      if (!waitForSerialAck()) return;
-      lastSerialMoment = millis();
     }
   }
 
@@ -333,17 +410,18 @@ void serialRestoreProject() {
     int actual = min(remaining, batchsize);
     for (byte k = 0; k < actual; ++k) {
       if (!serialWaitForMaximumTwoSeconds()) return;
-      // read the next byte of the configuration data
       buff2[k] = Serial.read();
       lastSerialMoment = millis();
     }
+
+    int crc = negotiateIncomingCRC(buff2, actual);
+    if (crc == -1)      return;
+    else if (crc == 0)  continue;
 
     dueFlashStorage.write(projectOffset, buff2, actual);
 
     remaining -= actual;
     projectOffset += actual;
-
-    Serial.write(ackCode);
   }
 
   // finished
