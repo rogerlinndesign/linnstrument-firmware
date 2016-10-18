@@ -227,8 +227,7 @@ void modeLoopManufacturingTest() {
   }
 
   if (sensorCol != 0 && sensorCell->touched != untouchedCell) {
-    byte pressure = sensorCell->pressureZ;
-    int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(pressure), FXD_CONST_127), FXD_FROM_INT(NUMCOLS-2))) + 1;
+    int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(sensorCell->pressureZ), FXD_CONST_1016), FXD_FROM_INT(NUMCOLS-2))) + 1;
       
     for (byte c = 1; c < NUMCOLS; ++c) {
       if (c <= pressureColumn) {
@@ -241,14 +240,26 @@ void modeLoopManufacturingTest() {
   }
 
   if (rowsInColsTouched[0] == 0) {
-    lightLed(4, 1);
-    lightLed(4, 6);
-    lightLed(10, 1);
-    lightLed(10, 6);
-    lightLed(16, 1);
-    lightLed(16, 6);
-    lightLed(22, 1);
-    lightLed(22, 6);
+    if (LINNMODEL == 200) {
+      lightLed(4, 1);
+      lightLed(4, 6);
+      lightLed(10, 1);
+      lightLed(10, 6);
+      lightLed(16, 1);
+      lightLed(16, 6);
+      lightLed(22, 1);
+      lightLed(22, 6);
+    }
+    else if (LINNMODEL == 128) {
+      lightLed(2, 1);
+      lightLed(2, 6);
+      lightLed(6, 1);
+      lightLed(6, 6);
+      lightLed(11, 1);
+      lightLed(11, 6);
+      lightLed(15, 1);
+      lightLed(15, 6);
+    }
   }
 
   unsigned long now = micros();
