@@ -747,6 +747,15 @@ void handleSequencerViewModeRelease() {
     }
     Split[sensorSplit].sequencerView = mode;
     seqState[sensorSplit].paintSequencer();
+
+    autoSelectFirstStepForNotesView();
+  }
+}
+
+void autoSelectFirstStepForNotesView() {
+  StepSequencerState& state = seqState[sensorSplit];
+  if (Split[sensorSplit].sequencerView == sequencerNotes && !state.hasFocus()) {
+    state.changeFocus(0, -1);
   }
 }
 
@@ -1256,6 +1265,8 @@ void paintSequencerDisplay(byte split) {
   clearDisplay();
   seqState[split].paintSequencerUnbuffered();
   finishBufferedLeds();
+
+  autoSelectFirstStepForNotesView();
 }
 
 
