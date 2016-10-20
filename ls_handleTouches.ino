@@ -343,12 +343,15 @@ boolean handleNewTouch() {
   DEBUGPRINT((1,"\n"));
 
   lastTouchMoment = millis();
-    
-  boolean result = false;
+  
+  // if the touches are restricted to a particular row, any touch outside this row is ignored
+  if (restrictedRow != -1 && sensorRow != restrictedRow) {
+    cellTouched(ignoredCell);
+    return false;
+  }
 
-  cellTouched(touchedCell);                                 // mark this cell as touched
-
-  if (animationActive) {                                    // allow any new touch to cancel scrolling
+  // allow any new touch to cancel scrolling
+  if (animationActive) {
     stopAnimation = true;
     cellTouched(ignoredCell);
     return false;
@@ -361,6 +364,10 @@ boolean handleNewTouch() {
     updateDisplay();
     return false;
   }
+
+  boolean result = false;
+
+  cellTouched(touchedCell);                                 // mark this cell as touched
 
   // if it's a command button, handle it
   if (sensorCol == 0) {
@@ -1387,6 +1394,7 @@ boolean handleNonPlayingRelease() {
 
 #define PENDING_RELEASE_CONTROL    1
 #define PENDING_RELEASE_MOVEMENT   3
+#define PENDING_RELEASE_EDITING    15
 
 // Called when a touch is released to handle note off or other release events
 void handleTouchRelease() {
@@ -1402,6 +1410,9 @@ void handleTouchRelease() {
   // if no release is pending, start a pending release
   else if (sensorCol == 0) {
     sensorCell->pendingReleaseCount = PENDING_RELEASE_CONTROL;
+  }
+  else if (isSequencerEditing()) {
+    sensorCell->pendingReleaseCount = PENDING_RELEASE_EDITING;
   }
   else if (sensorCell->fxdRateX > PENDING_RELEASE_RATE_X) {
     sensorCell->pendingReleaseCount = PENDING_RELEASE_MOVEMENT;

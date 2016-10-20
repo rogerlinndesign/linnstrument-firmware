@@ -337,10 +337,9 @@ struct __attribute__ ((packed)) TouchInfo {
   byte vcount:4;                             // the number of times the pressure was measured to obtain a velocity
   boolean slideTransfer:1;                   // indicates whether this touch is part of a slide transfer
   boolean rogueSweepX:1;                     // indicates whether the last X position is a rogue sweep
-  byte pendingReleaseCount:2;                // counter before which the note release will be effective
+  byte pendingReleaseCount:4;                // counter before which the note release will be effective
   boolean featherTouch:1;                    // indicates whether this is a feather touch
   unsigned short pressureZ:10;               // the Z value with pressure sensitivity
-int :2;
   unsigned short previousRawZ:12;            // the previous raw Z value
 int :4;
   boolean phantomSet:1;                      // indicates whether phantom touch coordinates are set
@@ -981,6 +980,8 @@ boolean controlModeActive = false;                  // indicates whether control
 unsigned long lastTouchMoment = 0;                  // last time someone touched LinnStrument in milliseconds
 
 unsigned short clock24PPQ = 0;                      // the current clock in 24PPQ, either internal or synced to incoming MIDI clock
+
+short restrictedRow = -1;                           // temporarily restrict touches to a particular row
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
