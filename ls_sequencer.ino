@@ -54,7 +54,6 @@ int32_t FXD_SEQ_DURATION_FADER_RATIO;
 
 static unsigned long sequencerFaderChangeTime[4];
 static short sequencerFaderLastX[4];
-static int sequencerDurationFaderValue = 0;
 
 static short sequencerCopyPatternSource = -1;
 static short sequencerCopySplitSource = -1;
@@ -549,7 +548,7 @@ void handleSequencerRelease() {
 }
 
 boolean isWithinClearFocusArea() {
-  return sensorCol > SEQ_EVENTS_WIDTH && sensorCol < SEQ_PATTERN_SELECTOR_LEFT;
+  return sensorCol > SEQ_EVENTS_WIDTH && sensorCol < SEQ_FADER_LEFT;
 }
 
 boolean isWithinSequencerMuterArea() {
@@ -1099,19 +1098,6 @@ void handleSequencerFaderTouch(boolean newVelocity) {
           break;
         }
       }
-
-      // if a new touch happens on the duration fader, determine which panel choice index
-      // corresponds to the actual duration value
-      if (sensorRow == 2) {
-        sequencerDurationFaderValue = 0;
-        int duration = focus->getDuration();
-        for (short index = SEQ_DURATION_EDIT_PANEL_COUNT - 1; index >= 0; --index) {
-          if (duration >= seqDurationEditPanelChoices[index]) {
-            sequencerDurationFaderValue = index;
-            break;
-          }
-        }
-      }
     }
 
     if (!changed) {
@@ -1141,7 +1127,7 @@ void handleSequencerFaderTouch(boolean newVelocity) {
         case 2:
         {
           int offset = 1;
-          const char* durationLabel = seqDurationEditPanelLabels[sequencerDurationFaderValue];
+          const char* durationLabel = seqDurationEditPanelLabels[focus->getFaderValue(sensorRow)];
           if (durationLabel[0] == '1' || (durationLabel[0] == ' ' && durationLabel[1] == '1')) {
             offset += 2;
           }
@@ -1687,8 +1673,15 @@ int StepEvent::getFaderValue(byte fader) {
   switch (fader) {
     case 3:
       return getVelocity();
-    case 2:
-      return sequencerDurationFaderValue;
+    case 2: {
+      unsigned short duration = getDuration();
+      for (short index = SEQ_DURATION_EDIT_PANEL_COUNT - 1; index >= 0; --index) {
+        if (duration >= seqDurationEditPanelChoices[index]) {
+          return index;
+        }
+      }
+      return 0;
+    }
     case 1:
       return getPitchOffset();
     case 0:
@@ -1703,8 +1696,7 @@ void StepEvent::setFaderValue(byte fader, int value) {
       setVelocity(value);
       break;
     case 2:
-      sequencerDurationFaderValue = value;
-      setDuration(seqDurationEditPanelChoices[sequencerDurationFaderValue]);
+      setDuration(seqDurationEditPanelChoices[value]);
       break;
     case 1:
       setPitchOffset(value);
