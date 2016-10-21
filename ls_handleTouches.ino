@@ -739,6 +739,7 @@ boolean handleXYZupdate() {
     sensorCell->shouldRefreshX = true;
     sensorCell->initialX = -1;
     sensorCell->quantizationOffsetX = 0;
+    sensorCell->fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
 
     if (userFirmwareActive) {
       handleNewUserFirmwareTouch();
