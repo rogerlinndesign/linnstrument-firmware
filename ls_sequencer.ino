@@ -256,7 +256,8 @@ void initializeSequencer() {
       Project.sequencer[q].patterns[p].sequencerDirection = sequencerForward;
       Project.sequencer[q].patterns[p].loopScreen = false;
       Project.sequencer[q].patterns[p].swing = false;
-      Project.sequencer[q].patterns[p].length = 32;
+      if (LINNMODEL == 200)       Project.sequencer[q].patterns[p].length = 16;
+      else if (LINNMODEL == 128)  Project.sequencer[q].patterns[p].length = 8;
     }
 
     Project.sequencer[q].seqDrumNotes[0] = 36;  // Bass Drum

@@ -527,7 +527,7 @@ void initializePresetSettings() {
     p.split[LEFT].colorMain = COLOR_GREEN;
     p.split[LEFT].colorPlayed = COLOR_RED;
     p.split[LEFT].lowRowMode = lowRowNormal;
-    p.split[LEFT].sequencerView = sequencerNotes;
+    p.split[LEFT].sequencerView = sequencerScales;
 
     p.split[RIGHT].midiChanMain = 16;
     for (byte chan = 0; chan < 8; ++chan) {
@@ -541,7 +541,7 @@ void initializePresetSettings() {
     p.split[RIGHT].colorMain = COLOR_BLUE;
     p.split[RIGHT].colorPlayed = COLOR_MAGENTA;
     p.split[RIGHT].lowRowMode = lowRowNormal;
-    p.split[RIGHT].sequencerView = sequencerDrums;
+    p.split[RIGHT].sequencerView = sequencerScales;
   }
 
   // we're initializing the current settings with preset 0
