@@ -499,7 +499,7 @@ boolean isZExpressiveCell() {
   }
 }
 
-byte takeChannel(byte split) {
+byte takeChannel(byte split, byte row) {
   switch (Split[split].midiMode)
   {
     case channelPerNote:
@@ -509,7 +509,7 @@ byte takeChannel(byte split) {
 
     case channelPerRow:
     {
-      byte channel = Split[split].midiChanPerRow + sensorRow;
+      byte channel = Split[split].midiChanPerRow + row;
       if (channel > 16) {
         channel -= 16;
       }
@@ -985,7 +985,7 @@ void handleSplitStrum() {
     else {
       virtualCell().split = otherSplit();
       virtualCell().note = transposedNote(virtualCell().split, splitLowestEdge(virtualCell().split), sensorRow);
-      virtualCell().channel = takeChannel(virtualCell().split);
+      virtualCell().channel = takeChannel(virtualCell().split, sensorRow);
     }
 
     // use the velocity of the strum touch
@@ -1036,7 +1036,7 @@ boolean isStrummingSplit(byte split) {
 }
 
 void prepareNewNote(signed char notenum) {
-  byte channel = takeChannel(sensorSplit);
+  byte channel = takeChannel(sensorSplit, sensorRow);
   sensorCell->note = notenum;
   sensorCell->channel = channel;
   sensorCell->octaveOffset = Split[sensorSplit].transposeOctave;

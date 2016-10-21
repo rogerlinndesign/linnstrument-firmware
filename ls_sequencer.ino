@@ -1836,7 +1836,7 @@ void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
   }
 
   split = splitNum;
-  channel = takeChannel(split);
+  channel = takeChannel(split, event.getRow()-1);
   note = event.getNote() + Split[splitNum].transposePitch + Split[splitNum].transposeOctave;
   remainingDuration = event.getDuration();
 
