@@ -207,7 +207,7 @@ inline void checkStopBlinkingLeds(unsigned long now) {
         if (p == Device.lastLoadedPreset) {
           color = COLOR_CYAN;
         }
-        setLed(NUMCOLS-2, p+2, color, cellOn);
+        setLed(getPresetDisplayColumn(), p+2, color, cellOn);
         presetBlinkStart[p] = 0;
       }
     }

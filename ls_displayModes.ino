@@ -715,6 +715,10 @@ void paintOSVersionBuildDisplay() {
 }
 
 // paint the current preset number for a particular side, in large block characters
+byte getPresetDisplayColumn() {
+  return LINNMODEL == 200 ? NUMCOLS-2 : NUMCOLS-1;
+}
+
 void paintPresetDisplay(byte side) {
   clearDisplay();
   setLed(1, 7, COLOR_GREEN, cellOn);
@@ -724,7 +728,7 @@ void paintPresetDisplay(byte side) {
     if (p == Device.lastLoadedPreset) {
       color = COLOR_CYAN;
     }
-    setLed(NUMCOLS-2, p+2, color, cellOn);
+    setLed(getPresetDisplayColumn(), p+2, color, cellOn);
   }
   paintSplitNumericDataDisplay(side, midiPreset[side]+1, 0, false);
 }
@@ -989,7 +993,7 @@ void paintVolumeDisplay(byte side) {
 }
 
 void paintVolumeDisplayRow(byte side) {
-  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, 7, 1, 24);
+  paintCCFaderDisplayRow(side, 5, Split[side].colorMain, 7, 1, NUMCOLS-2);
 }
 
 void paintOctaveTransposeDisplay(byte side) {

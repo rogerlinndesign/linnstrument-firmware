@@ -1607,7 +1607,7 @@ void handlePresetNewTouch() {
     return;
   }
 
-  if (sensorCol >= NUMCOLS-2) {
+  if (sensorCol == getPresetDisplayColumn()) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
       sensorCell->lastTouch = millis();
@@ -1615,7 +1615,7 @@ void handlePresetNewTouch() {
       setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
     }
   }
-  else if (sensorCol < NUMCOLS-2) {
+  else if (sensorCol < getPresetDisplayColumn()) {
     if (handleNumericDataNewTouchCol(midiPreset[Global.currentPerSplit], 0, 127, true)) {
       applyMidiPreset();
     }
@@ -1629,11 +1629,11 @@ void startPresetLEDBlink(byte p, byte color) {
   }
   presetBlinkStart[p] = now;
 
-  setLed(NUMCOLS-2, p+2, color, cellFastPulse);
+  setLed(getPresetDisplayColumn(), p+2, color, cellFastPulse);
 }
 
 void handlePresetHold() {
-  if (sensorCol == NUMCOLS-2 &&
+  if (sensorCol == getPresetDisplayColumn() &&
       sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
       isCellPastEditHoldWait()) {
     // store to the selected preset
@@ -1652,14 +1652,14 @@ void applyMidiPreset() {
 }
 
 void handlePresetRelease() {
-  if (sensorCol == NUMCOLS-1) {
+  if (sensorCol > getPresetDisplayColumn()) {
     return;
   }
 
-  if (sensorCol < NUMCOLS-2) {
+  if (sensorCol < getPresetDisplayColumn()) {
     handleNumericDataReleaseCol(true);
   }
-  else if (sensorCol == NUMCOLS-2) {
+  else if (sensorCol == getPresetDisplayColumn()) {
     if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
         ensureCellBeforeHoldWait(globalColor, cellOn)) {
       byte preset = sensorRow-2;
@@ -1938,7 +1938,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
       }
     }
 
-    short value = calculateFaderValue(sensorCell->calibratedX(), 1, 24);
+    short value = calculateFaderValue(sensorCell->calibratedX(), 1, NUMCOLS-2);
 
     if (value >= 0) {
       short previous = ccFaderValues[Global.currentPerSplit][7];
