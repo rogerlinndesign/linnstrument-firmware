@@ -1125,6 +1125,9 @@ void displayActiveNotes() {
 
 void paintSwitchAssignment(byte mode) {
   switch (mode) {
+    case ASSIGNED_TAP_TEMPO:
+      lightLed(9, 3);
+      break;
     case ASSIGNED_AUTO_OCTAVE:
       lightLed(8, 2);
       lightLed(9, 2);

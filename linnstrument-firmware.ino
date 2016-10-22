@@ -195,6 +195,7 @@ byte NUMROWS;                        // number of touch sensor rows
 #define ASSIGNED_ARPEGGIATOR  4
 #define ASSIGNED_ALTSPLIT     5
 #define ASSIGNED_AUTO_OCTAVE  6
+#define ASSIGNED_TAP_TEMPO    7
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1

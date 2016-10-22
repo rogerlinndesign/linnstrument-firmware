@@ -200,6 +200,15 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
     case ASSIGNED_ARPEGGIATOR:
       performArpeggiatorToggle();
       break;
+
+    case ASSIGNED_TAP_TEMPO:
+      if (!isMidiClockRunning()) {
+        tapTempoPress();
+        if (displayMode == displayGlobalWithTempo) {
+          updateDisplay();
+        }
+      }
+      break;
   }
 }
 

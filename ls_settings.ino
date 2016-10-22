@@ -2394,6 +2394,9 @@ void handleGlobalSettingNewTouch() {
               Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
             }
             break;
+          case 3:
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_TAP_TEMPO);
+            break;
         }
         break;
 
@@ -2511,7 +2514,6 @@ void handleGlobalSettingNewTouch() {
               lightLed(14, 3);
 
               tapTempoPress();
-              setDisplayMode(displayGlobalWithTempo);
 
               delayUsec(100000);
 

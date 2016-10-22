@@ -92,10 +92,14 @@ void tapTempoPress() {
 
   unsigned long tapDelta = calcTimeDelta(now, lastTapTempo);
 
-  if (tapDelta < 6000000) { // minimum 6 seconds between taps
+  if (tapDelta < 6000000) { // maximum 6 seconds between taps
       fxd4CurrentTempo -= FXD4_DIV(fxd4CurrentTempo, FXD4_FROM_INT(4));
       fxd4CurrentTempo += FXD4_DIV(FXD4_FROM_INT(60000000 / tapDelta), FXD4_FROM_INT(4));
   }
 
   lastTapTempo = now;
+
+  if (displayMode == displayGlobal) {
+    setDisplayMode(displayGlobalWithTempo);
+  }
 }
