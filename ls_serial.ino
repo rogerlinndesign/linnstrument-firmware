@@ -17,11 +17,12 @@ const byte linnStrumentControlLength = 3;
 boolean waitingForCommands = false;
 
 enum linnCommands {
-  SendSettings = 's',
-  RestoreSettings = 'r',
   LightLed = 'l',
+  SendSingleProject = 'o',
   SendProjects = 'p',
-  RestoreProject = 'q'
+  RestoreProject = 'q',
+  RestoreSettings = 'r',
+  SendSettings = 's'
 };
 
 byte codePos = 0;
@@ -79,6 +80,12 @@ void handleSerialIO() {
       case LightLed:
       {
         serialLightLed();
+        break;
+      }
+
+      case SendSingleProject:
+      {
+        serialSendSingleProject();
         break;
       }
 
@@ -322,6 +329,55 @@ void serialLightLed() {
   updateDisplay();
 }
 
+int32_t serialSendProjectSize() {
+  // send the size of a project
+  int32_t projectSize = sizeof(SequencerProject);
+  Serial.write((byte*)&projectSize, sizeof(int32_t));
+  lastSerialMoment = millis();
+  return projectSize;
+}
+
+void serialSendProjectRaw(int32_t projectSize, byte projectNumber) {
+  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+
+  // send the actual settings
+  const uint8_t batchsize = 96;
+
+  byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, projectNumber));
+  uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
+  int32_t remaining = projectSize;
+
+  byte* src = (byte*)dueFlashStorage.readAddress(projectOffset);
+  while (remaining > 0) {
+    int actual = min(remaining, batchsize);
+    Serial.write(src, actual);
+
+    if (!waitForSerialCheck()) return;
+
+    int crc = negotiateOutgoingCRC(src, actual);
+    if (crc == -1)      return;
+    else if (crc == 0)  continue;
+
+    remaining -= actual;
+    src += actual;
+  }
+}
+
+void serialSendSingleProject() {
+  Serial.write(ackCode);
+
+  clearDisplayImmediately();
+  delayUsec(1000);
+
+  uint8_t projectNumber = Serial.read();
+  Serial.write(ackCode);
+
+  int32_t projectSize = serialSendProjectSize();
+  serialSendProjectRaw(projectSize, projectNumber);
+
+  Serial.write(ackCode);
+}
+
 void serialSendProjects() {
   Serial.write(ackCode);
 
@@ -331,41 +387,15 @@ void serialSendProjects() {
   // send the count of projects
   Serial.write((byte)MAX_PROJECTS);
 
-  // send the size of a project
-  int32_t projectSize = sizeof(SequencerProject);
-  Serial.write((byte*)&projectSize, sizeof(int32_t));
-
-  // send the actual projects
-  byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
-
-  lastSerialMoment = millis();
-
-  // send the actual settings
-  const uint8_t batchsize = 96;
+  int32_t projectSize = serialSendProjectSize();
 
   for (byte p = 0; p < MAX_PROJECTS; ++p) {
-    byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, p));
-    uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
-    int32_t remaining = projectSize;
-
-    byte* src = (byte*)dueFlashStorage.readAddress(projectOffset);
-    while (remaining > 0) {
-      int actual = min(remaining, batchsize);
-      Serial.write(src, actual);
-
-      if (!waitForSerialCheck()) return;
-
-      int crc = negotiateOutgoingCRC(src, actual);
-      if (crc == -1)      return;
-      else if (crc == 0)  continue;
-
-      remaining -= actual;
-      src += actual;
-    }
+    serialSendProjectRaw(projectSize, p);
   }
 
   Serial.write(ackCode);
 }
+
 
 void serialRestoreProject() {
   Serial.write(ackCode);
