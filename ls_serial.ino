@@ -372,6 +372,8 @@ void serialSendSingleProject() {
   uint8_t projectNumber = Serial.read();
   Serial.write(ackCode);
 
+  Serial.write((byte*)&(Device.version), 1);
+
   int32_t projectSize = serialSendProjectSize();
   serialSendProjectRaw(projectSize, projectNumber);
 
@@ -403,14 +405,20 @@ void serialRestoreProject() {
   clearDisplayImmediately();
   delayUsec(1000);
 
-  // retrieve the size of a project
   lastSerialMoment = millis();
 
+  if (!serialWaitForMaximumTwoSeconds()) return;
+  uint8_t version = Serial.read();
+  if (version < 9) return;
+  Serial.write(ackCode);
+  lastSerialMoment = millis();
+
+  // retrieve the size of a project
   byte buff1[sizeof(int32_t)];
   for (byte i = 0; i < 4; ++i) {
     if (!serialWaitForMaximumTwoSeconds()) return;
 
-    // read the next byte of the configuration size
+    // read the next byte of the project size
     buff1[i] = Serial.read();
     lastSerialMoment = millis();
   }
