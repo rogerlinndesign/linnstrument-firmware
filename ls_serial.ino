@@ -17,8 +17,12 @@ const byte linnStrumentControlLength = 3;
 boolean waitingForCommands = false;
 
 enum linnCommands {
+  ACK = 'a',
+  CRCCheck = 'c',
+  CRCWrong = 'w',
+  CRCOk = 'o',
   LightLed = 'l',
-  SendSingleProject = 'o',
+  SendSingleProject = 'j',
   SendProjects = 'p',
   RestoreProject = 'q',
   RestoreSettings = 'r',
@@ -139,7 +143,7 @@ boolean waitForSerialAck() {
   if (!serialWaitForMaximumTwoSeconds()) return false;
   char ack = Serial.read();
   lastSerialMoment = millis();
-  if (ack != 'a') return false;
+  if (ack != ACK) return false;
   return true;
 }
 
@@ -147,7 +151,7 @@ boolean waitForSerialCheck() {
   if (!serialWaitForMaximumTwoSeconds()) return false;
   char ack = Serial.read();
   lastSerialMoment = millis();
-  if (ack != 'c') return false;
+  if (ack != CRCCheck) return false;
   return true;
 }
 
@@ -164,12 +168,12 @@ int negotiateOutgoingCRC(byte* buffer, uint8_t size) {
 
   char crcresponse = waitForSerialCRC();
   if (crcresponse == 0) return -1;
-  if (crcresponse == 'w') return 0;
+  if (crcresponse == CRCWrong) return 0;
   return 1;
 }
 
 int negotiateIncomingCRC(byte* buffer, uint8_t size) {
-  Serial.write('c');
+  Serial.write(CRCCheck);
 
   byte buff_crc[sizeof(uint32_t)];
   for (byte k = 0; k < sizeof(uint32_t); ++k) {
@@ -182,11 +186,11 @@ int negotiateIncomingCRC(byte* buffer, uint8_t size) {
 
   uint32_t local_crc = crc_byte_array(buffer, size);
   if (local_crc != remote_crc) {
-    Serial.write('w');
+    Serial.write(CRCWrong);
     return 0;
   }
 
-  Serial.write('o');
+  Serial.write(CRCOk);
   return 1;
 }
 
@@ -369,10 +373,14 @@ void serialSendSingleProject() {
   clearDisplayImmediately();
   delayUsec(1000);
 
+  lastSerialMoment = millis();
+
+  if (!serialWaitForMaximumTwoSeconds()) return;
+  
   uint8_t projectNumber = Serial.read();
   Serial.write(ackCode);
 
-  Serial.write((byte*)&(Device.version), 1);
+  Serial.write(Device.version);
 
   int32_t projectSize = serialSendProjectSize();
   serialSendProjectRaw(projectSize, projectNumber);
