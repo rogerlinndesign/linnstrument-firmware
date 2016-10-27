@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.0.0 =========================================
+======================================== LinnStrument Operating System v2.0.1 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,8 +56,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "200";
-const char* OSVersionBuild = ".039";
+const char* OSVersion = "201.";
+const char* OSVersionBuild = ".040";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
