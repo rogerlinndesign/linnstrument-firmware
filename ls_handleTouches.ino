@@ -804,7 +804,7 @@ boolean handleXYZupdate() {
   performContinuousTasks(micros());
 
   // Only process x and y data when there's meaningful pressure on the cell
-  if (sensorCell->isMeaningfulTouch()) {
+  if (sensorCell->isMeaningfulTouch() || (doQuantizeHold() && isQuantizeHoldStable())) {
     valueX = handleXExpression();
     if (valueX != INVALID_DATA && Device.leftHanded) {
       valueX = -1 * valueX;
@@ -1215,7 +1215,7 @@ short handleXExpression() {
     sensorCell->lastMovedX = movedX;
 
     // if pitch quantize on hold is disabled, just output the current touch pitch
-    if (userFirmwareActive || Split[sensorSplit].pitchCorrectHold == pitchCorrectHoldOff) {
+    if (!doQuantizeHold()) {
       result = movedX;
     }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
@@ -1238,7 +1238,7 @@ short handleXExpression() {
         sensorCell->fxdRateCountX += fxdRateDiff;
 
         // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
-        if (sensorCell->fxdRateCountX >= fxdPitchHoldDuration[sensorSplit]) {
+        if (isQuantizeHoldStable()) {
           // ensure that the rate count can never exceed the pitch hold duration
           sensorCell->fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
 
@@ -1258,6 +1258,14 @@ short handleXExpression() {
   }
 
   return result;
+}
+
+boolean doQuantizeHold() {
+  return !userFirmwareActive && Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff;
+}
+
+boolean isQuantizeHoldStable() {
+  return sensorCell->fxdRateCountX >= fxdPitchHoldDuration[sensorSplit];
 }
 
 short handleYExpression() {
