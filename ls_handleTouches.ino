@@ -811,8 +811,10 @@ boolean handleXYZupdate() {
     }
 
     performContinuousTasks(micros());
-
     sensorCell->lastValueX = valueX;
+  }
+
+  if (sensorCell->isMeaningfulTouch()) {
     valueY = handleYExpression();
 
     performContinuousTasks(micros());
