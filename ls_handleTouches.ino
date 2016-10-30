@@ -814,11 +814,11 @@ boolean handleXYZupdate() {
     sensorCell->lastValueX = valueX;
   }
 
-  if (sensorCell->isMeaningfulTouch()) {
-    valueY = handleYExpression();
-
-    performContinuousTasks(micros());
+  short tempY = handleYExpression();;
+  if (tempY == 0 || tempY == 127 || sensorCell->isMeaningfulTouch()) {
+    valueY = tempY;
   }
+  performContinuousTasks(micros());
 
   // update the low row state, but not for the low row cells themselves when there's a new velocity
   // this is handled in lowRowStart, and immediately calling handleLowRowState will wrongly handle the
