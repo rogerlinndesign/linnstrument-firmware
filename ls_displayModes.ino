@@ -246,6 +246,26 @@ void updateSwitchLeds() {
     clearLed(0, SPLIT_ROW);
   }
 
+  switch (displayMode) {
+    case displayGlobal:
+      lightLed(0, GLOBAL_SETTINGS_ROW);
+      break;
+    case displayOctaveTranspose:
+      lightLed(0, OCTAVE_ROW);
+      break;
+    case displayVolume:
+      lightLed(0, VOLUME_ROW);
+      break;
+    case displayPreset:
+      lightLed(0, PRESET_ROW);
+      break;
+    case displayPerSplit:
+      lightLed(0, PER_SPLIT_ROW);
+      break;
+    default:
+      break;
+  }
+
   updateSequencerSwitchLeds();
 }
 

@@ -2103,7 +2103,7 @@ void StepSequencerState::turnOn() {
 
   if (isVisibleSequencerForSplit(split)) {
     paintSequencer();
-    updateSequencerSwitchLeds();
+    updateSwitchLeds();
   }
 }
 
@@ -2120,7 +2120,7 @@ void StepSequencerState::turnOff() {
 
   if (isVisibleSequencerForSplit(split)) {
     paintSequencer();
-    updateSequencerSwitchLeds();
+    updateSwitchLeds();
   }
 
   storeSettings();
