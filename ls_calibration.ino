@@ -307,7 +307,6 @@ boolean handleCalibrationRelease() {
           initializeTouchInfo();
 
           setDisplayMode(displayNormal);
-          controlButton = -1;
           clearLed(0, GLOBAL_SETTINGS_ROW);
           updateDisplay();
         }

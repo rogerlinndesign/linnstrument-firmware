@@ -66,6 +66,18 @@ void setDisplayMode(DisplayMode mode) {
 
   displayMode = mode;
   if (refresh) {
+    // ensure that in non settings displays, the control button is cleared out
+    if (displayMode == displayNormal ||
+        displayMode == displaySplitPoint ||
+        displayMode == displaySleep ||
+        displayMode == displayPromo) {
+      clearLed(0, GLOBAL_SETTINGS_ROW);
+      clearLed(0, OCTAVE_ROW);
+      clearLed(0, VOLUME_ROW);
+      clearLed(0, PRESET_ROW);
+      clearLed(0, PER_SPLIT_ROW);
+      controlButton = -1;
+    }
     completelyRefreshLeds();
   }
 }

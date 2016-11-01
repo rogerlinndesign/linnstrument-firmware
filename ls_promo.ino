@@ -198,7 +198,6 @@ void playPromoAnimation() {
   storeSettings();
   
   lastTouchMoment = millis();
-  controlButton = -1;
   setDisplayMode(displayNormal);
   updateDisplay();
 }

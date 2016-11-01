@@ -2092,7 +2092,6 @@ void handleTempoNewTouch() {
 void changeUserFirmwareMode(boolean active) {
   if (userFirmwareActive == active) return;
 
-  controlButton = -1;
   userFirmwareActive = active;
 
   initializeLedsLayer(LED_LAYER_CUSTOM2);
