@@ -56,7 +56,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "201.";
+const char* OSVersion = "201";
 const char* OSVersionBuild = ".040";
 
 // SPI addresses
