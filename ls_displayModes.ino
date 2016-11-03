@@ -68,7 +68,6 @@ void setDisplayMode(DisplayMode mode) {
   if (refresh) {
     // ensure that in non settings displays, the control button is cleared out
     if (displayMode == displayNormal ||
-        displayMode == displaySplitPoint ||
         displayMode == displaySleep ||
         displayMode == displayPromo) {
       clearLed(0, GLOBAL_SETTINGS_ROW);
