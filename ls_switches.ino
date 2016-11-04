@@ -290,10 +290,10 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
     if (operatingMode == modeManufacturingTest) {
       switchState[whichSwitch][Global.currentPerSplit] = state;
       if (state) {
-        setLed(NUMCOLS - 2 + whichSwitch, 6, COLOR_GREEN, cellOn);
+        setLed(NUMCOLS - 1, 5 + whichSwitch, COLOR_GREEN, cellOn);
       }
       else {
-        clearLed(NUMCOLS - 2 + whichSwitch, 6);
+        clearLed(NUMCOLS - 1, 5 + whichSwitch);
       }
     }
     // handle the foot switch assignments in regular mode

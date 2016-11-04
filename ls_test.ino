@@ -270,6 +270,7 @@ void modeLoopManufacturingTest() {
   handleMidiInput(now);
 
   checkRefreshLedColumn(now);
+  checkTimeToReadFootSwitches(now);
   nextSensorCell();
 }
 
