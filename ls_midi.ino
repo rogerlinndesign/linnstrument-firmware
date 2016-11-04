@@ -100,7 +100,7 @@ void handleMidiInput(unsigned long nowMicros) {
       case MIDIActiveSensing:
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
-          setLed(25, 2, COLOR_GREEN, cellOn);
+          setLed(NUMCOLS - 1, 2, COLOR_GREEN, cellOn);
         }
         break;
       case MIDIStart:
