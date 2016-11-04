@@ -1229,13 +1229,12 @@ void setup() {
     Global.pressureSensitivity = pressureLow;
 
     // Disable serial mode
-    digitalWrite(35, LOW);
+    Device.serialMode = false;
+    applySerialMode();
 
     // Set the MIDI I/O to DIN
     Global.midiIO = 0;
-    digitalWrite(36, LOW);
-    Serial.begin(31250);
-    Serial.flush();
+    applyMidiIo();
     return;
   }
 
