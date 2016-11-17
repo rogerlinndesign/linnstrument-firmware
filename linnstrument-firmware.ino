@@ -359,6 +359,7 @@ unsigned short cellsTouched;                 // counts the number of active touc
 struct VirtualTouchInfo {
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearData();                          // clear the virtual touch data
+  void releaseNote();                        // release the MIDI note that is active for the virtual touch
 
   byte split;                                // the split this virtual touch belongs to
   byte velocity;                             // velocity from 0 to 127

@@ -1800,6 +1800,13 @@ void midiSendNoteOn(byte split, byte notenum, byte velocity, byte channel) {
   }
 }
 
+boolean hasActiveMidiNote(byte split, byte notenum, byte channel) {
+  split = constrain(split, 0, 1);
+  notenum = constrain(notenum, 0, 127);
+  channel = constrain(channel-1, 0, 15);
+  return lastValueMidiNotesOn[split][notenum][channel] > 0;
+}
+
 void midiSendNoteOff(byte split, byte notenum, byte channel) {
   split = constrain(split, 0, 1);
   notenum = constrain(notenum, 0, 127);

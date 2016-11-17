@@ -946,13 +946,12 @@ boolean handleXYZupdate() {
 
       // send the note on if this in a newly calculated velocity
       if (newVelocity) {
-        // reset pressure to 0 before sending the note, the actually pressure value will
-        // be sent right after the note on
-        if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-          preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+        if (isStrummedSplit(sensorSplit)) {
+          handleStrummedRowChange(true, 0);
         }
-
-        sendNewNote();
+        else {
+          sendNewNote();
+        }
       }
 
       // if sensing Z is enabled...
@@ -971,61 +970,127 @@ boolean handleXYZupdate() {
 }
 
 void handleSplitStrum() {
-  // we use the bitmask of the touched columns in the current row, and already turns off the column
-  // of the strum touch itself
-  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow] & ~(1 << sensorCol);
-
   // handle open strings by checking if no cells are touched in the strummed split,
   // this corresponds to checking of a fret is pushed down on a string, in which case is can't be open
   if (!hasTouchInSplitOnRow(otherSplit(), sensorRow)) {
-    // if a note is already playing for this open string, turn it off so that the exact same note
-    // can be played, but with a different velocity
-    if (virtualCell().hasNote()) {
-      midiSendNoteOff(virtualCell().split, virtualCell().note, virtualCell().channel);
-    }
-    // since no note was already playing, determined what the note details are
-    else {
-      virtualCell().split = otherSplit();
-      virtualCell().note = transposedNote(virtualCell().split, splitLowestEdge(virtualCell().split), sensorRow);
-      virtualCell().channel = takeChannel(virtualCell().split, sensorRow);
-    }
-
-    // use the velocity of the strum touch
-    virtualCell().velocity = cell(sensorCol, sensorRow).velocity;
-
-    // reset pitch bend only in channel per note mode when no low row bend is active,
-    // other MIDI nodes are never resetting the pitch bend for open strings since these
-    // can never be a focused cell for expression
-    if (Split[virtualCell().split].midiMode == channelPerNote && !isLowRowBendActive(virtualCell().split)) {
-      preSendPitchBend(virtualCell().split, 0, virtualCell().channel);
-    }
-
-    // send a new MIDI note
-    midiSendNoteOn(virtualCell().split, virtualCell().note, virtualCell().velocity, virtualCell().channel);
+    handleStrummedOpenRow(otherSplit(), cell(sensorCol, sensorRow).velocity);
   }
   // handle fretted strings
   else {
-    // now we check each touched column in the row of the current sensor
-    // we gradually flip the touched bits to zero until they're all turned off
-    // this allows us to loop only over the touched columns, and none other
-    while (colsInSensorRowTouched) {
-      // we use the ARM Cortex-M3 instruction that reports the leading bit zeros of any number
-      // we determine that the left-most bit is that is turned on by substracting the leading zero
-      // count from the bitdepth of a 32-bit int
-      byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
-      TouchInfo& cell = cell(touchedCol, sensorRow);
-      if (cell.hasNote()) {
-        // use the velocity of the strum touch
-        cell.velocity = cell(sensorCol, sensorRow).velocity;
+    handleStrummedRowChange(false, cell(sensorCol, sensorRow).velocity);
+  }
+}
 
-        // retrigger the MIDI note
-        byte split = getSplitOf(touchedCol);
-        midiSendNoteOff(split, cell.note, cell.channel);
-        midiSendNoteOn(split, cell.note, cell.velocity, cell.channel);
+void handleStrummedOpenRow(byte split, byte velocity) {
+  // if a note is already playing for this open string, turn it off so that the exact same note
+  // can be played, but with a different velocity
+  if (virtualCell().hasNote()) {
+    midiSendNoteOff(virtualCell().split, virtualCell().note, virtualCell().channel);
+  }
+  // since no note was already playing, determined what the note details are
+  else {
+    virtualCell().split = split;
+    virtualCell().note = transposedNote(split, splitLowestEdge(virtualCell().split), sensorRow);
+    virtualCell().channel = takeChannel(split, sensorRow);
+  }
+
+  // use the velocity of the strum touch
+  virtualCell().velocity = velocity;
+
+  if (Split[split].sendX && !isLowRowBendActive(split)) {
+    resetLastMidiPitchBend(virtualCell().channel);
+    preSendPitchBend(split, 0, virtualCell().channel);
+  }
+  if (Split[split].sendY) {
+    preResetLastTimbre(split, virtualCell().note, virtualCell().channel);
+    preSendTimbre(split, 0, virtualCell().note, virtualCell().channel);
+  }
+  if (Split[split].sendZ) {
+    preResetLastLoudness(split, virtualCell().note, virtualCell().channel);
+    preSendLoudness(split, 0, 0, virtualCell().note, virtualCell().channel);
+  }
+
+  // send a new MIDI note
+  midiSendNoteOn(split, virtualCell().note, virtualCell().velocity, virtualCell().channel);
+}
+
+void handleStrummedRowChange(boolean newFretting, byte velocity) {
+  // we use the bitmask of the touched columns in the current row, and turn off all the columns
+  // that belong to the strumming split
+  int32_t colsInSensorRowTouched = colsInRowsTouched[sensorRow];
+  if (isStrummingSplit(LEFT)) {
+    colsInSensorRowTouched &= ~((int32_t)(1 << Global.splitPoint) - 1);
+  }
+  else if (isStrummingSplit(RIGHT)) {
+    colsInSensorRowTouched &= ((int32_t)(1 << Global.splitPoint) - 1);
+  }
+
+  byte highestNoteCol = 0;
+  byte numNotesTouched = 0;
+
+  // automatically turn of notes for open strings
+  if (colsInSensorRowTouched && virtualCell().hasNote()) {
+      virtualCell().releaseNote();
+      numNotesTouched += 1;
+  }
+
+  // if this was not a new fretting and the change is coming from the strummed split,
+  // it's a pull-off. The pulled-off cell is already set to untouched, but the note is still
+  // sounding, take that into account.
+  if (!newFretting && isStrummedSplit(sensorSplit) &&
+      sensorCell->hasNote() && hasActiveMidiNote(sensorSplit, sensorCell->note, sensorCell->channel)) {
+    numNotesTouched += 1;
+  }
+
+  // now we check each touched column in the row of the current sensor
+  // we gradually flip the touched bits to zero until they're all turned off
+  // this allows us to loop only over the touched columns, and none other
+  while (colsInSensorRowTouched) {
+    // we use the ARM Cortex-M3 instruction that reports the leading bit zeros of any number
+    // we determine that what left-most bit is that is turned on by substracting the leading zero
+    // count from the bitdepth of a 32-bit int
+    byte touchedCol = 31 - __builtin_clz(colsInSensorRowTouched);
+    TouchInfo& cell = cell(touchedCol, sensorRow);
+    byte split = getSplitOf(touchedCol);
+    if (cell.hasNote()) {
+      if (hasActiveMidiNote(split, cell.note, cell.channel)) {
+        numNotesTouched += 1;
       }
 
-      colsInSensorRowTouched &= ~(1 << touchedCol);
+      // remembed the top-most touch of the row, which will trigger a new note
+      if (highestNoteCol == 0) {
+        highestNoteCol = touchedCol;
+      }
+      else {
+        // turn off the notes for all the active touches
+        midiSendNoteOff(split, cell.note, cell.channel);
+      }
     }
+
+    colsInSensorRowTouched &= ~(1 << touchedCol);
+  }
+
+  // trigger a new note for the top-most touch of the row
+  if (highestNoteCol > 0) {
+    // turn off open strings that are sounding
+    if (virtualCell().hasNote()) {
+      numNotesTouched += 1;
+      virtualCell().releaseNote();
+    }
+
+    if (isStrummingSplit(sensorSplit) || (numNotesTouched && (!newFretting || sensorCol == highestNoteCol))) {
+      TouchInfo& cell = cell(highestNoteCol, sensorRow);
+      byte split = getSplitOf(highestNoteCol);
+      midiSendNoteOff(split, cell.note, cell.channel);
+      midiSendNoteOn(split, cell.note, velocity > 0 ? velocity : cell.velocity, cell.channel);
+    }
+  }
+
+  if (isStrummedSplit(sensorSplit) &&
+      !newFretting &&
+      hasTouchInSplitOnRow(otherSplit(sensorSplit), sensorRow) &&
+      !hasTouchInSplitOnRow(sensorSplit, sensorRow) && numNotesTouched == 1) {
+    handleStrummedOpenRow(sensorSplit, velocity);
   }
 }
 
@@ -1075,8 +1140,14 @@ void prepareNewNote(signed char notenum) {
 }
 
 void sendNewNote() {
-  // send the note on
   if (!isArpeggiatorEnabled(sensorSplit)) {
+    // reset pressure to 0 before sending the note, the actually pressure value will
+    // be sent right after the note on
+    if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+    }
+
+    // send the note on
     midiSendNoteOn(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
   }
 }
@@ -1509,6 +1580,9 @@ void handleTouchRelease() {
       handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
     }
     else {
+      if (isStrummedSplit(sensorSplit)) {
+        handleStrummedRowChange(false, sensorCell->velocity);
+      }
       midiSendNoteOffWithVelocity(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
     }
 
@@ -1588,12 +1662,7 @@ void handleOpenStringsRelease() {
   if (cellsTouched == 0) {
     // turn off all the notes of sounding open strings since no touches are active at all anymore
     for (byte row = 0; row < NUMROWS; ++row) {
-      if (virtualTouchInfo[row].hasNote()) {
-        midiSendNoteOff(virtualTouchInfo[row].split, virtualTouchInfo[row].note, virtualTouchInfo[row].channel);
-
-        releaseChannel(virtualTouchInfo[row].split, virtualTouchInfo[row].channel);
-        virtualTouchInfo[row].clearData();
-      }
+      virtualTouchInfo[row].releaseNote();
     }
   }
 }

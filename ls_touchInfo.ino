@@ -603,3 +603,12 @@ void VirtualTouchInfo::clearData() {
   note = -1;
   channel = -1;
 }
+
+void VirtualTouchInfo::releaseNote() {
+  if (hasNote()) {
+    midiSendNoteOff(split, note, channel);
+
+    releaseChannel(split, channel);
+    clearData();
+  }
+}
