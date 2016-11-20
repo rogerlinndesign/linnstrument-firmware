@@ -404,6 +404,8 @@ const short CONTROL_VELOCITY = 127;
 const short CONTROL_PRESSURE = 1016;
 
 const short CONTROL_MODE_LOZ = 20;
+const short STRUM_FEATHERZ = 20;
+const short STRUM_LOZ = 20;
 const short SWITCH_FEATHERZ = 120;
 const short SWITCH_LOZ = 230;
 
@@ -431,6 +433,10 @@ inline void TouchInfo::refreshZ() {
     if (sensorCol == 0) {
       featherZ = SWITCH_FEATHERZ;
       loZ = SWITCH_LOZ;
+    }
+    else if (isStrummingSplit(sensorSplit)) {
+      featherZ = STRUM_FEATHERZ;
+      loZ = STRUM_LOZ;
     }
 
     // if the raw touch is below feather touch, keep 0 for the Z values
