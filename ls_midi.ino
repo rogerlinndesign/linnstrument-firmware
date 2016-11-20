@@ -27,8 +27,10 @@ byte midiSysExBuffer[MAX_SYSEX_LENGTH];
 short midiSysExLength = -1;
 
 // MIDI Clock State
-const int32_t fxd4MidiClockUnit = FXD4_FROM_INT(2500000);  // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
-const int32_t fxd4MidiClockSamples = FXD4_FROM_INT(6);
+const int32_t MIDI_CLOCK_UNIT = 2500000;    // 1000000 ( microsecond) * 60 ( minutes - bpm) / 24 ( frames per beat)
+const int32_t MIDI_CLOCK_MIN_DELTA = 6756;  // maximum 370 BPM (taking a little margin to allow for clock fluctuations)
+const byte MIDI_CLOCK_SAMPLES = 6;
+const int32_t FXD4_MIDI_CLOCK_SAMPLES = FXD4_FROM_INT(MIDI_CLOCK_SAMPLES);
 
 enum MidiClock {
   midiClockOff,
@@ -40,6 +42,7 @@ MidiClock midiClockStatus = midiClockOff;                  // indicates whether 
 unsigned long lastMidiClockTime = 0;                       // the last time we received a MIDI clock message in micros
 int32_t fxd4MidiTempoAverage = fxd4CurrentTempo;           // the current average of the MIDI clock tempo, in fixes precision
 byte midiClockMessageCount = 0;                            // the number of MIDI clock messages we've received, from 1 to 24, with 0 meaning none has been received yet
+byte initialMidiClockMessageCount = 0;                     // the first MIDI clock messages, counted until the minimum number of samples have been received
 unsigned long midiClockLedOn = 0;                          // indicates when the MIDI clock led was turned on
 
 byte lastRpnMsb = 127;
@@ -109,8 +112,10 @@ void handleMidiInput(unsigned long nowMicros) {
         midiMessageIndex = 1;
 
         midiClockStatus = midiClockStart;
-        resetClockAdvancement(nowMicros);
+        fxd4MidiTempoAverage = fxd4CurrentTempo;
         lastMidiClockTime = 0;
+        initialMidiClockMessageCount = 0;
+        resetClockAdvancement(nowMicros);
         break;
       case MIDIStop:
         midiMessageBytes = 1;
@@ -119,6 +124,7 @@ void handleMidiInput(unsigned long nowMicros) {
         midiClockStatus = midiClockOff;
         midiClockMessageCount = 0;
         lastMidiClockTime = 0;
+        initialMidiClockMessageCount = 0;
         resetClockAdvancement(nowMicros);
 
         sequencersTurnOff();
@@ -135,20 +141,17 @@ void handleMidiInput(unsigned long nowMicros) {
 
         if (midiClockStatus != midiClockOff) {
           if (lastMidiClockTime > 0) {
-            unsigned long clockDelta;
-            // check if the micros timer has overflown
-            if (nowMicros < lastMidiClockTime) {
-              clockDelta = nowMicros + ~lastMidiClockTime;
-            }
-            // otherwise simply substract
-            else {
-              clockDelta = nowMicros - lastMidiClockTime;
-            }
+            unsigned long clockDelta = calcTimeDelta(nowMicros, lastMidiClockTime);
 
-            if (clockDelta > 0) {
-              fxd4MidiTempoAverage -= FXD4_DIV(fxd4MidiTempoAverage, fxd4MidiClockSamples);
-              fxd4MidiTempoAverage += FXD4_DIV(FXD4_DIV(fxd4MidiClockUnit, FXD4_FROM_INT(int(clockDelta))), fxd4MidiClockSamples);
-              fxd4CurrentTempo = fxd4MidiTempoAverage;
+            if (clockDelta != 0 && clockDelta > MIDI_CLOCK_MIN_DELTA) {
+              fxd4MidiTempoAverage -= FXD4_DIV(fxd4MidiTempoAverage, FXD4_MIDI_CLOCK_SAMPLES);
+              fxd4MidiTempoAverage += FXD4_DIV(FXD4_FROM_INT(MIDI_CLOCK_UNIT / clockDelta), FXD4_MIDI_CLOCK_SAMPLES);
+              if (initialMidiClockMessageCount < MIDI_CLOCK_SAMPLES) {
+                initialMidiClockMessageCount += 1;
+              }
+              else {
+                fxd4CurrentTempo = fxd4MidiTempoAverage;
+              }
             }
           }
 
