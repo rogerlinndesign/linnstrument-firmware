@@ -434,7 +434,7 @@ inline void TouchInfo::refreshZ() {
       featherZ = SWITCH_FEATHERZ;
       loZ = SWITCH_LOZ;
     }
-    else if (isStrummingSplit(sensorSplit)) {
+    else if (isStrummingSplit(sensorSplit) && displayMode == displayNormal) {
       featherZ = STRUM_FEATHERZ;
       loZ = STRUM_LOZ;
     }
