@@ -464,6 +464,36 @@ struct ConfigurationV9 {
   PresetSettings preset[NUMPRESETS];
   SequencerProject project;
 };
+/**************************************** Configuration V10 ****************************************
+This is used by firmware v2.0.0 and v2.0.1
+**************************************************************************************************/
+struct DeviceSettingsV8 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  short lastLoadedPreset;                    // the last settings preset that was loaded
+  short lastLoadedProject;                   // the last sequencer project that was loaded
+};
+struct ConfigurationV10 {
+  DeviceSettingsV8 device;
+  PresetSettings settings;
+  PresetSettings preset[NUMPRESETS];
+  SequencerProject project;
+};
 /*************************************************************************************************/
 
 boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
@@ -536,6 +566,12 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
         break;
       // this is the v10 of the configuration configuration, apply it if the size is right
       case 10:
+        if (confSize == sizeof(ConfigurationV10)) {
+          copyConfigurationFunction = &copyConfigurationV10;
+        }
+        break;
+      // this is the v11 of the configuration configuration, apply it if the size is right
+      case 11:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -1245,4 +1281,44 @@ void copyDeviceSettingsV7(void* target, void* source) {
   t->operatingLowPower = false;
   t->leftHanded = s->leftHanded;
   t->midiThrough = s->midiThrough;
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV10(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV10* s = (ConfigurationV10*)source;
+
+  copyDeviceSettingsV8(&t->device, &s->device);
+
+  memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
+  }
+
+  memcpy(&t->project, &s->project, sizeof(SequencerProject));
+}
+
+void copyDeviceSettingsV8(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV8* s = (DeviceSettingsV8*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepActive = s->sleepActive;
+  t->sleepDelay = s->sleepDelay;
+  t->sleepAnimation = s->sleepAnimation;
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->leftHanded = s->leftHanded;
+  t->midiThrough = s->midiThrough;
+  t->lastLoadedPreset = s->lastLoadedPreset;
+  t->lastLoadedProject = s->lastLoadedProject;
 }

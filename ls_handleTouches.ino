@@ -284,7 +284,7 @@ byte countTouchesInColumn() {
 boolean hasTouchInSplitOnRow(byte split, byte row) {
   if (colsInRowsTouched[row]) {
     // if split is not active and there's a touch on the row, it's obviously in the current split
-    if (!splitActive) {
+    if (!Device.splitActive) {
       return true;
     }
 
@@ -586,6 +586,9 @@ void handleNonPlayingTouch() {
       break;
     case displayMIDIThrough:
       handleMIDIThroughNewTouch();
+      break;
+    case displaySensorSensitivityZ:
+      handleSensorSensitivityZNewTouch();
       break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
@@ -1095,11 +1098,11 @@ void handleStrummedRowChange(boolean newFretting, byte velocity) {
 }
 
 boolean isStrummedSplit(byte split) {
-  return splitActive && Split[otherSplit(split)].strum;
+  return Device.splitActive && Split[otherSplit(split)].strum;
 }
 
 boolean isStrummingSplit(byte split) {
-  return splitActive && Split[split].strum;
+  return Device.splitActive && Split[split].strum;
 }
 
 void prepareNewNote(signed char notenum) {
@@ -1429,6 +1432,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displayValueForFixedVelocity:
         handleValueForFixedVelocityRelease();
+        break;
+      case displaySensorSensitivityZ:
+        handleSensorSensitivityZRelease();
         break;
       case displaySensorLoZ:
         handleSensorLoZRelease();
@@ -1781,7 +1787,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
       getSplitBoundaries(split, lowCol, highCol);
 
       offset = highCol - lowCol;                      // calculate the row offset based on the width of the split the column belongs to
-      if (splitActive && split == RIGHT) {            // if the right split is displayed, change the column so that it the lower left starting
+      if (Device.splitActive && split == RIGHT) {            // if the right split is displayed, change the column so that it the lower left starting
         getSplitBoundaries(LEFT, lowCol, highCol);    // point starts at the same point as the left split, behaving as if there were two independent
         lowest = lowest - (highCol - lowCol);         // LinnStruments next to each-other
       }
@@ -1805,7 +1811,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
 
 void getSplitBoundaries(byte sp, byte& lowCol, byte& highCol) {
   // Set ranges of columns to be scanned (all of one split only)
-  if (splitActive) {                    // if Split mode is on
+  if (Device.splitActive) {                    // if Split mode is on
     if (sp == LEFT) {                   // and it's the left split
       lowCol = 1;                       // set column range to left split
       highCol = Global.splitPoint;
@@ -1875,7 +1881,7 @@ inline byte splitLowestEdge(byte split) {
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
 inline byte getSplitOf(byte col) {
-  if (splitActive && !Split[Global.currentPerSplit].sequencer) {
+  if (Device.splitActive && !Split[Global.currentPerSplit].sequencer) {
     if (col < Global.splitPoint) {
       return LEFT;
     }

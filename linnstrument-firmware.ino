@@ -133,10 +133,11 @@ byte NUMROWS;                        // number of touch sensor rows
 #define LOWPOWER_MIDI_INTERVAL        350      // use a minimum interval of 350 microseconds between MIDI messages in low power mode
 
 // Values related to the Z sensor, continuous pressure
-#define DEFAULT_SENSOR_LO_Z        120                 // lowest acceptable raw Z value to start a touch
-#define DEFAULT_SENSOR_FEATHER_Z   80                  // lowest acceptable raw Z value to continue a touch
-#define DEFAULT_SENSOR_RANGE_Z     648                 // default range of the pressure
-#define MAX_SENSOR_RANGE_Z         1016                // upper value of the pressure                          
+#define DEFAULT_SENSOR_SENSITIVITY_Z  100      // by default the sensor Z sensitivity is unchanged, ie. 100%
+#define DEFAULT_SENSOR_LO_Z           120      // lowest acceptable raw Z value to start a touch
+#define DEFAULT_SENSOR_FEATHER_Z      80       // lowest acceptable raw Z value to continue a touch
+#define DEFAULT_SENSOR_RANGE_Z        648      // default range of the pressure
+#define MAX_SENSOR_RANGE_Z            1016     // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN  3
 
@@ -446,6 +447,7 @@ enum DisplayMode {
   displayLimitsForVelocity,
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
+  displaySensorSensitivityZ,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -615,6 +617,7 @@ struct DeviceSettings {
   CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
@@ -628,6 +631,7 @@ struct DeviceSettings {
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
   short lastLoadedPreset;                    // the last settings preset that was loaded
   short lastLoadedProject;                   // the last sequencer project that was loaded
+  boolean splitActive;                       // false = split off, true = split on
 };
 #define Device config.device
 
@@ -932,7 +936,6 @@ boolean footSwitchState[2];                         // holds the last read foots
 boolean footSwitchOffState[2];                      // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
 unsigned long prevFootSwitchTimerCount;             // time interval (in microseconds) between foot switch reads
 
-boolean splitActive = false;                        // false = split off, true = split on
 boolean doublePerSplit = false;                     // false when only one per split is active, true if they both are
 
 byte switchSelect = SWITCH_FOOT_L;                  // determines which switch setting is being displayed/changed
@@ -1014,7 +1017,7 @@ void reset() {
   lastReset = millis();
 
   Global.currentPerSplit = LEFT;
-  splitActive = false;
+  Device.splitActive = false;
 
   controlButton = -1;
   for (byte i = 0; i < NUMROWS; ++i) {

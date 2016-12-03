@@ -62,6 +62,7 @@ void initializeSensors() {
     }
   }
 
+  Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
   Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   Device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   Device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
@@ -168,6 +169,9 @@ inline unsigned short readZ() {                       // returns the raw Z value
     }
   }
 
+  // scale the sensor based on the sensitivity setting
+  rawZ = rawZ * Device.sensorSensitivityZ / 100;
+  
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
 

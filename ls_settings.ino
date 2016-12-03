@@ -279,7 +279,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 10;
+  Device.version = 11;
   Device.serialMode = false;
   Device.promoAnimationActive = false;
   Device.sleepActive = false;
@@ -291,6 +291,7 @@ void initializeDeviceSettings() {
   Device.midiThrough = false;
   Device.lastLoadedPreset = -1;
   Device.lastLoadedProject = -1;
+  Device.splitActive = false;
 
   initializeAudienceMessages();
 }
@@ -420,7 +421,7 @@ void initializeNoteLights(GlobalSettings& g) {
 }
 
 void initializePresetSettings() {
-  splitActive = false;
+  Device.splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
     presetBlinkStart[n] = 0;
@@ -853,7 +854,7 @@ void handleControlButtonRelease() {
     case SPLIT_ROW:                                          // SPLIT button released
       if (Split[otherSplit(Global.currentPerSplit)].sequencer) {
         Global.currentPerSplit = otherSplit(Global.currentPerSplit);
-        setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
+        setLed(0, SPLIT_ROW, globalColor, Device.splitActive ? cellOn : cellOff);
         updateDisplay();
       }
       else if (splitButtonDown) {
@@ -862,9 +863,9 @@ void handleControlButtonRelease() {
           storeSettings();
         }
         else {
-          splitActive = !splitActive;
+          Device.splitActive = !Device.splitActive;
         }
-        setLed(0, SPLIT_ROW, globalColor, splitActive ? cellOn : cellOff);
+        setLed(0, SPLIT_ROW, globalColor, Device.splitActive ? cellOn : cellOff);
         setDisplayMode(displayNormal);
         updateDisplay();
       }
@@ -1290,7 +1291,7 @@ void handlePerSplitSettingNewTouch() {
           break;
         case 4:
           setSplitSequencerEnabled(Global.currentPerSplit, !Split[Global.currentPerSplit].sequencer);
-          splitActive = false;
+          Device.splitActive = false;
           if (Split[Global.currentPerSplit].sequencer) {
             Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].arpeggiator = false;
@@ -1879,6 +1880,14 @@ void handleMIDIThroughNewTouch() {
 }
 
 void handleMIDIThroughRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
+void handleSensorSensitivityZNewTouch() {
+  handleNumericDataNewTouchCol(Device.sensorSensitivityZ, 50, 100, false);
+}
+
+void handleSensorSensitivityZRelease() {
   handleNumericDataReleaseCol(false);
 }
 
@@ -2556,6 +2565,17 @@ void handleGlobalSettingNewTouch() {
       }
       break;
 
+    case 11:
+      switch (sensorRow) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+          setLed(sensorCol, sensorRow, getPressureColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
     case 15:
       switch (sensorRow) {
         case 0:
@@ -2634,6 +2654,19 @@ void handleGlobalSettingHold() {
           case 3:
             resetNumericDataChange();
             setDisplayMode(displayValueForFixedVelocity);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 11:
+        switch (sensorRow) {
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+            resetNumericDataChange();
+            setDisplayMode(displaySensorSensitivityZ);
             updateDisplay();
             break;
         }
@@ -2774,7 +2807,7 @@ void handleGlobalSettingRelease() {
       // Send AllNotesOff
       if (sensorRow == 0) {
         lightLed(16, 0);
-        if (splitActive) {
+        if (Device.splitActive) {
           midiSendAllNotesOff(LEFT);
           midiSendAllNotesOff(RIGHT);
         }

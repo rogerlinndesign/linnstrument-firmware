@@ -30,6 +30,7 @@ displayCCForSwitch           : custom CC number selection and behavior for Switc
 displayLimitsForVelocity     : min and max value selection for velocity
 displayValueForFixedVelocity : value selection for fixed velocity
 displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
+displaySensorSensitivityZ    : sensor sensitivity setting for Z
 displaySensorLoZ             : sensor low Z sensitivity selection
 displaySensorFeatherZ        : sensor feather Z sensitivity selection
 displaySensorRangeZ          : max Z sensor range selection
@@ -161,6 +162,9 @@ void updateDisplay() {
     case displayMinUSBMIDIInterval:
       paintMinUSBMIDIIntervalDisplay();
       break;
+    case displaySensorSensitivityZ:
+      paintSensorSensitivityZDisplay();
+      break;
     case displaySensorLoZ:
       paintSensorLoZDisplay();
       break;
@@ -250,7 +254,7 @@ void updateSwitchLeds() {
   if (Split[Global.currentPerSplit].sequencer) {
     setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
   }
-  else if (splitActive) {
+  else if (Device.splitActive) {
     setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
   }
   else {
@@ -299,7 +303,7 @@ void paintNormalDisplay() {
   // determine the splits and divider
   byte split = Global.currentPerSplit;
   byte divider = NUMCOLS;
-  if (splitActive || displayMode == displaySplitPoint) {
+  if (Device.splitActive || displayMode == displaySplitPoint) {
     split = LEFT;
     divider = Global.splitPoint;
   }
@@ -961,6 +965,11 @@ void paintMinUSBMIDIIntervalDisplay() {
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
 }
 
+void paintSensorSensitivityZDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Device.sensorSensitivityZ, 0, false);
+}
+
 void paintSensorLoZDisplay() {
   clearDisplay();
   paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0, false);
@@ -1219,7 +1228,7 @@ void paintGlobalSettingsDisplay() {
   else {
     setLed(10, Global.velocitySensitivity, getVelocityColor(), cellOn);
   }
-  lightLed(11, Global.pressureSensitivity);
+  setLed(11, Global.pressureSensitivity, getPressureColor(), cellOn);
 
   // Show the MIDI input/output configuration
   if (Global.midiIO == 1) {
@@ -1428,6 +1437,10 @@ byte getFixedVelocityColor() {
   if (Global.valueForFixedVelocity != DEFAULT_FIXED_VELOCITY) {
     return globalAltColor;
   }
+  return globalColor;
+}
+
+byte getPressureColor() {
   return globalColor;
 }
 
