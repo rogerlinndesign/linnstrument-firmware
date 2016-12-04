@@ -2202,7 +2202,7 @@ void font_draw_string(int col, int row, const char* str, byte color, struct Font
     if (reversed) { --i; }
     else          { ++i; }
     
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 

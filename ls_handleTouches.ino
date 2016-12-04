@@ -532,7 +532,7 @@ void handleNonPlayingTouch() {
     case displaySplitPoint:
     case displayVolume:
     case displayReset:
-    case displayPromo:
+    case displayAnimation:
     case displaySleep:
       // handled elsewhere
       break;
@@ -696,7 +696,7 @@ boolean handleXYZupdate() {
     // check if this should be handled as a non-playing touch
     if (newVelocity) {
       handleNonPlayingTouch();
-      performContinuousTasks(micros());
+      performContinuousTasks();
     }
     return false;
   }
@@ -795,7 +795,7 @@ boolean handleXYZupdate() {
   short valueY = INVALID_DATA;
   unsigned short valueZHi = handleZExpression();
   byte valueZ = scale1016to127(valueZHi, true);
-  performContinuousTasks(micros());
+  performContinuousTasks();
 
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell->isMeaningfulTouch() || (doQuantizeHold() && isQuantizeHoldStable())) {
@@ -804,7 +804,7 @@ boolean handleXYZupdate() {
       valueX = -1 * valueX;
     }
 
-    performContinuousTasks(micros());
+    performContinuousTasks();
     sensorCell->lastValueX = valueX;
   }
 
@@ -812,7 +812,7 @@ boolean handleXYZupdate() {
   if (tempY == 0 || tempY == 127 || sensorCell->isMeaningfulTouch()) {
     valueY = tempY;
   }
-  performContinuousTasks(micros());
+  performContinuousTasks();
 
   // update the low row state, but not for the low row cells themselves when there's a new velocity
   // this is handled in lowRowStart, and immediately calling handleLowRowState will wrongly handle the
@@ -1519,7 +1519,7 @@ void handleTouchRelease() {
 
   // Some of the displayModes handle Release events
   if (handleNonPlayingRelease()) {
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
   // check if calibration is active and its cell release logic needs to be executed
   else if (handleCalibrationRelease()) {

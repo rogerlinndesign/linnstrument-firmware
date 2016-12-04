@@ -82,12 +82,12 @@ void NoteTouchMapping::initialize() {
       mapping[n][c].previousNote = -1;
       mapping[n][c].nextPreviousChannel = 0;
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
   for (byte c = 0; c < 16; ++c) {
     musicalTouchCount[c] = 0;
   }
-  performContinuousTasks(micros());
+  performContinuousTasks();
 }
 
 inline byte NoteTouchMapping::getMusicalTouchCount(signed char noteChannel) {

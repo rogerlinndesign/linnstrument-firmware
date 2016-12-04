@@ -10,7 +10,7 @@ void playPromoAnimation() {
   Device.promoAnimationActive = true;
   storeSettings();
 
-  setDisplayMode(displayPromo);
+  setDisplayMode(displayAnimation);
 
   while (!stopAnimation) {
     clearFullDisplay();

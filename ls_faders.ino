@@ -65,7 +65,7 @@ void handleFaderTouch(boolean newVelocity, byte faderLeft, byte faderLength) {
       // update other faders with the same CC number
       for (byte f = 0; f < 8; ++f) {
         if (f != sensorRow && Split[sensorSplit].ccForFader[f] == ccForFader) {
-          performContinuousTasks(micros());
+          performContinuousTasks();
           paintCCFaderDisplayRow(sensorSplit, f, faderLeft, faderLength);
         }
       }

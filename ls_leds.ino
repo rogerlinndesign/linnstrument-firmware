@@ -128,7 +128,7 @@ void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
   }
 
   if (bufferedLeds == 1) {
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 
@@ -175,7 +175,7 @@ void completelyRefreshLeds() {
     for (byte col = 0; col < NUMCOLS; ++col) {
       ledBuffered(LED_LAYER_COMBINED, col, row) = getCombinedLedData(col, row);
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 

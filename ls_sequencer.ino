@@ -1278,7 +1278,7 @@ void displaySettingsLegend(const char* str) {
     for (byte col = 1; col < NUMCOLS; ++col) {
       clearLed(col, row);
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 
   condfont_draw_string(0, 0, str, Split[Global.currentPerSplit].colorMain, false);
@@ -2192,13 +2192,13 @@ void StepSequencerState::advanceSequencer() {
           if (eventState.remainingDuration == 0) {
             eventState.sendNoteOff();
 
-            performContinuousTasks(micros());
+            performContinuousTasks();
           }
         }
       }
     }
 
-    performContinuousTasks(micros());
+    performContinuousTasks();
 
     // check if the sequencer should advance to the next position
     boolean repaintSequencer = false;
@@ -2287,7 +2287,7 @@ void StepSequencerState::advanceSequencer() {
         repaintSequencer = false;
       }
 
-      performContinuousTasks(micros());
+      performContinuousTasks();
 
       // update the step timer
       ticksUntilNextStep = getCurrentPattern().stepSize;
@@ -2527,7 +2527,7 @@ void StepSequencerState::paintCurrentPatternStep(byte stepNum) {
         }
       }
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 
@@ -2536,7 +2536,7 @@ void StepSequencerState::clearSequencer() {
     for (byte row = 1; row < 8; ++row) {
       clearLed(col, row);
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 
@@ -2553,7 +2553,7 @@ void StepSequencerState::paintSequencerUnbuffered() {
         for (byte col = 1; col <= SEQ_EVENTS_WIDTH; ++col) {
           paintNormalDisplayCell(split, col, row);
         }
-        performContinuousTasks(micros());
+        performContinuousTasks();
       }
 
       byte stepNum;
@@ -2567,7 +2567,7 @@ void StepSequencerState::paintSequencerUnbuffered() {
         for (byte col = 1; col <= SEQ_EVENTS_WIDTH; ++col) {
           clearLed(col, row);
         }
-        performContinuousTasks(micros());
+        performContinuousTasks();
       }
 
       for (byte seqCol = 0; seqCol < SEQ_EVENTS_WIDTH; ++seqCol) {
@@ -2575,15 +2575,15 @@ void StepSequencerState::paintSequencerUnbuffered() {
       }
       break;
   }
-  performContinuousTasks(micros());
+  performContinuousTasks();
   paintLowRow();
-  performContinuousTasks(micros());
+  performContinuousTasks();
   paintMuter();
   paintPatternSelector();
   paintPerformanceSettings();
-  performContinuousTasks(micros());
+  performContinuousTasks();
   paintFocusFaders();
-  performContinuousTasks(micros());
+  performContinuousTasks();
   paintNavigation();
 }
 
@@ -2876,7 +2876,7 @@ StepEvent* StepSequencerState::getFocusEvent(byte& stepNum) {
           return &getCurrentPatternStep(s).events[e];
         }
       }
-      performContinuousTasks(micros());
+      performContinuousTasks();
     }
   }
   return NULL;

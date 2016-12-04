@@ -56,6 +56,10 @@ inline void performCheckAdvanceSequencer() {
   }
 }
 
+inline void performContinuousTasks() {
+  performContinuousTasks(micros());
+}
+
 inline void performContinuousTasks(unsigned long nowMicros) {
   if (!setupDone || displayMode == displaySleep) {
     return;
@@ -178,7 +182,7 @@ inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
 
 // checks to see if it's time to sleep LinnStrument
 inline void checkSleep(unsigned long now) {
-  if (Device.sleepActive && Device.sleepDelay > 0 && displayMode != displayPromo && displayMode != displaySleep &&
+  if (Device.sleepActive && Device.sleepDelay > 0 && displayMode != displayAnimation && displayMode != displaySleep &&
       calcTimeDelta(now, lastTouchMoment) > Device.sleepDelay * 60000) {
     if (Device.sleepAnimation) {
       playPromoAnimation();

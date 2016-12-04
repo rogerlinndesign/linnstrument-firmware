@@ -31,7 +31,7 @@ displayLimitsForVelocity     : min and max value selection for velocity
 displayValueForFixedVelocity : value selection for fixed velocity
 displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
 displaySensorSensitivityZ    : sensor sensitivity setting for Z
-displayPromo                 : display promotion animation
+displayAnimation             : display animation
 displayEditAudienceMessage   : edit an audience message
 displaySleep                 : sleeping
 displaySleepConfig           : sleep mode configuration
@@ -64,10 +64,10 @@ void setDisplayMode(DisplayMode mode) {
 
   displayMode = mode;
   if (refresh) {
-    // ensure that in non settings displays, the control button is cleared out
+    // ensure that in non settings displays, the control buttons are cleared out
     if (displayMode == displayNormal ||
         displayMode == displaySleep ||
-        displayMode == displayPromo) {
+        displayMode == displayAnimation) {
       clearLed(0, GLOBAL_SETTINGS_ROW);
       clearLed(0, OCTAVE_ROW);
       clearLed(0, VOLUME_ROW);
@@ -162,8 +162,8 @@ void updateDisplay() {
     case displaySensorSensitivityZ:
       paintSensorSensitivityZDisplay();
       break;
-    case displayPromo:
-      // promo display is handled independently
+    case displayAnimation:
+      // animation display is handled independently
       break;
     case displayEditAudienceMessage:
       paintEditAudienceMessage();
@@ -348,7 +348,7 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
       }
     }
 
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 

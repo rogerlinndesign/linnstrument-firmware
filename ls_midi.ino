@@ -1867,7 +1867,7 @@ void midiSendNoteOffForAllTouches(byte split) {
       note = entry->getNextNote();
       channel = entry->getNextChannel();
     }
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 }
 

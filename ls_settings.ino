@@ -2474,6 +2474,9 @@ void handleGlobalSettingNewTouch() {
               Global.arpOctave = 2;
             }
             break;
+          case 2:
+            playChristmasAnimation();
+            break;
           case 3:
             if (!isMidiClockRunning()) {
               lightLed(14, 3);

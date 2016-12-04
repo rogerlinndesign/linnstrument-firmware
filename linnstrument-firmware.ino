@@ -448,7 +448,7 @@ enum DisplayMode {
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
   displaySensorSensitivityZ,
-  displayPromo,
+  displayAnimation,
   displayEditAudienceMessage,
   displaySleep,
   displaySleepConfig,
@@ -1293,7 +1293,7 @@ void setup() {
   setupDone = true;
 
   applySerialMode();
-  performContinuousTasks(micros());
+  performContinuousTasks();
 
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
   if (Device.promoAnimationActive) {
@@ -1364,7 +1364,7 @@ inline void modeLoopPerformance() {
   // Note that this is very much dependent on the speed of the main loop, if it slows down
   // lights will start flickering and this ratio might have to be adapted.
   if (cellCount % mainLoopDivider == 0) {
-    performContinuousTasks(micros());
+    performContinuousTasks();
   }
 
 #ifdef DEBUG_ENABLED
