@@ -590,15 +590,6 @@ void handleNonPlayingTouch() {
     case displaySensorSensitivityZ:
       handleSensorSensitivityZNewTouch();
       break;
-    case displaySensorLoZ:
-      handleSensorLoZNewTouch();
-      break;
-    case displaySensorFeatherZ:
-      handleSensorFeatherZNewTouch();
-      break;
-    case displaySensorRangeZ:
-      handleSensorRangeZNewTouch();
-      break;
     case displayOctaveTranspose:
       handleOctaveTransposeNewTouch();
       break;
@@ -1280,8 +1271,8 @@ short handleXExpression() {
   sensorCell->rogueSweepX = (deltaX >= ROGUE_SWEEP_X_THRESHOLD);
         
   if ((countTouchesInColumn() < 2 ||
-       sensorCell->currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z)) &&  // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to prevent unwanted pitch slides
-      sensorCell->hasUsableX()) {                                         // if no phantom presses are active, send the pitch bend change, otherwise only send those changes that are small and gradual to prevent rogue pitch sweeps
+       sensorCell->currentRawZ > (SENSOR_LO_Z + SENSOR_PITCH_Z)) &&  // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to prevent unwanted pitch slides
+      sensorCell->hasUsableX()) {                                    // if no phantom presses are active, send the pitch bend change, otherwise only send those changes that are small and gradual to prevent rogue pitch sweeps
 
     // calculate the average rate of X value changes over a number of samples
     sensorCell->fxdRateX -= FXD_DIV(sensorCell->fxdRateX, fxdRateXSamples);
@@ -1435,15 +1426,6 @@ boolean handleNonPlayingRelease() {
         break;
       case displaySensorSensitivityZ:
         handleSensorSensitivityZRelease();
-        break;
-      case displaySensorLoZ:
-        handleSensorLoZRelease();
-        break;
-      case displaySensorFeatherZ:
-        handleSensorFeatherZRelease();
-        break;
-      case displaySensorRangeZ:
-        handleSensorRangeZRelease();
         break;
       case displayVolume:
         handleVolumeRelease();

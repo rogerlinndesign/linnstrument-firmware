@@ -31,9 +31,6 @@ displayLimitsForVelocity     : min and max value selection for velocity
 displayValueForFixedVelocity : value selection for fixed velocity
 displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
 displaySensorSensitivityZ    : sensor sensitivity setting for Z
-displaySensorLoZ             : sensor low Z sensitivity selection
-displaySensorFeatherZ        : sensor feather Z sensitivity selection
-displaySensorRangeZ          : max Z sensor range selection
 displayPromo                 : display promotion animation
 displayEditAudienceMessage   : edit an audience message
 displaySleep                 : sleeping
@@ -164,15 +161,6 @@ void updateDisplay() {
       break;
     case displaySensorSensitivityZ:
       paintSensorSensitivityZDisplay();
-      break;
-    case displaySensorLoZ:
-      paintSensorLoZDisplay();
-      break;
-    case displaySensorFeatherZ:
-      paintSensorFeatherZDisplay();
-      break;
-    case displaySensorRangeZ:
-      paintSensorRangeZDisplay();
       break;
     case displayPromo:
       // promo display is handled independently
@@ -972,17 +960,17 @@ void paintSensorSensitivityZDisplay() {
 
 void paintSensorLoZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorLoZ, 0, false);
+  paintNumericDataDisplay(globalColor, SENSOR_LO_Z, 0, false);
 }
 
 void paintSensorFeatherZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorFeatherZ, 0, false);
+  paintNumericDataDisplay(globalColor, SENSOR_FEATHER_Z, 0, false);
 }
 
 void paintSensorRangeZDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Device.sensorRangeZ, 0, false);
+  paintNumericDataDisplay(globalColor, SENSOR_RANGE_Z, 0, false);
 }
 
 void paintSplitNumericDataDisplay(byte side, unsigned short value, byte offset, boolean condensed) {

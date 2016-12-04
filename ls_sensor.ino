@@ -63,9 +63,6 @@ void initializeSensors() {
   }
 
   Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
-  Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
-  Device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
-  Device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
 }
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell

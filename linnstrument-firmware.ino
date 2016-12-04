@@ -134,9 +134,9 @@ byte NUMROWS;                        // number of touch sensor rows
 
 // Values related to the Z sensor, continuous pressure
 #define DEFAULT_SENSOR_SENSITIVITY_Z  100      // by default the sensor Z sensitivity is unchanged, ie. 100%
-#define DEFAULT_SENSOR_LO_Z           120      // lowest acceptable raw Z value to start a touch
-#define DEFAULT_SENSOR_FEATHER_Z      80       // lowest acceptable raw Z value to continue a touch
-#define DEFAULT_SENSOR_RANGE_Z        648      // default range of the pressure
+#define SENSOR_LO_Z                   120      // lowest acceptable raw Z value to start a touch
+#define SENSOR_FEATHER_Z              80       // lowest acceptable raw Z value to continue a touch
+#define SENSOR_RANGE_Z                648      // default range of the pressure
 #define MAX_SENSOR_RANGE_Z            1016     // upper value of the pressure                          
 
 #define MAX_TOUCHES_IN_COLUMN  3
@@ -448,9 +448,6 @@ enum DisplayMode {
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
   displaySensorSensitivityZ,
-  displaySensorLoZ,
-  displaySensorFeatherZ,
-  displaySensorRangeZ,
   displayPromo,
   displayEditAudienceMessage,
   displaySleep,
@@ -618,9 +615,6 @@ struct DeviceSettings {
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
-  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
-  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
-  unsigned short sensorRangeZ;               // the maximum raw value of Z
   boolean promoAnimationActive;              // store whether the promo animation was active last
   boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
   byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
@@ -1051,7 +1045,7 @@ boolean switchPressAtStartup(byte switchRow) {
   updateSensorCell();
   // initially we need read Z a few times for the readings to stabilize
   readZ(); readZ(); unsigned short switchZ = readZ();
-  if (switchZ > Device.sensorLoZ + 128) {
+  if (switchZ > SENSOR_LO_Z + 128) {
     return true;
   }
   return false;

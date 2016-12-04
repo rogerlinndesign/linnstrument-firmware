@@ -1891,30 +1891,6 @@ void handleSensorSensitivityZRelease() {
   handleNumericDataReleaseCol(false);
 }
 
-void handleSensorLoZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorLoZ, max(100, Device.sensorFeatherZ), 1024, false);
-}
-
-void handleSensorLoZRelease() {
-  handleNumericDataReleaseCol(false);
-}
-
-void handleSensorFeatherZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorFeatherZ, 65, min(1024, Device.sensorLoZ), false);
-}
-
-void handleSensorFeatherZRelease() {
-  handleNumericDataReleaseCol(false);
-}
-
-void handleSensorRangeZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorRangeZ, 3 * 127, MAX_SENSOR_RANGE_Z - 127, false);
-}
-
-void handleSensorRangeZRelease() {
-  handleNumericDataReleaseCol(false);
-}
-
 void handleVolumeNewTouch(boolean newVelocity) {
   // don't change volume on the row that has the split selection
   if (sensorRow == 7) {
@@ -2221,24 +2197,6 @@ void handleGlobalSettingNewTouch() {
         initializeCalibrationSamples();
         setDisplayMode(displayCalibration);
       }
-      break;
-
-    case 25:
-      switch (sensorRow) {
-        case 0:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorLoZ);
-          break;
-        case 1:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorFeatherZ);
-          break;
-        case 2:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorRangeZ);
-          break;
-      }
-
       break;
   }
 
