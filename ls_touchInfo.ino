@@ -392,7 +392,7 @@ inline boolean TouchInfo::isMeaningfulTouch() {
 }
 
 inline boolean TouchInfo::isStableYTouch() {    
-  return sensorCell->isMeaningfulTouch() && sensorCell->rawZ() > SENSOR_LO_Z + SENSOR_RANGE_Z / 4;
+  return sensorCell->isMeaningfulTouch() && sensorCell->rawZ() > Device.sensorLoZ + Device.sensorRangeZ / 4;
 }
 
 inline boolean TouchInfo::isActiveTouch() {
@@ -428,8 +428,8 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-    unsigned short featherZ = SENSOR_FEATHER_Z;
-    unsigned short loZ = SENSOR_LO_Z;
+    unsigned short featherZ = Device.sensorFeatherZ;
+    unsigned short loZ = Device.sensorLoZ;
     if (sensorCol == 0) {
       featherZ = SWITCH_FEATHERZ;
       loZ = SWITCH_LOZ;
@@ -466,7 +466,7 @@ inline void TouchInfo::refreshZ() {
     }
 
     // calculate the velocity and pressure for the playing cells
-    unsigned short sensorRange = constrain(SENSOR_RANGE_Z + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
+    unsigned short sensorRange = constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 
     unsigned short sensorRangeVelocity = sensorRange;
     unsigned short sensorRangePressure = sensorRange;

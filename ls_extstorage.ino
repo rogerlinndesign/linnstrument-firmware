@@ -661,6 +661,7 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.version = g->version;
   copyCalibrationV1(&(t->device.calRows), &(g->calRows), &(t->device.calCols), &(g->calCols));
   t->device.calibrated = g->calibrated;
+  t->device.sensorRangeZ = g->sensorRangeZ;
   setPromoAnimation(&t->device, g->promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
@@ -744,6 +745,7 @@ void copyConfigurationV2(void* target, void* source) {
   t->device.version = s->device.version;
   copyCalibrationV1(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
+  t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
@@ -850,6 +852,7 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.version = s->device.version;
   copyCalibrationV1(&(t->device.calRows), &(s->device.calRows), &(t->device.calCols), &(s->device.calCols));
   t->device.calibrated = s->device.calibrated;
+  t->device.sensorRangeZ = s->device.sensorRangeZ;
   setPromoAnimation(&t->device, s->device.promoAnimationAtStartup);
   t->device.serialMode = true;
   t->device.operatingLowPower = false;
@@ -920,6 +923,7 @@ void copyDeviceSettingsV4(void* target, void* source) {
   t->serialMode = true;
   copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
+  t->sensorRangeZ = s->sensorRangeZ;
   setPromoAnimation(t, s->promoAnimationAtStartup);
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
@@ -1153,6 +1157,9 @@ void copyDeviceSettingsV5(void* target, void* source) {
   copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
   setPromoAnimation(t, s->promoAnimation);
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
@@ -1216,6 +1223,9 @@ void copyDeviceSettingsV6(void* target, void* source) {
   copyCalibrationV1(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
   t->promoAnimationActive = s->promoAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
@@ -1260,6 +1270,9 @@ void copyDeviceSettingsV7(void* target, void* source) {
   copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
   t->promoAnimationActive = s->promoAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
@@ -1295,6 +1308,9 @@ void copyDeviceSettingsV8(void* target, void* source) {
   copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
   t->promoAnimationActive = s->promoAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
