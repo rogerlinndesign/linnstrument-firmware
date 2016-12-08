@@ -146,6 +146,9 @@ void playChristmasAnimation() {
 }
 
 void playPlayBook(int totalFrames, const char** playbook) {
+  Device.sleepAnimationActive = true;
+  storeSettings();
+
   setDisplayMode(displayAnimation);
   clearFullDisplay();
 
@@ -172,7 +175,9 @@ void playPlayBook(int totalFrames, const char** playbook) {
   stopAnimation = false;
   animationActive = false;
   clearFullDisplay();
-  
+  Device.sleepAnimationActive = false;
+  storeSettings();
+
   lastTouchMoment = millis();
   setDisplayMode(displayNormal);
   updateDisplay();

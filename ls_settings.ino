@@ -281,10 +281,10 @@ void storeSettingsToPreset(byte p) {
 void initializeDeviceSettings() {
   Device.version = 11;
   Device.serialMode = false;
-  Device.promoAnimationActive = false;
+  Device.sleepAnimationActive = false;
   Device.sleepActive = false;
   Device.sleepDelay = 0;
-  Device.sleepAnimation = false;
+  Device.sleepAnimationType = animationNone;
   Device.operatingLowPower = false;
   Device.leftHanded = false;
   Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
@@ -1844,7 +1844,7 @@ void handleValueForFixedVelocityRelease() {
 void handleSleepConfigNewTouch() {
   switch (sleepConfigState) {
     case 1:
-      handleNumericDataNewTouchCol(Device.sleepAnimation);
+      handleNumericDataNewTouchCol(Device.sleepAnimationType, animationNone, animationChristmas, true);
       break;
     case 0:
       handleNumericDataNewTouchCol(Device.sleepDelay, 0, 30, true);
@@ -2516,9 +2516,6 @@ void handleGlobalSettingNewTouch() {
               Global.arpOctave = 2;
             }
             break;
-          case 2:
-            playChristmasAnimation();
-            break;
           case 3:
             if (!isMidiClockRunning()) {
               lightLed(14, 3);
@@ -2757,7 +2754,7 @@ void handleGlobalSettingRelease() {
       else if (sensorCol == 25) {
         Device.sleepActive = true;
         Device.sleepDelay = 2;
-        Device.sleepAnimation = true;
+        Device.sleepAnimationType = animationStore;
         storeSettings();
       }
     }
@@ -2777,12 +2774,7 @@ void handleGlobalSettingRelease() {
       Device.sleepActive = !Device.sleepActive;
       if (Device.sleepActive && Device.sleepDelay == 0) {
         Device.sleepActive = false;
-        if (Device.sleepAnimation) {
-          playPromoAnimation();
-        }
-        else {
-          activateSleepMode();
-        }
+        playSleepAnimation();
       }
     }
   }

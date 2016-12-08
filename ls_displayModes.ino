@@ -926,11 +926,16 @@ void paintSleepConfig() {
 
   switch (sleepConfigState) {
     case 1:
-      if (Device.sleepAnimation) {
-        adaptfont_draw_string(0, 0, "ANI", globalColor, true);
-      }
-      else {
-        adaptfont_draw_string(0, 0, "SLP", globalColor, true);
+      switch (Device.sleepAnimationType) {
+        case animationNone:
+          adaptfont_draw_string(0, 0, "SLP", globalColor, true);
+          break;
+        case animationStore:
+          adaptfont_draw_string(0, 0, "STR", globalColor, true);
+          break;
+        case animationChristmas:
+          adaptfont_draw_string(0, 0, "XMS", globalColor, true);
+          break;
       }
       break;
     case 0:

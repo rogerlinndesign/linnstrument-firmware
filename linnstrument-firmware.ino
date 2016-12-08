@@ -610,6 +610,12 @@ struct SplitSettings {
 
 #define Split config.settings.split
 
+enum SleepAnimationType {
+  animationNone,
+  animationStore,
+  animationChristmas
+};
+
 struct DeviceSettings {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -621,10 +627,10 @@ struct DeviceSettings {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepAnimationActive;              // store whether an animation was active last
   boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
   byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
-  boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
+  byte sleepAnimationType;                   // the animation type to use during sleep, see SleepAnimationType
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
@@ -1302,8 +1308,8 @@ void setup() {
   performContinuousTasks();
 
   // if the promo animation was running last time the LinnStrument was on, start it up automatically
-  if (Device.promoAnimationActive) {
-    playPromoAnimation();
+  if (Device.sleepAnimationActive) {
+    playSleepAnimation();
   }
 }
 

@@ -180,16 +180,25 @@ inline void checkRefreshGlobalSettingsDisplay(unsigned long now) {
   }
 }
 
+void playSleepAnimation() {
+  switch (Device.sleepAnimationType) {
+    case animationNone:
+      activateSleepMode();
+      break;
+    case animationStore:
+      playPromoAnimation();
+      break;
+    case animationChristmas:
+      playChristmasAnimation();
+      break;
+  }
+}
+
 // checks to see if it's time to sleep LinnStrument
 inline void checkSleep(unsigned long now) {
   if (Device.sleepActive && Device.sleepDelay > 0 && displayMode != displayAnimation && displayMode != displaySleep &&
       calcTimeDelta(now, lastTouchMoment) > Device.sleepDelay * 60000) {
-    if (Device.sleepAnimation) {
-      playPromoAnimation();
-    }
-    else {
-      activateSleepMode();
-    }
+    playSleepAnimation();
   }
 }
 

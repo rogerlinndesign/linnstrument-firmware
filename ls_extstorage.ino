@@ -419,7 +419,7 @@ struct DeviceSettingsV6 {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepAnimationActive;              // store whether the promo animation was active last
   boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
   byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
   boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
@@ -449,7 +449,7 @@ struct DeviceSettingsV7 {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepAnimationActive;              // store whether the promo animation was active last
   boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
   byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
   boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
@@ -477,7 +477,7 @@ struct DeviceSettingsV8 {
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean promoAnimationActive;              // store whether the promo animation was active last
+  boolean sleepAnimationActive;              // store whether the promo animation was active last
   boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
   byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
   boolean sleepAnimation;                    // store whether the promo animation should run during sleep mode
@@ -642,12 +642,12 @@ void setPromoAnimation(void* target, boolean flag) {
   if (flag) {
     t->sleepActive = true;
     t->sleepDelay = 2;
-    t->sleepAnimation = true;
+    t->sleepAnimationType = animationStore;
   }
   else {
     t->sleepActive = false;
     t->sleepDelay = 0;
-    t->sleepAnimation = false;
+    t->sleepAnimationType = animationNone;
   }
 }
 
@@ -1226,10 +1226,10 @@ void copyDeviceSettingsV6(void* target, void* source) {
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepAnimationActive = s->sleepAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
-  t->sleepAnimation = s->sleepAnimation;
+  t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = s->leftHanded;
@@ -1273,10 +1273,10 @@ void copyDeviceSettingsV7(void* target, void* source) {
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepAnimationActive = s->sleepAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
-  t->sleepAnimation = s->sleepAnimation;
+  t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = s->leftHanded;
@@ -1311,10 +1311,10 @@ void copyDeviceSettingsV8(void* target, void* source) {
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
-  t->promoAnimationActive = s->promoAnimationActive;
+  t->sleepAnimationActive = s->sleepAnimationActive;
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
-  t->sleepAnimation = s->sleepAnimation;
+  t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = s->leftHanded;
