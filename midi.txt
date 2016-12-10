@@ -36,7 +36,7 @@ CC Number   Used for
 20          Column coordinate for cell color change with CC 22 (starts from 0)
 21          Row coordinate for cell color change with CC 22 (starts from 0)
 22          Change the color of the cell with the provided column and row coordinates
-            see color value table below, 7+: default color
+            see color value table below, 11+: default color
 
 NRPN input
 ==========

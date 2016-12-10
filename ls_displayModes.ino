@@ -67,17 +67,7 @@ void setDisplayMode(DisplayMode mode) {
 
   displayMode = mode;
   if (refresh) {
-    // ensure that in non settings displays, the control buttons are cleared out
-    if (displayMode == displayNormal ||
-        displayMode == displaySleep ||
-        displayMode == displayAnimation) {
-      clearLed(0, GLOBAL_SETTINGS_ROW);
-      clearLed(0, OCTAVE_ROW);
-      clearLed(0, VOLUME_ROW);
-      clearLed(0, PRESET_ROW);
-      clearLed(0, PER_SPLIT_ROW);
-      controlButton = -1;
-    }
+    enterDisplayMode(mode);
     completelyRefreshLeds();
   }
 }
@@ -209,6 +199,29 @@ void updateDisplay() {
   updateSwitchLeds();
 
   finishBufferedLeds();
+}
+
+// handle logic tied to entering specific display mode, like clearing
+void enterDisplayMode(DisplayMode mode) {
+  switch (mode) {
+    // ensure that in non settings displays, the control buttons are cleared out
+    case displayNormal:
+    case displaySleep:
+    case displayAnimation:
+      clearLed(0, GLOBAL_SETTINGS_ROW);
+      clearLed(0, OCTAVE_ROW);
+      clearLed(0, VOLUME_ROW);
+      clearLed(0, PRESET_ROW);
+      clearLed(0, PER_SPLIT_ROW);
+      controlButton = -1;
+      break;
+    case displaySensorSensitivityZ:
+      clearDisplay();
+      break;
+    default:
+      // no logic tied to entering the display mode
+      break;
+  }
 }
 
 // handle logic tied to exiting specific display mode, like post-processing or saving
@@ -724,6 +737,13 @@ byte getCCFadersColor(byte side) {
   return color;
 }
 
+byte getCalibrationColor() {
+  if (Device.calibrated) {
+    return COLOR_GREEN;
+  }
+  return COLOR_RED;
+}
+
 // paint one of the two leds that indicate which split is being controlled
 // (e.g. when you're changing per-split settings, or changing the preset or volume)
 void paintShowSplitSelection(byte side) {
@@ -971,7 +991,10 @@ void paintMinUSBMIDIIntervalDisplay() {
 }
 
 void paintSensorSensitivityZDisplay() {
-  clearDisplay();
+  for (byte row = 1; row < NUMROWS; ++row) {
+    clearRow(row);
+  }
+  setLed(NUMCOLS-1, NUMROWS-1,  globalAltColor, cellOn);
   paintNumericDataDisplay(globalColor, Device.sensorSensitivityZ, 0, false);
 }
 
@@ -1259,12 +1282,7 @@ void paintGlobalSettingsDisplay() {
   }
 
   // clearly indicate the calibration status
-  if (Device.calibrated) {
-    setLed(16, 3, COLOR_GREEN, cellOn);
-  }
-  else {
-    setLed(16, 3, COLOR_RED, cellOn);
-  }
+  setLed(16, 3, getCalibrationColor(), cellOn);
 
   if (!userFirmwareActive) {
 
@@ -1538,6 +1556,19 @@ void showPerNoteMidiChannels(byte side) {
     }
     else if (Split[side].midiChanSet[chan-1]) {
       setMidiChannelLed(chan, Split[side].colorMain);
+    }
+  }
+}
+
+void paintLowRowPressureBar() {
+  int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(sensorCell->pressureZ), FXD_CONST_1016), FXD_FROM_INT(NUMCOLS-2))) + 1;
+    
+  for (byte c = 1; c < NUMCOLS; ++c) {
+    if (c <= pressureColumn) {
+      setLed(c, 0, COLOR_GREEN, cellOn);
+    }
+    else {
+      clearLed(c, 0);
     }
   }
 }

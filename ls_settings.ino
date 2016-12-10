@@ -1883,12 +1883,34 @@ void handleMIDIThroughRelease() {
   handleNumericDataReleaseCol(false);
 }
 
+static unsigned short lastAutoSensorSensitivityZ = 0;
+
 void handleSensorSensitivityZNewTouch() {
-  handleNumericDataNewTouchCol(Device.sensorSensitivityZ, 50, 100, false);
+  if (sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1) {
+    Device.sensorSensitivityZ = lastAutoSensorSensitivityZ;
+    updateDisplay();
+  }
+  else if (sensorRow == 0) {
+    handleNumericDataNewTouchCol(Device.sensorSensitivityZ, 50, 100, false);
+  }
+}
+
+void handleSensorSensitivityZHold() {
+  if (sensorCol != 0 && sensorRow != 0 && !(sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1)) {
+    // store the sensitivity setting that would be need to make the current pressure value reach to the maximum
+    lastAutoSensorSensitivityZ = constrain((calculatePreferredPressureRange(calculateSensorRangeZ() + Device.sensorLoZ) * 100) / applyRawZBias(lastReadSensorRawZ), 50, 100);
+
+    paintLowRowPressureBar();
+  }
 }
 
 void handleSensorSensitivityZRelease() {
-  handleNumericDataReleaseCol(false);
+  if (sensorRow == 0) {
+    handleNumericDataReleaseCol(false);
+  }
+  else if (!(sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1)) {
+    paintLowRowPressureBar();
+  }
 }
 
 void handleSensorLoZNewTouch() {
@@ -2126,6 +2148,10 @@ void changeUserFirmwareMode(boolean active) {
   updateDisplay();
 }
 
+boolean isCalibrationCellHeld() {
+  return cell(16, 3).touched != untouchedCell;
+}
+
 // Called to handle a change in one of the Global Settings,
 // meaning that user is holding global settings and touching one of global settings cells
 void handleGlobalSettingNewTouch() {
@@ -2175,7 +2201,14 @@ void handleGlobalSettingNewTouch() {
         case pressureLow:
         case pressureMedium:
         case pressureHigh:
-          Global.pressureSensitivity = PressureSensitivity(sensorRow);
+          if (isCalibrationCellHeld()) {
+            resetNumericDataChange();
+            setDisplayMode(displaySensorSensitivityZ);
+            updateDisplay();
+          }
+          else {
+            Global.pressureSensitivity = PressureSensitivity(sensorRow);
+          }
           break;
         case 3:
           Global.pressureAftertouch = !Global.pressureAftertouch;
@@ -2205,47 +2238,43 @@ void handleGlobalSettingNewTouch() {
       break;
 
     case 16:
-      if (sensorRow == 1) {
-        setDisplayMode(displayOsVersion);
-      }
-      // reset feature
-      else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
-                (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
-        if (displayMode != displayReset) {
-          reset();
-          clearDisplay();
-          setDisplayMode(displayReset);
+      if (isCalibrationCellHeld()) {
+        switch (sensorRow) {
+          case 4:
+            resetNumericDataChange();
+            setDisplayMode(displaySensorLoZ);
+            break;
+          case 5:
+            resetNumericDataChange();
+            setDisplayMode(displaySensorFeatherZ);
+            break;
+          case 6:
+            resetNumericDataChange();
+            setDisplayMode(displaySensorRangeZ);
+            break;
         }
       }
-      else if (sensorRow == 3) {
-        initializeCalibrationSamples();
-        setDisplayMode(displayCalibration);
+      else {
+        if (sensorRow == 1) {
+          setDisplayMode(displayOsVersion);
+        }
+        // reset feature
+        else if ((sensorRow == 2 && cell(sensorCol, 0).touched != untouchedCell) ||
+                  (sensorRow == 0 && cell(sensorCol, 2).touched != untouchedCell)) {
+          if (displayMode != displayReset) {
+            reset();
+            clearDisplay();
+            setDisplayMode(displayReset);
+          }
+        }
+        break;
       }
-      break;
-
-    case 25:
-      switch (sensorRow) {
-        case 0:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorLoZ);
-          break;
-        case 1:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorFeatherZ);
-          break;
-        case 2:
-          resetNumericDataChange();
-          setDisplayMode(displaySensorRangeZ);
-          break;
-      }
-
-      break;
   }
 
   if (!userFirmwareActive) {
 
     // handle tempo change
-    if (sensorRow >= 4 && sensorRow != 7) {
+    if (!isCalibrationCellHeld() && sensorRow >= 4 && sensorRow != 7) {
       handleTempoNewTouch();
     }
 
@@ -2565,17 +2594,6 @@ void handleGlobalSettingNewTouch() {
       }
       break;
 
-    case 11:
-      switch (sensorRow) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-          setLed(sensorCol, sensorRow, getPressureColor(), cellSlowPulse);
-          break;
-      }
-      break;
-
     case 15:
       switch (sensorRow) {
         case 0:
@@ -2596,6 +2614,9 @@ void handleGlobalSettingNewTouch() {
           if (displayMode != displayReset) {
             setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
           }
+          break;
+        case 3:
+          setLed(sensorCol, sensorRow, getCalibrationColor(), cellSlowPulse);
           break;
       }
       break;
@@ -2654,19 +2675,6 @@ void handleGlobalSettingHold() {
           case 3:
             resetNumericDataChange();
             setDisplayMode(displayValueForFixedVelocity);
-            updateDisplay();
-            break;
-        }
-        break;
-
-      case 11:
-        switch (sensorRow) {
-          case 0:
-          case 1:
-          case 2:
-          case 3:
-            resetNumericDataChange();
-            setDisplayMode(displaySensorSensitivityZ);
             updateDisplay();
             break;
         }
@@ -2765,10 +2773,10 @@ void handleGlobalSettingRelease() {
   }
   else if (sensorCol == 15) {
     if (sensorRow == 0 && ensureCellBeforeHoldWait(globalColor, Global.midiIO == 1 ? cellOn : cellOff)) {
-          changeMidiIO(1);
+      changeMidiIO(1);
     }
     else if (sensorRow == 1 && ensureCellBeforeHoldWait(globalColor, Global.midiIO == 0 ? cellOn : cellOff)) {
-          changeMidiIO(0);
+      changeMidiIO(0);
     }
     else if (sensorRow == 2 && ensureCellBeforeHoldWait(globalColor, Device.sleepActive ? cellOn : cellOff)) {
       Device.sleepActive = !Device.sleepActive;
@@ -2778,19 +2786,26 @@ void handleGlobalSettingRelease() {
       }
     }
   }
-  // Toggle UPDATE OS value
-  else if (sensorCol == 16 && sensorRow == 2) {
-    byte resetColor = COLOR_BLACK;
-    CellDisplay resetDisplay = cellOff;
-    if (Device.serialMode) {
-      resetColor = globalColor;
-      resetDisplay = cellOn;
-    }
+  else if (sensorCol == 16) {
+      // Toggle UPDATE OS value
+      if (sensorRow == 2) {
+        byte resetColor = COLOR_BLACK;
+        CellDisplay resetDisplay = cellOff;
+        if (Device.serialMode) {
+          resetColor = globalColor;
+          resetDisplay = cellOn;
+        }
 
-    if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
-      switchSerialMode(!Device.serialMode);
-      storeSettings();
-    }
+        if (ensureCellBeforeHoldWait(resetColor, resetDisplay)) {
+          switchSerialMode(!Device.serialMode);
+          storeSettings();
+        }
+      }
+      // Enter calibration mode
+      else if (sensorRow == 3 && ensureCellBeforeHoldWait(getCalibrationColor(), cellOn)) {
+        initializeCalibrationSamples();
+        setDisplayMode(displayCalibration);
+      }
   }
 
   if (!userFirmwareActive) {

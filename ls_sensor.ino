@@ -130,6 +130,11 @@ const short READZ_DELAY_SENSOR = 15;
 const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
+inline short applyRawZBias(short rawZ) {
+  // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
+  return rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
+}
+
 inline unsigned short readZ() {                       // returns the raw Z value
 #ifdef TESTING_SENSOR_DISABLE
     if (sensorCell->disabled) {
@@ -169,11 +174,13 @@ inline unsigned short readZ() {                       // returns the raw Z value
     }
   }
 
+  // store the last value that was read straight off of the sensor without any compensation
+  lastReadSensorRawZ = rawZ;
+
   // scale the sensor based on the sensitivity setting
   rawZ = rawZ * Device.sensorSensitivityZ / 100;
-  
-  // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
+
+  rawZ = applyRawZBias(rawZ);
 
   return rawZ;
 }

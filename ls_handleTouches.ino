@@ -667,6 +667,10 @@ boolean handleXYZupdate() {
         handleSequencerProjectsHold();
         break;
 
+      case displaySensorSensitivityZ:
+        handleSensorSensitivityZHold();
+        break;
+
       default:
         // other displays don't need hold features
         break;

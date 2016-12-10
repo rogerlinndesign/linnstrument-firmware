@@ -170,6 +170,12 @@ void clearColumn(byte col) {
   }
 }
 
+void clearRow(byte row) {
+  for (byte col = 0; col < NUMCOLS; ++col) {
+    clearLed(col, row);
+  }
+}
+
 void completelyRefreshLeds() {
   for (byte row = 0; row < NUMROWS; ++row) {
     for (byte col = 0; col < NUMCOLS; ++col) {

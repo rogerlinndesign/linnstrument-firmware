@@ -227,16 +227,7 @@ void modeLoopManufacturingTest() {
   }
 
   if (sensorCol != 0 && sensorCell->touched != untouchedCell) {
-    int pressureColumn = FXD_TO_INT(FXD_MUL(FXD_DIV(FXD_FROM_INT(sensorCell->pressureZ), FXD_CONST_1016), FXD_FROM_INT(NUMCOLS-2))) + 1;
-      
-    for (byte c = 1; c < NUMCOLS; ++c) {
-      if (c <= pressureColumn) {
-        setLed(c, 0, COLOR_GREEN, cellOn);
-      }
-      else {
-        clearLed(c, 0);
-      }
-    }
+    paintLowRowPressureBar();
   }
 
   if (rowsInColsTouched[0] == 0) {

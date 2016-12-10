@@ -409,6 +409,31 @@ const short STRUM_LOZ = 20;
 const short SWITCH_FEATHERZ = 120;
 const short SWITCH_LOZ = 230;
 
+inline unsigned short calculateSensorRangeZ() {
+    return constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
+}
+
+inline unsigned short calculatePreferredPressureRange(unsigned short sensorRangeZ) {
+    // when in pressure sensitivity calibration mode, always use medium sensitivity
+    PressureSensitivity pressureSensitivity = Global.pressureSensitivity;
+    if (displayMode == displaySensorSensitivityZ) {
+        pressureSensitivity = pressureMedium;
+    }
+    unsigned short sensorRangePressure = sensorRangeZ;
+    switch (pressureSensitivity) {
+      case pressureHigh:
+        sensorRangePressure -= 254;
+        break;
+      case pressureMedium:
+        sensorRangePressure -= 63;
+        break;
+      case pressureLow:
+        sensorRangePressure += 127;
+        break;
+    }
+    return sensorRangePressure;
+}
+
 inline void TouchInfo::refreshZ() {
   if (shouldRefreshZ) {
     // store the raw Z data for later comparisons and calculations
@@ -466,10 +491,9 @@ inline void TouchInfo::refreshZ() {
     }
 
     // calculate the velocity and pressure for the playing cells
-    unsigned short sensorRange = constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
+    unsigned short sensorRange = calculateSensorRangeZ();
 
     unsigned short sensorRangeVelocity = sensorRange;
-    unsigned short sensorRangePressure = sensorRange;
     switch (Global.velocitySensitivity) {
       case velocityHigh:
         sensorRangeVelocity -= 254;
@@ -484,17 +508,8 @@ inline void TouchInfo::refreshZ() {
         // no change
         break;
     }
-    switch (Global.pressureSensitivity) {
-      case pressureHigh:
-        sensorRangePressure -= 254;
-        break;
-      case pressureMedium:
-        sensorRangePressure -= 63;
-        break;
-      case pressureLow:
-        sensorRangePressure += 127;
-        break;
-    }
+
+    unsigned short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
 
     unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
     unsigned short usablePressureZ;
