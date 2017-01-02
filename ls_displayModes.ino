@@ -267,7 +267,7 @@ void updateSwitchLeds() {
   if (Split[Global.currentPerSplit].sequencer) {
     setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
   }
-  else if (Device.splitActive) {
+  else if (Global.splitActive) {
     setLed(0, SPLIT_ROW, Split[Global.currentPerSplit].colorMain, cellOn);
   }
   else {
@@ -316,7 +316,7 @@ void paintNormalDisplay() {
   // determine the splits and divider
   byte split = Global.currentPerSplit;
   byte divider = NUMCOLS;
-  if (Device.splitActive || displayMode == displaySplitPoint) {
+  if (Global.splitActive || displayMode == displaySplitPoint) {
     split = LEFT;
     divider = Global.splitPoint;
   }

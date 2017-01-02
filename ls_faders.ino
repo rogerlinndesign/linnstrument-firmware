@@ -96,7 +96,7 @@ void handleFaderRelease(byte faderLeft, byte faderLength) {
 void determineFaderBoundaries(byte split, byte& faderLeft, byte& faderLength) {
   faderLeft = 1;
   faderLength = NUMCOLS-2;
-  if (Device.splitActive || displayMode == displaySplitPoint) {
+  if (Global.splitActive || displayMode == displaySplitPoint) {
     if (split == LEFT) {
       faderLength = Global.splitPoint - 2;
     }

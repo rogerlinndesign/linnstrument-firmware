@@ -637,7 +637,6 @@ struct DeviceSettings {
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
   short lastLoadedPreset;                    // the last settings preset that was loaded
   short lastLoadedProject;                   // the last sequencer project that was loaded
-  boolean splitActive;                       // false = split off, true = split on
 };
 #define Device config.device
 
@@ -705,6 +704,7 @@ struct GlobalSettings {
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+  boolean splitActive;                       // false = split off, true = split on
 };
 #define Global config.settings.global
 
@@ -1029,7 +1029,7 @@ void reset() {
   lastReset = millis();
 
   Global.currentPerSplit = LEFT;
-  Device.splitActive = false;
+  Global.splitActive = false;
 
   controlButton = -1;
   for (byte i = 0; i < NUMROWS; ++i) {

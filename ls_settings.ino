@@ -279,7 +279,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 11;
+  Device.version = 12;
   Device.serialMode = false;
   Device.sleepAnimationActive = false;
   Device.sleepActive = false;
@@ -291,7 +291,7 @@ void initializeDeviceSettings() {
   Device.midiThrough = false;
   Device.lastLoadedPreset = -1;
   Device.lastLoadedProject = -1;
-  Device.splitActive = false;
+  Global.splitActive = false;
 
   initializeAudienceMessages();
 }
@@ -421,7 +421,7 @@ void initializeNoteLights(GlobalSettings& g) {
 }
 
 void initializePresetSettings() {
-  Device.splitActive = false;
+  Global.splitActive = false;
 
   for (byte n = 0; n < NUMPRESETS; ++n) {
     presetBlinkStart[n] = 0;
@@ -854,7 +854,7 @@ void handleControlButtonRelease() {
     case SPLIT_ROW:                                          // SPLIT button released
       if (Split[otherSplit(Global.currentPerSplit)].sequencer) {
         Global.currentPerSplit = otherSplit(Global.currentPerSplit);
-        setLed(0, SPLIT_ROW, globalColor, Device.splitActive ? cellOn : cellOff);
+        setLed(0, SPLIT_ROW, globalColor, Global.splitActive ? cellOn : cellOff);
         updateDisplay();
       }
       else if (splitButtonDown) {
@@ -863,9 +863,9 @@ void handleControlButtonRelease() {
           storeSettings();
         }
         else {
-          Device.splitActive = !Device.splitActive;
+          Global.splitActive = !Global.splitActive;
         }
-        setLed(0, SPLIT_ROW, globalColor, Device.splitActive ? cellOn : cellOff);
+        setLed(0, SPLIT_ROW, globalColor, Global.splitActive ? cellOn : cellOff);
         setDisplayMode(displayNormal);
         updateDisplay();
       }
@@ -1291,7 +1291,7 @@ void handlePerSplitSettingNewTouch() {
           break;
         case 4:
           setSplitSequencerEnabled(Global.currentPerSplit, !Split[Global.currentPerSplit].sequencer);
-          Device.splitActive = false;
+          Global.splitActive = false;
           if (Split[Global.currentPerSplit].sequencer) {
             Split[Global.currentPerSplit].strum = false;
             Split[Global.currentPerSplit].arpeggiator = false;
@@ -2817,7 +2817,7 @@ void handleGlobalSettingRelease() {
       // Send AllNotesOff
       if (sensorRow == 0) {
         lightLed(16, 0);
-        if (Device.splitActive) {
+        if (Global.splitActive) {
           midiSendAllNotesOff(LEFT);
           midiSendAllNotesOff(RIGHT);
         }

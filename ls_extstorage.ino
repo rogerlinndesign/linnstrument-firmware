@@ -427,8 +427,33 @@ struct DeviceSettingsV6 {
   boolean operatingLowPower;                 // whether low power mode is active or not
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
 };
+struct GlobalSettingsV7 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  byte customRowOffset;                      // the custom row offset that can be configured at the location of the octave setting
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitch;                // 0-127
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+};
 struct PresetSettingsV7 {
-  GlobalSettings global;
+  GlobalSettingsV7 global;
   SplitSettingsV4 split[NUMSPLITS];
 };
 struct ConfigurationV8 {
@@ -458,10 +483,14 @@ struct DeviceSettingsV7 {
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
 };
+struct PresetSettingsV8 {
+  GlobalSettingsV7 global;
+  SplitSettings split[NUMSPLITS];
+};
 struct ConfigurationV9 {
   DeviceSettingsV7 device;
-  PresetSettings settings;
-  PresetSettings preset[NUMPRESETS];
+  PresetSettingsV8 settings;
+  PresetSettingsV8 preset[NUMPRESETS];
   SequencerProject project;
 };
 /**************************************** Configuration V10 ****************************************
@@ -490,8 +519,40 @@ struct DeviceSettingsV8 {
 };
 struct ConfigurationV10 {
   DeviceSettingsV8 device;
-  PresetSettings settings;
-  PresetSettings preset[NUMPRESETS];
+  PresetSettingsV8 settings;
+  PresetSettingsV8 preset[NUMPRESETS];
+  SequencerProject project;
+};
+/**************************************** Configuration V11 ****************************************
+This is used by firmware v2.0.2
+**************************************************************************************************/
+struct DeviceSettingsV9 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean sleepAnimationActive;              // store whether an animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  byte sleepAnimationType;                   // the animation type to use during sleep, see SleepAnimationType
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  short lastLoadedPreset;                    // the last settings preset that was loaded
+  short lastLoadedProject;                   // the last sequencer project that was loaded
+  boolean splitActive;                       // false = split off, true = split on
+};
+struct ConfigurationV11 {
+  DeviceSettingsV9 device;
+  PresetSettingsV8 settings;
+  PresetSettingsV8 preset[NUMPRESETS];
   SequencerProject project;
 };
 /*************************************************************************************************/
@@ -572,6 +633,12 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
         break;
       // this is the v11 of the configuration configuration, apply it if the size is right
       case 11:
+        if (confSize == sizeof(ConfigurationV11)) {
+          copyConfigurationFunction = &copyConfigurationV11;
+        }
+        break;
+      // this is the v12 of the configuration configuration, apply it if the size is right
+      case 12:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -1239,10 +1306,36 @@ void copyPresetSettingsV7(void* target, void* source) {
   PresetSettings* t = (PresetSettings*)target;
   PresetSettingsV7* s = (PresetSettingsV7*)source;
 
-  memcpy(&t->global, &s->global, sizeof(GlobalSettings));
+  copyGlobalSettingsV7(&t->global, &s->global);
 
   copySplitSettingsV4(&t->split[LEFT], &s->split[LEFT]);
   copySplitSettingsV4(&t->split[RIGHT], &s->split[RIGHT]);
+}
+
+void copyGlobalSettingsV7(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV7* s = (GlobalSettingsV7*)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
+  t->rowOffset = s->rowOffset;
+  t->customRowOffset = s->customRowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = s->minForVelocity;
+  t->maxForVelocity = s->maxForVelocity;
+  t->valueForFixedVelocity = s->valueForFixedVelocity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = s->ccForSwitch;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+  t->sustainBehavior = s->sustainBehavior;
 }
 
 /*************************************************************************************************/
@@ -1253,9 +1346,9 @@ void copyConfigurationV9(void* target, void* source) {
 
   copyDeviceSettingsV7(&t->device, &s->device);
 
-  memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  copyPresetSettingsV8(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
+    copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
   }
 
   memcpy(&t->project, &s->project, sizeof(SequencerProject));
@@ -1283,6 +1376,16 @@ void copyDeviceSettingsV7(void* target, void* source) {
   t->midiThrough = s->midiThrough;
 }
 
+void copyPresetSettingsV8(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV8* s = (PresetSettingsV8*)source;
+
+  copyGlobalSettingsV7(&t->global, &s->global);
+
+  memcpy(&t->split[LEFT], &s->split[LEFT], sizeof(SplitSettings));
+  memcpy(&t->split[RIGHT], &s->split[RIGHT], sizeof(SplitSettings));
+}
+
 /*************************************************************************************************/
 
 void copyConfigurationV10(void* target, void* source) {
@@ -1291,9 +1394,9 @@ void copyConfigurationV10(void* target, void* source) {
 
   copyDeviceSettingsV8(&t->device, &s->device);
 
-  memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  copyPresetSettingsV8(&t->settings, &s->settings);
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
+    copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
   }
 
   memcpy(&t->project, &s->project, sizeof(SequencerProject));
@@ -1315,6 +1418,46 @@ void copyDeviceSettingsV8(void* target, void* source) {
   t->sleepActive = s->sleepActive;
   t->sleepDelay = s->sleepDelay;
   t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->leftHanded = s->leftHanded;
+  t->midiThrough = s->midiThrough;
+  t->lastLoadedPreset = s->lastLoadedPreset;
+  t->lastLoadedProject = s->lastLoadedProject;
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV11(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV11* s = (ConfigurationV11*)source;
+
+  copyDeviceSettingsV9(&t->device, &s->device);
+
+  copyPresetSettingsV8(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
+  }
+
+  memcpy(&t->project, &s->project, sizeof(SequencerProject));
+}
+
+void copyDeviceSettingsV9(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV9* s = (DeviceSettingsV9*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->sleepAnimationActive = s->sleepAnimationActive;
+  t->sleepActive = s->sleepActive;
+  t->sleepDelay = s->sleepDelay;
+  t->sleepAnimationType = s->sleepAnimationType;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
   t->leftHanded = s->leftHanded;

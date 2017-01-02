@@ -284,7 +284,7 @@ byte countTouchesInColumn() {
 boolean hasTouchInSplitOnRow(byte split, byte row) {
   if (colsInRowsTouched[row]) {
     // if split is not active and there's a touch on the row, it's obviously in the current split
-    if (!Device.splitActive) {
+    if (!Global.splitActive) {
       return true;
     }
 
@@ -1102,11 +1102,11 @@ void handleStrummedRowChange(boolean newFretting, byte velocity) {
 }
 
 boolean isStrummedSplit(byte split) {
-  return Device.splitActive && Split[otherSplit(split)].strum;
+  return Global.splitActive && Split[otherSplit(split)].strum;
 }
 
 boolean isStrummingSplit(byte split) {
-  return Device.splitActive && Split[split].strum;
+  return Global.splitActive && Split[split].strum;
 }
 
 void prepareNewNote(signed char notenum) {
@@ -1791,7 +1791,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
       getSplitBoundaries(split, lowCol, highCol);
 
       offset = highCol - lowCol;                      // calculate the row offset based on the width of the split the column belongs to
-      if (Device.splitActive && split == RIGHT) {            // if the right split is displayed, change the column so that it the lower left starting
+      if (Global.splitActive && split == RIGHT) {            // if the right split is displayed, change the column so that it the lower left starting
         getSplitBoundaries(LEFT, lowCol, highCol);    // point starts at the same point as the left split, behaving as if there were two independent
         lowest = lowest - (highCol - lowCol);         // LinnStruments next to each-other
       }
@@ -1815,7 +1815,7 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
 
 void getSplitBoundaries(byte sp, byte& lowCol, byte& highCol) {
   // Set ranges of columns to be scanned (all of one split only)
-  if (Device.splitActive) {                    // if Split mode is on
+  if (Global.splitActive) {                    // if Split mode is on
     if (sp == LEFT) {                   // and it's the left split
       lowCol = 1;                       // set column range to left split
       highCol = Global.splitPoint;
@@ -1885,7 +1885,7 @@ inline byte splitLowestEdge(byte split) {
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
 inline byte getSplitOf(byte col) {
-  if (Device.splitActive && !Split[Global.currentPerSplit].sequencer) {
+  if (Global.splitActive && !Split[Global.currentPerSplit].sequencer) {
     if (col < Global.splitPoint) {
       return LEFT;
     }

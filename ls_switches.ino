@@ -50,7 +50,7 @@ boolean isStatefulSwitchAssignment(byte assignment) {
 
 void doSwitchPressed(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
-  if (!Device.splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
+  if (!Global.splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
     doSwitchPressedForSplit(whichSwitch, assignment, Global.currentPerSplit);
   }
   else {
@@ -87,7 +87,7 @@ void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
 
 void doSwitchReleased(byte whichSwitch) {
   byte assignment = Global.switchAssignment[whichSwitch];
-  if (!Device.splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
+  if (!Global.splitActive || assignment == ASSIGNED_ALTSPLIT || !Global.switchBothSplits[whichSwitch]) {
     doSwitchReleasedForSplit(whichSwitch, assignment, Global.currentPerSplit);
   }
   else {
@@ -115,7 +115,7 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
     // perform the assignment off logic, but when a split is active, it's possible that the
     // switch started being held on the other split, so we need to check which split is actually
     // active before changing the state
-    if (Device.splitActive) {
+    if (Global.splitActive) {
       if (switchTargetEnabled[assignment][LEFT]) {
         performSwitchAssignmentHoldOff(assignment, LEFT);
         changeSwitchState(whichSwitch, assignment, LEFT, false);
