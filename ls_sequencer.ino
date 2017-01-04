@@ -1771,7 +1771,7 @@ boolean StepEvent::calculateSequencerFaderValue(boolean newVelocity) {
   }
 
   if (newVelocity) {
-    sequencerFaderLastX[fader] = sensorCell->initialReferenceX;
+    sequencerFaderLastX[fader] = FXD_FROM_INT(sensorCell->fxdInitialReferenceX());
   }
 
   short movedX = sensorCell->calibratedX() - sequencerFaderLastX[fader];

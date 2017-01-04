@@ -304,6 +304,7 @@ struct __attribute__ ((packed)) TouchInfo {
   void clearMusicalData();                   // clear the musical data
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
+  int32_t fxdInitialReferenceX();            // initial calibrated reference X value of each cell at the start of the touch
 
 #ifdef TESTING_SENSOR_DISABLE
   boolean disabled;
@@ -311,7 +312,7 @@ struct __attribute__ ((packed)) TouchInfo {
 
   unsigned long lastTouch:32;                // the timestamp when this cell was last touched
   short initialX:16;                         // initial calibrated X value of each cell at the start of the touch
-  unsigned short initialReferenceX:16;       // initial calibrated reference X value of each cell at the start of the touch
+  short initialColumn:16;                    // initial column of each cell at the start of the touch
   short quantizationOffsetX:16;              // quantization offset to be applied to the X value
   unsigned short currentRawX:16;             // last raw X value of each cell
   short currentCalibratedX:16;               // last calibrated X value of each cell

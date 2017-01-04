@@ -101,7 +101,7 @@ void transferFromSameRowCell(byte col) {
 
   sensorCell->lastTouch = fromCell->lastTouch;
   sensorCell->initialX = fromCell->initialX;
-  sensorCell->initialReferenceX = fromCell->initialReferenceX;  
+  sensorCell->initialColumn = fromCell->initialColumn;  
   sensorCell->quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
   sensorCell->lastMovedX = fromCell->lastMovedX;
   sensorCell->fxdRateX = fromCell->fxdRateX;
@@ -120,7 +120,7 @@ void transferFromSameRowCell(byte col) {
 
   fromCell->lastTouch = 0;
   fromCell->initialX = -1;
-  fromCell->initialReferenceX = 0;
+  fromCell->initialColumn = -1;
   fromCell->quantizationOffsetX = 0;
   fromCell->lastMovedX = 0;
   fromCell->fxdRateX = 0;
@@ -150,7 +150,7 @@ void transferToSameRowCell(byte col) {
   
   toCell->lastTouch = sensorCell->lastTouch;
   toCell->initialX = sensorCell->initialX;
-  toCell->initialReferenceX = sensorCell->initialReferenceX;
+  toCell->initialColumn = sensorCell->initialColumn;
   toCell->quantizationOffsetX = 0; // as soon as we transfer to an adjacent cell, the pitch quantization is reset to play the absolute pitch position instead
   toCell->lastMovedX = sensorCell->lastMovedX;
   toCell->fxdRateX = sensorCell->fxdRateX;
@@ -169,7 +169,7 @@ void transferToSameRowCell(byte col) {
 
   sensorCell->lastTouch = 0;
   sensorCell->initialX = -1;
-  sensorCell->initialReferenceX = 0;
+  sensorCell->initialColumn = -1;
   sensorCell->quantizationOffsetX = 0;
   sensorCell->lastMovedX = 0;
   sensorCell->fxdRateX = 0;
@@ -861,7 +861,7 @@ boolean handleXYZupdate() {
 
         // X-axis movements are encoded in 14-bit with MIDI CC 0-25 / 32-57 as the column and the channel as the row
         if (userFirmwareXActive[sensorRow] && valueX != INVALID_DATA) {
-          short positionX = valueX + sensorCell->initialReferenceX;
+          short positionX = valueX + FXD_TO_INT(sensorCell->fxdInitialReferenceX());
 
           // compensate for the -85 offset at the left side since 0 is positioned at the center of the left-most cell
           positionX = positionX + 85;
@@ -1249,7 +1249,7 @@ short handleXExpression() {
 
   // calculate the distance from the initial X position
   if (!userFirmwareActive && Split[sensorSplit].pitchCorrectQuantize) {
-    movedX = calibratedX - (sensorCell->initialReferenceX + sensorCell->quantizationOffsetX);
+    movedX = calibratedX - (FXD_TO_INT(sensorCell->fxdInitialReferenceX()) + sensorCell->quantizationOffsetX);
 
     // if initial quantize offset and quantize hold are active, ensure that movement on that cell will never exceed half the cell width
     // as soon as a finger transits to an adjacent cell during a slide, the quantization offset will be set to 0 and
@@ -1272,7 +1272,7 @@ short handleXExpression() {
   }
   // otherwise we use the intended centerpoint based on the calibration
   else {
-    movedX = calibratedX - sensorCell->initialReferenceX;
+    movedX = calibratedX - FXD_TO_INT(sensorCell->fxdInitialReferenceX());
   }
 
   short result = INVALID_DATA;
@@ -1304,7 +1304,7 @@ short handleXExpression() {
       if (fxdMovedRatio > FXD_CONST_1) fxdMovedRatio = FXD_CONST_1;
       else if (fxdMovedRatio < 0)      fxdMovedRatio = 0;
       int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
-      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - FXD_FROM_INT(sensorCell->initialReferenceX);
+      int32_t fxdQuantizedDistance = Device.calRows[sensorCol][0].fxdReferenceX - sensorCell->fxdInitialReferenceX();
       
       int32_t fxdInterpolatedX = FXD_MUL(FXD_FROM_INT(movedX), fxdMovedRatio) + FXD_MUL(fxdQuantizedDistance, fxdCorrectedRatio);
 

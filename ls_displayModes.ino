@@ -218,6 +218,11 @@ void enterDisplayMode(DisplayMode mode) {
     case displaySensorSensitivityZ:
       clearDisplay();
       break;
+#ifdef DEBUG_ENABLED
+    case displayCalibration:
+      debugCalibration();
+      break;
+#endif
     default:
       // no logic tied to entering the display mode
       break;

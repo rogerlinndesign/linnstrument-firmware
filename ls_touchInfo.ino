@@ -342,19 +342,26 @@ inline void TouchInfo::refreshX() {
     // if this is the first X read for this touch...
     if (initialX == -1) {
       // store the calibrated X reference that corresponds to the cell's note without any pitch bend
-      initialReferenceX = FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
+      initialColumn = sensorCol;
 
       // store the initial X position
       initialX = currentCalibratedX;
       
       // if pitch quantize is on, the first X position becomes the center point and considered 0
-      quantizationOffsetX = currentCalibratedX - initialReferenceX;
+      quantizationOffsetX = currentCalibratedX - FXD_TO_INT(fxdInitialReferenceX());
       
       fxdRateX = 0;
       lastMovedX = 0;
       lastValueX = INVALID_DATA;
     }
   }
+}
+
+inline int32_t TouchInfo::fxdInitialReferenceX() {
+  if (initialColumn == -1) {
+    return 0;
+  }
+  return Device.calRows[initialColumn][0].fxdReferenceX;
 }
 
 unsigned short TouchInfo::rawY() {
@@ -590,7 +597,7 @@ void TouchInfo::clearMusicalData() {
 
 void TouchInfo::clearSensorData() {
   initialX = -1;
-  initialReferenceX = 0;
+  initialColumn = -1;
   quantizationOffsetX = 0;
   currentRawX = 0;
   currentCalibratedX = 0;
