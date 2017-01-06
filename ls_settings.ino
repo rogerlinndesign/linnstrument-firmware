@@ -2199,15 +2199,15 @@ void handleGlobalSettingNewTouch() {
       switch (sensorRow) {
         // Note: this assumes the PressureSensitivity values exactly match the sensor rows
         case pressureLow:
-        case pressureMedium:
         case pressureHigh:
+          Global.pressureSensitivity = PressureSensitivity(sensorRow);
+          break;
+        case pressureMedium:
+          Global.pressureSensitivity = PressureSensitivity(sensorRow);
           if (isCalibrationCellHeld()) {
             resetNumericDataChange();
             setDisplayMode(displaySensorSensitivityZ);
             updateDisplay();
-          }
-          else {
-            Global.pressureSensitivity = PressureSensitivity(sensorRow);
           }
           break;
         case 3:

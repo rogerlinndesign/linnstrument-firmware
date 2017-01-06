@@ -133,7 +133,7 @@ byte NUMROWS;                        // number of touch sensor rows
 #define LOWPOWER_MIDI_INTERVAL        350      // use a minimum interval of 350 microseconds between MIDI messages in low power mode
 
 // Values related to the Z sensor, continuous pressure
-#define DEFAULT_SENSOR_SENSITIVITY_Z  100      // by default the sensor Z sensitivity is unchanged, ie. 100%
+#define DEFAULT_SENSOR_SENSITIVITY_Z  75       // by default the sensor Z sensitivity is unchanged, ie. 75%
 #define DEFAULT_SENSOR_LO_Z           120      // lowest acceptable raw Z value to start a touch
 #define DEFAULT_SENSOR_FEATHER_Z      80       // lowest acceptable raw Z value to continue a touch
 #define DEFAULT_SENSOR_RANGE_Z        648      // default range of the pressure
