@@ -245,7 +245,7 @@ Color Values
 5   Blue
 6   Magenta
 7   Black
-8	White
-9	Orange
-10	Lime
-11	Pink
+8   White
+9   Orange
+10  Lime
+11  Pink
