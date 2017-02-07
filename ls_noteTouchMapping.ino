@@ -4,7 +4,7 @@ To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/
 or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 ***************************************************************************************************
 These mappings keep track of the MIDI notes and channels that are active and map them to the cells
-that initiated the notes Additionally, the notes also keep track of the order in which identical
+that initiated the notes. Additionally, the notes also keep track of the order in which identical
 notes were pressed but with a different channel.
 This entire structure is intended to be used by the arpeggiator, requiring a minimal amount of
 iteration to constitute the arpeggiated sequence.

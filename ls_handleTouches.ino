@@ -1154,8 +1154,48 @@ void sendNewNote() {
       preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
     }
 
+    // if the same channel and note is already active, send a note off first
+    // so that the new touch properly triggers a new note
+    if (hasActiveMidiNote(sensorSplit, sensorCell->note, sensorCell->channel)) {
+      midiSendNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+    }
+
     // send the note on
     midiSendNoteOn(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
+  }
+}
+
+void sendReleasedNote() {
+  if (!isArpeggiatorEnabled(sensorSplit)) {
+    // iterate over all the rows
+    for (byte row = 0; row < NUMROWS; ++row) {
+
+      // exclude the current sensor for the rest of the logic, we're looking
+      // for other touches
+      int32_t colsInRowTouched = colsInRowsTouched[row];
+      if (row == sensorRow) {
+        colsInRowTouched = colsInRowTouched & ~(1 << sensorCol);
+      }
+
+      // continue while there are touched columns in the row
+      while (colsInRowTouched) {
+        byte touchedCol = 31 - __builtin_clz(colsInRowTouched);
+        
+        if (cell(touchedCol, row).touched == touchedCell &&
+            cell(touchedCol, row).note == sensorCell->note &&
+            cell(touchedCol, row).channel == sensorCell->channel) {
+          // if there is another touch active with the same exact note and channel,
+          // don't send the note off for the released note
+          return;
+        }
+
+        // exclude the cell we just processed by flipping its bit
+        colsInRowTouched &= ~(1 << touchedCol);
+      }
+    }
+
+    // if there are no other touches down with the same note and channel, send the note off message
+    midiSendNoteOffWithVelocity(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
   }
 }
 
@@ -1577,7 +1617,7 @@ void handleTouchRelease() {
   }
   else if (sensorCell->hasNote()) {
 
-    // reset the pressure when the note is release and that settings is active
+    // reset the pressure when the note is released and that setting is active
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
       preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
     }
@@ -1593,7 +1633,7 @@ void handleTouchRelease() {
       if (isStrummedSplit(sensorSplit)) {
         handleStrummedRowChange(false, sensorCell->velocity);
       }
-      midiSendNoteOffWithVelocity(sensorSplit, sensorCell->note, sensorCell->velocity, sensorCell->channel);
+      sendReleasedNote();
     }
 
     // unhighlight the same notes if this is activated
