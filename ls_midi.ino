@@ -101,6 +101,9 @@ void handleMidiInput(unsigned long nowMicros) {
 
     switch (d) {
       case MIDIActiveSensing:
+        midiMessageBytes = 1;
+        midiMessageIndex = 1;
+        
         // indicate MIDI activity sensing in test mode
         if (operatingMode == modeManufacturingTest) {
           setLed(NUMCOLS - 1, 2, COLOR_GREEN, cellOn);
@@ -206,6 +209,14 @@ void handleMidiInput(unsigned long nowMicros) {
           sysexOutQueue.push(MIDIEndOfExclusive);
         }
         midiSysExLength = -1;
+        break;
+      case MIDIReset:
+      case MIDIUndefined1:
+      case MIDIUndefined2:
+      case MIDIUndefined3:
+      case MIDIUndefined4:
+        midiMessageBytes = 1;
+        midiMessageIndex = 1;
         break;
       default:
       {

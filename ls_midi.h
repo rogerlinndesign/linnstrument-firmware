@@ -23,13 +23,17 @@ enum MIDIStatus {
   MIDITimeCodeQuarterFrame  = B11110001,     // MIDI Time Code Quarter Frame
   MIDISongPositionPointer   = B11110010,     // Song Position Pointer
   MIDISongSelect            = B11110011,     // Song Select
+  MIDIUndefined1            = B11110100,     // Undefined
+  MIDIUndefined2            = B11110101,     // Undefined
   MIDITuneRequest           = B11110110,     // Tune Request
   MIDIEndOfExclusive        = B11110111,     // End of Exclusive
   // System Real-Time Messages
   MIDITimingClock           = B11111000,     // Timing Clock
+  MIDIUndefined3            = B11111001,     // Undefined
   MIDIStart                 = B11111010,     // Start
   MIDIContinue              = B11111011,     // Continue
   MIDIStop                  = B11111100,     // Stop
+  MIDIUndefined4            = B11111101,     // Undefined
   MIDIActiveSensing         = B11111110,     // Active Sensing
   MIDIReset                 = B11111111      // Reset
 };
