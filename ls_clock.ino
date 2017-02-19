@@ -38,7 +38,7 @@ void resetClockAdvancement(unsigned long now) {
 inline boolean checkUpdateClock(unsigned long now) {
   short clockCount;
 
-  if (isMidiClockRunning()) {
+  if (isSyncedToMidiClock()) {
     clockCount = getMidiClockCount();
     if (previousMidiClockCount == clockCount) {
       return false;
@@ -79,7 +79,7 @@ inline boolean checkUpdateClock(unsigned long now) {
 
   clock24PPQ = clockCount;
 
-  if (sequencerIsRunning()) {
+  if (sequencerIsRunning() && !isSyncedToMidiClock()) {
     midiSendTimingClock();
   }
 

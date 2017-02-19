@@ -134,12 +134,13 @@ struct StepSequencerState {
   void createNewEvent(int noteNum, byte stepNum, byte eventNum, StepEvent& event, StepDataState& stepState);
   void handleStepEditingRelease(int noteNum, byte stepNum);
   void turnOn();
-  void turnOff();
+  void turnOff(boolean save);
   void turnOffEvents();
   void clearAllFocus();
   void clearEventsFocus();
   boolean isRunning();
   void advanceSequencer();
+  void setSongPositionPointer(unsigned spp);
   void setPosition(byte stepNum);
   SequencerPattern& getCurrentPattern();
   StepData& getCurrentPatternStep(byte stepNum);
@@ -286,6 +287,11 @@ boolean requiresSequencerSlideTracking() {
   return false;
 }
 
+inline void setSequencerSongPositionPointer(unsigned spp) {
+  seqState[LEFT].setSongPositionPointer(spp);
+  seqState[RIGHT].setSongPositionPointer(spp);
+}
+
 inline void checkAdvanceSequencer() {
   seqState[LEFT].advanceSequencer();
   seqState[RIGHT].advanceSequencer();
@@ -309,7 +315,7 @@ boolean isSequencerEditing() {
 
 void setSplitSequencerEnabled(byte split, boolean flag) {
   if (!flag && Split[split].sequencer) {
-    seqState[split].turnOff();
+    seqState[split].turnOff(true);
   }
   Split[split].sequencer = flag;
 }
@@ -319,9 +325,9 @@ void sequencersTurnOn() {
   seqState[RIGHT].turnOn();
 }
 
-void sequencersTurnOff() {
-  seqState[LEFT].turnOff();
-  seqState[RIGHT].turnOff();
+void sequencersTurnOff(boolean save) {
+  seqState[LEFT].turnOff(save);
+  seqState[RIGHT].turnOff(save);
 }
 
 boolean sequencerIsRunning() {
@@ -419,11 +425,11 @@ boolean handleSequencerControlButtonRelease() {
     case SWITCH_2_ROW:
       if (seqState[Global.currentPerSplit].switch2Waiting && calcTimeDelta(millis(), lastControlPress[sensorRow]) <= SWITCH_HOLD_DELAY) {
         if (seqState[Global.currentPerSplit].running) {
-          seqState[Global.currentPerSplit].turnOff();
+          seqState[Global.currentPerSplit].turnOff(true);
         }
         if (!isSwitch1Pressed()) {
           if (seqState[otherSplit(Global.currentPerSplit)].running) {
-            seqState[otherSplit(Global.currentPerSplit)].turnOff();
+            seqState[otherSplit(Global.currentPerSplit)].turnOff(true);
           }
         }
       }
@@ -1414,7 +1420,7 @@ void handleSequencerProjectsHold() {
       sensorRow >= 2 && sensorRow < 6 &&
       isCellPastEditHoldWait()) {
     // store to the selected project
-    sequencersTurnOff();
+    sequencersTurnOff(true);
 
     byte project = sensorCol-6 + (sensorRow-2) * 4;
 
@@ -1431,7 +1437,7 @@ void handleSequencerProjectsRelease() {
       sensorRow >= 2 && sensorRow < 6 &&
       ensureCellBeforeHoldWait(globalColor, cellOn)) {
     // load the selected project
-    sequencersTurnOff();
+    sequencersTurnOff(true);
 
     byte project = sensorCol-6 + (sensorRow-2) * 4;
     Device.lastLoadedProject = project;
@@ -2070,18 +2076,20 @@ void StepSequencerState::turnOn() {
     return;
   }
 
-  if (!sequencerIsRunning()) {
+  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
     midiSendStart();
     midiSendTimingClock();
   }
 
-  if (isMidiClockRunning()) {
-    int clockModulo = clock24PPQ % getCurrentPattern().stepSize;
-    if (clockModulo == 0) {
-      ticksUntilNextStep = 0;
-    }
-    else {
-      ticksUntilNextStep = getCurrentPattern().stepSize - clockModulo;
+  if (isSyncedToMidiClock()) {
+    if (ticksUntilNextStep == 0) {
+      int clockModulo = clock24PPQ % getCurrentPattern().stepSize;
+      if (clockModulo == 0) {
+        ticksUntilNextStep = 0;
+      }
+      else {
+        ticksUntilNextStep = getCurrentPattern().stepSize - clockModulo;
+      }
     }
   }
   else {
@@ -2091,7 +2099,7 @@ void StepSequencerState::turnOn() {
   if (getCurrentPattern().loopScreen) {
     nextPosition = positionOffset;
   }
-  else {
+  else if (nextPosition == -1) {
     nextPosition = 0;
   }
 
@@ -2107,7 +2115,7 @@ void StepSequencerState::turnOn() {
   }
 }
 
-void StepSequencerState::turnOff() {
+void StepSequencerState::turnOff(boolean save) {
   if (!Split[split].sequencer) {
     return;
   }
@@ -2115,6 +2123,7 @@ void StepSequencerState::turnOff() {
   running = false;
   currentPosition = -1;
   nextPosition = -1;
+  ticksUntilNextStep = 0;
 
   turnOffEvents();
 
@@ -2123,9 +2132,11 @@ void StepSequencerState::turnOff() {
     updateSwitchLeds();
   }
 
-  storeSettings();
+  if (save) {
+    storeSettings();
+  }
 
-  if (!sequencerIsRunning()) {
+  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
     midiSendStop();
   }
 }
@@ -2372,6 +2383,51 @@ byte StepSequencerState::getCurrentPositionColor() {
 
 byte StepSequencerState::getOtherPositionColor() {
   return Split[split].colorLowRow;
+}
+
+void StepSequencerState::setSongPositionPointer(unsigned spp) {
+  SequencerPattern& pattern = getCurrentPattern();
+  unsigned sppClockTicks = spp * 6;
+  unsigned swingTicks = pattern.stepSize / 6;
+
+  // calculate the number of MIDI ticks in an entire pattern
+  unsigned patternTicks = pattern.length * pattern.stepSize;
+  // adapt this number for swing timing in case the pattern doesn't have an even length
+  if (pattern.swing && pattern.length % 2 == 1) {
+    patternTicks += swingTicks;
+  }
+
+  short sppStep = (sppClockTicks % patternTicks) / pattern.stepSize;
+  unsigned sppTicksRemaining = 0;
+
+  // unless we're right on the step boundary with the song position pointer,
+  // adapt the next step to be the following one with the appropriate ticks remaining
+  // to get there
+  boolean alignedStepBoundary = (sppClockTicks % pattern.stepSize == 0);
+  if ((!pattern.swing && !alignedStepBoundary) ||
+      (pattern.swing && spp != 0)) {
+    sppStep += 1;
+    sppTicksRemaining = (sppStep * pattern.stepSize) - (sppClockTicks % patternTicks);
+  }
+
+  // adapt for swing timing
+  if (pattern.swing) {
+    // handle swing 0-based beat numbers that are odd
+    if (sppStep % 2 == 1) {
+      sppTicksRemaining += swingTicks;
+    }
+    // determine if we're not into the initial ticks of the even beat numbers
+    // that should actually still be part of the odd beat duration
+    else if (sppStep > 0 && pattern.stepSize - sppTicksRemaining < swingTicks) {
+      sppStep -= 1;
+      sppTicksRemaining = swingTicks - (pattern.stepSize - sppTicksRemaining);
+    }
+  }
+
+  short stepNum = sppStep % pattern.length;
+
+  nextPosition = stepNum;
+  ticksUntilNextStep = sppTicksRemaining;
 }
 
 void StepSequencerState::setPosition(byte stepNum) {

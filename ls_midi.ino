@@ -130,7 +130,7 @@ void handleMidiInput(unsigned long nowMicros) {
         initialMidiClockMessageCount = 0;
         resetClockAdvancement(nowMicros);
 
-        sequencersTurnOff();
+        sequencersTurnOff(false);
         break;
       case MIDISongPositionPointer:
         midiMessageBytes = 3;
@@ -273,6 +273,8 @@ void handleMidiInput(unsigned long nowMicros) {
       {
         unsigned pos = midiData2 << 7 | midiData1;
         midiClockMessageCount = (pos * 6) % 24 + 1;
+
+        setSequencerSongPositionPointer(pos);
         break;
       }
 
@@ -1055,7 +1057,7 @@ void receivedNrpn(int parameter, int value) {
   updateDisplay();
 }
 
-inline boolean isMidiClockRunning() {
+inline boolean isSyncedToMidiClock() {
   return midiClockStatus == midiClockOn;
 }
 

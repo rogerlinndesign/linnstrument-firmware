@@ -202,7 +202,7 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_TAP_TEMPO:
-      if (!isMidiClockRunning()) {
+      if (!isSyncedToMidiClock()) {
         tapTempoPress();
         if (displayMode == displayGlobalWithTempo) {
           updateDisplay();

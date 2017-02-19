@@ -2085,7 +2085,7 @@ void handleTempoNewTouch() {
   // keep track of how many cells are currently down
   numericActiveColDown++;
 
-  if (!isMidiClockRunning()) {
+  if (!isSyncedToMidiClock()) {
     unsigned long now = micros();
     byte increment = 1;
 
@@ -2546,7 +2546,7 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 3:
-            if (!isMidiClockRunning()) {
+            if (!isSyncedToMidiClock()) {
               lightLed(14, 3);
 
               tapTempoPress();
