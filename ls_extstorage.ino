@@ -1451,6 +1451,7 @@ void copyDeviceSettingsV9(void* target, void* source) {
   copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
   t->calibrated = s->calibrated;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorSensitivityZ = s->sensorSensitivityZ;
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;
