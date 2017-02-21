@@ -213,8 +213,8 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
 }
 
 void performArpeggiatorToggle() {
-  Split[sensorSplit].arpeggiator = !Split[sensorSplit].arpeggiator;
-  if (Split[sensorSplit].arpeggiator) {
+  Split[Global.currentPerSplit].arpeggiator = !Split[Global.currentPerSplit].arpeggiator;
+  if (Split[Global.currentPerSplit].arpeggiator) {
     temporarilyEnableArpeggiator();
   }
   else {
