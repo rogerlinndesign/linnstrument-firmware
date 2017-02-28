@@ -241,7 +241,12 @@ void sendLowRowCCX(unsigned short x) {
   }
 
   // send out the MIDI CC
-  midiSendControlChange(Split[sensorSplit].ccForLowRow, x, Split[sensorSplit].midiChanMain);
+  if (Split[sensorSplit].ccForLowRow == 128) {
+    midiSendAfterTouch(x, Split[sensorSplit].midiChanMain);
+  }
+  else {
+    midiSendControlChange(Split[sensorSplit].ccForLowRow, x, Split[sensorSplit].midiChanMain);
+  }
 }
 
 void sendLowRowCCXYZ(unsigned short x, short y, short z) {
@@ -254,11 +259,28 @@ void sendLowRowCCXYZ(unsigned short x, short y, short z) {
   }
 
   // send out the MIDI CCs
-  midiSendControlChange(Split[sensorSplit].ccForLowRowX, x, Split[sensorSplit].midiChanMain);
-  if (y != SHRT_MAX) {
-    midiSendControlChange(Split[sensorSplit].ccForLowRowY, y, Split[sensorSplit].midiChanMain);
+  if (Split[sensorSplit].ccForLowRowX == 128) {
+    midiSendAfterTouch(x, Split[sensorSplit].midiChanMain);
   }
-  midiSendControlChange(Split[sensorSplit].ccForLowRowZ, z, Split[sensorSplit].midiChanMain);
+  else {
+    midiSendControlChange(Split[sensorSplit].ccForLowRowX, x, Split[sensorSplit].midiChanMain);
+  }
+
+  if (y != SHRT_MAX) {
+    if (Split[sensorSplit].ccForLowRowY == 128) {
+      midiSendAfterTouch(y, Split[sensorSplit].midiChanMain);
+    }
+    else {
+      midiSendControlChange(Split[sensorSplit].ccForLowRowY, y, Split[sensorSplit].midiChanMain);
+    }
+  }
+
+  if (Split[sensorSplit].ccForLowRowZ == 128) {
+    midiSendAfterTouch(z, Split[sensorSplit].midiChanMain);
+  }
+  else {
+    midiSendControlChange(Split[sensorSplit].ccForLowRowZ, z, Split[sensorSplit].midiChanMain);
+  }
 }
 
 void handleLowRowRestrike() {

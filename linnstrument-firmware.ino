@@ -583,7 +583,7 @@ struct SplitSettings {
   unsigned short minForZ;                 // 0-127
   unsigned short maxForZ;                 // 0-127
   boolean ccForZ14Bit;                    // true when 14-bit messages should be sent when Z CC is between 0-31, false when only 7-bit messages should be sent
-  unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-127
+  unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-128 (with 128 being placeholder for ChannelPressure)
   byte colorMain;                         // color for non-accented cells
   byte colorAccent;                       // color for accented cells
   byte colorPlayed;                       // color for played notes
@@ -593,11 +593,11 @@ struct SplitSettings {
   byte colorSequencerDisabled;            // color for sequencer low row step that's not being played
   byte lowRowMode;                        // see LowRowMode values
   byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
-  unsigned short ccForLowRow;             // 0-127
+  unsigned short ccForLowRow;             // 0-128 (with 128 being placeholder for ChannelPressure)
   byte lowRowCCXYZBehavior;               // see LowRowCCBehavior values
-  unsigned short ccForLowRowX;            // 0-127
-  unsigned short ccForLowRowY;            // 0-127
-  unsigned short ccForLowRowZ;            // 0-127
+  unsigned short ccForLowRowX;            // 0-128 (with 128 being placeholder for ChannelPressure)
+  unsigned short ccForLowRowY;            // 0-128 (with 128 being placeholder for ChannelPressure)
+  unsigned short ccForLowRowZ;            // 0-128 (with 128 being placeholder for ChannelPressure)
   signed char transposeOctave;            // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
   signed char transposePitch;             // transpose output midi notes. Range is -12 to +12
   signed char transposeLights;            // transpose lights on display. Range is -12 to +12
@@ -935,7 +935,7 @@ unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
-byte ccFaderValues[NUMSPLITS][128];                 // the current values of the CC faders
+byte ccFaderValues[NUMSPLITS][129];                 // the current values of the CC faders
 byte currentEditedCCFader[NUMSPLITS];               // the current CC fader number that is being edited
 signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 

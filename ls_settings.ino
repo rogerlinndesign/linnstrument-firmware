@@ -590,7 +590,7 @@ void initializePresetSettings() {
   applyLimitsForZ();
   applyLimitsForVelocity();
   for (byte s = 0; s < NUMSPLITS; ++s) {
-    for (byte c = 0; c < 128; ++c) {
+    for (byte c = 0; c < 129; ++c) {
       ccFaderValues[s][c] = 0;
     }
     ccFaderValues[s][7] = 63;
@@ -1757,7 +1757,7 @@ void handleCCForFaderNewTouch() {
   }
   else {
     byte current = currentEditedCCFader[Global.currentPerSplit];
-    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForFader[current], 0, 127, false);
+    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForFader[current], 0, 128, false);
   }
 }
 
@@ -1773,7 +1773,7 @@ void handleLowRowCCXConfigNewTouch() {
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXBehavior, 0, 1, false);
       break;
     case 0:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 127, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRow, 0, 128, false);
       break;
   }
   handleNumericDataNewTouchRow(lowRowCCXConfigState, 0, 1);
@@ -1790,13 +1790,13 @@ void handleLowRowCCXYZConfigNewTouch() {
       handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowCCXYZBehavior, 0, 1, false);
       break;
     case 2:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 127, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowX, 0, 128, false);
       break;
     case 1:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 127, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowY, 0, 128, false);
       break;
     case 0:
-      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 127, false);
+      handleNumericDataNewTouchCol(Split[Global.currentPerSplit].ccForLowRowZ, 0, 128, false);
       break;
   }
   handleNumericDataNewTouchRow(lowRowCCXYZConfigState, 0, 3);

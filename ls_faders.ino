@@ -60,7 +60,12 @@ void handleFaderTouch(boolean newVelocity, byte faderLeft, byte faderLength) {
 
     if (value >= 0) {
       ccFaderValues[sensorSplit][ccForFader] = value;
-      midiSendControlChange(ccForFader, value, Split[sensorSplit].midiChanMain);
+      if (ccForFader == 128) {
+        midiSendAfterTouch(value, Split[sensorSplit].midiChanMain);
+      }
+      else {
+        midiSendControlChange(ccForFader, value, Split[sensorSplit].midiChanMain);
+      }
       paintCCFaderDisplayRow(sensorSplit, sensorRow, faderLeft, faderLength);
       // update other faders with the same CC number
       for (byte f = 0; f < 8; ++f) {

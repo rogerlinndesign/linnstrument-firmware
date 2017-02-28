@@ -869,7 +869,14 @@ void paintCCForFaderDisplay(byte side) {
     setLed(NUMCOLS-1, r, globalColor, cellOn);
   }
   setLed(NUMCOLS-1, currentEditedCCFader[side], COLOR_GREEN, cellOn);
-  paintSplitNumericDataDisplay(side, Split[side].ccForFader[currentEditedCCFader[side]], 0, false);
+  unsigned short cc = Split[side].ccForFader[currentEditedCCFader[side]];
+  if (cc == 128) {
+    condfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
+    paintShowSplitSelection(side);
+  }
+  else {
+    paintSplitNumericDataDisplay(side, cc, 0, false);
+  }
 }
 
 void paintLowRowCCXConfigDisplay(byte side) {
@@ -887,7 +894,13 @@ void paintLowRowCCXConfigDisplay(byte side) {
       paintShowSplitSelection(side);
       break;
     case 0:
-      paintSplitNumericDataDisplay(side, Split[side].ccForLowRow, 0, false);
+      if (Split[side].ccForLowRow == 128) {
+        condfont_draw_string(0, 0, "CHPRS", Split[side].colorMain, false);
+        paintShowSplitSelection(side);
+      }
+      else {
+        paintSplitNumericDataDisplay(side, Split[side].ccForLowRow, 0, false);
+      }
       break;
     }
 }
@@ -907,16 +920,34 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
       paintShowSplitSelection(side);
       break;
     case 2:
-      condfont_draw_string(0, 0, "X", Split[side].colorMain, true);
-      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowX, 4, true);
+      if (Split[side].ccForLowRowX == 128) {
+        condfont_draw_string(0, 0, "XCHPR", Split[side].colorMain, false);
+        paintShowSplitSelection(side);
+      }
+      else {
+        condfont_draw_string(0, 0, "X", Split[side].colorMain, true);
+        paintSplitNumericDataDisplay(side, Split[side].ccForLowRowX, 4, true);
+      }
       break;
     case 1:
-      condfont_draw_string(0, 0, "Y", Split[side].colorMain, true);
-      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowY, 4, true);
+      if (Split[side].ccForLowRowY == 128) {
+        condfont_draw_string(0, 0, "YCHPR", Split[side].colorMain, false);
+        paintShowSplitSelection(side);
+      }
+      else {
+        condfont_draw_string(0, 0, "Y", Split[side].colorMain, true);
+        paintSplitNumericDataDisplay(side, Split[side].ccForLowRowY, 4, true);
+      }
       break;
     case 0:
-      condfont_draw_string(0, 0, "Z", Split[side].colorMain, true);
-      paintSplitNumericDataDisplay(side, Split[side].ccForLowRowZ, 4, true);
+      if (Split[side].ccForLowRowZ == 128) {
+        condfont_draw_string(0, 0, "ZCHPR", Split[side].colorMain, false);
+        paintShowSplitSelection(side);
+      }
+      else {
+        condfont_draw_string(0, 0, "Z", Split[side].colorMain, true);
+        paintSplitNumericDataDisplay(side, Split[side].ccForLowRowZ, 4, true);
+      }
       break;
   }
 }
