@@ -437,6 +437,7 @@ enum DisplayMode {
   displayBendRange,
   displayLimitsForY,
   displayCCForY,
+  displayInitialForRelativeY,
   displayLimitsForZ,
   displayCCForZ,
   displayCCForFader,
@@ -576,6 +577,7 @@ struct SplitSettings {
   unsigned short minForY;                 // 0-127
   unsigned short maxForY;                 // 0-127
   boolean relativeY;                      // true when Y should be sent relative to the initial touch, false when it's absolute
+  unsigned short initialRelativeY;        // 0-127
   LoudnessExpression expressionForZ;      // the expression that should be used for loudness
   unsigned short customCCForZ;            // 0-127
   unsigned short minForZ;                 // 0-127

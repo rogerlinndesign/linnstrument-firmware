@@ -487,6 +487,7 @@ void initializePresetSettings() {
         p.split[s].maxForY = 127;
         p.split[s].customCCForY = 74;
         p.split[s].relativeY = false;
+        p.split[s].initialRelativeY = 64;
         p.split[s].expressionForZ = loudnessPolyPressure;
         p.split[s].minForZ = 0;
         p.split[s].maxForZ = 127;
@@ -1188,7 +1189,7 @@ void handlePerSplitSettingNewTouch() {
           applyTimbreCC74(Global.currentPerSplit);
           break;
         case 4:
-          Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
+          // handled in release
           break;
       }
       break;
@@ -1330,6 +1331,9 @@ void handlePerSplitSettingNewTouch() {
         case 5:
           setLed(sensorCol, sensorRow, getCCForYColor(sensorSplit), cellSlowPulse);
           break;
+        case 4:
+          setLed(sensorCol, sensorRow, getRelativeYColor(sensorSplit), cellSlowPulse);
+          break;
       }
       break;
 
@@ -1399,6 +1403,11 @@ void handlePerSplitSettingHold() {
           case 5:
             resetNumericDataChange();
             setDisplayMode(displayCCForY);
+            updateDisplay();
+            break;
+          case 4:
+            resetNumericDataChange();
+            setDisplayMode(displayInitialForRelativeY);
             updateDisplay();
             break;
         }
@@ -1493,6 +1502,12 @@ void handlePerSplitSettingRelease() {
           }
           break;
         }
+        case 4:
+          if (ensureCellBeforeHoldWait(getLimitsForYColor(Global.currentPerSplit),
+                                      Split[Global.currentPerSplit].relativeY ? cellOn : cellOff)) {
+            Split[Global.currentPerSplit].relativeY = !Split[Global.currentPerSplit].relativeY;
+          }
+          break;
       }
       break;
 
@@ -1718,6 +1733,14 @@ void applyCustomCCForY(byte split) {
 }
 
 void handleCCForYRelease() {
+  handleNumericDataReleaseCol(true);
+}
+
+void handleInitialForRelativeYNewTouch() {
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].initialRelativeY, 0, 127, false);
+}
+
+void handleInitialForRelativeYRelease() {
   handleNumericDataReleaseCol(true);
 }
 

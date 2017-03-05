@@ -551,6 +551,9 @@ void handleNonPlayingTouch() {
     case displayCCForY:
       handleCCForYNewTouch();
       break;
+    case displayInitialForRelativeY:
+      handleInitialForRelativeYNewTouch();
+      break;
     case displayLimitsForZ:
       handleLimitsForZNewTouch();
       break;
@@ -1393,7 +1396,7 @@ short handleYExpression() {
 
   short preferredTimbre = INVALID_DATA;
   if (Split[sensorSplit].relativeY) {
-    preferredTimbre = constrain(64 + (sensorCell->currentCalibratedY - sensorCell->initialY), 0, 127);
+    preferredTimbre = constrain(Split[sensorSplit].initialRelativeY + (sensorCell->currentCalibratedY - sensorCell->initialY), 0, 127);
   }
   else {
     preferredTimbre = sensorCell->currentCalibratedY;
@@ -1440,6 +1443,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displayCCForY:
         handleCCForYRelease();
+        break;
+      case displayInitialForRelativeY:
+        handleInitialForRelativeYRelease();
         break;
       case displayLimitsForZ:
         handleLimitsForZRelease();

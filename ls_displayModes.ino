@@ -21,6 +21,7 @@ displayReset                 : global reset confirmation and wait for touch rele
 displayBendRange             ; custom bend range selection for X expression
 displayLimitsForY            : min and max value selection for Y expression
 displayCCForY                : custom CC number selection for Y expression
+displayInitialForRelativeY   : initial value for relative Y
 displayLimitsForZ            : min and max value selection for Z expression
 displayCCForZ                : custom CC number selection for Z expression
 displayCCForFader            : custom CC number selection for a CC fader
@@ -124,6 +125,9 @@ void updateDisplay() {
       break;
     case displayCCForY:
       paintCCForYDisplay(Global.currentPerSplit);
+      break;
+    case displayInitialForRelativeY:
+      paintInitialForRelativeYDisplay(Global.currentPerSplit);
       break;
     case displayLimitsForZ:
       paintLimitsForZDisplay(Global.currentPerSplit);
@@ -583,7 +587,7 @@ void paintPerSplitDisplay(byte side) {
 
   if (Split[side].relativeY == true)
   {
-    setLed(9, 4, Split[side].colorMain, cellOn);
+    setLed(9, 4, getRelativeYColor(side), cellOn);
   }
 
   // set Loudness/Z settings
@@ -688,6 +692,14 @@ byte getLimitsForYColor(byte side) {
 byte getCCForYColor(byte side) {
   byte color = Split[side].colorMain;
   if (Split[side].customCCForY != 74) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getRelativeYColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].initialRelativeY != 64) {
     color = Split[side].colorAccent;
   }
   return color;
@@ -826,6 +838,11 @@ void paintCCForYDisplay(byte side) {
   else {
     paintSplitNumericDataDisplay(side, Split[side].customCCForY, 0, false);
   }
+}
+
+void paintInitialForRelativeYDisplay(byte side) {
+  clearDisplay();
+  paintSplitNumericDataDisplay(side, Split[side].initialRelativeY, 0, false);
 }
 
 void paintLimitsForZDisplay(byte side) {

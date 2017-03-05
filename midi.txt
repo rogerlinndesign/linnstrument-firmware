@@ -101,25 +101,26 @@ NRPN   Value   Description
 37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 39     0-2     Split Left MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #25) 
-40     0-127   Split Left MIDI CC For Fader 1 (0-127: CC, 128: Channel Aftertouch) 
-41     0-127   Split Left MIDI CC For Fader 2 (0-127: CC, 128: Channel Aftertouch) 
-42     0-127   Split Left MIDI CC For Fader 3 (0-127: CC, 128: Channel Aftertouch) 
-43     0-127   Split Left MIDI CC For Fader 4 (0-127: CC, 128: Channel Aftertouch) 
-44     0-127   Split Left MIDI CC For Fader 5 (0-127: CC, 128: Channel Aftertouch) 
-45     0-127   Split Left MIDI CC For Fader 6 (0-127: CC, 128: Channel Aftertouch) 
-46     0-127   Split Left MIDI CC For Fader 7 (0-127: CC, 128: Channel Aftertouch) 
-47     0-127   Split Left MIDI CC For Fader 8 (0-127: CC, 128: Channel Aftertouch) 
+40     0-128   Split Left MIDI CC For Fader 1 (0-127: CC, 128: Channel Aftertouch) 
+41     0-128   Split Left MIDI CC For Fader 2 (0-127: CC, 128: Channel Aftertouch) 
+42     0-128   Split Left MIDI CC For Fader 3 (0-127: CC, 128: Channel Aftertouch) 
+43     0-128   Split Left MIDI CC For Fader 4 (0-127: CC, 128: Channel Aftertouch) 
+44     0-128   Split Left MIDI CC For Fader 5 (0-127: CC, 128: Channel Aftertouch) 
+45     0-128   Split Left MIDI CC For Fader 6 (0-127: CC, 128: Channel Aftertouch) 
+46     0-128   Split Left MIDI CC For Fader 7 (0-127: CC, 128: Channel Aftertouch) 
+47     0-128   Split Left MIDI CC For Fader 8 (0-127: CC, 128: Channel Aftertouch) 
 48     0-1     Split Left LowRow X Behavior (0: Hold, 1: Fader)
-49     0-127   Split Left MIDI CC For LowRow X (0-127: CC, 128: Channel Aftertouch) 
+49     0-128   Split Left MIDI CC For LowRow X (0-127: CC, 128: Channel Aftertouch) 
 50     0-1     Split Left LowRow XYZ Behavior (0: Hold, 1: Fader)
-51     0-127   Split Left MIDI CC For LowRow XYZ X (0-127: CC, 128: Channel Aftertouch) 
-52     0-127   Split Left MIDI CC For LowRow XYZ Y (0-127: CC, 128: Channel Aftertouch) 
-53     0-127   Split Left MIDI CC For LowRow XYZ Z (0-127: CC, 128: Channel Aftertouch) 
+51     0-128   Split Left MIDI CC For LowRow XYZ X (0-127: CC, 128: Channel Aftertouch) 
+52     0-128   Split Left MIDI CC For LowRow XYZ Y (0-127: CC, 128: Channel Aftertouch) 
+53     0-128   Split Left MIDI CC For LowRow XYZ Z (0-127: CC, 128: Channel Aftertouch) 
 54     0-127   Split Left Minimum CC Value For Y
 55     0-127   Split Left Maximum CC Value For Y
 56     0-127   Split Left Minimum CC Value For Z
 57     0-127   Split Left Maximum CC Value For Z
 58     0-1     Split Left CC Value For Z in 14-bit
+59     0-127   Split Left Initial Value For Relative Y
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -160,25 +161,26 @@ NRPN   Value   Description
 137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 139    0-2     Split Right MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #125) 
-140    0-127   Split Right MIDI CC For Fader 1 (0-127: CC, 128: Channel Aftertouch) 
-141    0-127   Split Right MIDI CC For Fader 2 (0-127: CC, 128: Channel Aftertouch) 
-142    0-127   Split Right MIDI CC For Fader 3 (0-127: CC, 128: Channel Aftertouch) 
-143    0-127   Split Right MIDI CC For Fader 4 (0-127: CC, 128: Channel Aftertouch) 
-144    0-127   Split Right MIDI CC For Fader 5 (0-127: CC, 128: Channel Aftertouch) 
-145    0-127   Split Right MIDI CC For Fader 6 (0-127: CC, 128: Channel Aftertouch) 
-146    0-127   Split Right MIDI CC For Fader 7 (0-127: CC, 128: Channel Aftertouch) 
-147    0-127   Split Right MIDI CC For Fader 8 (0-127: CC, 128: Channel Aftertouch) 
+140    0-128   Split Right MIDI CC For Fader 1 (0-127: CC, 128: Channel Aftertouch) 
+141    0-128   Split Right MIDI CC For Fader 2 (0-127: CC, 128: Channel Aftertouch) 
+142    0-128   Split Right MIDI CC For Fader 3 (0-127: CC, 128: Channel Aftertouch) 
+143    0-128   Split Right MIDI CC For Fader 4 (0-127: CC, 128: Channel Aftertouch) 
+144    0-128   Split Right MIDI CC For Fader 5 (0-127: CC, 128: Channel Aftertouch) 
+145    0-128   Split Right MIDI CC For Fader 6 (0-127: CC, 128: Channel Aftertouch) 
+146    0-128   Split Right MIDI CC For Fader 7 (0-127: CC, 128: Channel Aftertouch) 
+147    0-128   Split Right MIDI CC For Fader 8 (0-127: CC, 128: Channel Aftertouch) 
 148    0-1     Split Right LowRow X Behavior (0: Hold, 1: Fader)
-149    0-127   Split Right MIDI CC For LowRow X (0-127: CC, 128: Channel Aftertouch) 
+149    0-128   Split Right MIDI CC For LowRow X (0-127: CC, 128: Channel Aftertouch) 
 150    0-1     Split Right LowRow XYZ Behavior (0: Hold, 1: Fader)
-151    0-127   Split Right MIDI CC For LowRow XYZ X (0-127: CC, 128: Channel Aftertouch) 
-152    0-127   Split Right MIDI CC For LowRow XYZ Y (0-127: CC, 128: Channel Aftertouch) 
-153    0-127   Split Right MIDI CC For LowRow XYZ Z (0-127: CC, 128: Channel Aftertouch) 
+151    0-128   Split Right MIDI CC For LowRow XYZ X (0-127: CC, 128: Channel Aftertouch) 
+152    0-128   Split Right MIDI CC For LowRow XYZ Y (0-127: CC, 128: Channel Aftertouch) 
+153    0-128   Split Right MIDI CC For LowRow XYZ Z (0-127: CC, 128: Channel Aftertouch) 
 154    0-127   Split Right Minimum CC Value For Y
 155    0-127   Split Right Maximum CC Value For Y
 156    0-127   Split Right Minimum CC Value For Z
 157    0-127   Split Right Maximum CC Value For Z
 158    0-1     Split Right CC Value For Z in 14-bit
+159    0-127   Split Right Initial Value For Relative Y
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column
@@ -232,7 +234,7 @@ NRPN   Value   Description
 250    1-127   Global Maximum Value For Velocity
 251    1-127   Global Value For Fixed Velocity
 252    0-512   Device Minimum Interval Between MIDI Bytes Over USB
-253    0-16    Global Custom Row Offset Instead Of Octave (-16-16: semitone intervals, -17: inverted Guitar)
+253  -17-16    Global Custom Row Offset Instead Of Octave (-16-16: semitone intervals, -17: inverted Guitar)
 254    0-1     Device MIDI Through (0: Off, 1: On)
 
 Color Values

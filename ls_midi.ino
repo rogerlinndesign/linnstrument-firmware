@@ -835,6 +835,12 @@ void receivedNrpn(int parameter, int value) {
         Split[split].ccForZ14Bit = value;
       }
       break;
+    // Split Initial For Relative Y
+    case 59:
+      if (inRange(value, 0, 127)) {
+        Split[split].initialRelativeY = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
