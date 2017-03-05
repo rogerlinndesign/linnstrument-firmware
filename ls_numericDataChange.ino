@@ -71,8 +71,20 @@ boolean handleNumericDataNewTouchCol(byte &currentData, byte minimum, byte maxim
 
   return false;
 }
+
 boolean handleNumericDataNewTouchCol(char &currentData, char minimum, char maximum, boolean useFineChanges) {
   char newData = handleNumericDataNewTouchColRaw(currentData, minimum, maximum, useFineChanges);
+  if (newData != currentData) {
+    currentData = newData;
+    updateDisplay();
+    return true;
+  }
+
+  return false;
+}
+
+boolean handleNumericDataNewTouchCol(signed char &currentData, signed char minimum, signed char maximum, boolean useFineChanges) {
+  signed char newData = handleNumericDataNewTouchColRaw(currentData, minimum, maximum, useFineChanges);
   if (newData != currentData) {
     currentData = newData;
     updateDisplay();

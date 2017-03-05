@@ -1859,7 +1859,7 @@ void handleSleepConfigRelease() {
 }
 
 void handleRowOffsetNewTouch() {
-  handleNumericDataNewTouchCol(Global.customRowOffset, 0, 16, true);
+  handleNumericDataNewTouchCol(Global.customRowOffset, -17, 16, true);
 }
 
 void handleRowOffsetRelease() {

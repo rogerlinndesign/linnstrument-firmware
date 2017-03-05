@@ -1819,11 +1819,15 @@ byte getNoteNumber(byte split, byte col, byte row) {
 
 void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lowest) {
   offset = Global.rowOffset;
-  lowest = LOWEST_NOTE;
+  lowest = 30;                                        // 30 = F#2, which is 10 semitones below guitar low E (E3/52). High E = E5/76
 
   if (Global.rowOffset <= 12) {                       // if rowOffset is set to between 0 and 12..
     if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
       offset = Global.customRowOffset;
+    }
+
+    if (offset < 0) {
+      lowest = 65;
     }
 
     if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {    // no overlap mode
@@ -1831,15 +1835,24 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
       getSplitBoundaries(split, lowCol, highCol);
 
       offset = highCol - lowCol;                      // calculate the row offset based on the width of the split the column belongs to
-      if (Global.splitActive && split == RIGHT) {            // if the right split is displayed, change the column so that it the lower left starting
+      if (Global.splitActive && split == RIGHT) {     // if the right split is displayed, change the column so that it the lower left starting
         getSplitBoundaries(LEFT, lowCol, highCol);    // point starts at the same point as the left split, behaving as if there were two independent
         lowest = lowest - (highCol - lowCol);         // LinnStruments next to each-other
       }
     }
-    else if (offset == 12) {                          // start the octave offset one octave lower to prevent having disabled notes at the top in the default configuration
-      lowest -= 12;
-    }
+    else if (offset == -17) {                         // if custom row offset is set to inverted guitar tuning...
+      offset = -5;                                    // standard guitar offset is 5 semitones
 
+      if (row <= 1) {                                 // except from row 1 downwards where it's shifted by one
+        lowest -= 1;
+      }
+    }
+    else if (offset >= 12) {                          // start the octave offset one octave lower to prevent having disabled notes at the top in the default configuration
+      lowest = 18;
+    }
+    else if (offset <= -12) {
+      lowest = 18 - 7 * offset;
+    }
   }
   else if (Global.rowOffset == 13) {                  // if rowOffset is set to guitar tuning...
     offset = 5;                                       // standard guitar offset is 5 semitones

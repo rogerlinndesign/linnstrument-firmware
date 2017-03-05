@@ -87,8 +87,6 @@ byte NUMROWS;                        // number of touch sensor rows
 #define LEFT       0
 #define RIGHT      1
 
-#define LOWEST_NOTE  30              // 30 = F#2, which is 10 semitones below guitar low E (E3/52). High E = E5/76
-
 // Foot switch Arduino pins
 #define FOOT_SW_LEFT   33
 #define FOOT_SW_RIGHT  34
@@ -690,7 +688,7 @@ struct GlobalSettings {
   int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
   int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
-  byte customRowOffset;                      // the custom row offset that can be configured at the location of the octave setting
+  signed char customRowOffset;               // the custom row offset that can be configured at the location of the octave setting
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   unsigned short minForVelocity;             // 1-127
   unsigned short maxForVelocity;             // 1-127

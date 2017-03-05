@@ -1042,7 +1042,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Custom Row Offset Instead Of Octave
     case 253:
-      if (inRange(value, 0, 16)) {
+      if (inRange(value, -17, 16)) {
         Global.customRowOffset = value;
       }
       break;

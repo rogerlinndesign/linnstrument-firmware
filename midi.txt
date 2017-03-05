@@ -232,7 +232,7 @@ NRPN   Value   Description
 250    1-127   Global Maximum Value For Velocity
 251    1-127   Global Value For Fixed Velocity
 252    0-512   Device Minimum Interval Between MIDI Bytes Over USB
-253    0-16    Global Custom Row Offset Instead Of Octave
+253    0-16    Global Custom Row Offset Instead Of Octave (-16-16: semitone intervals, -17: inverted Guitar)
 254    0-1     Device MIDI Through (0: Off, 1: On)
 
 Color Values

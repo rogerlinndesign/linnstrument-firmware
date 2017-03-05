@@ -1008,7 +1008,12 @@ void paintSleepConfig() {
 
 void paintRowOffset() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Global.customRowOffset, 0, false);
+  if (Global.customRowOffset == -17) {
+    condfont_draw_string(0, 0, "-GUI", globalColor, false);
+  }
+  else {
+    paintNumericDataDisplay(globalColor, Global.customRowOffset, 0, false);
+  }
 }
 
 void paintMIDIThrough() {
