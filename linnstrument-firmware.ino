@@ -52,7 +52,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 #include "ls_debug.h"
 #include "ls_channelbucket.h"
 #include "ls_midi.h"
-
+#include "ls_sensor.h"
 
 /******************************************** CONSTANTS ******************************************/
 

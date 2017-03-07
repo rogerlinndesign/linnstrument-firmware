@@ -6,6 +6,8 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the sensing of touches on the LinnStrument's touch surface.
 **************************************************************************************************/
 
+#include "ls_sensor.h"
+
 // These are the rectified pressure sensititivies for each column
 // CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
 // actual values in a spreadsheet
