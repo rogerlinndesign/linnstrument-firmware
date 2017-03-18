@@ -1393,6 +1393,18 @@ void paintGlobalSettingsDisplay() {
         break;
     }
 
+    switch (Global.colOffset) {
+      case 1:
+        lightLed(19, 0);
+        break;
+      case 2:
+        lightLed(19, 1);
+        break;
+      case 3:
+        lightLed(19, 2);
+        break;
+    }
+
     // This code assumes that switchSelect values are the same as the row numbers
     lightLed(7, switchSelect);
     paintSwitchAssignment(Global.switchAssignment[switchSelect]);

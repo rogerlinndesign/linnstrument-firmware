@@ -1380,6 +1380,11 @@ short handleXExpression() {
     }
   }
 
+  // apply column offset to pitch bend
+  if (result != INVALID_DATA) {
+      result = result * Global.colOffset;
+  }
+
   return result;
 }
 
@@ -1817,6 +1822,9 @@ byte getNoteNumber(byte split, byte col, byte row) {
   if (Device.leftHanded) {
     noteCol = (NUMCOLS - col);
   }
+
+  // apply column offset
+  noteCol *= Global.colOffset;
 
   notenum = lowest + (row * offset) + noteCol - 1;
 
