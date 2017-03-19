@@ -1299,7 +1299,7 @@ void copyDeviceSettingsV6(void* target, void* source) {
   t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = s->leftHanded;
+  t->otherHanded = s->leftHanded;
 }
 
 void copyPresetSettingsV7(void* target, void* source) {
@@ -1372,7 +1372,7 @@ void copyDeviceSettingsV7(void* target, void* source) {
   t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = s->leftHanded;
+  t->otherHanded = s->leftHanded;
   t->midiThrough = s->midiThrough;
 }
 
@@ -1420,7 +1420,7 @@ void copyDeviceSettingsV8(void* target, void* source) {
   t->sleepAnimationType = s->sleepAnimation ? animationStore : animationNone;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = s->leftHanded;
+  t->otherHanded = s->leftHanded;
   t->midiThrough = s->midiThrough;
   t->lastLoadedPreset = s->lastLoadedPreset;
   t->lastLoadedProject = s->lastLoadedProject;
@@ -1461,7 +1461,7 @@ void copyDeviceSettingsV9(void* target, void* source) {
   t->sleepAnimationType = s->sleepAnimationType;
   copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
   t->operatingLowPower = false;
-  t->leftHanded = s->leftHanded;
+  t->otherHanded = s->leftHanded;
   t->midiThrough = s->midiThrough;
   t->lastLoadedPreset = s->lastLoadedPreset;
   t->lastLoadedProject = s->lastLoadedProject;

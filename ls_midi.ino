@@ -1000,7 +1000,7 @@ void receivedNrpn(int parameter, int value) {
     // Device Left Handed Operation Active
     case 246:
       if (inRange(value, 0, 1)) {
-        Device.leftHanded = value;
+        Device.otherHanded = value;
         completelyRefreshLeds();
         updateDisplay();
       }
@@ -1163,7 +1163,7 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
 
   short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
-  if (Device.leftHanded) {
+  if (isLeftHandedSplit(split)) {
     col = NUMCOLS - col;
   }
 

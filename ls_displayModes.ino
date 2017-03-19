@@ -180,6 +180,9 @@ void updateDisplay() {
     case displaySleepConfig:
       paintSleepConfig();
       break;
+    case displaySplitHandedness:
+      paintSplitHandedness();
+      break;
     case displayRowOffset:
       paintRowOffset();
       break;
@@ -761,6 +764,13 @@ byte getCalibrationColor() {
   return COLOR_RED;
 }
 
+byte getSplitHandednessColor() {
+  if (Device.splitHandedness == 0) {
+    return globalColor;
+  }
+  return globalAltColor;
+}
+
 // paint one of the two leds that indicate which split is being controlled
 // (e.g. when you're changing per-split settings, or changing the preset or volume)
 void paintShowSplitSelection(byte side) {
@@ -1020,6 +1030,16 @@ void paintSleepConfig() {
         paintNumericDataDisplay(globalColor, Device.sleepDelay, 4, true);
       }
       break;
+  }
+}
+
+void paintSplitHandedness() {
+  clearDisplay();
+  if (Device.splitHandedness == leftHandedSplits) {
+    adaptfont_draw_string(0, 0, "LEFT", globalColor, true);
+  }
+  else {
+    adaptfont_draw_string(0, 0, "MIRR", globalColor, true);
   }
 }
 
@@ -1344,8 +1364,8 @@ void paintGlobalSettingsDisplay() {
 
   if (!userFirmwareActive) {
 
-    if (Device.leftHanded) {
-      lightLed(1, 3);
+    if (Device.otherHanded) {
+      setLed(1, 3, getSplitHandednessColor(), cellOn);
     }
 
     switch (lightSettings) {

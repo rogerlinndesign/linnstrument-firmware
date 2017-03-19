@@ -581,6 +581,9 @@ void handleNonPlayingTouch() {
     case displaySleepConfig:
       handleSleepConfigNewTouch();
       break;
+    case displaySplitHandedness:
+      handleSplitHandednessNewTouch();
+      break;
     case displayRowOffset:
       handleRowOffsetNewTouch();
       break;
@@ -816,7 +819,7 @@ boolean handleXYZupdate() {
   // Only process x and y data when there's meaningful pressure on the cell
   if (sensorCell->isMeaningfulTouch() || (doQuantizeHold() && isQuantizeHoldStable())) {
     valueX = handleXExpression();
-    if (valueX != INVALID_DATA && Device.leftHanded) {
+    if (valueX != INVALID_DATA && isLeftHandedSplit(sensorSplit)) {
       valueX = -1 * valueX;
     }
 
@@ -1471,6 +1474,9 @@ boolean handleNonPlayingRelease() {
       case displaySleepConfig:
         handleSleepConfigRelease();
         break;
+      case displaySplitHandedness:
+        handleSplitHandednessRelease();
+        break;
       case displayRowOffset:
         handleRowOffsetRelease();
         break;
@@ -1814,7 +1820,7 @@ byte getNoteNumber(byte split, byte col, byte row) {
 
   // return the computed note based on the selected rowOffset
   short noteCol = col;
-  if (Device.leftHanded) {
+  if (isLeftHandedSplit(split)) {
     noteCol = (NUMCOLS - col);
   }
 
@@ -1928,7 +1934,7 @@ inline byte otherSplit(byte split) {
 }
 
 inline byte splitLowestEdge(byte split) {
-  if (Device.leftHanded) {
+  if (isLeftHandedSplit(split)) {
     if (split == RIGHT) {
       return NUMCOLS - 1;
     }
@@ -1940,6 +1946,10 @@ inline byte splitLowestEdge(byte split) {
     }
     return Global.splitPoint;
   }
+}
+
+inline boolean isLeftHandedSplit(byte split) {
+  return Device.otherHanded && (Device.splitHandedness == leftHandedSplits || (Device.splitHandedness == mirroredSplits && split == LEFT));
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.

@@ -455,6 +455,7 @@ enum DisplayMode {
   displayEditAudienceMessage,
   displaySleep,
   displaySleepConfig,
+  displaySplitHandedness,
   displayRowOffset,
   displayMIDIThrough,
   displaySequencerProjects,
@@ -617,6 +618,11 @@ enum SleepAnimationType {
   animationChristmas
 };
 
+enum SplitHandednessType {
+  leftHandedSplits,                          // both left-handed
+  mirroredSplits                             // left is left-handed and right is right-handed
+};
+
 struct DeviceSettings {
   byte version;                              // the version of the configuration format
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
@@ -634,7 +640,8 @@ struct DeviceSettings {
   byte sleepAnimationType;                   // the animation type to use during sleep, see SleepAnimationType
   char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
   boolean operatingLowPower;                 // whether low power mode is active or not
-  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  boolean otherHanded;                       // whether change the handedness of the splits
+  byte splitHandedness;                      // see SplitHandednessType
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
   short lastLoadedPreset;                    // the last settings preset that was loaded
   short lastLoadedProject;                   // the last sequencer project that was loaded

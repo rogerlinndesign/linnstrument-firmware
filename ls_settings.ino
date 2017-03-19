@@ -286,7 +286,8 @@ void initializeDeviceSettings() {
   Device.sleepDelay = 0;
   Device.sleepAnimationType = animationNone;
   Device.operatingLowPower = false;
-  Device.leftHanded = false;
+  Device.otherHanded = false;
+  Device.splitHandedness = leftHandedSplits;
   Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
   Device.midiThrough = false;
   Device.lastLoadedPreset = -1;
@@ -1881,6 +1882,14 @@ void handleSleepConfigRelease() {
   handleNumericDataReleaseRow(false);
 }
 
+void handleSplitHandednessNewTouch() {
+  handleNumericDataNewTouchCol(Device.splitHandedness, 0, 1, true);
+}
+
+void handleSplitHandednessRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
 void handleRowOffsetNewTouch() {
   handleNumericDataNewTouchCol(Global.customRowOffset, -17, 16, true);
 }
@@ -2310,9 +2319,8 @@ void handleGlobalSettingNewTouch() {
           case LIGHTS_ACTIVE:
             lightSettings = sensorRow;
             break;
-          // toggle left handed mode
           case 3:
-            Device.leftHanded = !Device.leftHanded;
+            // handled at release
             break;
         }
         break;
@@ -2666,6 +2674,16 @@ void handleGlobalSettingHold() {
     sensorCell->lastTouch = 0;
 
     switch (sensorCol) {
+      case 1:
+        switch (sensorRow) {
+          case 3:
+            resetNumericDataChange();
+            setDisplayMode(displaySplitHandedness);
+            updateDisplay();
+            break;
+        }
+        break;
+
       case 6:
         switch (sensorRow) {
           case 2:
@@ -2766,7 +2784,11 @@ void handleGlobalSettingHold() {
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorCol == 6 && sensorRow == 2 &&
+  if (sensorCol == 1 && sensorRow == 3 &&
+      ensureCellBeforeHoldWait(getSplitHandednessColor(), Device.otherHanded ? cellOn : cellOff)) {
+    Device.otherHanded = !Device.otherHanded;
+  }
+  else if (sensorCol == 6 && sensorRow == 2 &&
       ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_OCTAVECUSTOM ? cellOn : cellOff)) {
       if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
         Global.rowOffset = ROWOFFSET_ZERO;
