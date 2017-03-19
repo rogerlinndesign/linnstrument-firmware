@@ -1403,6 +1403,9 @@ void paintGlobalSettingsDisplay() {
       case 3:
         lightLed(19, 2);
         break;
+      case 4:
+        lightLed(19, 3);
+        break;
     }
 
     // This code assumes that switchSelect values are the same as the row numbers

@@ -2385,6 +2385,9 @@ void handleGlobalSettingNewTouch() {
           case 2:
             Global.colOffset = 3;
             break;
+          case 3:
+            Global.colOffset = 4;
+            break;
         }
         break;
 
