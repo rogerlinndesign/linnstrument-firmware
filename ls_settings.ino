@@ -440,6 +440,7 @@ void initializePresetSettings() {
 
     g.rowOffset = 5;
     g.customRowOffset = 12;
+    g.colOffset = 1;
     g.velocitySensitivity = velocityMedium;
     g.minForVelocity = DEFAULT_MIN_VELOCITY;
     g.maxForVelocity = DEFAULT_MAX_VELOCITY;
@@ -2369,6 +2370,23 @@ void handleGlobalSettingNewTouch() {
             else {
               Global.rowOffset = ROWOFFSET_NOOVERLAP;
             }
+            break;
+        }
+        break;
+
+      case 19:
+        switch (sensorRow) {
+          case 0:
+            Global.colOffset = 1;
+            break;
+          case 1:
+            Global.colOffset = 2;
+            break;
+          case 2:
+            Global.colOffset = 3;
+            break;
+          case 3:
+            Global.colOffset = 4;
             break;
         }
         break;

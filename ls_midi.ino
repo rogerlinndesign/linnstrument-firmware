@@ -1163,6 +1163,11 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
 
   short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
+
+  // apply column offset
+  if (col % Global.colOffset != 0) { return -1; }                                      // when col offset is not 1, rows can skip notes
+  col /= Global.colOffset;
+
   if (Device.leftHanded) {
     col = NUMCOLS - col;
   }
