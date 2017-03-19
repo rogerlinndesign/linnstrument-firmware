@@ -279,7 +279,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 12;
+  Device.version = 13;
   Device.serialMode = false;
   Device.sleepAnimationActive = false;
   Device.sleepActive = false;

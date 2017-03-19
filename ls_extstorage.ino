@@ -483,9 +483,57 @@ struct DeviceSettingsV7 {
   boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
 };
+struct SplitSettingsV5 {
+  byte midiMode;                          // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                      // main midi channel, 1 to 16
+  byte midiChanPerRow;                    // per-row midi channel, 1 to 16
+  boolean midiChanSet[16];                // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  BendRangeOption bendRangeOption;        // see BendRangeOption
+  byte customBendRange;                   // 1 - 96
+  boolean sendX;                          // true to send continuous X, false if not
+  boolean sendY;                          // true to send continuous Y, false if not
+  boolean sendZ;                          // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;           // true to quantize pitch of initial touch, false if not
+  byte pitchCorrectHold;                  // See PitchCorrectHoldSpeed values
+  boolean pitchResetOnRelease;            // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;        // the expression that should be used for timbre
+  unsigned short customCCForY;            // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;                 // 0-127
+  unsigned short maxForY;                 // 0-127
+  boolean relativeY;                      // true when Y should be sent relative to the initial touch, false when it's absolute
+  LoudnessExpression expressionForZ;      // the expression that should be used for loudness
+  unsigned short customCCForZ;            // 0-127
+  unsigned short minForZ;                 // 0-127
+  unsigned short maxForZ;                 // 0-127
+  boolean ccForZ14Bit;                    // true when 14-bit messages should be sent when Z CC is between 0-31, false when only 7-bit messages should be sent
+  unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-127
+  byte colorMain;                         // color for non-accented cells
+  byte colorAccent;                       // color for accented cells
+  byte colorPlayed;                       // color for played notes
+  byte colorLowRow;                       // color for low row if on
+  byte colorSequencerEmpty;               // color for sequencer low row step with no events
+  byte colorSequencerEvent;               // color for sequencer low row step with events
+  byte colorSequencerDisabled;            // color for sequencer low row step that's not being played
+  byte lowRowMode;                        // see LowRowMode values
+  byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
+  unsigned short ccForLowRow;             // 0-127
+  byte lowRowCCXYZBehavior;               // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;            // 0-127
+  unsigned short ccForLowRowY;            // 0-127
+  unsigned short ccForLowRowZ;            // 0-127
+  signed char transposeOctave;            // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;             // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;            // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                       // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                    // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                          // true when this split strums the touches of the other split
+  boolean mpe;                            // true when MPE is active for this split
+  boolean sequencer;                      // true when the sequencer of this split is displayed
+  SequencerView sequencerView;            // see SequencerView
+};
 struct PresetSettingsV8 {
   GlobalSettingsV7 global;
-  SplitSettings split[NUMSPLITS];
+  SplitSettingsV5 split[NUMSPLITS];
 };
 struct ConfigurationV9 {
   DeviceSettingsV7 device;
@@ -553,6 +601,67 @@ struct ConfigurationV11 {
   DeviceSettingsV9 device;
   PresetSettingsV8 settings;
   PresetSettingsV8 preset[NUMPRESETS];
+  SequencerProject project;
+};
+/**************************************** Configuration V12 ****************************************
+This is used by firmware v2.0.3-beta1
+**************************************************************************************************/
+struct DeviceSettingsV10 {
+  byte version;                              // the version of the configuration format
+  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
+  byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;               // the maximum raw value of Z
+  boolean sleepAnimationActive;              // store whether an animation was active last
+  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
+  byte sleepAnimationType;                   // the animation type to use during sleep, see SleepAnimationType
+  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                 // whether low power mode is active or not
+  boolean leftHanded;                        // whether to orient the X axis from right to left instead of from left to right
+  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  short lastLoadedPreset;                    // the last settings preset that was loaded
+  short lastLoadedProject;                   // the last sequencer project that was loaded
+};
+struct GlobalSettingsV8 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  byte customRowOffset;                      // the custom row offset that can be configured at the location of the octave setting
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitch;                // 0-127
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+  boolean splitActive;                       // false = split off, true = split on
+};
+struct PresetSettingsV9 {
+  GlobalSettingsV8 global;
+  SplitSettingsV5 split[NUMSPLITS];
+};
+struct ConfigurationV12 {
+  DeviceSettingsV10 device;
+  PresetSettingsV9 settings;
+  PresetSettingsV9 preset[NUMPRESETS];
   SequencerProject project;
 };
 /*************************************************************************************************/
@@ -639,6 +748,12 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
         break;
       // this is the v12 of the configuration configuration, apply it if the size is right
       case 12:
+        if (confSize == sizeof(ConfigurationV12)) {
+          copyConfigurationFunction = &copyConfigurationV12;
+        }
+        break;
+      // this is the v13 of the configuration configuration, apply it if the size is right
+      case 13:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -1139,6 +1254,7 @@ void copyGlobalSettingsV5(void* target, void* source) {
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
+  t->activeNotes = s->activeNotes;
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
@@ -1248,6 +1364,7 @@ void copyGlobalSettingsV6(void* target, void* source) {
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
+  t->activeNotes = s->activeNotes;
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
@@ -1318,6 +1435,7 @@ void copyGlobalSettingsV7(void* target, void* source) {
 
   t->splitPoint = s->splitPoint;
   t->currentPerSplit = s->currentPerSplit;
+  t->activeNotes = s->activeNotes;
   memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
   memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
   t->rowOffset = s->rowOffset;
@@ -1382,8 +1500,59 @@ void copyPresetSettingsV8(void* target, void* source) {
 
   copyGlobalSettingsV7(&t->global, &s->global);
 
-  memcpy(&t->split[LEFT], &s->split[LEFT], sizeof(SplitSettings));
-  memcpy(&t->split[RIGHT], &s->split[RIGHT], sizeof(SplitSettings));
+  copySplitSettingsV5(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV5(&t->split[RIGHT], &s->split[RIGHT]);
+}
+
+void copySplitSettingsV5(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV5* s = (SplitSettingsV5*)source;
+
+  t->midiMode = s->midiMode;
+  t->midiChanMain = s->midiChanMain;
+  t->midiChanPerRow = s->midiChanPerRow;
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
+  t->bendRangeOption = s->bendRangeOption;
+  t->customBendRange = s->customBendRange;
+  t->sendX = s->sendX;
+  t->sendY = s->sendY;
+  t->sendZ = s->sendZ;
+  t->pitchCorrectQuantize = s->pitchCorrectQuantize;
+  t->pitchCorrectHold = s->pitchCorrectHold;
+  t->pitchResetOnRelease = s->pitchResetOnRelease;
+  t->expressionForY = s->expressionForY;
+  t->customCCForY = s->customCCForY;
+  t->minForY = s->minForY;
+  t->maxForY = s->maxForY;
+  t->relativeY = s->relativeY;
+  t->expressionForZ = s->expressionForZ;
+  t->customCCForZ = s->customCCForZ;
+  t->minForZ = s->minForZ;
+  t->maxForZ = s->maxForZ;
+  memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
+  t->colorMain = s->colorMain;
+  t->colorAccent = s->colorAccent;
+  t->colorPlayed = s->colorPlayed;
+  t->colorLowRow = s->colorLowRow;
+  t->colorSequencerEmpty = s->colorSequencerEmpty;
+  t->colorSequencerEvent = s->colorSequencerEvent;
+  t->colorSequencerDisabled = s->colorSequencerDisabled;
+  t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = s->lowRowCCXBehavior;
+  t->ccForLowRow = s->ccForLowRow;
+  t->lowRowCCXYZBehavior = s->lowRowCCXYZBehavior;
+  t->ccForLowRowX = s->ccForLowRowX;
+  t->ccForLowRowY = s->ccForLowRowY;
+  t->ccForLowRowZ = s->ccForLowRowZ;
+  t->transposeOctave = s->transposeOctave;
+  t->transposePitch = s->transposePitch;
+  t->transposeLights = s->transposeLights;
+  t->ccFaders = s->ccFaders;
+  t->arpeggiator = s->arpeggiator;
+  t->strum = s->strum;
+  t->mpe = s->mpe;
+  t->sequencer = s->sequencer;
+  t->sequencerView = s->sequencerView;
 }
 
 /*************************************************************************************************/
@@ -1465,4 +1634,83 @@ void copyDeviceSettingsV9(void* target, void* source) {
   t->midiThrough = s->midiThrough;
   t->lastLoadedPreset = s->lastLoadedPreset;
   t->lastLoadedProject = s->lastLoadedProject;
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV12(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV12* s = (ConfigurationV12*)source;
+
+  copyDeviceSettingsV10(&t->device, &s->device);
+
+  copyPresetSettingsV9(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV9(&t->preset[p], &s->preset[p]);
+  }
+
+  memcpy(&t->project, &s->project, sizeof(SequencerProject));
+}
+
+void copyDeviceSettingsV10(void* target, void* source) {
+  DeviceSettings* t = (DeviceSettings*)target;
+  DeviceSettingsV10* s = (DeviceSettingsV10*)source;
+
+  t->version = s->version;
+  t->serialMode = true;
+  copyCalibrationV2(&(t->calRows), &(s->calRows), &(t->calCols), &(s->calCols));
+  t->calibrated = s->calibrated;
+  t->minUSBMIDIInterval = s->minUSBMIDIInterval;
+  t->sensorSensitivityZ = s->sensorSensitivityZ;
+  t->sensorLoZ = s->sensorLoZ;
+  t->sensorFeatherZ = s->sensorFeatherZ;
+  t->sensorRangeZ = s->sensorRangeZ;
+  t->sleepAnimationActive = s->sleepAnimationActive;
+  t->sleepActive = s->sleepActive;
+  t->sleepDelay = s->sleepDelay;
+  t->sleepAnimationType = s->sleepAnimationType;
+  copyAudienceMessages(&(t->audienceMessages), &(s->audienceMessages));
+  t->operatingLowPower = false;
+  t->otherHanded = s->leftHanded;
+  t->midiThrough = s->midiThrough;
+  t->lastLoadedPreset = s->lastLoadedPreset;
+  t->lastLoadedProject = s->lastLoadedProject;
+}
+
+void copyPresetSettingsV9(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV9* s = (PresetSettingsV9*)source;
+
+  copyGlobalSettingsV8(&t->global, &s->global);
+
+  copySplitSettingsV5(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV5(&t->split[RIGHT], &s->split[RIGHT]);
+}
+
+void copyGlobalSettingsV8(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV8* s = (GlobalSettingsV8*)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  t->activeNotes = s->activeNotes;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
+  t->rowOffset = s->rowOffset;
+  t->customRowOffset = s->customRowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = s->minForVelocity;
+  t->maxForVelocity = s->maxForVelocity;
+  t->valueForFixedVelocity = s->valueForFixedVelocity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  t->ccForSwitch = s->ccForSwitch;
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+  t->sustainBehavior = s->sustainBehavior;
+  t->splitActive = s->splitActive;
 }
