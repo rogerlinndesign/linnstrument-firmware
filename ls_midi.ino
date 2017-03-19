@@ -1178,7 +1178,6 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
     col = -1;
   }
 
-
   return col;
 }
 
