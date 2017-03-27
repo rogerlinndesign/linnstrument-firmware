@@ -92,6 +92,31 @@ void initializeStorage() {
   }
   else {
     loadSettings();                                       // On subsequent startups, load settings from Flash
+
+    if (Device.calibrated) {
+      // if calibration data is not a plausible series of values, clear out
+      // all the calibration data and reset everything to defaults
+      // the validation is needed together with the CRC to weed out bad calibration
+      // data that could have been lingering from previous firmware versions
+      if (!validateCalibrationData()) {
+        initializeCalibrationData();
+      }
+      else {
+        uint32_t crc = calculateCalibrationCRC();
+        if (Device.calCrcCalculated) {
+          // if the calculated CRC doesn't match the stored one, clear out
+          // all the calibration data and reset everything to defaults
+          if (Device.calCrc != crc) {
+            initializeCalibrationData();
+          }
+        }
+        // calculate the CRC the first time the device starts up from a firmware
+        // that didn't calculate the CRC
+        else {
+          Device.calCrc = crc;
+        }
+      }
+    }
   }
 }
 

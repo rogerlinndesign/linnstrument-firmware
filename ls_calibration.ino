@@ -82,6 +82,8 @@ void initializeCalibrationSamples() {
 }
 
 void initializeCalibrationData() {
+  Device.calCrc = 0;
+  Device.calCrcCalculated = false;
   Device.calibrated = false;
 
   // Initialize default X calibration data
@@ -186,6 +188,75 @@ boolean handleCalibrationSample() {
   return false;
 }
 
+uint32_t calculateCalibrationCRC() {
+  uint32_t crc = ~0L;
+
+  for (uint8_t c = 0; c < MAXCOLS+1; ++c) {
+    for (uint8_t r = 0; r < 4; ++r) {
+      uint8_t* bytes = (uint8_t*)&Device.calRows[c][r];
+      for (uint8_t i = 0; i < sizeof(CalibrationX); ++i) {
+        crc = crc_update(crc, *bytes++);
+      }
+    }
+  }
+
+  for (uint8_t c = 0; c < 9; ++c) {
+    for (uint8_t r = 0; r < MAXROWS; ++r) {
+      uint8_t* bytes = (uint8_t*)&Device.calCols[c][r];
+      for (uint8_t i = 0; i < sizeof(CalibrationY); ++i) {
+        crc = crc_update(crc, *bytes++);
+      }
+    }
+  }
+
+  crc = ~crc;
+
+  return crc;
+}
+
+boolean validateCalibrationData() {
+  for (uint8_t r = 0; r < CALROWNUM; ++r) {
+    int32_t previous_reference_x = FXD_FROM_INT(-5000);
+    int32_t previous_measured_x = FXD_FROM_INT(-5000);
+    for (uint8_t c = 0; c < NUMCOLS; ++c) {
+      if (FXD_TO_INT(Device.calRows[c][r].fxdReferenceX) < FXD_TO_INT(previous_reference_x)) {
+        return false;
+      }
+      if (FXD_TO_INT(Device.calRows[c][r].fxdMeasuredX) < FXD_TO_INT(previous_measured_x)) {
+        return false;
+      }
+      if (FXD_TO_INT(Device.calRows[c][r].fxdRatio) < 0 || FXD_TO_INT(Device.calRows[c][r].fxdRatio) > 2) {
+        return false;
+      }
+      previous_reference_x = Device.calRows[c][r].fxdReferenceX;
+      previous_measured_x = Device.calRows[c][r].fxdMeasuredX;
+    }
+  }
+
+  for (uint8_t c = 0; c < CALCOLNUM; ++c) {
+    int32_t previous_min_y = FXD_FROM_INT(-5000);
+    int32_t previous_max_y = FXD_FROM_INT(-5000);
+    for (uint8_t r = 0; r < NUMROWS; ++r) {
+      if (FXD_TO_INT(Device.calCols[c][r].minY) < FXD_TO_INT(previous_min_y)) {
+        return false;
+      }
+      if (FXD_TO_INT(Device.calCols[c][r].maxY) < FXD_TO_INT(previous_max_y)) {
+        return false;
+      }
+      if (FXD_TO_INT(Device.calCols[c][r].minY) > FXD_TO_INT(Device.calCols[c][r].maxY)) {
+        return false;
+      }
+      if (FXD_TO_INT(Device.calCols[c][r].fxdRatio) < 0 || FXD_TO_INT(Device.calCols[c][r].fxdRatio) > 2) {
+        return false;
+      }
+      previous_min_y = Device.calCols[c][r].minY;
+      previous_max_y = Device.calCols[c][r].maxY;
+    }
+  }
+
+  return true;
+}
+
 boolean handleCalibrationRelease() {
   // Handle calibration passes, at least two before indicating green
   if (displayMode == displayCalibration) {
@@ -281,6 +352,8 @@ boolean handleCalibrationRelease() {
             }
           }
 
+          Device.calCrc = calculateCalibrationCRC();
+          Device.calCrcCalculated = true;
           Device.calibrated = true;
 
 #ifdef DEBUG_ENABLED

@@ -628,6 +628,8 @@ struct DeviceSettings {
   boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
   CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
   CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
+  uint32_t calCrc;                           // the CRC check value of the calibration data to see if it's still valid
+  boolean calCrcCalculated;                  // indicates whether the CRC of the calibration was calculated, previous firmware versions didn't
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
