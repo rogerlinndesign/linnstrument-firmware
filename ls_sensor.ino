@@ -42,9 +42,6 @@ const short READX_RANGE_DELAY = READX_MAX_DELAY - READX_MIN_DELAY;
 
 void initializeSensors() {
   if (LINNMODEL == 200) {
-    NUMCOLS = 26;
-    NUMROWS = 8;
-
     for (byte r = 0; r < MAXROWS; ++r) {
       for (byte c = 0; c < MAXCOLS; ++c) {
         Z_BIAS[r][c] = Z_BIAS_200_SEPTEMBER2014[r][c];
@@ -52,9 +49,6 @@ void initializeSensors() {
     }
   }
   else if (LINNMODEL == 128) {
-    NUMCOLS = 17;
-    NUMROWS = 8;
-
     for (byte r = 0; r < MAXROWS; ++r) {
       for (byte c = 0; c < MAXCOLS; ++c) {
         Z_BIAS[r][c] = Z_BIAS_128_SEPTEMBER2016[r][c];

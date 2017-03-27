@@ -75,13 +75,13 @@ const char* OSVersionBuild = ".043";
 // #define TESTING_SENSOR_DISABLE
 
 // Touch surface constants
-byte LINNMODEL = 0;
+byte LINNMODEL = 200;
 
 #define MAXCOLS 26
 #define MAXROWS 8
 
-byte NUMCOLS;                        // number of touch sensor columns currently used for device
-byte NUMROWS;                        // number of touch sensor rows
+byte NUMCOLS = 26;                   // number of touch sensor columns currently used for device
+byte NUMROWS = 8;                    // number of touch sensor rows
 
 #define NUMSPLITS  2                 // number of splits supported
 #define LEFT       0
@@ -350,7 +350,7 @@ int :4;
 };
 TouchInfo touchInfo[MAXCOLS][MAXROWS];       // store as much touch information instances as there are cells
 
-TouchInfo* sensorCell = &cell(sensorCol, sensorRow);
+TouchInfo* sensorCell = &touchInfo[0][0];
 
 int32_t rowsInColsTouched[MAXCOLS];       // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[MAXROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
@@ -1138,9 +1138,13 @@ void setup() {
   /*!!*/  pinMode(38, INPUT);
   /*!!*/  if (digitalRead(38) == HIGH) {
   /*!!*/    LINNMODEL = 200;
+  /*!!*/    NUMCOLS = 26;
+  /*!!*/    NUMROWS = 8;
   /*!!*/  }
   /*!!*/  else {
   /*!!*/    LINNMODEL = 128;
+  /*!!*/    NUMCOLS = 17;
+  /*!!*/    NUMROWS = 8;
   /*!!*/  }
   /*!!*/
   /*!!*/  initializeSensors();
