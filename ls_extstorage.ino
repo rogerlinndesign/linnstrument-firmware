@@ -1174,7 +1174,7 @@ void copyGlobalSettingsV4(void* target, void* source) {
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = s->ccForSwitch;
+  t->ccForSwitchCC65 = s->ccForSwitch;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
@@ -1263,7 +1263,7 @@ void copyGlobalSettingsV5(void* target, void* source) {
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = s->ccForSwitch;
+  t->ccForSwitchCC65 = s->ccForSwitch;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
@@ -1376,7 +1376,7 @@ void copyGlobalSettingsV6(void* target, void* source) {
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = s->ccForSwitch;
+  t->ccForSwitchCC65 = s->ccForSwitch;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
@@ -1448,7 +1448,7 @@ void copyGlobalSettingsV7(void* target, void* source) {
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = s->ccForSwitch;
+  t->ccForSwitchCC65 = s->ccForSwitch;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;
@@ -1706,7 +1706,7 @@ void copyGlobalSettingsV8(void* target, void* source) {
   t->pressureAftertouch = s->pressureAftertouch;
   memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
   memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
-  t->ccForSwitch = s->ccForSwitch;
+  t->ccForSwitchCC65 = s->ccForSwitch;
   t->midiIO = s->midiIO;
   t->arpDirection = s->arpDirection;
   t->arpTempo = s->arpTempo;

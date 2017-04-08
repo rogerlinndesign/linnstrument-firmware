@@ -569,8 +569,11 @@ void handleNonPlayingTouch() {
     case displayLowRowCCXYZConfig:
       handleLowRowCCXYZConfigNewTouch();
       break;
-    case displayCCForSwitch:
-      handleCCForSwitchConfigNewTouch();
+    case displayCCForSwitchCC65:
+      handleCCForSwitchCC65ConfigNewTouch();
+      break;
+    case displayCCForSwitchSustain:
+      handleCCForSwitchSustainConfigNewTouch();
       break;
     case displayLimitsForVelocity:
       handleLimitsForVelocityNewTouch();
@@ -1465,8 +1468,11 @@ boolean handleNonPlayingRelease() {
       case displayLowRowCCXYZConfig:
         handleLowRowCCXYZConfigRelease();
         break;
-      case displayCCForSwitch:
-        handleCCForSwitchConfigRelease();
+      case displayCCForSwitchCC65:
+        handleCCForSwitchCC65ConfigRelease();
+        break;
+      case displayCCForSwitchSustain:
+        handleCCForSwitchSustainConfigRelease();
         break;
       case displayLimitsForVelocity:
         handleLimitsForVelocityRelease();

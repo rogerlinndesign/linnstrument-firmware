@@ -443,7 +443,8 @@ enum DisplayMode {
   displayCCForFader,
   displayLowRowCCXConfig,
   displayLowRowCCXYZConfig,
-  displayCCForSwitch,
+  displayCCForSwitchCC65,
+  displayCCForSwitchSustain,
   displayLimitsForVelocity,
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
@@ -708,7 +709,8 @@ struct GlobalSettings {
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
-  unsigned short ccForSwitch;                // 0-127
+  unsigned short ccForSwitchCC65;            // 0-127
+  unsigned short ccForSwitchSustain;         // 0-127
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration

@@ -27,7 +27,8 @@ displayCCForZ                : custom CC number selection for Z expression
 displayCCForFader            : custom CC number selection for a CC fader
 displayLowRowCCXConfig       : custom CC number selection and behavior for LowRow in CCX mode
 displayLowRowCCXYZConfig     : custom CC number selection and behavior for LowRow in CCXYZ mode
-displayCCForSwitch           : custom CC number selection and behavior for Switches in CC65 mode
+displayCCForSwitchCC65       : custom CC number selection and behavior for Switches in CC65 mode
+displayCCForSwitchSustain    : custom CC number selection and behavior for Switches in Sustain mode
 displayLimitsForVelocity     : min and max value selection for velocity
 displayValueForFixedVelocity : value selection for fixed velocity
 displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
@@ -144,8 +145,11 @@ void updateDisplay() {
     case displayLowRowCCXYZConfig:
       paintLowRowCCXYZConfigDisplay(Global.currentPerSplit);
       break;
-    case displayCCForSwitch:
-      paintCCForSwitchConfigDisplay();
+    case displayCCForSwitchCC65:
+      paintCCForSwitchCC65ConfigDisplay();
+      break;
+    case displayCCForSwitchSustain:
+      paintCCForSwitchSustainConfigDisplay();
       break;
     case displayLimitsForVelocity:
       paintLimitsForVelocityDisplay();
@@ -979,9 +983,14 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
   }
 }
 
-void paintCCForSwitchConfigDisplay() {
+void paintCCForSwitchCC65ConfigDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Global.ccForSwitch, 0, false);
+  paintNumericDataDisplay(globalColor, Global.ccForSwitchCC65, 0, false);
+}
+
+void paintCCForSwitchSustainConfigDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(globalColor, Global.ccForSwitchSustain, 0, false);
 }
 
 void paintLimitsForVelocityDisplay() {
@@ -1285,7 +1294,7 @@ void paintSwitchAssignment(byte mode) {
       lightLed(9, 2);
       break;
     case ASSIGNED_SUSTAIN:
-      lightLed(8, 1);
+      setLed(8, 1, getSwitchSustainColor(), cellOn);
       break;
     case ASSIGNED_CC_65:
       setLed(9, 1, getSwitchCC65Color(), cellOn);
@@ -1520,7 +1529,14 @@ byte getRowOffsetColor() {
 }
 
 byte getSwitchCC65Color() {
-  if (Global.ccForSwitch != 65) {
+  if (Global.ccForSwitchCC65 != 65) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getSwitchSustainColor() {
+  if (Global.ccForSwitchSustain != 64) {
     return globalAltColor;
   }
   return globalColor;

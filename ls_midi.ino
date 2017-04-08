@@ -1016,7 +1016,7 @@ void receivedNrpn(int parameter, int value) {
     // Global MIDI CC For Switch CC65
     case 248:
       if (inRange(value, 0, 127)) {
-        Global.ccForSwitch = value;
+        Global.ccForSwitchCC65 = value;
       }
       break;
     // Global Minimum Value For Velocity
@@ -1056,6 +1056,12 @@ void receivedNrpn(int parameter, int value) {
     case 254:
       if (inRange(value, 0, 1)) {
         Device.midiThrough = value;
+      }
+      break;
+    // Global MIDI CC For Switch Sustain
+    case 255:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchSustain = value;
       }
       break;
   }
@@ -1578,19 +1584,19 @@ void midiSendVolume(byte v, byte channel) {
 
 void preSendSustain(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(64, v, Split[split].midiChanMain, true);
+    midiSendControlChange(Global.ccForSwitchSustain, v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, 64, v);
+    preSendControlChange(split, Global.ccForSwitchSustain, v);
   }
 }
 
 void preSendSwitchCC65(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitch, v, Split[split].midiChanMain, true);
+    midiSendControlChange(Global.ccForSwitchCC65, v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, Global.ccForSwitch, v);
+    preSendControlChange(split, Global.ccForSwitchCC65, v);
   }
 }
 

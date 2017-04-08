@@ -483,7 +483,8 @@ void initializePresetSettings() {
     g.switchBothSplits[SWITCH_FOOT_R] = false;
     g.switchBothSplits[SWITCH_SWITCH_1] = false;
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
-    g.ccForSwitch = 65;
+    g.ccForSwitchCC65 = 65;
+    g.ccForSwitchSustain = 64;
 
     initializeNoteLights(g);
 
@@ -1856,11 +1857,19 @@ void handleLowRowCCXYZConfigRelease() {
   handleNumericDataReleaseRow(true);
 }
 
-void handleCCForSwitchConfigNewTouch() {
-  handleNumericDataNewTouchCol(Global.ccForSwitch, 0, 127, false);
+void handleCCForSwitchCC65ConfigNewTouch() {
+  handleNumericDataNewTouchCol(Global.ccForSwitchCC65, 0, 127, false);
 }
 
-void handleCCForSwitchConfigRelease() {
+void handleCCForSwitchCC65ConfigRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
+void handleCCForSwitchSustainConfigNewTouch() {
+  handleNumericDataNewTouchCol(Global.ccForSwitchSustain, 0, 127, false);
+}
+
+void handleCCForSwitchSustainConfigRelease() {
   handleNumericDataReleaseCol(false);
 }
 
@@ -2453,7 +2462,7 @@ void handleGlobalSettingNewTouch() {
             Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
             break;
           case 1:
-            Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
+            // handled at release
             break;
           case 2:
             if (cell(9, sensorRow).touched != untouchedCell) {
@@ -2629,6 +2638,14 @@ void handleGlobalSettingNewTouch() {
       }
       break;
 
+    case 8:
+      switch (sensorRow) {
+        case 1:
+          setLed(sensorCol, sensorRow, getSwitchSustainColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
     case 9:
       switch (sensorRow) {
         case 1:
@@ -2719,11 +2736,21 @@ void handleGlobalSettingHold() {
         }
         break;
 
+      case 8:
+        switch (sensorRow) {
+          case 1:
+            resetNumericDataChange();
+            setDisplayMode(displayCCForSwitchSustain);
+            updateDisplay();
+            break;
+        }
+        break;
+
       case 9:
         switch (sensorRow) {
           case 1:
             resetNumericDataChange();
-            setDisplayMode(displayCCForSwitch);
+            setDisplayMode(displayCCForSwitchCC65);
             updateDisplay();
             break;
         }
@@ -2836,6 +2863,10 @@ void handleGlobalSettingRelease() {
         storeSettings();
       }
     }
+  }
+  else if (sensorCol == 8 && sensorRow == 1 &&
+      ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_SUSTAIN? cellOn : cellOff)) {
+    Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
   }
   else if (sensorCol == 9 && sensorRow == 1 &&
       ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
