@@ -81,7 +81,7 @@ void handleMidiInput(unsigned long nowMicros) {
   // handle turning off the MIDI clock led after minimum 30ms
   if (midiClockLedOn != 0 && calcTimeDelta(nowMicros, midiClockLedOn) > LED_FLASH_DELAY) {
     midiClockLedOn = 0;
-    clearLed( 0, 0);
+    clearLed(0, 0);
   }
 
   // if no serial data is available, return

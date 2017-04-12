@@ -1345,20 +1345,27 @@ void updateGlobalSettingsFlashTempo(unsigned long now) {
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
     paintGlobalSettingsFlashTempo(now);
   }
+  else if (!isSyncedToMidiClock() && isArpeggiatorEnabled(Global.currentPerSplit)) {
+    paintGlobalSettingsFlashTempo(now, 0, 0);
+  }
 }
 
 inline void paintGlobalSettingsFlashTempo(unsigned long now) {
+    paintGlobalSettingsFlashTempo(now, 14, 3);
+}
+
+inline void paintGlobalSettingsFlashTempo(unsigned long now, byte col, byte row) {
   if (!animationActive && !userFirmwareActive) {
     // flash the tap tempo cell at the beginning of the beat
     if (clock24PPQ == 0) {
-      lightLed(14, 3);
+      lightLed(col, row);
       tapTempoLedOn = now;
     }
 
     // handle turning off the tap tempo led after minimum 30ms
     if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
       tapTempoLedOn = 0;
-      clearLed(14, 3);
+      clearLed(col, row);
     }
   }
 }
