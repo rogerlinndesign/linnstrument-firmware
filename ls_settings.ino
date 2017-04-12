@@ -483,8 +483,18 @@ void initializePresetSettings() {
     g.switchBothSplits[SWITCH_FOOT_R] = false;
     g.switchBothSplits[SWITCH_SWITCH_1] = false;
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
-    g.ccForSwitchCC65 = 65;
-    g.ccForSwitchSustain = 64;
+    g.ccForSwitchCC65[SWITCH_FOOT_L] = 65;
+    g.ccForSwitchCC65[SWITCH_FOOT_R] = 65;
+    g.ccForSwitchCC65[SWITCH_SWITCH_1] = 65;
+    g.ccForSwitchCC65[SWITCH_SWITCH_2] = 65;
+    g.ccForSwitchSustain[SWITCH_FOOT_L] = 64;
+    g.ccForSwitchSustain[SWITCH_FOOT_R] = 64;
+    g.ccForSwitchSustain[SWITCH_SWITCH_1] = 64;
+    g.ccForSwitchSustain[SWITCH_SWITCH_2] = 64;
+    g.customSwitchAssignment[SWITCH_FOOT_L] = ASSIGNED_TAP_TEMPO;
+    g.customSwitchAssignment[SWITCH_FOOT_R] = ASSIGNED_TAP_TEMPO;
+    g.customSwitchAssignment[SWITCH_SWITCH_1] = ASSIGNED_TAP_TEMPO;
+    g.customSwitchAssignment[SWITCH_SWITCH_2] = ASSIGNED_TAP_TEMPO;
 
     initializeNoteLights(g);
 
@@ -1858,7 +1868,7 @@ void handleLowRowCCXYZConfigRelease() {
 }
 
 void handleCCForSwitchCC65ConfigNewTouch() {
-  handleNumericDataNewTouchCol(Global.ccForSwitchCC65, 0, 127, false);
+  handleNumericDataNewTouchCol(Global.ccForSwitchCC65[switchSelect], 0, 127, false);
 }
 
 void handleCCForSwitchCC65ConfigRelease() {
@@ -1866,11 +1876,20 @@ void handleCCForSwitchCC65ConfigRelease() {
 }
 
 void handleCCForSwitchSustainConfigNewTouch() {
-  handleNumericDataNewTouchCol(Global.ccForSwitchSustain, 0, 127, false);
+  handleNumericDataNewTouchCol(Global.ccForSwitchSustain[switchSelect], 0, 127, false);
 }
 
 void handleCCForSwitchSustainConfigRelease() {
   handleNumericDataReleaseCol(false);
+}
+
+void handleCustomSwitchAssignmentConfigNewTouch() {
+  handleNumericDataNewTouchCol(Global.customSwitchAssignment[switchSelect], ASSIGNED_TAP_TEMPO, ASSIGNED_REVERSE_PITCH_X, false);
+}
+
+void handleCustomSwitchAssignmentConfigRelease() {
+  handleNumericDataReleaseCol(false);
+  Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect]);
 }
 
 void handleLimitsForVelocityNewTouch() {
@@ -2496,7 +2515,7 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 3:
-            Global.setSwitchAssignment(switchSelect, ASSIGNED_TAP_TEMPO);
+            // handled at release
             break;
         }
         break;
@@ -2651,6 +2670,9 @@ void handleGlobalSettingNewTouch() {
         case 1:
           setLed(sensorCol, sensorRow, getSwitchCC65Color(), cellSlowPulse);
           break;
+        case 3:
+          setLed(sensorCol, sensorRow, getSwitchTapTempoColor(), cellSlowPulse);
+          break;
       }
       break;
 
@@ -2751,6 +2773,11 @@ void handleGlobalSettingHold() {
           case 1:
             resetNumericDataChange();
             setDisplayMode(displayCCForSwitchCC65);
+            updateDisplay();
+            break;
+          case 3:
+            resetNumericDataChange();
+            setDisplayMode(displayCustomSwitchAssignment);
             updateDisplay();
             break;
         }
@@ -2865,12 +2892,16 @@ void handleGlobalSettingRelease() {
     }
   }
   else if (sensorCol == 8 && sensorRow == 1 &&
-      ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_SUSTAIN? cellOn : cellOff)) {
+      ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_SUSTAIN ? cellOn : cellOff)) {
     Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
   }
-  else if (sensorCol == 9 && sensorRow == 1 &&
-      ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
+  else if (sensorCol == 9) {
+    if (sensorRow == 1 && ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
+    }
+    else if (sensorRow == 3 && ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == Global.customSwitchAssignment[switchSelect] ? cellOn : cellOff)) {
+      Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect]);
+    }
   }
   else if (sensorCol == 15) {
     if (sensorRow == 0 && ensureCellBeforeHoldWait(globalColor, Global.midiIO == 1 ? cellOn : cellOff)) {

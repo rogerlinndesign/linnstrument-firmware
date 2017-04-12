@@ -35,7 +35,7 @@ void initializeSwitches() {
   switchState[SWITCH_SWITCH_2][RIGHT] = false;
   switchState[SWITCH_SWITCH_1][RIGHT] = false;
 
-  for (byte i = 0; i < 7; ++i) {
+  for (byte i = 0; i < MAX_ASSIGNED; ++i) {
     switchTargetEnabled[i][LEFT] = false;
     switchTargetEnabled[i][RIGHT] = false;
   }
@@ -45,7 +45,10 @@ boolean isStatefulSwitchAssignment(byte assignment) {
   return assignment == ASSIGNED_AUTO_OCTAVE ||
          assignment == ASSIGNED_SUSTAIN ||
          assignment == ASSIGNED_CC_65 ||
-         assignment == ASSIGNED_ARPEGGIATOR;
+         assignment == ASSIGNED_ARPEGGIATOR ||
+         assignment == ASSIGNED_LEGATO ||
+         assignment == ASSIGNED_LATCH ||
+         assignment == ASSIGNED_REVERSE_PITCH_X;
 }
 
 void doSwitchPressed(byte whichSwitch) {
@@ -209,6 +212,26 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
         }
       }
       break;
+
+    case ASSIGNED_PRESET_UP:
+      performPresetDelta(1);
+      break;
+
+    case ASSIGNED_PRESET_DOWN:
+      performPresetDelta(-1);
+      break;
+
+    case ASSIGNED_REVERSE_PITCH_X:
+      performReverseSendXToggle();
+      break;
+  }
+}
+
+void performPresetDelta(int delta) {
+  midiPreset[Global.currentPerSplit] = min(max(midiPreset[Global.currentPerSplit] + delta, 0), 127);
+  applyMidiPreset();
+  if (displayMode == displayPreset) {
+    updateDisplay();
   }
 }
 
@@ -220,6 +243,13 @@ void performArpeggiatorToggle() {
   else {
     disableTemporaryArpeggiator();
   }
+  if (displayMode == displayPerSplit) {
+    updateDisplay();
+  }
+}
+
+void performReverseSendXToggle() {
+  Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
   if (displayMode == displayPerSplit) {
     updateDisplay();
   }
@@ -242,10 +272,12 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
       switchTransposeOctave(split, -12);
       break;
 
-    case ASSIGNED_AUTO_OCTAVE:
     case ASSIGNED_SUSTAIN:
     case ASSIGNED_CC_65:
     case ASSIGNED_ARPEGGIATOR:
+    case ASSIGNED_LEGATO:
+    case ASSIGNED_LATCH:
+    case ASSIGNED_REVERSE_PITCH_X:
       performSwitchAssignmentOff(assignment, split);
       break;
 
@@ -258,9 +290,6 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
 void performSwitchAssignmentOff(byte assignment, byte split) {
   switch (assignment)
   {
-    case ASSIGNED_AUTO_OCTAVE:
-      break;
-
     case ASSIGNED_SUSTAIN:
       preSendSustain(split, 0);
       break;
@@ -271,6 +300,15 @@ void performSwitchAssignmentOff(byte assignment, byte split) {
 
     case ASSIGNED_ARPEGGIATOR:
       performArpeggiatorToggle();
+      break;
+
+    case ASSIGNED_LEGATO:
+    case ASSIGNED_LATCH:
+      noteTouchMapping[split].releaseLatched(split);
+      break;
+
+    case ASSIGNED_REVERSE_PITCH_X:
+      performReverseSendXToggle();
       break;
   }
 }
@@ -336,4 +374,12 @@ inline boolean isSwitchAutoOctavePressed(byte split) {
 
 inline boolean isSwitchCC65Pressed(byte split) {
   return switchTargetEnabled[ASSIGNED_CC_65][split];
+}
+
+inline boolean isSwitchLegatoPressed(byte split) {
+  return switchTargetEnabled[ASSIGNED_LEGATO][split];
+}
+
+inline boolean isSwitchLatchPressed(byte split) {
+  return switchTargetEnabled[ASSIGNED_LATCH][split];
 }

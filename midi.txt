@@ -209,10 +209,10 @@ NRPN   Value   Description
 225    0-1     Global Accent Note Light A# (0: Off, 1: On)
 226    0-1     Global Accent Note Light B (0: Off, 1: On)
 227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar, 127: 0 offset)
-228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
-229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
-230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
-231    0-5     Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave)
+228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X)
+229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X)
+230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X)
+231    0-5     Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X)
 232    0-3     Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
 233    0-2     Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
 234    0-1     Device MIDI I/O (0: MIDI Jacks, 1: USB)
@@ -229,14 +229,21 @@ NRPN   Value   Description
 245    0-1     Device User Firmware Mode (0: Off, 1: On)
 246    0-1     Device Left Handed Operation (0: Off, 1: On)
 247    0-11    Global Active Note Lights Preset
-248    0-127   Global MIDI CC For Switch CC65
+248    0-127   Global MIDI CC For Switch CC65 (Changes the CC for all switches - Legacy option, see NRPN 255-258)
 249    1-127   Global Minimum Value For Velocity
 250    1-127   Global Maximum Value For Velocity
 251    1-127   Global Value For Fixed Velocity
 252    0-512   Device Minimum Interval Between MIDI Bytes Over USB
 253  -17-16    Global Custom Row Offset Instead Of Octave (-16-16: semitone intervals, -17: inverted Guitar)
 254    0-1     Device MIDI Through (0: Off, 1: On)
-255    0-127   Global MIDI CC For Switch Sustain
+255    0-127   Global MIDI CC For Foot Left CC65
+256    0-127   Global MIDI CC For Foot Right CC65
+257    0-127   Global MIDI CC For Switch 1 CC65
+258    0-127   Global MIDI CC For Switch 2 CC65
+259    0-127   Global MIDI CC For Foot Left Sustain
+260    0-127   Global MIDI CC For Foot Right Sustain
+261    0-127   Global MIDI CC For Switch 1 Sustain
+262    0-127   Global MIDI CC For Switch 2 Sustain
 
 Color Values
 ============

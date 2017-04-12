@@ -90,6 +90,30 @@ void NoteTouchMapping::initialize() {
   performContinuousTasks();
 }
 
+void NoteTouchMapping::releaseLatched(byte split) {
+  signed char entryNote = firstNote;
+  signed char entryChannel = firstChannel;
+  while (entryNote != -1) {
+    NoteEntry& entry = mapping[entryNote][entryChannel-1];
+    signed char nextNote = entry.getNextNote();
+    signed char nextChannel = entry.getNextChannel();
+
+    TouchInfo* entry_cell = &cell(entry.getCol(), entry.getRow());
+    if (entry_cell->touched != touchedCell) {
+      if (isArpeggiatorEnabled(split)) {
+        handleArpeggiatorNoteOff(split, entryNote, entryChannel);
+      }
+      else {
+        midiSendNoteOffWithVelocity(split, entryNote, entry_cell->velocity, entryChannel);
+      }
+      noteOff(entryNote, entryChannel);
+    }
+
+    entryNote = nextNote;
+    entryChannel = nextChannel;
+  }
+}
+
 inline byte NoteTouchMapping::getMusicalTouchCount(signed char noteChannel) {
   if (noteChannel < 1 || noteChannel > 16) {
     return 0;

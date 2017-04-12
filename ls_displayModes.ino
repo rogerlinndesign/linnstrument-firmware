@@ -7,45 +7,46 @@ There are 13 different display modes.
 
 These are the possible values of the global variable displayMode:
 
-displayNormal                : normal performance display
-displayPerSplit              : per-split settings (left or right split)
-displayPreset                : preset number
-displayVolume                : volume
-displayOctaveTranspose       : octave and transpose settings
-displaySplitPoint            : split point
-displayGlobal                : global settings
-displayGlobalWithTempo       : global settings with tempo
-displayOsVersion             : version number of the OS
-displayCalibration           : calibration process
-displayReset                 : global reset confirmation and wait for touch release
-displayBendRange             ; custom bend range selection for X expression
-displayLimitsForY            : min and max value selection for Y expression
-displayCCForY                : custom CC number selection for Y expression
-displayInitialForRelativeY   : initial value for relative Y
-displayLimitsForZ            : min and max value selection for Z expression
-displayCCForZ                : custom CC number selection for Z expression
-displayCCForFader            : custom CC number selection for a CC fader
-displayLowRowCCXConfig       : custom CC number selection and behavior for LowRow in CCX mode
-displayLowRowCCXYZConfig     : custom CC number selection and behavior for LowRow in CCXYZ mode
-displayCCForSwitchCC65       : custom CC number selection and behavior for Switches in CC65 mode
-displayCCForSwitchSustain    : custom CC number selection and behavior for Switches in Sustain mode
-displayLimitsForVelocity     : min and max value selection for velocity
-displayValueForFixedVelocity : value selection for fixed velocity
-displayMinUSBMIDIInterval    : minimum delay between MIDI bytes when sent over USB
-displaySensorSensitivityZ    : sensor sensitivity setting for Z
-displaySensorLoZ             : sensor low Z sensitivity selection
-displaySensorFeatherZ        : sensor feather Z sensitivity selection
-displaySensorRangeZ          : max Z sensor range selection
-displayAnimation             : display animation
-displayEditAudienceMessage   : edit an audience message
-displaySleep                 : sleeping
-displaySleepConfig           : sleep mode configuration
-displayRowOffset             : custom row offset selection
-displayMIDIThrough           : MIDI through configuration
-displaySequencerProjects     : sequencer projects
-displaySequencerDrum0107     : sequencer first 7 drum notes
-displaySequencerDrum0814     : sequencer second 7 drum notes
-displaySequencerColors       : sequencer low row colors
+displayNormal                 : normal performance display
+displayPerSplit               : per-split settings (left or right split)
+displayPreset                 : preset number
+displayVolume                 : volume
+displayOctaveTranspose        : octave and transpose settings
+displaySplitPoint             : split point
+displayGlobal                 : global settings
+displayGlobalWithTempo        : global settings with tempo
+displayOsVersion              : version number of the OS
+displayCalibration            : calibration process
+displayReset                  : global reset confirmation and wait for touch release
+displayBendRange              ; custom bend range selection for X expression
+displayLimitsForY             : min and max value selection for Y expression
+displayCCForY                 : custom CC number selection for Y expression
+displayInitialForRelativeY    : initial value for relative Y
+displayLimitsForZ             : min and max value selection for Z expression
+displayCCForZ                 : custom CC number selection for Z expression
+displayCCForFader             : custom CC number selection for a CC fader
+displayLowRowCCXConfig        : custom CC number selection and behavior for LowRow in CCX mode
+displayLowRowCCXYZConfig      : custom CC number selection and behavior for LowRow in CCXYZ mode
+displayCCForSwitchCC65        : custom CC number selection and behavior for Switches in CC65 mode
+displayCCForSwitchSustain     : custom CC number selection and behavior for Switches in Sustain mode
+displayCustomSwitchAssignment : custom switch behavior for Switches
+displayLimitsForVelocity      : min and max value selection for velocity
+displayValueForFixedVelocity  : value selection for fixed velocity
+displayMinUSBMIDIInterval     : minimum delay between MIDI bytes when sent over USB
+displaySensorSensitivityZ     : sensor sensitivity setting for Z
+displaySensorLoZ              : sensor low Z sensitivity selection
+displaySensorFeatherZ         : sensor feather Z sensitivity selection
+displaySensorRangeZ           : max Z sensor range selection
+displayAnimation              : display animation
+displayEditAudienceMessage    : edit an audience message
+displaySleep                  : sleeping
+displaySleepConfig            : sleep mode configuration
+displayRowOffset              : custom row offset selection
+displayMIDIThrough            : MIDI through configuration
+displaySequencerProjects      : sequencer projects
+displaySequencerDrum0107      : sequencer first 7 drum notes
+displaySequencerDrum0814      : sequencer second 7 drum notes
+displaySequencerColors        : sequencer low row colors
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -150,6 +151,9 @@ void updateDisplay() {
       break;
     case displayCCForSwitchSustain:
       paintCCForSwitchSustainConfigDisplay();
+      break;
+    case displayCustomSwitchAssignment:
+      paintCustomSwitchAssignmentConfigDisplay();
       break;
     case displayLimitsForVelocity:
       paintLimitsForVelocityDisplay();
@@ -985,12 +989,36 @@ void paintLowRowCCXYZConfigDisplay(byte side) {
 
 void paintCCForSwitchCC65ConfigDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Global.ccForSwitchCC65, 0, false);
+  paintNumericDataDisplay(globalColor, Global.ccForSwitchCC65[switchSelect], 0, false);
 }
 
 void paintCCForSwitchSustainConfigDisplay() {
   clearDisplay();
-  paintNumericDataDisplay(globalColor, Global.ccForSwitchSustain, 0, false);
+  paintNumericDataDisplay(globalColor, Global.ccForSwitchSustain[switchSelect], 0, false);
+}
+
+void paintCustomSwitchAssignmentConfigDisplay() {
+  clearDisplay();
+  switch (Global.customSwitchAssignment[switchSelect]) {
+    case ASSIGNED_TAP_TEMPO:
+      adaptfont_draw_string(0, 0, "TAP", globalColor, true);
+      break;
+    case ASSIGNED_LEGATO:
+      adaptfont_draw_string(0, 0, "LEG", globalColor, true);
+      break;
+    case ASSIGNED_LATCH:
+      adaptfont_draw_string(0, 0, "LAT", globalColor, true);
+      break;
+    case ASSIGNED_PRESET_UP:
+      adaptfont_draw_string(0, 0, "PR+", globalColor, true);
+      break;
+    case ASSIGNED_PRESET_DOWN:
+      adaptfont_draw_string(0, 0, "PR-", globalColor, true);
+      break;
+    case ASSIGNED_REVERSE_PITCH_X:
+      adaptfont_draw_string(0, 0, "PCH", globalColor, true);
+      break;
+  }
 }
 
 void paintLimitsForVelocityDisplay() {
@@ -1281,7 +1309,12 @@ void displayActiveNotes() {
 void paintSwitchAssignment(byte mode) {
   switch (mode) {
     case ASSIGNED_TAP_TEMPO:
-      lightLed(9, 3);
+    case ASSIGNED_LEGATO:
+    case ASSIGNED_LATCH:
+    case ASSIGNED_PRESET_UP:
+    case ASSIGNED_PRESET_DOWN:
+    case ASSIGNED_REVERSE_PITCH_X:
+      setLed(9, 3, getSwitchTapTempoColor(), cellOn);
       break;
     case ASSIGNED_AUTO_OCTAVE:
       lightLed(8, 2);
@@ -1529,14 +1562,21 @@ byte getRowOffsetColor() {
 }
 
 byte getSwitchCC65Color() {
-  if (Global.ccForSwitchCC65 != 65) {
+  if (Global.ccForSwitchCC65[switchSelect] != 65) {
     return globalAltColor;
   }
   return globalColor;
 }
 
 byte getSwitchSustainColor() {
-  if (Global.ccForSwitchSustain != 64) {
+  if (Global.ccForSwitchSustain[switchSelect] != 64) {
+    return globalAltColor;
+  }
+  return globalColor;
+}
+
+byte getSwitchTapTempoColor() {
+  if (Global.customSwitchAssignment[switchSelect] != ASSIGNED_TAP_TEMPO) {
     return globalAltColor;
   }
   return globalColor;

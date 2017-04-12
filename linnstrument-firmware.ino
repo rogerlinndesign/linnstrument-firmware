@@ -187,14 +187,20 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define SWITCH_SWITCH_2  2
 #define SWITCH_SWITCH_1  3
 
-#define ASSIGNED_OCTAVE_DOWN  0
-#define ASSIGNED_OCTAVE_UP    1
-#define ASSIGNED_SUSTAIN      2
-#define ASSIGNED_CC_65        3
-#define ASSIGNED_ARPEGGIATOR  4
-#define ASSIGNED_ALTSPLIT     5
-#define ASSIGNED_AUTO_OCTAVE  6
-#define ASSIGNED_TAP_TEMPO    7
+#define ASSIGNED_OCTAVE_DOWN      0
+#define ASSIGNED_OCTAVE_UP        1
+#define ASSIGNED_SUSTAIN          2
+#define ASSIGNED_CC_65            3
+#define ASSIGNED_ARPEGGIATOR      4
+#define ASSIGNED_ALTSPLIT         5
+#define ASSIGNED_AUTO_OCTAVE      6
+#define ASSIGNED_TAP_TEMPO        7
+#define ASSIGNED_LEGATO           8
+#define ASSIGNED_LATCH            9
+#define ASSIGNED_PRESET_UP        10
+#define ASSIGNED_PRESET_DOWN      11
+#define ASSIGNED_REVERSE_PITCH_X  12
+#define MAX_ASSIGNED              ASSIGNED_REVERSE_PITCH_X
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1
@@ -391,6 +397,7 @@ struct NoteEntry {
 };
 struct NoteTouchMapping {
   void initialize();                                         // initialize the mapping data
+  void releaseLatched(byte split);                           // release all the note mappings that are latched and have no real active touch
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
   void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
@@ -445,6 +452,7 @@ enum DisplayMode {
   displayLowRowCCXYZConfig,
   displayCCForSwitchCC65,
   displayCCForSwitchSustain,
+  displayCustomSwitchAssignment,
   displayLimitsForVelocity,
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
@@ -709,8 +717,9 @@ struct GlobalSettings {
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
   byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
-  unsigned short ccForSwitchCC65;            // 0-127
-  unsigned short ccForSwitchSustain;         // 0-127
+  unsigned short ccForSwitchCC65[4];         // 0-127
+  unsigned short ccForSwitchSustain[4];      // 0-127
+  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN or ASSIGNED_REVERSE_PITCH_X
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
@@ -952,10 +961,10 @@ signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to 
 
 unsigned long lastSwitchPress[4];
 boolean switchState[4][NUMSPLITS];
-boolean switchTargetEnabled[7][NUMSPLITS];          // 7 targets, we keep track of them individually for each split and whether they're active
-boolean footSwitchState[2];                         // holds the last read footswitch state, so that we only react on state changes of the input signal
-boolean footSwitchOffState[2];                      // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
-unsigned long prevFootSwitchTimerCount;             // time interval (in microseconds) between foot switch reads
+boolean switchTargetEnabled[MAX_ASSIGNED][NUMSPLITS]; // we keep track of switch targets individually for each split and whether they're active
+boolean footSwitchState[2];                           // holds the last read footswitch state, so that we only react on state changes of the input signal
+boolean footSwitchOffState[2];                        // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
+unsigned long prevFootSwitchTimerCount;               // time interval (in microseconds) between foot switch reads
 
 boolean doublePerSplit = false;                     // false when only one per split is active, true if they both are
 

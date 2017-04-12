@@ -281,6 +281,32 @@ byte countTouchesInColumn() {
   return count;
 }
 
+boolean hasOtherTouchInSplit(byte split) {
+  for (int r = 0; r < NUMROWS; ++r) {
+    int32_t colsInRowTouchedAdapted = colsInRowsTouched[r];
+    if (r == sensorRow) {
+      colsInRowTouchedAdapted &= ~(int32_t)(1 << sensorCol);
+    }
+
+    if (colsInRowTouchedAdapted) {
+      // if split is not active and there's a touch on the row, it's obviously in the current split
+      if (!Global.splitActive) {
+        return true;
+      }
+
+      // determine which columns need to be active in the touched row for this to be considered
+      // part of either split
+      if (split == LEFT && (colsInRowTouchedAdapted & ((int32_t)(1 << Global.splitPoint) - 1))) {
+        return true;
+      }
+      if (split == RIGHT && (colsInRowTouchedAdapted & ~((int32_t)(1 << Global.splitPoint) - 1))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 boolean hasTouchInSplitOnRow(byte split, byte row) {
   if (colsInRowsTouched[row]) {
     // if split is not active and there's a touch on the row, it's obviously in the current split
@@ -574,6 +600,9 @@ void handleNonPlayingTouch() {
       break;
     case displayCCForSwitchSustain:
       handleCCForSwitchSustainConfigNewTouch();
+      break;
+    case displayCustomSwitchAssignment:
+      handleCustomSwitchAssignmentConfigNewTouch();
       break;
     case displayLimitsForVelocity:
       handleLimitsForVelocityNewTouch();
@@ -968,6 +997,12 @@ boolean handleXYZupdate() {
         else {
           sendNewNote();
         }
+
+        // when the legato switch is pressed and this is the only new touch in the split,
+        // release all the latched notes after the new note on message
+        if (isSwitchLegatoPressed(sensorSplit) && !hasOtherTouchInSplit(sensorSplit)) {
+          noteTouchMapping[sensorSplit].releaseLatched(sensorSplit);
+        }
       }
 
       // if sensing Z is enabled...
@@ -977,8 +1012,11 @@ boolean handleXYZupdate() {
       }
 
       // after the initial velocity, new velocity values are continuously being calculated simply based
-      // on the Z data so that velocity can change during the arpeggiation
-      sensorCell->velocity = calcPreferredVelocity(sensorCell->velocityZ);      
+      // on the Z data, during arpeggiation this is handled in the arpeggiator itself in order to have
+      // snapshotted velocities that can be latched
+      if (!isArpeggiatorEnabled(sensorSplit)) {
+        sensorCell->velocity = calcPreferredVelocity(sensorCell->velocityZ);      
+      }
     }
   }
 
@@ -1175,7 +1213,7 @@ void sendNewNote() {
 }
 
 void sendReleasedNote() {
-  if (!isArpeggiatorEnabled(sensorSplit)) {
+  if (!isArpeggiatorEnabled(sensorSplit) && !isSwitchLegatoPressed(sensorSplit)) {
     // iterate over all the rows
     for (byte row = 0; row < NUMROWS; ++row) {
 
@@ -1474,6 +1512,9 @@ boolean handleNonPlayingRelease() {
       case displayCCForSwitchSustain:
         handleCCForSwitchSustainConfigRelease();
         break;
+      case displayCustomSwitchAssignment:
+        handleCustomSwitchAssignmentConfigRelease();
+        break;
       case displayLimitsForVelocity:
         handleLimitsForVelocityRelease();
         break;
@@ -1641,11 +1682,15 @@ void handleTouchRelease() {
     }
 
     // unregister the note <> cell mapping
-    noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
+    if (!isSwitchLegatoPressed(sensorSplit) && (!isArpeggiatorEnabled(sensorSplit) || !isSwitchLatchPressed(sensorSplit))) {
+      noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
+    }
 
     // send the Note Off
     if (isArpeggiatorEnabled(sensorSplit)) {
-      handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+      if (!isSwitchLatchPressed(sensorSplit)) {
+        handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+      }
     }
     else {
       if (isStrummedSplit(sensorSplit)) {
@@ -1716,7 +1761,6 @@ void postTouchRelease() {
   sensorCell->clearAllPhantoms();
 
   // reset velocity calculations
-  sensorCell->velocity = 0;
   sensorCell->vcount = 0;
 
   sensorCell->clearSensorData();

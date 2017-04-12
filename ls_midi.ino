@@ -891,26 +891,38 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Switch 1 Assignment
     case 228:
-      if (inRange(value, 0, 6)) {
-        Global.switchAssignment[3] = value;
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+        Global.switchAssignment[SWITCH_SWITCH_1] = value;
+        if (value >= ASSIGNED_TAP_TEMPO) {
+          Global.customSwitchAssignment[SWITCH_SWITCH_1] = value;
+        }
       }
       break;
     // Global Switch 2 Assignment
     case 229:
-      if (inRange(value, 0, 6)) {
-        Global.switchAssignment[2] = value;
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+        Global.switchAssignment[SWITCH_SWITCH_2] = value;
+        if (value >= ASSIGNED_TAP_TEMPO) {
+          Global.customSwitchAssignment[SWITCH_SWITCH_2] = value;
+        }
       }
       break;
     // Global Foot Left Assignment
     case 230:
-      if (inRange(value, 0, 6)) {
-        Global.switchAssignment[0] = value;
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+        Global.switchAssignment[SWITCH_FOOT_L] = value;
+        if (value >= ASSIGNED_TAP_TEMPO) {
+          Global.customSwitchAssignment[SWITCH_FOOT_L] = value;
+        }
       }
       break;
     // Global Foot Right Assignment
     case 231:
-      if (inRange(value, 0, 6)) {
-        Global.switchAssignment[1] = value;
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+        Global.switchAssignment[SWITCH_FOOT_R] = value;
+        if (value >= ASSIGNED_TAP_TEMPO) {
+          Global.customSwitchAssignment[SWITCH_FOOT_R] = value;
+        }
       }
       break;
     // Global Velocity Sensitivity
@@ -1013,10 +1025,13 @@ void receivedNrpn(int parameter, int value) {
         updateDisplay();
       }
       break;
-    // Global MIDI CC For Switch CC65
+    // Global MIDI CC For Switch CC65 for all Switches
     case 248:
       if (inRange(value, 0, 127)) {
-        Global.ccForSwitchCC65 = value;
+        Global.ccForSwitchCC65[SWITCH_FOOT_L] = value;
+        Global.ccForSwitchCC65[SWITCH_FOOT_R] = value;
+        Global.ccForSwitchCC65[SWITCH_SWITCH_1] = value;
+        Global.ccForSwitchCC65[SWITCH_SWITCH_2] = value;
       }
       break;
     // Global Minimum Value For Velocity
@@ -1058,10 +1073,52 @@ void receivedNrpn(int parameter, int value) {
         Device.midiThrough = value;
       }
       break;
-    // Global MIDI CC For Switch Sustain
+    // Global MIDI CC For Foot Left CC65
     case 255:
       if (inRange(value, 0, 127)) {
-        Global.ccForSwitchSustain = value;
+        Global.ccForSwitchCC65[SWITCH_FOOT_L] = value;
+      }
+      break;
+    // Global MIDI CC For Foot Right CC65
+    case 256:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchCC65[SWITCH_FOOT_R] = value;
+      }
+      break;
+    // Global MIDI CC For Switch 1 CC65
+    case 257:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchCC65[SWITCH_SWITCH_1] = value;
+      }
+      break;
+    // Global MIDI CC For Switch 2 CC65
+    case 258:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchCC65[SWITCH_SWITCH_2] = value;
+      }
+      break;
+    // Global MIDI CC For Foot Left Sustain
+    case 259:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchSustain[SWITCH_FOOT_L] = value;
+      }
+      break;
+    // Global MIDI CC For Foot Right Sustain
+    case 260:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchSustain[SWITCH_FOOT_R] = value;
+      }
+      break;
+    // Global MIDI CC For Switch 1 Sustain
+    case 261:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchSustain[SWITCH_SWITCH_1] = value;
+      }
+      break;
+    // Global MIDI CC For Switch 2 Sustain
+    case 262:
+      if (inRange(value, 0, 127)) {
+        Global.ccForSwitchSustain[SWITCH_SWITCH_2] = value;
       }
       break;
   }
@@ -1584,19 +1641,19 @@ void midiSendVolume(byte v, byte channel) {
 
 void preSendSustain(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchSustain, v, Split[split].midiChanMain, true);
+    midiSendControlChange(Global.ccForSwitchSustain[switchSelect], v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, Global.ccForSwitchSustain, v);
+    preSendControlChange(split, Global.ccForSwitchSustain[switchSelect], v);
   }
 }
 
 void preSendSwitchCC65(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchCC65, v, Split[split].midiChanMain, true);
+    midiSendControlChange(Global.ccForSwitchCC65[switchSelect], v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, Global.ccForSwitchCC65, v);
+    preSendControlChange(split, Global.ccForSwitchCC65[switchSelect], v);
   }
 }
 

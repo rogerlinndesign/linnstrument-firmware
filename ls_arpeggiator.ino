@@ -167,7 +167,13 @@ void advanceArpeggiatorForSplit(byte split) {
         }
         else {
           for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
-            midiSendNoteOn(split, getOctaveNote(octave, arpNote), cell(entry->getCol(), entry->getRow()).velocity, arpChannel);
+            // after the initial velocity, new velocity values are continuously being calculated simply based
+            // on the Z data so that velocity can change during the arpeggiation
+            TouchInfo* entry_cell = &cell(entry->getCol(), entry->getRow());
+            if (entry_cell->touched == touchedCell) {
+              entry_cell->velocity = calcPreferredVelocity(entry_cell->velocityZ);      
+            }
+            midiSendNoteOn(split, getOctaveNote(octave, arpNote), entry_cell->velocity, arpChannel);
           }
 
           arpNote = entry->getNextNote();
@@ -396,7 +402,13 @@ void advanceArpeggiatorForSplit(byte split) {
           arpNote = -1;
         }
         else {
-          midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), cell(entry->getCol(), entry->getRow()).velocity, arpChannel);
+          // after the initial velocity, new velocity values are continuously being calculated simply based
+          // on the Z data so that velocity can change during the arpeggiation
+          TouchInfo* entry_cell = &cell(entry->getCol(), entry->getRow());
+          if (entry_cell->touched == touchedCell) {
+            entry_cell->velocity = calcPreferredVelocity(entry_cell->velocityZ);      
+          }
+          midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), entry_cell->velocity, arpChannel);
         }
       }
 
