@@ -511,6 +511,7 @@ void initializePresetSettings() {
           focusCell[s][chan].row = 0;
         }
         p.split[s].midiMode = oneChannel;
+        p.split[s].midiChanPerRowReversed = false;
         p.split[s].bendRangeOption = bendRange2;
         p.split[s].customBendRange = 24;
         p.split[s].sendX = true;
@@ -1123,6 +1124,9 @@ void handlePerSplitSettingNewTouch() {
           if (sensorRow != 6) {
             setSplitMpeMode(Global.currentPerSplit, false);
           }
+          if (sensorRow == 5) {
+            Split[Global.currentPerSplit].midiChanPerRowReversed = false;
+          }
           updateSplitMidiChannels(Global.currentPerSplit);
           break;
       }
@@ -1349,6 +1353,9 @@ void handlePerSplitSettingNewTouch() {
         case 6:
           setLed(sensorCol, sensorRow, getMpeColor(sensorSplit), cellSlowPulse);
           break;
+        case 5:
+          setLed(sensorCol, sensorRow, getChannelPerRowColor(sensorSplit), cellSlowPulse);
+          break;
       }
       break;
 
@@ -1415,6 +1422,11 @@ void handlePerSplitSettingHold() {
         switch (sensorRow) {
           case 6:
             setSplitMpeMode(Global.currentPerSplit, true);
+            updateDisplay();
+            break;
+          case 5:
+            Split[Global.currentPerSplit].midiChanPerRowReversed = true;
+            updateSplitMidiChannels(Global.currentPerSplit);
             updateDisplay();
             break;
         }

@@ -841,6 +841,12 @@ void receivedNrpn(int parameter, int value) {
         Split[split].initialRelativeY = value;
       }
       break;
+    // Split Channel Per Row MIDI Channel Order
+    case 60:
+      if (inRange(value, 0, 1)) {
+        Split[split].midiChanPerRowReversed = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -1164,7 +1170,12 @@ byte calculateRowPerChannelRow(byte split, byte channel) {
     row = (channel + 16) - basechan;
   }
 
-  return row;
+  if (Split[split].midiChanPerRowReversed) {
+    return (NUMROWS - 1) - row;
+  }
+  else {
+    return row;
+  }
 }
 
 void highlightPossibleNoteCells(byte split, byte notenum) {
@@ -1322,7 +1333,7 @@ void preSendPitchBend(byte split, int pitchValue) {
 
     case channelPerRow:
     {
-      for (byte row = 0; row < 8; ++row) {
+      for (byte row = 0; row < NUMROWS; ++row) {
         byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
@@ -1671,7 +1682,7 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
 
     case channelPerRow:
     {
-      for ( byte row = 0; row < 8; ++row) {
+      for ( byte row = 0; row < NUMROWS; ++row) {
         byte ch = Split[split].midiChanPerRow + row;
         if (ch > 16) {
           ch -= 16;
@@ -1712,7 +1723,7 @@ void midiSendAllNotesOff(byte split) {
 
       case channelPerRow:
       {
-        for ( byte row = 0; row < 8; ++row) {
+        for ( byte row = 0; row < NUMROWS; ++row) {
           byte ch = Split[split].midiChanPerRow + row;
           if (ch > 16) {
             ch -= 16;

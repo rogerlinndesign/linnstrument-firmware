@@ -121,6 +121,7 @@ NRPN   Value   Description
 57     0-127   Split Left Maximum CC Value For Z
 58     0-1     Split Left CC Value For Z in 14-bit
 59     0-127   Split Left Initial Value For Relative Y
+60     0-1     Split Left Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -181,6 +182,7 @@ NRPN   Value   Description
 157    0-127   Split Right Maximum CC Value For Z
 158    0-1     Split Right CC Value For Z in 14-bit
 159    0-127   Split Right Initial Value For Relative Y
+160    0-1     Split Right Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column

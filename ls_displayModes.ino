@@ -522,7 +522,7 @@ void paintPerSplitDisplay(byte side) {
     }
     case channelPerRow:
     {
-      setLed(1, 5, Split[side].colorMain, cellOn);
+      setLed(1, 5, getChannelPerRowColor(side), cellOn);
       break;
     }
   }
@@ -679,6 +679,14 @@ void paintPerSplitDisplay(byte side) {
 byte getMpeColor(byte side) {
   byte color = Split[side].colorMain;
   if (Split[side].mpe) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getChannelPerRowColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].midiChanPerRowReversed) {
     color = Split[side].colorAccent;
   }
   return color;

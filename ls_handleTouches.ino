@@ -535,7 +535,13 @@ byte takeChannel(byte split, byte row) {
 
     case channelPerRow:
     {
-      byte channel = Split[split].midiChanPerRow + row;
+      byte channel = Split[split].midiChanPerRow;
+      if (Split[split].midiChanPerRowReversed) {
+        channel += (NUMROWS - 1) - row;
+      }
+      else {
+        channel += row;
+      }
       if (channel > 16) {
         channel -= 16;
       }

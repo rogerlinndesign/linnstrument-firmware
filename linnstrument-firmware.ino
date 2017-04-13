@@ -573,6 +573,7 @@ struct SplitSettings {
   byte midiMode;                          // 0 = one channel, 1 = note per channel, 2 = row per channel
   byte midiChanMain;                      // main midi channel, 1 to 16
   byte midiChanPerRow;                    // per-row midi channel, 1 to 16
+  boolean midiChanPerRowReversed;         // indicates whether channel per row channels count upwards or downwards across the rows
   boolean midiChanSet[16];                // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
   BendRangeOption bendRangeOption;        // see BendRangeOption
   byte customBendRange;                   // 1 - 96
