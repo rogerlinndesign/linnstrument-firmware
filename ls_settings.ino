@@ -270,10 +270,10 @@ void applyPresetSettings(PresetSettings& preset) {
   applyLimitsForZ();
   applyLimitsForVelocity();
 
+  applyMidiIo();
+
   updateSplitMidiChannels(LEFT);
   updateSplitMidiChannels(RIGHT);
-
-  applyMidiIo();
 }
 
 void applyConfiguration() {
@@ -976,6 +976,7 @@ void updateSplitMidiChannels(byte sp) {
       break;
     }
   }
+  preResetMidiExpression(sp);
 }
 
 byte countMpePolyphony(byte split) {
@@ -1120,6 +1121,8 @@ void handlePerSplitSettingNewTouch() {
         case 7:
         case 6:
         case 5:
+          preResetMidiExpression(Global.currentPerSplit);
+
           Split[Global.currentPerSplit].midiMode = 7 - sensorRow;    // values are 0, 1, 2
           if (sensorRow != 6) {
             setSplitMpeMode(Global.currentPerSplit, false);
@@ -1149,6 +1152,8 @@ void handlePerSplitSettingNewTouch() {
     case 5:
     case 6:
       if (sensorRow >=4 && sensorRow <= 7) {
+        preResetMidiExpression(Global.currentPerSplit);
+        
         // Channels in column 3 are 1,5,9,13, column 4 are 2,6,10,14, column 5 are 3,7,11,15, and column 6 are 4,8,12,16
         byte chan = (7 - sensorRow) * 4 + sensorCol - 2;    // this value should be from 1 to 16
         toggleChannel(chan);
@@ -1426,7 +1431,6 @@ void handlePerSplitSettingHold() {
             break;
           case 5:
             Split[Global.currentPerSplit].midiChanPerRowReversed = true;
-            updateSplitMidiChannels(Global.currentPerSplit);
             updateDisplay();
             break;
         }

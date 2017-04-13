@@ -514,31 +514,39 @@ void receivedNrpn(int parameter, int value) {
     // Split MIDI Mode
     case 0:
       if (inRange(value, 0, 2)) {
+        preResetMidiExpression(split);
         Split[split].midiMode = value;
         // ensure MPE is turned off
         disableMpe(split);
+        preResetMidiExpression(split);
       }
       break;
     // Split MIDI Main Channel
     case 1:
       if (inRange(value, 1, 16)) {
+        preResetMidiExpression(split);
         Split[split].midiChanMain = value;
         // ensure MPE is turned off
         disableMpe(split);
+        preResetMidiExpression(split);
       }
     // Split MIDI Per Note Channels
     case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
     case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17:
       if (inRange(value, 0, 1)) {
+        preResetMidiExpression(split);
         Split[split].midiChanSet[parameter-2] = value;
         // ensure MPE is turned off
         disableMpe(split);
+        preResetMidiExpression(split);
       }
       break;
     // Split MIDI Per Row Lowest Channel
     case 18:
       if (inRange(value, 1, 16)) {
+        preResetMidiExpression(split);
         Split[split].midiChanPerRow = value;
+        preResetMidiExpression(split);
       }
       break;
     // Split MIDI Bend Range
@@ -1252,17 +1260,17 @@ short getNoteNumColumn(byte split, byte notenum, byte row) {
 
 // Arrays to keep track of the last sent MIDI values to allow the MIDI output
 // routines to not unnecessarily send out duplicate data
-byte lastValueMidiCC[16*128];
+byte lastValueMidiCC[16][128];
 int  lastValueMidiPB[16];
 byte lastValueMidiAT[16];
-byte lastValueMidiPP[16*128];
+byte lastValueMidiPP[16][128];
 
 // Arrays to keep track of the last moment of MIDI values to allow for MIDI output
 // decimation
-unsigned long lastMomentMidiCC[16*128];
+unsigned long lastMomentMidiCC[16][128];
 unsigned long lastMomentMidiPB[16];
 unsigned long lastMomentMidiAT[16];
-unsigned long lastMomentMidiPP[16*128];
+unsigned long lastMomentMidiPP[16][128];
 
 inline byte getBendRange(byte split) {
   byte bendRange = 0;
@@ -1313,6 +1321,52 @@ int scalePitch(byte split, int pitchValue) {
   }
 
   return pitchValue;
+}
+
+// Reset all the MIDI expression values
+void preResetMidiExpression(byte split) {
+  initializeLastMidiTracking();
+
+  switch (Split[split].midiMode)
+  {
+    case channelPerNote:
+    {
+      for (byte ch = 0; ch < 16; ++ch) {
+        if (Split[split].midiChanSet[ch]) {
+          midiSendPitchBend(0, ch+1);
+          byte note = 128; // this is invalid on purpose
+          preSendTimbre(split, 0, note, ch);
+          preSendLoudness(split, 0, 0, note, ch);
+        }
+      }
+      break;
+    }
+
+    case channelPerRow:
+    {
+      for (byte row = 0; row < NUMROWS; ++row) {
+        byte ch = Split[split].midiChanPerRow + row;
+        if (ch > 16) {
+          ch -= 16;
+        }
+        midiSendPitchBend(0, ch);
+        byte note = 128; // this is invalid on purpose
+        preSendTimbre(split, 0, note, ch);
+        preSendLoudness(split, 0, 0, note, ch);
+      }
+      break;
+    }
+
+    case oneChannel:
+    {
+      byte ch = Split[split].midiChanMain;
+      midiSendPitchBend(0, ch);
+      byte note = 128; // this is invalid on purpose
+      preSendTimbre(split, 0, note, ch);
+      preSendLoudness(split, 0, 0, note, ch);
+      break;
+    }
+  }
 }
 
 // Send pitch bend data to all the active channels of the split without changing the bend range
@@ -1491,10 +1545,10 @@ void preSendLoudness(byte split, byte pressureValueLo, short pressureValueHi, by
 
 void resetLastMidiPolyPressure(byte note, byte channel) {
   note = constrain(note, 0, 127);
-  // we leave the channel starting at 1 since it serves as an offset here
+  channel = constrain(channel-1, 0, 15);
 
-  lastValueMidiPP[channel * note] = 0xFF;
-  lastMomentMidiPP[channel * note] = 0;
+  lastValueMidiPP[channel][note] = 0xFF;
+  lastMomentMidiPP[channel][note] = 0;
 }
 
 void resetLastMidiAfterTouch(byte channel) {
@@ -1506,10 +1560,10 @@ void resetLastMidiAfterTouch(byte channel) {
 
 void resetLastMidiCC(byte controlnum, byte channel) {
   controlnum = constrain(controlnum, 0, 127);
-  // we leave the channel starting at 1 since it serves as an offset here
+  channel = constrain(channel-1, 0, 15);
 
-  lastValueMidiCC[channel * controlnum] = 0xFF;
-  lastMomentMidiCC[channel * controlnum] = 0;
+  lastValueMidiCC[channel][controlnum] = 0xFF;
+  lastMomentMidiCC[channel][controlnum] = 0;
 }
 
 void resetLastMidiPitchBend(byte channel) {
@@ -1528,20 +1582,23 @@ void initializeLastMidiTracking() {
     lastMomentMidiPB[ch] = 0;
     lastMomentMidiAT[ch] = 0;
     for (byte msg = 0; msg < 128; ++msg) {
-      byte choffset = ch + 1;
-      lastValueMidiCC[choffset*msg] = 0xFF;
-      lastValueMidiPP[choffset*msg] = 0xFF;
-      lastMomentMidiCC[choffset*msg] = 0;
-      lastMomentMidiPP[choffset*msg] = 0;
+      lastValueMidiCC[ch][msg] = 0xFF;
+      lastValueMidiPP[ch][msg] = 0xFF;
+      lastMomentMidiCC[ch][msg] = 0;
+      lastMomentMidiPP[ch][msg] = 0;
     }
+
+    performContinuousTasks();
   }
 
   // Initialize the arrays that track which MIDI notes are on
   for (byte s = 0; s < 2; ++s) {
-    for (byte n = 0; n < 128; ++n) {
-      for (byte c = 0; c < 16; ++c) {
+    for (byte c = 0; c < 16; ++c) {
+      for (byte n = 0; n < 128; ++n) {
         lastValueMidiNotesOn[s][n][c] = 0;
       }
+
+      performContinuousTasks();
     }
   }
 }
@@ -1753,13 +1810,12 @@ void midiSendControlChange(byte controlnum, byte controlval, byte channel, boole
 
   unsigned long now = micros();
   // always send channel mode messages and sustain, as well as messages that are flagged as always
-  short index = (controlnum + 1) * (channel + 1) - 1;
   if (!always && controlnum < 120 && controlnum != 64) {
-    if (lastValueMidiCC[index] == controlval) return;
-    if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[index]) <= midiDecimateRate) return;
+    if (lastValueMidiCC[channel][controlnum] == controlval) return;
+    if (controlval != 0 && calcTimeDelta(now, lastMomentMidiCC[channel][controlnum]) <= midiDecimateRate) return;
   }
-  lastValueMidiCC[index] = controlval;
-  lastMomentMidiCC[index] = now;
+  lastValueMidiCC[channel][controlnum] = controlval;
+  lastMomentMidiCC[channel][controlnum] = now;
 
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
@@ -1791,17 +1847,14 @@ void midiSendControlChange14BitUserFirmware(byte controlMsb, byte controlLsb, sh
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = (controlMsb + 1) * (channel + 1) - 1;
-  short indexLsb = (controlLsb + 1) * (channel + 1) - 1;
-
-  if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
+  if (lastValueMidiCC[channel][controlMsb] == msb && lastValueMidiCC[channel][controlLsb] == lsb) return;
   if (controlval != 0 &&
-      (calcTimeDelta(now, lastMomentMidiCC[indexMsb]) <= midiDecimateRate ||
-       calcTimeDelta(now, lastMomentMidiCC[indexLsb]) <= midiDecimateRate)) return;
-  lastValueMidiCC[indexMsb] = msb;
-  lastMomentMidiCC[indexMsb] = now;
-  lastValueMidiCC[indexLsb] = lsb;
-  lastMomentMidiCC[indexLsb] = now;
+      (calcTimeDelta(now, lastMomentMidiCC[channel][controlMsb]) <= midiDecimateRate ||
+       calcTimeDelta(now, lastMomentMidiCC[channel][controlLsb]) <= midiDecimateRate)) return;
+  lastValueMidiCC[channel][controlMsb] = msb;
+  lastMomentMidiCC[channel][controlMsb] = now;
+  lastValueMidiCC[channel][controlLsb] = lsb;
+  lastMomentMidiCC[channel][controlLsb] = now;
 
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
@@ -1836,13 +1889,10 @@ void midiSendControlChange14BitMIDISpec(byte controlMsb, byte controlLsb, short 
   unsigned msb = (controlval & 0x3fff) >> 7;
   unsigned lsb = controlval & 0x7f;
 
-  short indexMsb = (controlMsb + 1) * (channel + 1) - 1;
-  short indexLsb = (controlLsb + 1) * (channel + 1) - 1;
-
-  if (lastValueMidiCC[indexMsb] == msb && lastValueMidiCC[indexLsb] == lsb) return;
+  if (lastValueMidiCC[channel][controlMsb] == msb && lastValueMidiCC[channel][controlLsb] == lsb) return;
   if (controlval != 0 &&
-      (calcTimeDelta(now, lastMomentMidiCC[indexMsb]) <= midiDecimateRate ||
-       calcTimeDelta(now, lastMomentMidiCC[indexLsb]) <= midiDecimateRate)) return;
+      (calcTimeDelta(now, lastMomentMidiCC[channel][controlMsb]) <= midiDecimateRate ||
+       calcTimeDelta(now, lastMomentMidiCC[channel][controlLsb]) <= midiDecimateRate)) return;
   if (Device.serialMode) {
 #ifdef DEBUG_ENABLED
     if (SWITCH_DEBUGMIDI) {
@@ -1859,13 +1909,13 @@ void midiSendControlChange14BitMIDISpec(byte controlMsb, byte controlLsb, short 
 #endif
   }
   else {
-    if (lastValueMidiCC[indexMsb] != msb) {
-      lastValueMidiCC[indexMsb] = msb;
-      lastMomentMidiCC[indexMsb] = now;
+    if (lastValueMidiCC[channel][controlMsb] != msb) {
+      lastValueMidiCC[channel][controlMsb] = msb;
+      lastMomentMidiCC[channel][controlMsb] = now;
       queueMidiMessage(MIDIControlChange, controlMsb, msb, channel);
     }
-    lastValueMidiCC[indexLsb] = lsb;
-    lastMomentMidiCC[indexLsb] = now;
+    lastValueMidiCC[channel][controlLsb] = lsb;
+    lastMomentMidiCC[channel][controlLsb] = now;
     queueMidiMessage(MIDIControlChange, controlLsb, lsb, channel);
   }
 }
@@ -2033,15 +2083,16 @@ void midiSendAfterTouch(byte value, byte channel) {
 }
 
 void midiSendPolyPressure(byte notenum, byte value, byte channel) {
+  if (notenum > 127) return;
+
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
-  short index = (notenum + 1) * (channel + 1) - 1;
-  if (lastValueMidiPP[index] == value) return;
-  if (value != 0 && calcTimeDelta(now, lastMomentMidiPP[index]) <= midiDecimateRate) return;
-  lastValueMidiPP[index] = value;
-  lastMomentMidiPP[index] = now;
+  if (lastValueMidiPP[channel][notenum] == value) return;
+  if (value != 0 && calcTimeDelta(now, lastMomentMidiPP[channel][notenum]) <= midiDecimateRate) return;
+  lastValueMidiPP[channel][notenum] = value;
+  lastMomentMidiPP[channel][notenum] = now;
 
   if (Device.serialMode) {
     if (SWITCH_DEBUGMIDI && debugLevel >= 0) {
