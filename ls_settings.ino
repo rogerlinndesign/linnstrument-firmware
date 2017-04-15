@@ -312,7 +312,7 @@ void initializeDeviceSettings() {
   Device.sleepAnimationType = animationNone;
   Device.operatingLowPower = false;
   Device.otherHanded = false;
-  Device.splitHandedness = leftHandedSplits;
+  Device.splitHandedness = reversedBoth;
   Device.minUSBMIDIInterval = DEFAULT_MIN_USB_MIDI_INTERVAL;
   Device.midiThrough = false;
   Device.lastLoadedPreset = -1;
@@ -1952,7 +1952,7 @@ void handleSleepConfigRelease() {
 }
 
 void handleSplitHandednessNewTouch() {
-  handleNumericDataNewTouchCol(Device.splitHandedness, 0, 1, true);
+  handleNumericDataNewTouchCol(Device.splitHandedness, 0, 2, true);
 }
 
 void handleSplitHandednessRelease() {
@@ -2665,6 +2665,14 @@ void handleGlobalSettingNewTouch() {
 
   // make the sensors that are waiting for hold pulse slowly to indicate that something is going on
   switch (sensorCol) {
+    case 1:
+      switch (sensorRow) {
+        case 3:
+          setLed(sensorCol, sensorRow, getSplitHandednessColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
     case 6:
       switch (sensorRow) {
         case 2:

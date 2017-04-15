@@ -2088,25 +2088,25 @@ static Character cond_T = { 3,
   " 0 "
   "   " };
 
-static Character cond_U = { 4,
-  "    "
-  "0  0"
-  "0  0"
-  "0  0"
-  "0  0"
-  "0  0"
-  " 00 "
-  "    " };
+static Character cond_U = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  "000"
+  "   " };
 
-static Character cond_V = { 5,
-  "     "
-  "0   0"
-  "0   0"
-  "0   0"
-  "0   0"
-  " 0 0 "
-  "  0  "
-  "     " };
+static Character cond_V = { 3,
+  "   "
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  "0 0"
+  " 0 "
+  "   " };
 
 static Character cond_W = { 5,
   "     "

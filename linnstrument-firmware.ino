@@ -629,8 +629,9 @@ enum SleepAnimationType {
 };
 
 enum SplitHandednessType {
-  leftHandedSplits,                          // both left-handed
-  mirroredSplits                             // left is left-handed and right is right-handed
+  reversedBoth,
+  reversedLeft,
+  reversedRight
 };
 
 struct DeviceSettings {

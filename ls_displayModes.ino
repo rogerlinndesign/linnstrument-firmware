@@ -795,7 +795,7 @@ byte getCalibrationColor() {
 }
 
 byte getSplitHandednessColor() {
-  if (Device.splitHandedness == 0) {
+  if (Device.splitHandedness == reversedBoth) {
     return globalColor;
   }
   return globalAltColor;
@@ -1094,11 +1094,16 @@ void paintSleepConfig() {
 
 void paintSplitHandedness() {
   clearDisplay();
-  if (Device.splitHandedness == leftHandedSplits) {
-    adaptfont_draw_string(0, 0, "LEFT", globalColor, true);
-  }
-  else {
-    adaptfont_draw_string(0, 0, "MIRR", globalColor, true);
+  switch (Device.splitHandedness) {
+    case reversedBoth:
+      adaptfont_draw_string(0, 0, "REV", globalColor, true);
+      break;
+    case reversedLeft:
+      adaptfont_draw_string(0, 0, "REVL", globalColor, true);
+      break;
+    case reversedRight:
+      adaptfont_draw_string(0, 0, "REVR", globalColor, true);
+      break;
   }
 }
 

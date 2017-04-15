@@ -2005,7 +2005,7 @@ inline byte splitLowestEdge(byte split) {
 }
 
 inline boolean isLeftHandedSplit(byte split) {
-  return Device.otherHanded && (Device.splitHandedness == leftHandedSplits || (Device.splitHandedness == mirroredSplits && split == LEFT));
+  return Device.otherHanded && (Device.splitHandedness == reversedBoth || (split == LEFT && Device.splitHandedness == reversedLeft) || (split == RIGHT && Device.splitHandedness == reversedRight));
 }
 
 // If split mode is on and the specified column is in the right split, returns RIGHT, otherwise LEFT.
