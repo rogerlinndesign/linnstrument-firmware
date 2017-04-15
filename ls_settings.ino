@@ -537,6 +537,7 @@ void initializePresetSettings() {
         p.split[s].colorSequencerEmpty = COLOR_YELLOW;
         p.split[s].colorSequencerEvent = COLOR_ORANGE;
         p.split[s].colorSequencerDisabled = COLOR_LIME;
+        p.split[s].playedTouchMode = playedOctaves;
         p.split[s].lowRowCCXBehavior = lowRowCCHold;
         p.split[s].ccForLowRow = 1;
         p.split[s].lowRowCCXYZBehavior = lowRowCCHold;
@@ -1268,7 +1269,7 @@ void handlePerSplitSettingNewTouch() {
           Split[Global.currentPerSplit].colorAccent = colorCycle(Split[Global.currentPerSplit].colorAccent, false);
           break;
         case 5:
-          Split[Global.currentPerSplit].colorPlayed = colorCycle(Split[Global.currentPerSplit].colorPlayed, true);
+          // handled in release
           break;
         case 4:
           Split[Global.currentPerSplit].colorLowRow = colorCycle(Split[Global.currentPerSplit].colorLowRow, false);
@@ -1397,6 +1398,14 @@ void handlePerSplitSettingNewTouch() {
       }
       break;
 
+    case 11:
+      switch (sensorRow) {
+        case 5:
+          setLed(sensorCol, sensorRow, Split[sensorSplit].colorPlayed, cellSlowPulse);
+          break;
+      }
+      break;
+
     case 13:
       switch (sensorRow) {
         case 5:
@@ -1476,6 +1485,16 @@ void handlePerSplitSettingHold() {
           case 4:
             resetNumericDataChange();
             setDisplayMode(displayCCForZ);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 11:
+        switch (sensorRow) {
+          case 5:
+            resetNumericDataChange();
+            setDisplayMode(displayPlayedTouchModeConfig);
             updateDisplay();
             break;
         }
@@ -1576,6 +1595,16 @@ void handlePerSplitSettingRelease() {
           if (ensureCellBeforeHoldWait(getCCForZColor(Global.currentPerSplit),
                                        Split[Global.currentPerSplit].expressionForZ == loudnessCC11 ? cellOn : cellOff)) {
             Split[Global.currentPerSplit].expressionForZ = loudnessCC11;
+          }
+          break;
+      }
+      break;
+
+    case 11:
+      switch (sensorRow) {
+        case 5:
+          if (ensureCellBeforeHoldWait(Split[Global.currentPerSplit].colorPlayed, cellOn)) {
+            Split[Global.currentPerSplit].colorPlayed = colorCycle(Split[Global.currentPerSplit].colorPlayed, true);
           }
           break;
       }
@@ -1823,6 +1852,14 @@ void handleCCForZNewTouch() {
 }
 
 void handleCCForZRelease() {
+  handleNumericDataReleaseCol(true);
+}
+
+void handlePlayedTouchModeNewTouch() {
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].playedTouchMode, playedOctaves, playedBlinds, false);
+}
+
+void handlePlayedTouchModeRelease() {
   handleNumericDataReleaseCol(true);
 }
 

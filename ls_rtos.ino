@@ -84,6 +84,13 @@ inline void performContinuousTasks(unsigned long nowMicros) {
       checkStopBlinkingLeds(nowMillis);
       continuousStopBlinkingLeds = false;
     }
+    
+    static boolean continuousAdvanceTouchAnimations = false;
+    if (!continuousAdvanceTouchAnimations) {
+      continuousAdvanceTouchAnimations = true;
+      checkTimeToRefreshTouchAnim(nowMillis);
+      continuousAdvanceTouchAnimations = false;
+    }
 
     static boolean continuousLegendDisplayTimeout = false;
     if (!continuousLegendDisplayTimeout) {
@@ -161,6 +168,13 @@ inline boolean checkRefreshLedColumn(unsigned long now) {
     return true;
   }
   return false;
+}
+
+inline void checkTimeToRefreshTouchAnim(unsigned long now) {
+  if (calcTimeDelta(now, prevTouchAnimTimerCount) > 33) {
+    performAdvanceTouchAnimations(now);
+    prevTouchAnimTimerCount = now;
+  }
 }
 
 // checks to see if it's time to refresh the next LED column, and if so, does it

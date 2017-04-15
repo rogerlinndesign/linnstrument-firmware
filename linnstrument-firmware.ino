@@ -358,7 +358,7 @@ TouchInfo touchInfo[MAXCOLS][MAXROWS];       // store as much touch information 
 
 TouchInfo* sensorCell = &touchInfo[0][0];
 
-int32_t rowsInColsTouched[MAXCOLS];       // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
+int32_t rowsInColsTouched[MAXCOLS];          // keep track of which rows inside each column and which columns inside each row are touched, using a bitmask
 int32_t colsInRowsTouched[MAXROWS];          // to makes it possible to quickly identify square formations that generate phantom presses
 unsigned short cellsTouched;                 // counts the number of active touches on cells
 
@@ -447,6 +447,7 @@ enum DisplayMode {
   displayInitialForRelativeY,
   displayLimitsForZ,
   displayCCForZ,
+  displayPlayedTouchModeConfig,
   displayCCForFader,
   displayLowRowCCXConfig,
   displayLowRowCCXYZConfig,
@@ -506,6 +507,17 @@ struct __attribute__ ((packed)) CalibrationY {
 
 
 /***************************************** PANEL SETTINGS ****************************************/
+
+enum PlayedTouchMode {
+  playedOctaves,
+  playedCross,
+  playedCircles,
+  playedSquares,
+  playedStars,
+  playedSparkles,
+  playedCurtains,
+  playedBlinds
+};
 
 enum LowRowMode {
   lowRowNormal,
@@ -602,6 +614,7 @@ struct SplitSettings {
   byte colorSequencerEmpty;               // color for sequencer low row step with no events
   byte colorSequencerEvent;               // color for sequencer low row step with events
   byte colorSequencerDisabled;            // color for sequencer low row step that's not being played
+  byte playedTouchMode;                   // see PlayedTouchMode values
   byte lowRowMode;                        // see LowRowMode values
   byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
   unsigned short ccForLowRow;             // 0-128 (with 128 being placeholder for ChannelPressure)
@@ -954,6 +967,7 @@ byte mainLoopDivider = DEFAULT_MAINLOOP_DIVIDER;         // loop divider at whic
 unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
 unsigned long prevLedTimerCount;                         // timer for refreshing leds
 unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
+unsigned long prevTouchAnimTimerCount;                   // timer for refreshing the touch animation
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
@@ -1061,6 +1075,8 @@ void reset() {
   }
 
   initializeLedLayers();
+
+  initializeTouchAnimation();
 
   initializeTouchHandling();
 

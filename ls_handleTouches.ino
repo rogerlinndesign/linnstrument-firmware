@@ -592,6 +592,9 @@ void handleNonPlayingTouch() {
     case displayCCForZ:
       handleCCForZNewTouch();
       break;
+    case displayPlayedTouchModeConfig:
+      handlePlayedTouchModeNewTouch();
+      break;
     case displayCCForFader:
       handleCCForFaderNewTouch();
       break;
@@ -1192,7 +1195,12 @@ void prepareNewNote(signed char notenum) {
 
   // highlight the same notes if this is activated
   if (Split[sensorSplit].colorPlayed) {
-    highlightPossibleNoteCells(sensorSplit, sensorCell->note);
+    if (Split[sensorSplit].playedTouchMode == playedOctaves) {
+      highlightPossibleNoteCells(sensorSplit, sensorCell->note);
+    }
+    else {
+      startTouchAnimation(sensorCol, sensorRow, 228 - (sensorCell->velocity * 3) / 2);
+    }
   }
 
   // keep track of the last note number
@@ -1503,6 +1511,9 @@ boolean handleNonPlayingRelease() {
       case displayCCForZ:
         handleCCForZRelease();
         break;
+      case displayPlayedTouchModeConfig:
+        handlePlayedTouchModeRelease();
+        break;
       case displayCCForFader:
         handleCCForFaderRelease();
         break;
@@ -1740,7 +1751,9 @@ void handleTouchRelease() {
 
       // if no notes are active anymore, reset the highlighted cells
       if (allNotesOff) {
-        resetPossibleNoteCells(sensorSplit, realSensorNote);
+        if (Split[sensorSplit].playedTouchMode == playedOctaves) {
+          resetPossibleNoteCells(sensorSplit, realSensorNote);
+        }
       }
     }
 

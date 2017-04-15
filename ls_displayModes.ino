@@ -24,6 +24,7 @@ displayCCForY                 : custom CC number selection for Y expression
 displayInitialForRelativeY    : initial value for relative Y
 displayLimitsForZ             : min and max value selection for Z expression
 displayCCForZ                 : custom CC number selection for Z expression
+displayPlayedTouchModeConfig  : custom display mode for played notes upon touch
 displayCCForFader             : custom CC number selection for a CC fader
 displayLowRowCCXConfig        : custom CC number selection and behavior for LowRow in CCX mode
 displayLowRowCCXYZConfig      : custom CC number selection and behavior for LowRow in CCXYZ mode
@@ -137,6 +138,9 @@ void updateDisplay() {
     case displayCCForZ:
       paintCCForZDisplay(Global.currentPerSplit);
       break;
+    case displayPlayedTouchModeConfig:
+      paintPlayedTouchModeDisplay(Global.currentPerSplit);
+      break;
     case displayCCForFader:
       paintCCForFaderDisplay(Global.currentPerSplit);
       break;
@@ -247,6 +251,9 @@ void enterDisplayMode(DisplayMode mode) {
 // handle logic tied to exiting specific display mode, like post-processing or saving
 void exitDisplayMode(DisplayMode mode) {
   switch (mode) {
+    case displayNormal:
+      initializeTouchAnimation();
+      break;
     case displayEditAudienceMessage:
       trimEditedAudienceMessage();
       storeSettings();
@@ -933,6 +940,36 @@ void paintCCForFaderDisplay(byte side) {
   }
   else {
     paintSplitNumericDataDisplay(side, cc, 0, false);
+  }
+}
+
+void paintPlayedTouchModeDisplay(byte side) {
+  clearDisplay();
+  switch(Split[side].playedTouchMode) {
+    case playedOctaves:
+      adaptfont_draw_string(0, 0, "OCTA", Split[side].colorMain, true);
+      break;
+    case playedCross:
+      adaptfont_draw_string(0, 0, "CROS", Split[side].colorMain, true);
+      break;
+    case playedCircles:
+      adaptfont_draw_string(0, 0, "CIRC", Split[side].colorMain, true);
+      break;
+    case playedSquares:
+      adaptfont_draw_string(0, 0, "SQUA", Split[side].colorMain, true);
+      break;
+    case playedStars:
+      adaptfont_draw_string(0, 0, "STAR", Split[side].colorMain, true);
+      break;
+    case playedSparkles:
+      adaptfont_draw_string(0, 0, "SPAR", Split[side].colorMain, true);
+      break;
+    case playedCurtains:
+      adaptfont_draw_string(0, 0, "CURT", Split[side].colorMain, true);
+      break;
+    case playedBlinds:
+      adaptfont_draw_string(0, 0, "BLIN", Split[side].colorMain, true);
+      break;
   }
 }
 
