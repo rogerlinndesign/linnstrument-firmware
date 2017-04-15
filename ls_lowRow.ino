@@ -449,11 +449,11 @@ void lowRowStop() {
 
           lowRowSplitState[sensorSplit] = inactive;
         }
-
-        updateSwitchLeds();
       }
       break;
   }
+
+  updateSwitchLeds();
 }
 
 inline boolean isLowRowArpeggiatorPressed(byte split) {

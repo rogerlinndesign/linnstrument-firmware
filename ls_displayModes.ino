@@ -266,9 +266,16 @@ void updateSwitchLeds() {
   if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR) {
     displaySwitch1 = isArpeggiatorEnabled(Global.currentPerSplit) ? cellOn : cellOff;
   }
-  else if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSustainEnabled(Global.currentPerSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65Pressed(Global.currentPerSplit))) {
+  else if (isLowRowSustainPressed(Global.currentPerSplit) &&
+           ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && Global.ccForSwitchSustain[SWITCH_SWITCH_1] == 64) ||
+            (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && Global.ccForSwitchCC65[SWITCH_SWITCH_1] == 64))) {
+    displaySwitch1 = cellOn;
+  }
+  else if ((Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_SUSTAIN && isSwitchSustainCCEnabled(SWITCH_SWITCH_1, Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_CC_65 && isSwitchCC65CCEnabled(SWITCH_SWITCH_1, Global.currentPerSplit))) {
+    displaySwitch1 = cellOn;
+  }
+  else if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) {
     displaySwitch1 = cellOn;
   }
   setLed(0, SWITCH_1_ROW, globalColor, displaySwitch1);
@@ -277,9 +284,16 @@ void updateSwitchLeds() {
   if (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_ARPEGGIATOR) {
     displaySwitch2 = isArpeggiatorEnabled(Global.currentPerSplit) ? cellOn : cellOff;
   }
-  else if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSustainEnabled(Global.currentPerSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) ||
-           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65Pressed(Global.currentPerSplit))) {
+  else if (isLowRowSustainPressed(Global.currentPerSplit) &&
+           ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && Global.ccForSwitchSustain[SWITCH_SWITCH_2] == 64) ||
+            (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && Global.ccForSwitchCC65[SWITCH_SWITCH_2] == 64))) {
+    displaySwitch2 = cellOn;
+  }
+  else if ((Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_SUSTAIN && isSwitchSustainCCEnabled(SWITCH_SWITCH_2, Global.currentPerSplit)) ||
+           (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_CC_65 && isSwitchCC65CCEnabled(SWITCH_SWITCH_2, Global.currentPerSplit))) {
+    displaySwitch2 = cellOn;
+  }
+  else if (Global.switchAssignment[SWITCH_SWITCH_2] == ASSIGNED_AUTO_OCTAVE && isSwitchAutoOctavePressed(Global.currentPerSplit)) {
     displaySwitch2 = cellOn;
   }
   setLed(0, SWITCH_2_ROW, globalColor, displaySwitch2);

@@ -36,8 +36,13 @@ void initializeSwitches() {
   switchState[SWITCH_SWITCH_1][RIGHT] = false;
 
   for (byte i = 0; i < MAX_ASSIGNED; ++i) {
-    switchTargetEnabled[i][LEFT] = false;
-    switchTargetEnabled[i][RIGHT] = false;
+    switchTargetEnabled[LEFT][i] = false;
+    switchTargetEnabled[RIGHT][i] = false;
+  }
+
+  for (byte i = 0; i < 128; ++i) {
+    switchCCEnabled[LEFT][i] = false;
+    switchCCEnabled[RIGHT][i] = false;
   }
 }
 
@@ -62,6 +67,18 @@ void doSwitchPressed(byte whichSwitch) {
   }
 }
 
+boolean isSwitchTargetEnabled(byte whichSwitch, byte assignment, byte split) {
+  if (assignment == ASSIGNED_CC_65) {
+    return isSwitchCC65CCEnabled(whichSwitch, split);
+  }
+  else if (assignment == ASSIGNED_SUSTAIN) {
+    return isSwitchSustainCCEnabled(whichSwitch, split);
+  }
+  else {
+    return switchTargetEnabled[split][assignment];
+  }
+}
+
 void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
   // by default, the state of this switch will be on when pressed,
   // unless it's determined later to be a toggle action
@@ -69,15 +86,15 @@ void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
 
   // perform the switch assignment on action if this hasn't been enabled
   // by another switch yet
-  if (!switchTargetEnabled[assignment][split]) {
-    performSwitchAssignmentOn(assignment, split);
+  if (!isSwitchTargetEnabled(whichSwitch, assignment, split)) {
+    performSwitchAssignmentOn(whichSwitch, assignment, split);
   }
   // if the switch is enabled for the split,
   // go through the assignment off logic
   else {
     // turn the switch state off
     resultingState = false;
-    performSwitchAssignmentOff(assignment, split);
+    performSwitchAssignmentOff(whichSwitch, assignment, split);
   }
 
   // change the state of the switch and the assignment based on the previous logic
@@ -119,18 +136,18 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
     // switch started being held on the other split, so we need to check which split is actually
     // active before changing the state
     if (Global.splitActive) {
-      if (switchTargetEnabled[assignment][LEFT]) {
-        performSwitchAssignmentHoldOff(assignment, LEFT);
+      if (isSwitchTargetEnabled(whichSwitch, assignment, LEFT)) {
+        performSwitchAssignmentHoldOff(whichSwitch, assignment, LEFT);
         changeSwitchState(whichSwitch, assignment, LEFT, false);
       }
-      if (switchTargetEnabled[assignment][RIGHT]) {
-        performSwitchAssignmentHoldOff(assignment, RIGHT);
+      if (isSwitchTargetEnabled(whichSwitch, assignment, RIGHT)) {
+        performSwitchAssignmentHoldOff(whichSwitch, assignment, RIGHT);
         changeSwitchState(whichSwitch, assignment, RIGHT, false);
       }
     }
     else {
-      if (switchTargetEnabled[assignment][split]) {
-        performSwitchAssignmentHoldOff(assignment, split);
+      if (isSwitchTargetEnabled(whichSwitch, assignment, split)) {
+        performSwitchAssignmentHoldOff(whichSwitch, assignment, split);
         changeSwitchState(whichSwitch, assignment, split, false);
       }
     }
@@ -156,9 +173,17 @@ void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean en
   }
 
   // the state of the switch target assigment always reflects the state of the last switch that interacted with it
-  switchTargetEnabled[assignment][split] = enabled;
-  if (assignment == ASSIGNED_ALTSPLIT) {
-    switchTargetEnabled[assignment][!split] = enabled;
+  if (assignment == ASSIGNED_CC_65) {
+    switchCCEnabled[split][Global.ccForSwitchCC65[whichSwitch]] = enabled;
+  }
+  else if (assignment == ASSIGNED_SUSTAIN) {
+    switchCCEnabled[split][Global.ccForSwitchSustain[whichSwitch]] = enabled;
+  }
+  else {
+    switchTargetEnabled[split][assignment] = enabled;
+    if (assignment == ASSIGNED_ALTSPLIT) {
+      switchTargetEnabled[otherSplit(split)][assignment] = enabled;
+    }
   }
 
   // set the state of the switch
@@ -172,7 +197,7 @@ void switchTransposeOctave(byte split, int interval) {
   updateDisplay();
 }
 
-void performSwitchAssignmentOn(byte assignment, byte split) {
+void performSwitchAssignmentOn(byte whichSwitch, byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_AUTO_OCTAVE:
@@ -189,11 +214,11 @@ void performSwitchAssignmentOn(byte assignment, byte split) {
       break;
 
     case ASSIGNED_SUSTAIN:
-      preSendSustain(split, 127);
+      preSendSwitchSustain(whichSwitch, split, 127);
       break;
 
     case ASSIGNED_CC_65:
-      preSendSwitchCC65(split, 127);
+      preSendSwitchCC65(whichSwitch, split, 127);
       break;
 
     case ASSIGNED_ALTSPLIT:
@@ -250,6 +275,7 @@ void performArpeggiatorToggle() {
 
 void performReverseSendXToggle() {
   Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
+  preSendPitchBend(Global.currentPerSplit, 0);
   if (displayMode == displayPerSplit) {
     updateDisplay();
   }
@@ -261,7 +287,7 @@ void performAltSplitAssignment() {
   updateDisplay();
 }
 
-void performSwitchAssignmentHoldOff(byte assignment, byte split) {
+void performSwitchAssignmentHoldOff(byte whichSwitch, byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_OCTAVE_DOWN:
@@ -278,7 +304,7 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
     case ASSIGNED_LEGATO:
     case ASSIGNED_LATCH:
     case ASSIGNED_REVERSE_PITCH_X:
-      performSwitchAssignmentOff(assignment, split);
+      performSwitchAssignmentOff(whichSwitch, assignment, split);
       break;
 
     case ASSIGNED_ALTSPLIT:
@@ -287,15 +313,15 @@ void performSwitchAssignmentHoldOff(byte assignment, byte split) {
   }
 }
 
-void performSwitchAssignmentOff(byte assignment, byte split) {
+void performSwitchAssignmentOff(byte whichSwitch, byte assignment, byte split) {
   switch (assignment)
   {
     case ASSIGNED_SUSTAIN:
-      preSendSustain(split, 0);
+      preSendSwitchSustain(whichSwitch, split, 0);
       break;
 
     case ASSIGNED_CC_65:
-      preSendSwitchCC65(split, 0);
+      preSendSwitchCC65(whichSwitch, split, 0);
       break;
 
     case ASSIGNED_ARPEGGIATOR:
@@ -364,22 +390,22 @@ void checkFootSwitches() {
   handleFootSwitchState(SWITCH_FOOT_R, digitalRead(FOOT_SW_RIGHT));  // check raw right input state
 }
 
-inline boolean isSwitchSustainPressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_SUSTAIN][split];
-}
-
 inline boolean isSwitchAutoOctavePressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_AUTO_OCTAVE][split];
-}
-
-inline boolean isSwitchCC65Pressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_CC_65][split];
+  return switchTargetEnabled[split][ASSIGNED_AUTO_OCTAVE];
 }
 
 inline boolean isSwitchLegatoPressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_LEGATO][split];
+  return switchTargetEnabled[split][ASSIGNED_LEGATO];
 }
 
 inline boolean isSwitchLatchPressed(byte split) {
-  return switchTargetEnabled[ASSIGNED_LATCH][split];
+  return switchTargetEnabled[split][ASSIGNED_LATCH];
+}
+
+inline boolean isSwitchCC65CCEnabled(byte whichSwitch, byte split) {
+  return switchCCEnabled[split][Global.ccForSwitchCC65[whichSwitch]];
+}
+
+inline boolean isSwitchSustainCCEnabled(byte whichSwitch, byte split) {
+  return switchCCEnabled[split][Global.ccForSwitchSustain[whichSwitch]];
 }

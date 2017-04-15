@@ -1709,19 +1709,28 @@ void midiSendVolume(byte v, byte channel) {
 
 void preSendSustain(byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchSustain[switchSelect], v, Split[split].midiChanMain, true);
+    midiSendControlChange(64, v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, Global.ccForSwitchSustain[switchSelect], v);
+    preSendControlChange(split, 64, v);
   }
 }
 
-void preSendSwitchCC65(byte split, byte v) {
+void preSendSwitchSustain(byte whichSwitch, byte split, byte v) {
   if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchCC65[switchSelect], v, Split[split].midiChanMain, true);
+    midiSendControlChange(Global.ccForSwitchSustain[whichSwitch], v, Split[split].midiChanMain, true);
   }
   else {
-    preSendControlChange(split, Global.ccForSwitchCC65[switchSelect], v);
+    preSendControlChange(split, Global.ccForSwitchSustain[whichSwitch], v);
+  }
+}
+
+void preSendSwitchCC65(byte whichSwitch, byte split, byte v) {
+  if (Split[split].mpe) {
+    midiSendControlChange(Global.ccForSwitchCC65[whichSwitch], v, Split[split].midiChanMain, true);
+  }
+  else {
+    preSendControlChange(split, Global.ccForSwitchCC65[whichSwitch], v);
   }
 }
 
@@ -2217,8 +2226,4 @@ void midiSendStop() {
   else {
     queueMidiMessage(MIDIStop, 0, 0, 0);
   }
-}
-
-inline boolean isSustainEnabled(byte split) {
-  return isLowRowSustainPressed(split) || isSwitchSustainPressed(split);
 }

@@ -962,7 +962,8 @@ signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to 
 
 unsigned long lastSwitchPress[4];
 boolean switchState[4][NUMSPLITS];
-boolean switchTargetEnabled[MAX_ASSIGNED][NUMSPLITS]; // we keep track of switch targets individually for each split and whether they're active
+boolean switchTargetEnabled[NUMSPLITS][MAX_ASSIGNED]; // we keep track of switch targets individually for each split and whether they're active
+boolean switchCCEnabled[NUMSPLITS][128];              // we keep track of the switch targets that send out CC numbers for each split to determine whether they're active
 boolean footSwitchState[2];                           // holds the last read footswitch state, so that we only react on state changes of the input signal
 boolean footSwitchOffState[2];                        // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
 unsigned long prevFootSwitchTimerCount;               // time interval (in microseconds) between foot switch reads
