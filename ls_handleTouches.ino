@@ -1209,6 +1209,12 @@ void prepareNewNote(signed char notenum) {
 
 void sendNewNote() {
   if (!isArpeggiatorEnabled(sensorSplit)) {
+    // if we've switched from pitch X enabled to pitch X disabled and the last
+    // pitch bend value was not neutral, reset it first to prevent skewed pitches
+    if (!Split[sensorSplit].sendX && hasPreviousPitchBendValue(sensorCell->channel)) {
+      preSendPitchBend(sensorSplit, 0, sensorCell->channel);
+    }
+
     // reset pressure to 0 before sending the note, the actually pressure value will
     // be sent right after the note on
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {

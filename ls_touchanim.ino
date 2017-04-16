@@ -35,6 +35,18 @@ void startTouchAnimation(byte col, byte row, unsigned long speed) {
       touchAnimationLastState[col][row] = -1;
   }
 
+  switch (Split[getSplitOf(col)].playedTouchMode) {
+    case playedBlinds:
+    case playedCurtains:
+    case playedTarget:
+    case playedUp:
+    case playedDown:
+    case playedLeft:
+    case playedRight:
+    case playedOrbit:
+      speed = speed / 2;
+      break;
+  }
   colsInRowsAnimated[row] |= (int32_t)(1 << col);
   touchAnimationStart[col][row] = millis();
   touchAnimationSpeed[col][row] = speed;
@@ -42,12 +54,32 @@ void startTouchAnimation(byte col, byte row, unsigned long speed) {
 }
 
 void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed char state) {
-  if (state >= 5) {
+  byte state_max = 5;
+  switch (Split[getSplitOf(col)].playedTouchMode) {
+    case playedTarget:
+      state_max = max(max(row, NUMROWS-row+1), max(col, NUMCOLS-col+1));
+      break;
+    case playedBlinds:
+    case playedUp:
+    case playedDown:
+      state_max = max(row, NUMROWS-row+1);
+      break;
+    case playedCurtains:
+    case playedLeft:
+    case playedRight:
+      state_max = max(col, NUMCOLS-col+1);
+      break;
+    case playedOrbit:
+      state_max = 9;
+      break;
+  }
+
+  if (state >= state_max) {
     touchAnimationStart[col][row] = 0;
     touchAnimationLastState[col][row] = -1;
     colsInRowsAnimated[row] &= ~(int32_t)(1 << col);
   }
-  else if (state >= 0 && state < 5) {
+  else if (state >= 0 && state < state_max) {
     touchAnimationLastState[col][row] = state;
 
     byte color = Split[getSplitOf(col)].colorPlayed;
@@ -84,6 +116,25 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
           setLed(col - state, r, color, cellDisplay, LED_LAYER_PLAYED);
         }
         break;
+      case playedDiamonds: {
+        int c = col - state, r = row;
+        for (; c <= col; ++c, ++r) {
+          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        c = col; r = row + state;
+        for (; r >= row; ++c, --r) {
+          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        c = col + state; r = row;
+        for (; c >= col; --c, --r) {
+          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        c = col; r = row - state;
+        for (; r <= row; --c, ++r) {
+          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      }
       case playedBlinds:
         for (byte c = 0; c < NUMCOLS; ++c) {
           setLed(c, row + state, color, cellDisplay, LED_LAYER_PLAYED);
@@ -185,21 +236,68 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
           setLed(col + half_state, row + half_state, color, cellDisplay, LED_LAYER_PLAYED);
         }
         break;
+      case playedTarget:
+        for (int r = row + state; r < NUMROWS; ++r) {
+          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        for (int r = row - state; r >= 0; --r) {
+          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        for (int c = col - state; c >= 0; --c) {
+          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        for (int c = col + state; c < NUMCOLS; ++c) {
+          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      case playedUp:
+        for (int r = row + state; r < NUMROWS; ++r) {
+          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      case playedDown:
+        for (int r = row - state; r >= 0; --r) {
+          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      case playedLeft:
+        for (int c = col - state; c >= 0; --c) {
+          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      case playedRight:
+        for (int c = col + state; c < NUMCOLS; ++c) {
+          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+        }
+        break;
+      case playedOrbit:
+        switch (state % 4) {
+          case 0: setLed(col - 1, row + 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col + 1, row - 1, color, cellDisplay, LED_LAYER_PLAYED); break;
+          case 1: setLed(col, row - 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col, row + 1, color, cellDisplay, LED_LAYER_PLAYED); break;
+          case 2: setLed(col + 1, row + 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col - 1, row - 1, color, cellDisplay, LED_LAYER_PLAYED); break;
+          case 3: setLed(col - 1, row, color, cellDisplay, LED_LAYER_PLAYED); setLed(col + 1, row, color, cellDisplay, LED_LAYER_PLAYED); break;
+        }
+        break;
     }
   }
 }
 
 void performAdvanceTouchAnimations(unsigned long nowMillis) {
+  if (Split[LEFT].playedTouchMode == playedOctaves &&
+      Split[RIGHT].playedTouchMode == playedOctaves) return;
+
   bool buffer_started = false;
 
   for (byte row = 0; row < NUMROWS; ++row) {
     int32_t colsInRowAnimated = colsInRowsAnimated[row];
     while (colsInRowAnimated) {
       byte col = 31 - __builtin_clz(colsInRowAnimated);
+
       if (!buffer_started) {
         startBufferedLeds();
         buffer_started = true;
       }
+
       signed char state = calcTimeDelta(nowMillis, touchAnimationStart[col][row]) / touchAnimationSpeed[col][row];
       if (state != touchAnimationLastState[col][row]) {
         drawTouchedAnimation(col, row, cellOff, touchAnimationLastState[col][row]);

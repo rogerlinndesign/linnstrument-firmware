@@ -855,6 +855,12 @@ void receivedNrpn(int parameter, int value) {
         Split[split].midiChanPerRowReversed = value;
       }
       break;
+    // Split Touch Animation
+    case 61:
+      if (inRange(value, 0, 14)) {
+        Split[split].playedTouchMode = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -2021,6 +2027,11 @@ void midiSendNoteOffForAllTouches(byte split) {
     }
     performContinuousTasks();
   }
+}
+
+boolean hasPreviousPitchBendValue(byte channel) {
+  channel = constrain(channel-1, 0, 15);
+  return lastValueMidiPB[channel] != 8192;
 }
 
 void midiSendPitchBend(int pitchval, byte channel) {

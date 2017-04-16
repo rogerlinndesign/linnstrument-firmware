@@ -958,6 +958,9 @@ void paintPlayedTouchModeDisplay(byte side) {
     case playedSquares:
       adaptfont_draw_string(0, 0, "SQUA", Split[side].colorMain, true);
       break;
+    case playedDiamonds:
+      adaptfont_draw_string(0, 0, "DIAM", Split[side].colorMain, true);
+      break;
     case playedStars:
       adaptfont_draw_string(0, 0, "STAR", Split[side].colorMain, true);
       break;
@@ -969,6 +972,24 @@ void paintPlayedTouchModeDisplay(byte side) {
       break;
     case playedBlinds:
       adaptfont_draw_string(0, 0, "BLIN", Split[side].colorMain, true);
+      break;
+    case playedTarget:
+      adaptfont_draw_string(0, 0, "TARG", Split[side].colorMain, true);
+      break;
+    case playedUp:
+      adaptfont_draw_string(0, 0, "UP", Split[side].colorMain, true);
+      break;
+    case playedDown:
+      adaptfont_draw_string(0, 0, "DOW", Split[side].colorMain, true);
+      break;
+    case playedLeft:
+      adaptfont_draw_string(0, 0, "LEFT", Split[side].colorMain, true);
+      break;
+    case playedRight:
+      adaptfont_draw_string(0, 0, "RIGH", Split[side].colorMain, true);
+      break;
+    case playedOrbit:
+      adaptfont_draw_string(0, 0, "ORB", Split[side].colorMain, true);
       break;
   }
 }

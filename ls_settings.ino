@@ -1856,7 +1856,7 @@ void handleCCForZRelease() {
 }
 
 void handlePlayedTouchModeNewTouch() {
-  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].playedTouchMode, playedOctaves, playedBlinds, false);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].playedTouchMode, playedOctaves, playedOrbit, false);
 }
 
 void handlePlayedTouchModeRelease() {

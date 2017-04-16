@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.0.3 =========================================
+======================================== LinnStrument Operating System v2.1.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,8 +56,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "203.";
-const char* OSVersionBuild = ".043";
+const char* OSVersion = "210.";
+const char* OSVersionBuild = ".044";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -513,10 +513,17 @@ enum PlayedTouchMode {
   playedCross,
   playedCircles,
   playedSquares,
+  playedDiamonds,
   playedStars,
   playedSparkles,
   playedCurtains,
-  playedBlinds
+  playedBlinds,
+  playedTarget,
+  playedUp,
+  playedDown,
+  playedLeft,
+  playedRight,
+  playedOrbit
 };
 
 enum LowRowMode {

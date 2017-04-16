@@ -275,7 +275,6 @@ void performArpeggiatorToggle() {
 
 void performReverseSendXToggle() {
   Split[Global.currentPerSplit].sendX = !Split[Global.currentPerSplit].sendX;
-  preSendPitchBend(Global.currentPerSplit, 0);
   if (displayMode == displayPerSplit) {
     updateDisplay();
   }
