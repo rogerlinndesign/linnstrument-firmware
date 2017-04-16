@@ -992,6 +992,7 @@ void paintPlayedTouchModeDisplay(byte side) {
       adaptfont_draw_string(0, 0, "ORB", Split[side].colorMain, true);
       break;
   }
+  paintShowSplitSelection(side);
 }
 
 void paintLowRowCCXConfigDisplay(byte side) {
