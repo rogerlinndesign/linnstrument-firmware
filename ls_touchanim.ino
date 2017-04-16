@@ -57,17 +57,17 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
   byte state_max = 5;
   switch (Split[getSplitOf(col)].playedTouchMode) {
     case playedTarget:
-      state_max = max(max(row, NUMROWS-row+1), max(col, NUMCOLS-col+1));
+      state_max = max(max(row, NUMROWS-row), max(col, NUMCOLS-col)) + 1;
       break;
     case playedBlinds:
     case playedUp:
     case playedDown:
-      state_max = max(row, NUMROWS-row+1);
+      state_max = max(row, NUMROWS-row) + 1;
       break;
     case playedCurtains:
     case playedLeft:
     case playedRight:
-      state_max = max(col, NUMCOLS-col+1);
+      state_max = max(col, NUMCOLS-col) + 1;
       break;
     case playedOrbit:
       state_max = 9;
