@@ -115,7 +115,13 @@ void startTouchAnimation(byte col, byte row, unsigned long speed) {
   drawTouchedAnimation(col, row, cellOn, 0);
 }
 
-void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed char state) {
+void touchAnimLed(byte col, byte row, byte color, CellDisplay disp) {
+  if (col > 0) {
+    setLed(col, row, color, disp, LED_LAYER_PLAYED);
+  }
+}
+
+void drawTouchedAnimation(byte col, byte row, CellDisplay disp, signed char state) {
   byte state_max = 5;
   switch (Split[getSplitOf(col)].playedTouchMode) {
     case playedTargets:
@@ -154,197 +160,197 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
     byte color = Split[getSplitOf(col)].colorPlayed;
     switch (Split[getSplitOf(col)].playedTouchMode) {
       case playedSparkles:
-        if (cellDisplay == cellOff) {
+        if (disp == cellOff) {
           for (int c = max(col - state, 0); c <= min(col + state, NUMCOLS); ++c) {
-            setLed(c, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(c, row - state, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(c, row + state, color, disp);
+            touchAnimLed(c, row - state, color, disp);
           }
           for (int r = max(row - state, 0); r <= min(row + state, NUMROWS); ++r) {
-            setLed(col + state, r, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, r, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(col + state, r, color, disp);
+            touchAnimLed(col - state, r, color, disp);
           }
         }
         else {
           int c1 = random(max(col - state, 0), min(col + state, NUMCOLS) + 1);
-          setLed(c1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c1, row + state, color, disp);
           int c2 = random(max(col - state, 0), min(col + state, NUMCOLS) + 1);
-          setLed(c2, row - state, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c2, row - state, color, disp);
           int r1 = random(max(row - state, 0), min(row + state, NUMROWS) + 1);
-          setLed(col + state, r1, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col + state, r1, color, disp);
           int r2 = random(max(row - state, 0), min(row + state, NUMROWS) + 1);
-          setLed(col - state, r2, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col - state, r2, color, disp);
         }
         break;
       case playedSquares:
         for (int c = max(col - state, 0); c <= min(col + state, NUMCOLS); ++c) {
-          setLed(c, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(c, row - state, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row + state, color, disp);
+          touchAnimLed(c, row - state, color, disp);
         }
         for (int r = max(row - state, 0); r <= min(row + state, NUMROWS); ++r) {
-          setLed(col + state, r, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col - state, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col + state, r, color, disp);
+          touchAnimLed(col - state, r, color, disp);
         }
         break;
       case playedDiamonds: {
         int c = col - state, r = row;
         for (; c <= col; ++c, ++r) {
-          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, r, color, disp);
         }
         c = col; r = row + state;
         for (; r >= row; ++c, --r) {
-          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, r, color, disp);
         }
         c = col + state; r = row;
         for (; c >= col; --c, --r) {
-          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, r, color, disp);
         }
         c = col; r = row - state;
         for (; r <= row; --c, ++r) {
-          setLed(c, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, r, color, disp);
         }
         break;
       }
       case playedBlinds:
         for (byte c = 0; c < NUMCOLS; ++c) {
-          setLed(c, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(c, row - state, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row + state, color, disp);
+          touchAnimLed(c, row - state, color, disp);
         }
         break;
       case playedCurtains:
         for (byte r = 0; r < NUMROWS; ++r) {
-          setLed(col + state, r, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col - state, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col + state, r, color, disp);
+          touchAnimLed(col - state, r, color, disp);
         }
         break;
       case playedCircles:
         switch (state) {
           case 1:
-            setLed(col, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(col, row + state, color, disp);
+            touchAnimLed(col, row - state, color, disp);
+            touchAnimLed(col - state, row, color, disp);
+            touchAnimLed(col + state, row, color, disp);
             break;
           case 2:
-            setLed(col - 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(col - 1, row + state, color, disp);
+            touchAnimLed(col + 0, row + state, color, disp);
+            touchAnimLed(col + 1, row + state, color, disp);
+            touchAnimLed(col - 1, row - state, color, disp);
+            touchAnimLed(col + 0, row - state, color, disp);
+            touchAnimLed(col + 1, row - state, color, disp);
+            touchAnimLed(col - state, row - 1, color, disp);
+            touchAnimLed(col - state, row + 0, color, disp);
+            touchAnimLed(col - state, row + 1, color, disp);
+            touchAnimLed(col + state, row - 1, color, disp);
+            touchAnimLed(col + state, row + 0, color, disp);
+            touchAnimLed(col + state, row + 1, color, disp);
             break;
           case 3:
-            setLed(col - 2, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 2, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 2, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 2, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(col - 2, row + state - 1, color, disp);
+            touchAnimLed(col - 1, row + state, color, disp);
+            touchAnimLed(col + 0, row + state, color, disp);
+            touchAnimLed(col + 1, row + state, color, disp);
+            touchAnimLed(col + 2, row + state - 1, color, disp);
+            touchAnimLed(col - 2, row - state + 1, color, disp);
+            touchAnimLed(col - 1, row - state, color, disp);
+            touchAnimLed(col + 0, row - state, color, disp);
+            touchAnimLed(col + 1, row - state, color, disp);
+            touchAnimLed(col + 2, row - state + 1, color, disp);
+            touchAnimLed(col - state, row - 1, color, disp);
+            touchAnimLed(col - state, row + 0, color, disp);
+            touchAnimLed(col - state, row + 1, color, disp);
+            touchAnimLed(col + state, row - 1, color, disp);
+            touchAnimLed(col + state, row + 0, color, disp);
+            touchAnimLed(col + state, row + 1, color, disp);
             break;
           case 4:
-            setLed(col - 3, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 2, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 2, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 3, row + state - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 3, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 2, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 0, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 1, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 2, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + 3, row - state + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state + 1, row - 2, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col - state + 1, row + 2, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state - 1, row - 2, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row - 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 0, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state, row + 1, color, cellDisplay, LED_LAYER_PLAYED);
-            setLed(col + state - 1, row + 2, color, cellDisplay, LED_LAYER_PLAYED);
+            touchAnimLed(col - 3, row + state - 1, color, disp);
+            touchAnimLed(col - 2, row + state - 1, color, disp);
+            touchAnimLed(col - 1, row + state, color, disp);
+            touchAnimLed(col + 0, row + state, color, disp);
+            touchAnimLed(col + 1, row + state, color, disp);
+            touchAnimLed(col + 2, row + state - 1, color, disp);
+            touchAnimLed(col + 3, row + state - 1, color, disp);
+            touchAnimLed(col - 3, row - state + 1, color, disp);
+            touchAnimLed(col - 2, row - state + 1, color, disp);
+            touchAnimLed(col - 1, row - state, color, disp);
+            touchAnimLed(col + 0, row - state, color, disp);
+            touchAnimLed(col + 1, row - state, color, disp);
+            touchAnimLed(col + 2, row - state + 1, color, disp);
+            touchAnimLed(col + 3, row - state + 1, color, disp);
+            touchAnimLed(col - state + 1, row - 2, color, disp);
+            touchAnimLed(col - state, row - 1, color, disp);
+            touchAnimLed(col - state, row + 0, color, disp);
+            touchAnimLed(col - state, row + 1, color, disp);
+            touchAnimLed(col - state + 1, row + 2, color, disp);
+            touchAnimLed(col + state - 1, row - 2, color, disp);
+            touchAnimLed(col + state, row - 1, color, disp);
+            touchAnimLed(col + state, row + 0, color, disp);
+            touchAnimLed(col + state, row + 1, color, disp);
+            touchAnimLed(col + state - 1, row + 2, color, disp);
             break;
         }
         break;
       case playedCrosses:
-        setLed(col, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-        setLed(col, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-        setLed(col - state, row, color, cellDisplay, LED_LAYER_PLAYED);
-        setLed(col + state, row, color, cellDisplay, LED_LAYER_PLAYED);
+        touchAnimLed(col, row + state, color, disp);
+        touchAnimLed(col, row - state, color, disp);
+        touchAnimLed(col - state, row, color, disp);
+        touchAnimLed(col + state, row, color, disp);
         break;
       case playedStars:
         if (state % 2 == 1) {
-          setLed(col, row + state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col, row - state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col - state, row, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col + state, row, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col, row + state, color, disp);
+          touchAnimLed(col, row - state, color, disp);
+          touchAnimLed(col - state, row, color, disp);
+          touchAnimLed(col + state, row, color, disp);
         }
         else {
           int half_state =  state / 2;
-          setLed(col - half_state, row + half_state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col + half_state, row - half_state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col - half_state, row - half_state, color, cellDisplay, LED_LAYER_PLAYED);
-          setLed(col + half_state, row + half_state, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col - half_state, row + half_state, color, disp);
+          touchAnimLed(col + half_state, row - half_state, color, disp);
+          touchAnimLed(col - half_state, row - half_state, color, disp);
+          touchAnimLed(col + half_state, row + half_state, color, disp);
         }
         break;
       case playedTargets:
         for (int r = row + state; r < NUMROWS; ++r) {
-          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col, r, color, disp);
         }
         for (int r = row - state; r >= 0; --r) {
-          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col, r, color, disp);
         }
         for (int c = col - state; c >= 0; --c) {
-          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row, color, disp);
         }
         for (int c = col + state; c < NUMCOLS; ++c) {
-          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row, color, disp);
         }
         break;
       case playedUp:
         for (int r = row + state; r < NUMROWS; ++r) {
-          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col, r, color, disp);
         }
         break;
       case playedDown:
         for (int r = row - state; r >= 0; --r) {
-          setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(col, r, color, disp);
         }
         break;
       case playedLeft:
         for (int c = col - state; c >= 0; --c) {
-          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row, color, disp);
         }
         break;
       case playedRight:
         for (int c = col + state; c < NUMCOLS; ++c) {
-          setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
+          touchAnimLed(c, row, color, disp);
         }
         break;
       case playedOrbits:
         switch (state % 4) {
-          case 0: setLed(col - 1, row + 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col + 1, row - 1, color, cellDisplay, LED_LAYER_PLAYED); break;
-          case 1: setLed(col, row - 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col, row + 1, color, cellDisplay, LED_LAYER_PLAYED); break;
-          case 2: setLed(col + 1, row + 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col - 1, row - 1, color, cellDisplay, LED_LAYER_PLAYED); break;
-          case 3: setLed(col - 1, row, color, cellDisplay, LED_LAYER_PLAYED); setLed(col + 1, row, color, cellDisplay, LED_LAYER_PLAYED); break;
+          case 0: touchAnimLed(col - 1, row + 1, color, disp); touchAnimLed(col + 1, row - 1, color, disp); break;
+          case 1: touchAnimLed(col, row - 1, color, disp); touchAnimLed(col, row + 1, color, disp); break;
+          case 2: touchAnimLed(col + 1, row + 1, color, disp); touchAnimLed(col - 1, row - 1, color, disp); break;
+          case 3: touchAnimLed(col - 1, row, color, disp); touchAnimLed(col + 1, row, color, disp); break;
         }
         break;
     }
