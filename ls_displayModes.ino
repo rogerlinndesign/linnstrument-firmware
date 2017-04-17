@@ -946,10 +946,10 @@ void paintCCForFaderDisplay(byte side) {
 void paintPlayedTouchModeDisplay(byte side) {
   clearDisplay();
   switch(Split[side].playedTouchMode) {
-    case playedOctaves:
-      adaptfont_draw_string(0, 0, "OCTA", Split[side].colorMain, true);
+    case playedSame:
+      adaptfont_draw_string(0, 0, "SAME", Split[side].colorMain, true);
       break;
-    case playedCross:
+    case playedCrosses:
       adaptfont_draw_string(0, 0, "CROS", Split[side].colorMain, true);
       break;
     case playedCircles:
@@ -973,7 +973,7 @@ void paintPlayedTouchModeDisplay(byte side) {
     case playedBlinds:
       adaptfont_draw_string(0, 0, "BLIN", Split[side].colorMain, true);
       break;
-    case playedTarget:
+    case playedTargets:
       adaptfont_draw_string(0, 0, "TARG", Split[side].colorMain, true);
       break;
     case playedUp:
@@ -988,7 +988,7 @@ void paintPlayedTouchModeDisplay(byte side) {
     case playedRight:
       adaptfont_draw_string(0, 0, "RIGH", Split[side].colorMain, true);
       break;
-    case playedOrbit:
+    case playedOrbits:
       adaptfont_draw_string(0, 0, "ORB", Split[side].colorMain, true);
       break;
   }

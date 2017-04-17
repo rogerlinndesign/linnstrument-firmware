@@ -537,7 +537,7 @@ void initializePresetSettings() {
         p.split[s].colorSequencerEmpty = COLOR_YELLOW;
         p.split[s].colorSequencerEvent = COLOR_ORANGE;
         p.split[s].colorSequencerDisabled = COLOR_LIME;
-        p.split[s].playedTouchMode = playedOctaves;
+        p.split[s].playedTouchMode = playedSame;
         p.split[s].lowRowCCXBehavior = lowRowCCHold;
         p.split[s].ccForLowRow = 1;
         p.split[s].lowRowCCXYZBehavior = lowRowCCHold;
@@ -1856,7 +1856,7 @@ void handleCCForZRelease() {
 }
 
 void handlePlayedTouchModeNewTouch() {
-  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].playedTouchMode, playedOctaves, playedOrbit, false);
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].playedTouchMode, playedSame, playedOrbits, false);
 }
 
 void handlePlayedTouchModeRelease() {

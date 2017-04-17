@@ -1195,11 +1195,11 @@ void prepareNewNote(signed char notenum) {
 
   // highlight the same notes if this is activated
   if (Split[sensorSplit].colorPlayed) {
-    if (Split[sensorSplit].playedTouchMode == playedOctaves) {
+    if (Split[sensorSplit].playedTouchMode == playedSame) {
       highlightPossibleNoteCells(sensorSplit, sensorCell->note);
     }
     else {
-      startTouchAnimation(sensorCol, sensorRow, 228 - (sensorCell->velocity * 3) / 2);
+      startTouchAnimation(sensorCol, sensorRow, calcTouchAnimationSpeed(Split[sensorSplit].playedTouchMode, sensorCell->velocity));
     }
   }
 
@@ -1757,7 +1757,7 @@ void handleTouchRelease() {
 
       // if no notes are active anymore, reset the highlighted cells
       if (allNotesOff) {
-        if (Split[sensorSplit].playedTouchMode == playedOctaves) {
+        if (Split[sensorSplit].playedTouchMode == playedSame) {
           resetPossibleNoteCells(sensorSplit, realSensorNote);
         }
       }

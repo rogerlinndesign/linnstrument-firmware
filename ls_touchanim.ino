@@ -7,14 +7,21 @@ This displays evolved animations for each touch based on the global settings.
 **************************************************************************************************/
 
 int32_t colsInRowsAnimated[MAXROWS];
-unsigned long touchAnimationStart[MAXCOLS][MAXROWS];
+unsigned long touchAnimationLastMoment[MAXCOLS][MAXROWS];
 unsigned long touchAnimationSpeed[MAXCOLS][MAXROWS];
 signed char touchAnimationLastState[MAXCOLS][MAXROWS];
+byte lastTouchAnimCol[2];
+byte lastTouchAnimRow[2];
 
 void initializeTouchAnimation() {
   initializeLedsLayer(LED_LAYER_PLAYED);
 
   prevTouchAnimTimerCount = millis();
+
+  for (byte i = 0; i < 2; ++i) {
+    lastTouchAnimCol[i] = 0;
+    lastTouchAnimRow[i] = 0;
+  }
 
   for (byte r = 0; r < MAXROWS; ++r) {
       colsInRowsAnimated[r]= 0;
@@ -22,33 +29,88 @@ void initializeTouchAnimation() {
 
   for (byte c = 0; c < MAXCOLS; ++c) {
     for (byte r = 0; r < MAXROWS; ++r) {
-      touchAnimationStart[c][r] = 0;
+      touchAnimationLastMoment[c][r] = 0;
       touchAnimationLastState[c][r] = -1;
       touchAnimationSpeed[c][r] = 0;
     }
   }
 }
 
-void startTouchAnimation(byte col, byte row, unsigned long speed) {
-  if (touchAnimationLastState[col][row] != -1) {
-      drawTouchedAnimation(col, row, cellOff, touchAnimationLastState[col][row]);
-      touchAnimationLastState[col][row] = -1;
-  }
-
-  switch (Split[getSplitOf(col)].playedTouchMode) {
+unsigned long calcTouchAnimationSpeed(byte mode, byte value7Bit) {
+  unsigned long speed = 228 - ((value7Bit) * 3 / 2);
+  switch (mode) {
     case playedBlinds:
     case playedCurtains:
-    case playedTarget:
+    case playedTargets:
     case playedUp:
     case playedDown:
     case playedLeft:
     case playedRight:
-    case playedOrbit:
+    case playedOrbits:
       speed = speed / 2;
       break;
   }
+  return speed;
+}
+
+void startTouchAnimation(byte col, byte row, unsigned long speed) {
+  if (touchAnimationLastState[col][row] != -1) {
+      drawTouchedAnimation(col, row, cellOff, touchAnimationLastState[col][row]);
+      touchAnimationLastState[col][row] = -1;
+
+      if (lastTouchAnimCol[1] == col && lastTouchAnimRow[1] == row) {
+        lastTouchAnimCol[1] = lastTouchAnimCol[0];
+        lastTouchAnimRow[1] = lastTouchAnimRow[0];
+        lastTouchAnimCol[0] = col;
+        lastTouchAnimRow[0] = row;
+      }
+  }
+  else {
+    // for expanding touch animations, we only allow two to be active at any given time
+    // in order to prevent the whole surface to be lit up with animated cells
+    switch (Split[getSplitOf(col)].playedTouchMode) {
+      case playedCrosses:
+      case playedCircles:
+      case playedSquares:
+      case playedDiamonds:
+      case playedStars:
+      case playedSparkles:
+      case playedCurtains:
+      case playedBlinds:
+      case playedTargets: {
+        byte clear_col;
+        byte clear_row;
+        // determine which of the last two animations is outdated and should be replaced
+        // with the new one
+        if (cell(lastTouchAnimCol[0], lastTouchAnimRow[0]).touched != touchedCell &&
+            cell(lastTouchAnimCol[1], lastTouchAnimRow[1]).touched == touchedCell) {
+          clear_col = lastTouchAnimCol[0];
+          clear_row = lastTouchAnimRow[0];
+        }
+        else {
+          clear_col = lastTouchAnimCol[1];
+          clear_row = lastTouchAnimRow[1];
+          lastTouchAnimCol[1] = lastTouchAnimCol[0];
+          lastTouchAnimRow[1] = lastTouchAnimRow[0];
+        }
+
+        // stop a previously active animation
+        if (clear_col != 0 && clear_row != 0) {
+          drawTouchedAnimation(clear_col, clear_row, cellOff, touchAnimationLastState[clear_col][clear_row]);
+          touchAnimationLastState[clear_col][clear_row] = -1;
+          colsInRowsAnimated[clear_row] &= ~(int32_t)(1 << clear_col);
+        }
+
+        lastTouchAnimCol[0] = col;
+        lastTouchAnimRow[0] = row;
+        break;
+      }
+    }
+  }
+
+  // store the touch animation info and draw the first frame
   colsInRowsAnimated[row] |= (int32_t)(1 << col);
-  touchAnimationStart[col][row] = millis();
+  touchAnimationLastMoment[col][row] = millis();
   touchAnimationSpeed[col][row] = speed;
   drawTouchedAnimation(col, row, cellOn, 0);
 }
@@ -56,7 +118,7 @@ void startTouchAnimation(byte col, byte row, unsigned long speed) {
 void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed char state) {
   byte state_max = 5;
   switch (Split[getSplitOf(col)].playedTouchMode) {
-    case playedTarget:
+    case playedTargets:
       state_max = max(max(row, NUMROWS-row), max(col, NUMCOLS-col)) + 1;
       break;
     case playedBlinds:
@@ -69,17 +131,24 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
     case playedRight:
       state_max = max(col, NUMCOLS-col) + 1;
       break;
-    case playedOrbit:
-      state_max = 9;
+    case playedOrbits:
+      state_max = 8;
       break;
   }
 
   if (state >= state_max) {
-    touchAnimationStart[col][row] = 0;
-    touchAnimationLastState[col][row] = -1;
-    colsInRowsAnimated[row] &= ~(int32_t)(1 << col);
+    if (cell(col, row).touched == touchedCell) {
+      state = state % state_max;
+    }
+    else {
+      touchAnimationLastMoment[col][row] = 0;
+      touchAnimationLastState[col][row] = -1;
+      touchAnimationSpeed[col][row] = 0;
+      colsInRowsAnimated[row] &= ~(int32_t)(1 << col);
+    }
   }
-  else if (state >= 0 && state < state_max) {
+  
+  if (state >= 0 && state < state_max) {
     touchAnimationLastState[col][row] = state;
 
     byte color = Split[getSplitOf(col)].colorPlayed;
@@ -215,7 +284,7 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
             break;
         }
         break;
-      case playedCross:
+      case playedCrosses:
         setLed(col, row + state, color, cellDisplay, LED_LAYER_PLAYED);
         setLed(col, row - state, color, cellDisplay, LED_LAYER_PLAYED);
         setLed(col - state, row, color, cellDisplay, LED_LAYER_PLAYED);
@@ -236,7 +305,7 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
           setLed(col + half_state, row + half_state, color, cellDisplay, LED_LAYER_PLAYED);
         }
         break;
-      case playedTarget:
+      case playedTargets:
         for (int r = row + state; r < NUMROWS; ++r) {
           setLed(col, r, color, cellDisplay, LED_LAYER_PLAYED);
         }
@@ -270,7 +339,7 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
           setLed(c, row, color, cellDisplay, LED_LAYER_PLAYED);
         }
         break;
-      case playedOrbit:
+      case playedOrbits:
         switch (state % 4) {
           case 0: setLed(col - 1, row + 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col + 1, row - 1, color, cellDisplay, LED_LAYER_PLAYED); break;
           case 1: setLed(col, row - 1, color, cellDisplay, LED_LAYER_PLAYED); setLed(col, row + 1, color, cellDisplay, LED_LAYER_PLAYED); break;
@@ -283,8 +352,8 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay cellDisplay, signed ch
 }
 
 void performAdvanceTouchAnimations(unsigned long nowMillis) {
-  if (Split[LEFT].playedTouchMode == playedOctaves &&
-      Split[RIGHT].playedTouchMode == playedOctaves) return;
+  if (Split[LEFT].playedTouchMode == playedSame &&
+      Split[RIGHT].playedTouchMode == playedSame) return;
 
   bool buffer_started = false;
 
@@ -298,10 +367,9 @@ void performAdvanceTouchAnimations(unsigned long nowMillis) {
         buffer_started = true;
       }
 
-      signed char state = calcTimeDelta(nowMillis, touchAnimationStart[col][row]) / touchAnimationSpeed[col][row];
-      if (state != touchAnimationLastState[col][row]) {
-        drawTouchedAnimation(col, row, cellOff, touchAnimationLastState[col][row]);
-      }
+      // clear the animation of the touch in its last state
+      drawTouchedAnimation(col, row, cellOff, touchAnimationLastState[col][row]);
+
       colsInRowAnimated &= ~(1 << col);
     }
   }
@@ -312,7 +380,27 @@ void performAdvanceTouchAnimations(unsigned long nowMillis) {
       while (colsInRowAnimated) {
         byte col = 31 - __builtin_clz(colsInRowAnimated);
 
-        signed char state = calcTimeDelta(nowMillis, touchAnimationStart[col][row]) / touchAnimationSpeed[col][row];
+        signed char state = touchAnimationLastState[col][row];
+        unsigned long speed = touchAnimationSpeed[col][row];
+
+        // if the cell is still touched without a pending release and at least 100ms have passed since
+        // the initial touch, update the speed of the animation based on the current pressure, but apply
+        // it with a slew rate
+        TouchInfo* c = &cell(col, row);
+        if (c->touched == touchedCell && c->pendingReleaseCount == 0 && calcTimeDelta(nowMillis, c->lastTouch) > 100) {
+          speed -= speed/3;
+          speed += calcTouchAnimationSpeed(Split[getSplitOf(col)].playedTouchMode, scale1016to127(c->pressureZ, true))/3;
+          touchAnimationSpeed[col][row] = speed;
+        }
+
+        // if we exceed the time delay between each animation step, increase the state counter
+        // and reset the delay
+        if (calcTimeDelta(nowMillis, touchAnimationLastMoment[col][row]) >= speed) {
+          state += 1;
+          touchAnimationLastMoment[col][row] = nowMillis;
+        }
+
+        // draw the animation of the touch in its last state
         drawTouchedAnimation(col, row, cellOn, state);
       
         colsInRowAnimated &= ~(1 << col);
