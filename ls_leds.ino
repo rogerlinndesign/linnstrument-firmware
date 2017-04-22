@@ -42,7 +42,7 @@ const byte COL_INDEX_128[MAXCOLS] = {0, 1, 6, 11, 16, 2, 7, 12, 3, 8, 13, 4, 9, 
 // bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
 // bits 0-2: 0:off, 1: on, 2: pulse
 const unsigned long LED_LAYER_SIZE = MAXCOLS * MAXROWS;
-const unsigned long LED_ARRAY_SIZE = (LED_LAYERS+1) * LED_LAYER_SIZE;
+const unsigned long LED_ARRAY_SIZE = (MAX_LED_LAYERS+1) * LED_LAYER_SIZE;
 // array holding contents of display
 byte leds[2][LED_ARRAY_SIZE];
 byte visibleLeds = 0;
@@ -83,7 +83,7 @@ void finishBufferedLeds() {
 
 inline byte getCombinedLedData(byte col, byte row) {
   byte data = 0;
-  byte layer = LED_LAYERS;
+  byte layer = MAX_LED_LAYERS;
   do {
     layer -= 1;
     // don't show the custom layer 1 in user firmware mode
@@ -112,7 +112,7 @@ void setLed(byte col, byte row, byte color, CellDisplay disp) {
 }
 
 void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
-  if (col >= NUMCOLS || row >= NUMROWS) return;
+  if (col >= NUMCOLS || row >= NUMROWS || layer > MAX_LED_LAYERS) return;
 
   if (color == COLOR_OFF) {
     disp = cellOff;
