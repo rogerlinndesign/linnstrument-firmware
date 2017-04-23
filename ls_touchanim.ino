@@ -37,7 +37,7 @@ void initializeTouchAnimation() {
 }
 
 unsigned long calcTouchAnimationSpeed(byte mode, byte value7Bit) {
-  unsigned long speed = 228 - ((value7Bit) * 3 / 2);
+  unsigned long speed = 196 - value7Bit;
   switch (mode) {
     case playedBlinds:
     case playedCurtains:
