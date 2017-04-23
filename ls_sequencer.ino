@@ -1098,7 +1098,7 @@ void handleSequencerFaderTouch(boolean newVelocity) {
     if (newVelocity) {
       // if a new touch happens on the same row, set the fader to its neutral value
       for (byte col = SEQ_FADER_RIGHT; col > 0; --col) {
-        if (col != sensorCol && cell(col, sensorRow).velocity) {
+        if (col != sensorCol && cell(col, sensorRow).velocity && cell(col, sensorRow).touched == touchedCell) {
           cellTouched(sensorCol, sensorRow, ignoredCell);
           focus->setFaderValue(sensorRow, focus->getFaderNeutral(sensorRow, sensorSplit));
           changed = true;
