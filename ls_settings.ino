@@ -2774,7 +2774,7 @@ void handleGlobalSettingNewTouch() {
           }
           break;
         case 3:
-          setLed(sensorCol, sensorRow, getCalibrationColor(), cellSlowPulse);
+          setLed(sensorCol, sensorRow, Device.calibrationHealed ? COLOR_YELLOW : getCalibrationColor(), cellSlowPulse);
           break;
       }
       break;
