@@ -98,10 +98,10 @@ void initializeStorage() {
       // all the calibration data and reset everything to defaults
       // the validation is needed together with the CRC to weed out bad calibration
       // data that could have been lingering from previous firmware versions
-      if (!validateCalibrationData()) {
+      if (!validateAndHealCalibrationData()) {
         initializeCalibrationData();
       }
-      else {
+      else if (!Device.calibrationHealed) {
         uint32_t crc = calculateCalibrationCRC();
         if (Device.calCrcCalculated) {
           // if the calculated CRC doesn't match the stored one, clear out
@@ -304,7 +304,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 13;
+  Device.version = 14;
   Device.serialMode = false;
   Device.sleepAnimationActive = false;
   Device.sleepActive = false;

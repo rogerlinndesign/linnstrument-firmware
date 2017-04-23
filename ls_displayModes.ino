@@ -797,7 +797,10 @@ byte getCCFadersColor(byte side) {
 }
 
 byte getCalibrationColor() {
-  if (Device.calibrated) {
+  if (Device.calibrationHealed) {
+    return COLOR_YELLOW;
+  }
+  else if (Device.calibrated) {
     return COLOR_GREEN;
   }
   return COLOR_RED;

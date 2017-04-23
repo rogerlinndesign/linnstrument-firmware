@@ -81,25 +81,50 @@ void initializeCalibrationSamples() {
   }
 }
 
+int32_t calculateReferenceX(byte col) {
+  if (col == 0) {
+    return FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + FXD_CALX_BORDER_OFFSET;;
+  }
+  else if (col < NUMCOLS) {
+    return FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
+  }
+  else {
+    return FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - FXD_CALX_BORDER_OFFSET;
+  }
+}
+
+int32_t calculateDefaultMeasuredX(byte col) {
+  if (col == 0) {
+    return FXD_CALX_DEFAULT_LEFT_EDGE;
+  }
+  else if (col == NUMCOLS) {
+    return FXD_CALX_DEFAULT_RIGHT_EDGE;
+  }
+  else {
+    return FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
+  }
+}
+
 void initializeCalibrationData() {
   Device.calCrc = 0;
   Device.calCrcCalculated = false;
   Device.calibrated = false;
+  Device.calibrationHealed = false;
 
   // Initialize default X calibration data
   for (byte row = 0; row < CALROWNUM; ++row) {
-    Device.calRows[0][row].fxdReferenceX = FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + FXD_CALX_BORDER_OFFSET;
-    Device.calRows[0][row].fxdMeasuredX = FXD_CALX_DEFAULT_LEFT_EDGE;
+    Device.calRows[0][row].fxdReferenceX = calculateReferenceX(0);
+    Device.calRows[0][row].fxdMeasuredX = calculateDefaultMeasuredX(0);
     Device.calRows[0][row].fxdRatio = 0;
 
     for (byte col = 1; col < NUMCOLS; ++col) {
-      Device.calRows[col][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
-      Device.calRows[col][row].fxdMeasuredX = FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_FROM_INT(col - 1));
+      Device.calRows[col][row].fxdReferenceX = calculateReferenceX(col);
+      Device.calRows[col][row].fxdMeasuredX = calculateDefaultMeasuredX(col);
       Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, FXD_CALX_DEFAULT_CELL_WIDTH);
     }
 
-    Device.calRows[NUMCOLS][row].fxdReferenceX = FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - FXD_CALX_BORDER_OFFSET;
-    Device.calRows[NUMCOLS][row].fxdMeasuredX = FXD_CALX_DEFAULT_RIGHT_EDGE;
+    Device.calRows[NUMCOLS][row].fxdReferenceX = calculateReferenceX(NUMCOLS);
+    Device.calRows[NUMCOLS][row].fxdMeasuredX = calculateDefaultMeasuredX(NUMCOLS);
     Device.calRows[NUMCOLS][row].fxdRatio = 0;
   }
 
@@ -214,42 +239,161 @@ uint32_t calculateCalibrationCRC() {
   return crc;
 }
 
-boolean validateCalibrationData() {
+boolean isValidCalibrationRatioX(byte col, byte row) {
+  int ratio = FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdRatio, FXD_CONST_100));
+  return ratio >= 0 && ratio <= 200;
+}
+
+boolean isValidCalibrationMeasuredX(byte col, byte row) {
+  int measured_x = FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX);
+  if (measured_x < 0x000 || measured_x > 0xfff) {
+    return false;
+  }
+  int32_t default_measured_x = calculateDefaultMeasuredX(col);
+  return FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) > FXD_TO_INT(default_measured_x - FXD_CALX_DEFAULT_CELL_WIDTH) &&
+         FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) < FXD_TO_INT(default_measured_x + FXD_CALX_DEFAULT_CELL_WIDTH);
+}
+
+boolean isValidCalibrationRatioY(byte col, byte row) {
+  int ratio = FXD_TO_INT(FXD_MUL(Device.calCols[col][row].fxdRatio, FXD_CONST_100));
+  return ratio >= 0 && ratio <= 200;
+}
+
+boolean validateAndHealCalibrationData() {
   for (uint8_t r = 0; r < CALROWNUM; ++r) {
-    int32_t previous_reference_x = FXD_FROM_INT(-5000);
-    int32_t previous_measured_x = FXD_FROM_INT(-5000);
-    for (uint8_t c = 0; c < NUMCOLS; ++c) {
-      if (FXD_TO_INT(Device.calRows[c][r].fxdReferenceX) < FXD_TO_INT(previous_reference_x)) {
-        return false;
+    for (uint8_t c = 0; c <= NUMCOLS; ++c) {
+      // ensure the correct reference X data for this column
+      int32_t reference_x =  calculateReferenceX(c);
+      if (Device.calRows[c][r].fxdReferenceX != reference_x) {
+        Device.calRows[c][r].fxdReferenceX = reference_x;
+        Device.calibrationHealed = true;
       }
-      if (FXD_TO_INT(Device.calRows[c][r].fxdMeasuredX) < FXD_TO_INT(previous_measured_x)) {
-        return false;
+    }
+
+    int32_t previous_measured_x = FXD_FROM_INT(-500);
+    for (uint8_t c = 0; c <= NUMCOLS; ++c) {
+      if (FXD_TO_INT(Device.calRows[c][r].fxdMeasuredX) <= FXD_TO_INT(previous_measured_x) || !isValidCalibrationMeasuredX(c, r)) {
+        // try to heal the measured X data for this column
+        if (c > 1 && c < NUMCOLS-1 && isValidCalibrationMeasuredX(c+1, r)) {
+          Device.calRows[c][r].fxdMeasuredX = FXD_DIV(Device.calRows[c-1][r].fxdMeasuredX + Device.calRows[c+1][r].fxdMeasuredX, FXD_CONST_2);
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0 && c < NUMCOLS && r > 0 && isValidCalibrationMeasuredX(c, r-1)) {
+          Device.calRows[c][r].fxdMeasuredX = Device.calRows[c][r-1].fxdMeasuredX;
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0 && c < NUMCOLS && r < CALROWNUM - 1 && isValidCalibrationMeasuredX(c, r+1)) {
+          Device.calRows[c][r].fxdMeasuredX = Device.calRows[c][r+1].fxdMeasuredX;
+          Device.calibrationHealed = true;
+        }
+        else {
+          return false;
+        }
       }
-      if (FXD_TO_INT(Device.calRows[c][r].fxdRatio) < 0 || FXD_TO_INT(Device.calRows[c][r].fxdRatio) > 2) {
-        return false;
+
+      if (!isValidCalibrationRatioX(c, r)) {
+        // try to heal the X ratio data for this column
+        if (c > 1 && c < NUMCOLS-1 && isValidCalibrationRatioX(c+1, r)) {
+          Device.calRows[c][r].fxdRatio = FXD_DIV(Device.calRows[c-1][r].fxdRatio + Device.calRows[c+1][r].fxdRatio, FXD_CONST_2);
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0 && c < NUMCOLS && r > 0 && isValidCalibrationRatioX(c, r-1)) {
+          Device.calRows[c][r].fxdRatio = Device.calRows[c][r-1].fxdRatio;
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0 && c < NUMCOLS && r < CALROWNUM-1 && isValidCalibrationRatioX(c, r+1)) {
+          Device.calRows[c][r].fxdRatio = Device.calRows[c][r+1].fxdRatio;
+          Device.calibrationHealed = true;
+        }
+        else {
+          return false;
+        }
       }
-      previous_reference_x = Device.calRows[c][r].fxdReferenceX;
+
       previous_measured_x = Device.calRows[c][r].fxdMeasuredX;
     }
   }
 
+  // first find a valid Y column after the first one that can be used
+  // to repair the first column in case it is invalid
+  int valid_column_y = -1;
+  for (uint8_t c = 1; c < CALCOLNUM; ++c) {
+    unsigned short previous_max_y = 0;
+    uint8_t r;
+    for (r = 0; r < NUMROWS; ++r) {
+      if (Device.calCols[c][r].minY <= previous_max_y ||
+          Device.calCols[c][r].maxY <= Device.calCols[c][r].minY ||
+          !isValidCalibrationRatioY(c, r)) {
+        break;
+      }
+      previous_max_y = Device.calCols[c][r].maxY;
+    }
+
+    if (r == NUMROWS) {
+      valid_column_y = c;
+      break;
+    }
+  }
+
   for (uint8_t c = 0; c < CALCOLNUM; ++c) {
-    int32_t previous_min_y = FXD_FROM_INT(-5000);
-    int32_t previous_max_y = FXD_FROM_INT(-5000);
+    unsigned short previous_max_y = 0;
     for (uint8_t r = 0; r < NUMROWS; ++r) {
-      if (FXD_TO_INT(Device.calCols[c][r].minY) < FXD_TO_INT(previous_min_y)) {
-        return false;
+      if (Device.calCols[c][r].minY <= previous_max_y) {
+        // try to heal min Y for this row
+        if (c > 0 && c < CALCOLNUM-1) {
+          Device.calCols[c][r].minY = (int(Device.calCols[c-1][r].minY) + int(Device.calCols[c+1][r].minY)) / 2;
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0) {
+          Device.calCols[c][r].minY = Device.calCols[c-1][r].minY;
+          Device.calibrationHealed = true;
+        }
+        else if (c == 0 && valid_column_y != -1) {
+          Device.calCols[c][r].minY = Device.calCols[valid_column_y][r].minY;
+          Device.calibrationHealed = true;
+        }
+        else {
+          return false;
+        }
       }
-      if (FXD_TO_INT(Device.calCols[c][r].maxY) < FXD_TO_INT(previous_max_y)) {
-        return false;
+
+      if (Device.calCols[c][r].maxY <= Device.calCols[c][r].minY) {
+        // try to heal max Y for this row
+        if (c > 0 && c < CALCOLNUM-1) {
+          Device.calCols[c][r].maxY = (int(Device.calCols[c-1][r].maxY) + int(Device.calCols[c+1][r].maxY)) / 2;
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0) {
+          Device.calCols[c][r].maxY = Device.calCols[c-1][r].maxY;
+          Device.calibrationHealed = true;
+        }
+        else if (c == 0 && valid_column_y != -1) {
+          Device.calCols[c][r].maxY = Device.calCols[valid_column_y][r].maxY;
+          Device.calibrationHealed = true;
+        }
+        else {
+          return false;
+        }
       }
-      if (FXD_TO_INT(Device.calCols[c][r].minY) > FXD_TO_INT(Device.calCols[c][r].maxY)) {
-        return false;
+
+      if (!isValidCalibrationRatioY(c, r)) {
+        // try to heal the Y ratio data for this column
+        if (c > 0 && c < CALCOLNUM-1 && isValidCalibrationRatioY(c+1, r)) {
+          Device.calCols[c][r].fxdRatio = FXD_DIV(Device.calCols[c-1][r].fxdRatio + Device.calCols[c+1][r].fxdRatio, FXD_CONST_2);
+          Device.calibrationHealed = true;
+        }
+        else if (c > 0) {
+          Device.calCols[c][r].fxdRatio = Device.calCols[c-1][r].fxdRatio;
+          Device.calibrationHealed = true;
+        }
+        else if (c == 0 && valid_column_y != -1) {
+          Device.calCols[c][r].fxdRatio = Device.calCols[valid_column_y][r].fxdRatio;
+          Device.calibrationHealed = true;
+        }
+        else {
+          return false;
+        }
       }
-      if (FXD_TO_INT(Device.calCols[c][r].fxdRatio) < 0 || FXD_TO_INT(Device.calCols[c][r].fxdRatio) > 2) {
-        return false;
-      }
-      previous_min_y = Device.calCols[c][r].minY;
       previous_max_y = Device.calCols[c][r].maxY;
     }
   }
@@ -355,6 +499,7 @@ boolean handleCalibrationRelease() {
           Device.calCrc = calculateCalibrationCRC();
           Device.calCrcCalculated = true;
           Device.calibrated = true;
+          Device.calibrationHealed = false;
 
 #ifdef DEBUG_ENABLED
           debugCalibration();
@@ -400,16 +545,16 @@ void debugCalibration() {
       DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
       DEBUGPRINT((0," sampleMin="));DEBUGPRINT((0,(int)calSampleRows[col][row].minValue));
       DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleRows[col][row].maxValue));
-      DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdReferenceX, FXD_CONST_100))));
-      DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdMeasuredX, FXD_CONST_100))));
+      DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[col][row].fxdReferenceX)));
+      DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX)));
       DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[col][row].fxdRatio, FXD_CONST_100))));
       DEBUGPRINT((0,"\n"));
     }
     DEBUGPRINT((0,"calRows"));
     DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)NUMCOLS));
     DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)row));
-    DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdReferenceX, FXD_CONST_100))));
-    DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdMeasuredX, FXD_CONST_100))));
+    DEBUGPRINT((0," referenceX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdReferenceX)));
+    DEBUGPRINT((0," measuredX="));DEBUGPRINT((0,(int)FXD_TO_INT(Device.calRows[NUMCOLS][row].fxdMeasuredX)));
     DEBUGPRINT((0," ratio="));DEBUGPRINT((0,(int)FXD_TO_INT(FXD_MUL(Device.calRows[NUMCOLS][row].fxdRatio, FXD_CONST_100))));
     DEBUGPRINT((0,"\n"));
   }
