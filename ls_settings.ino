@@ -1720,6 +1720,8 @@ void handlePresetNewTouch() {
 }
 
 void startPresetLEDBlink(byte p, byte color) {
+  if (p >= NUMPRESETS) return;
+  
   unsigned long now = millis();
   if (now == 0) {
     now = ~now;

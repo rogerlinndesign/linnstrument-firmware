@@ -19,6 +19,7 @@ void handleFaderTouch(boolean newVelocity) {
 void handleFaderTouch(boolean newVelocity, byte faderLeft, byte faderLength) {
   if (sensorCell->velocity) {
     unsigned short ccForFader = Split[sensorSplit].ccForFader[sensorRow];
+    if (ccForFader > 128) return;
 
     // only proceed when this is the touch on the highest row in the same split when the CC numbers
     // are the same, only one fader with the same cc number can be used at a time

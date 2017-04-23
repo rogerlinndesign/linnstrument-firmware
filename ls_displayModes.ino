@@ -423,6 +423,8 @@ void paintCCFaderDisplayRow(byte split, byte row, byte faderLeft, byte faderLeng
 }
 
 void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader, byte faderLeft, byte faderLength) {
+  if (ccForFader > 128) return;
+
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
       if (ccFaderValues[split][ccForFader] > 0) {
