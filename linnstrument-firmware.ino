@@ -57,7 +57,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 /******************************************** CONSTANTS ******************************************/
 
 const char* OSVersion = "210.";
-const char* OSVersionBuild = ".045";
+const char* OSVersionBuild = ".046";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -662,6 +662,7 @@ struct DeviceSettings {
   uint32_t calCrc;                           // the CRC check value of the calibration data to see if it's still valid
   boolean calCrcCalculated;                  // indicates whether the CRC of the calibration was calculated, previous firmware versions didn't
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
+  boolean calibrationHealed;                 // indicates whether the calibration data was healed
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
   byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
