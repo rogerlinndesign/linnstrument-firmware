@@ -610,9 +610,9 @@ void initializePresetSettings() {
 
   // preset 3 is pre-programmed for making drumbeats
   config.preset[3].split[LEFT].midiMode = channelPerNote;
-  config.preset[3].split[RIGHT].midiMode = channelPerNote;
+  config.preset[3].split[RIGHT].midiMode = oneChannel;
   config.preset[3].split[LEFT].bendRangeOption = bendRange2;
-  config.preset[3].split[RIGHT].bendRangeOption = bendRange2;
+  config.preset[3].split[RIGHT].bendRangeOption = bendRange24;
   config.preset[3].split[LEFT].pitchCorrectHold = pitchCorrectHoldOff;
   config.preset[3].split[RIGHT].pitchCorrectHold = pitchCorrectHoldOff;
   config.preset[3].split[LEFT].expressionForZ = loudnessChannelPressure;
@@ -620,9 +620,10 @@ void initializePresetSettings() {
   config.preset[3].split[LEFT].lowRowMode = lowRowArpeggiator;
   config.preset[3].split[RIGHT].lowRowMode = lowRowArpeggiator;
   config.preset[3].split[LEFT].arpeggiator = true;
-  config.preset[3].split[RIGHT].arpeggiator = false;
+  config.preset[3].split[RIGHT].arpeggiator = true;
   config.preset[3].global.arpDirection = ArpReplayAll;
   config.preset[3].global.arpTempo = ArpSixteenthSwing;
+  config.preset[3].global.splitActive = true;
 
   // initialize runtime data
   applyPitchCorrectHold();
