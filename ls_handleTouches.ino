@@ -1195,7 +1195,7 @@ void prepareNewNote(signed char notenum) {
 
   // highlight the same notes if this is activated
   if (Split[sensorSplit].colorPlayed) {
-    if (Split[sensorSplit].playedTouchMode == playedTouch) {
+    if (Split[sensorSplit].playedTouchMode == playedCell) {
       setLed(sensorCol, sensorRow, Split[sensorSplit].colorPlayed, cellOn, LED_LAYER_PLAYED);
     }
     else if (Split[sensorSplit].playedTouchMode == playedSame) {
@@ -1760,7 +1760,7 @@ void handleTouchRelease() {
 
       // if no notes are active anymore, reset the highlighted cells
       if (allNotesOff) {
-        if (Split[sensorSplit].playedTouchMode == playedTouch) {
+        if (Split[sensorSplit].playedTouchMode == playedCell) {
           setLed(sensorCol, sensorRow, COLOR_OFF, cellOff, LED_LAYER_PLAYED);
         }
         else if (Split[sensorSplit].playedTouchMode == playedSame) {

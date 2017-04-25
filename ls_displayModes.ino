@@ -948,8 +948,8 @@ void paintCCForFaderDisplay(byte side) {
 void paintPlayedTouchModeDisplay(byte side) {
   clearDisplay();
   switch(Split[side].playedTouchMode) {
-    case playedTouch:
-      adaptfont_draw_string(0, 0, "TOUCH", Split[side].colorMain, true);
+    case playedCell:
+      adaptfont_draw_string(0, 0, "CELL", Split[side].colorMain, true);
       break;
     case playedSame:
       adaptfont_draw_string(0, 0, "SAME", Split[side].colorMain, true);
