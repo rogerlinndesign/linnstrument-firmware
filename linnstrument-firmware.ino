@@ -509,6 +509,7 @@ struct __attribute__ ((packed)) CalibrationY {
 /***************************************** PANEL SETTINGS ****************************************/
 
 enum PlayedTouchMode {
+  playedTouch,
   playedSame,
   playedCrosses,
   playedCircles,

@@ -947,6 +947,7 @@ void copySplitSettingsV1(void* target, void* source) {
   t->colorAccent = s->colorAccent;
   t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
+  t->playedTouchMode = playedSame;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
   t->lowRowCCXYZBehavior = lowRowCCHold;
@@ -1028,6 +1029,7 @@ void copySplitSettingsV2(void* target, void* source) {
   t->colorAccent = s->colorAccent;
   t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
+  t->playedTouchMode = playedSame;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = lowRowCCHold;
   t->lowRowCCXYZBehavior = lowRowCCHold;
@@ -1251,6 +1253,7 @@ void copySplitSettingsV3(void* target, void* source) {
   t->colorAccent = s->colorAccent;
   t->colorPlayed = s->colorPlayed;
   t->colorLowRow = s->colorLowRow;
+  t->playedTouchMode = playedSame;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = s->lowRowCCXBehavior;
   t->ccForLowRow = s->ccForLowRow;
@@ -1347,6 +1350,7 @@ void copySplitSettingsV4(void* target, void* source) {
   t->colorAccent = s->colorAccent;
   t->colorPlayed = s->colorNoteon;
   t->colorLowRow = s->colorLowRow;
+  t->playedTouchMode = playedSame;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = s->lowRowCCXBehavior;
   t->ccForLowRow = s->ccForLowRow;
@@ -1589,6 +1593,7 @@ void copySplitSettingsV5(void* target, void* source) {
   t->colorSequencerEmpty = s->colorSequencerEmpty;
   t->colorSequencerEvent = s->colorSequencerEvent;
   t->colorSequencerDisabled = s->colorSequencerDisabled;
+  t->playedTouchMode = playedSame;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = s->lowRowCCXBehavior;
   t->ccForLowRow = s->ccForLowRow;
@@ -1779,8 +1784,14 @@ void copyConfigurationV13(void* target, void* source) {
   copyDeviceSettingsV11(&t->device, &s->device);
 
   memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  // we inserted another touch animation option at the beginning
+  // to replace the default one
+  t->settings.split[LEFT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
+  t->settings.split[RIGHT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
   for (byte p = 0; p < NUMPRESETS; ++p) {
     memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
+    t->preset[p].split[LEFT].playedTouchMode = t->preset[p].split[LEFT].playedTouchMode + 1;
+    t->preset[p].split[RIGHT].playedTouchMode = t->preset[p].split[RIGHT].playedTouchMode + 1;
   }
 
   memcpy(&t->project, &s->project, sizeof(SequencerProject));

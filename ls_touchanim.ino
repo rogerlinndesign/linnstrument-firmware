@@ -358,8 +358,8 @@ void drawTouchedAnimation(byte col, byte row, CellDisplay disp, signed char stat
 }
 
 void performAdvanceTouchAnimations(unsigned long nowMillis) {
-  if (Split[LEFT].playedTouchMode == playedSame &&
-      Split[RIGHT].playedTouchMode == playedSame) return;
+  if ((Split[LEFT].playedTouchMode == playedTouch || Split[LEFT].playedTouchMode == playedSame) &&
+      (Split[RIGHT].playedTouchMode == playedTouch || Split[RIGHT].playedTouchMode == playedSame)) return;
 
   bool buffer_started = false;
 
