@@ -201,7 +201,8 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define ASSIGNED_PRESET_DOWN      11
 #define ASSIGNED_REVERSE_PITCH_X  12
 #define ASSIGNED_SEQUENCER_PLAY   13
-#define ASSIGNED_SEQUENCER_NEXT   14
+#define ASSIGNED_SEQUENCER_PREV   14
+#define ASSIGNED_SEQUENCER_NEXT   15
 #define MAX_ASSIGNED              ASSIGNED_SEQUENCER_NEXT
 
 #define GLOBAL_SETTINGS_ROW  0
@@ -745,7 +746,7 @@ struct GlobalSettings {
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   unsigned short ccForSwitchCC65[4];         // 0-127
   unsigned short ccForSwitchSustain[4];      // 0-127
-  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY or ASSIGNED_SEQUENCER_NEXT
+  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV or ASSIGNED_SEQUENCER_NEXT
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration

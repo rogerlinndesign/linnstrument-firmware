@@ -181,6 +181,7 @@ struct StepSequencerState {
   void updatePositionLed(byte stepNum);
   byte getCurrentPositionColor();
   byte getOtherPositionColor();
+  void selectPreviousPattern();
   void selectNextPattern();
   void selectPattern(byte pattern);
 
@@ -352,6 +353,12 @@ void sequencerTogglePlay(byte split) {
     else {
       seqState[split].turnOff(false);
     }
+  }
+}
+
+void sequencerPreviousPattern(byte split) {
+  if (Split[split].sequencer) {
+    seqState[split].selectPreviousPattern();
   }
 }
 
@@ -3093,8 +3100,25 @@ void StepSequencerState::cycleFocus(byte stepNum) {
   paintSequencer();
 }
 
+void StepSequencerState::selectPreviousPattern() {
+  int p = currentPattern;
+  if (nextPattern != -1) {
+    p = nextPattern;
+  }
+  p -= 1;
+  if (p < 0) {
+    p += MAX_SEQUENCER_PATTERNS;
+  }
+  selectPattern(p);
+}
+
 void StepSequencerState::selectNextPattern() {
-  selectPattern((currentPattern+1) % MAX_SEQUENCER_PATTERNS);
+  int p = currentPattern;
+  if (nextPattern != -1) {
+    p = nextPattern;
+  }
+  p = (p+1) % MAX_SEQUENCER_PATTERNS;
+  selectPattern(p);
 }
 
 void StepSequencerState::selectPattern(byte pattern) {

@@ -254,6 +254,10 @@ void performSwitchAssignmentOn(byte whichSwitch, byte assignment, byte split) {
       sequencerTogglePlay(split);
       break;
 
+    case ASSIGNED_SEQUENCER_PREV:
+      sequencerPreviousPattern(split);
+      break;
+
     case ASSIGNED_SEQUENCER_NEXT:
       sequencerNextPattern(split);
       break;
