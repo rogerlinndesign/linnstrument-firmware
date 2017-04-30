@@ -181,6 +181,8 @@ struct StepSequencerState {
   void updatePositionLed(byte stepNum);
   byte getCurrentPositionColor();
   byte getOtherPositionColor();
+  void selectNextPattern();
+  void selectPattern(byte pattern);
 
   byte split;
   StepDataState steps[MAX_SEQUENCER_STEPS];
@@ -330,6 +332,35 @@ void sequencersTurnOff(boolean save) {
   seqState[RIGHT].turnOff(save);
 }
 
+void sequencerTurnOn(byte split) {
+  if (Split[split].sequencer && !seqState[split].running) {
+    seqState[split].turnOn();
+  }
+}
+
+void sequencerTurnOff(byte split, boolean save) {
+  if (Split[split].sequencer && seqState[split].running) {
+    seqState[split].turnOff(save);
+  }
+}
+
+void sequencerTogglePlay(byte split) {
+  if (Split[split].sequencer) {
+    if (!seqState[split].running) {
+      seqState[split].turnOn();
+    }
+    else {
+      seqState[split].turnOff(false);
+    }
+  }
+}
+
+void sequencerNextPattern(byte split) {
+  if (Split[split].sequencer) {
+    seqState[split].selectNextPattern();
+  }
+}
+
 boolean sequencerIsRunning() {
   return seqState[LEFT].isRunning() || seqState[RIGHT].isRunning();
 }
@@ -380,13 +411,9 @@ boolean handleSequencerControlButtonNewTouch() {
         sequencerSwitch1WasUsed = true;      
       }
       seqState[Global.currentPerSplit].switch2Waiting = true;
-      if (!seqState[Global.currentPerSplit].running) {
-        seqState[Global.currentPerSplit].turnOn();
-      }
+      sequencerTurnOn(Global.currentPerSplit);
       if (!isSwitch1Pressed()) {
-        if (!seqState[otherSplit(Global.currentPerSplit)].running) {
-          seqState[otherSplit(Global.currentPerSplit)].turnOn();
-        }
+        sequencerTurnOn(otherSplit(Global.currentPerSplit));
       }
       break;
 
@@ -424,13 +451,9 @@ boolean handleSequencerControlButtonRelease() {
 
     case SWITCH_2_ROW:
       if (seqState[Global.currentPerSplit].switch2Waiting && calcTimeDelta(millis(), lastControlPress[sensorRow]) <= SWITCH_HOLD_DELAY) {
-        if (seqState[Global.currentPerSplit].running) {
-          seqState[Global.currentPerSplit].turnOff(true);
-        }
+        sequencerTurnOff(Global.currentPerSplit, true);
         if (!isSwitch1Pressed()) {
-          if (seqState[otherSplit(Global.currentPerSplit)].running) {
-            seqState[otherSplit(Global.currentPerSplit)].turnOff(true);
-          }
+          sequencerTurnOff(otherSplit(Global.currentPerSplit), true);
         }
       }
       seqState[Global.currentPerSplit].switch2Waiting = false;
@@ -1053,37 +1076,7 @@ void handleSequencerPatternTouch() {
     }
   }
   else {
-    // clear the next pattern if the current pattern is selected again
-    if (state.currentPattern == pattern) {
-        if (state.nextPattern != -1) {
-          state.nextPattern = -1;
-          state.switchPatternOnBeat = false;
-        }
-    }
-    else {
-      // when the sequencer is not running, switch immediately
-      if (!state.isRunning()) {
-        state.currentPattern = pattern;
-        state.nextPattern = -1;
-        state.switchPatternOnBeat = false;
-        state.clearAllFocus();
-        if (isVisibleSequencerForSplit(patternSplit)) {
-          state.paintSequencer();
-        }
-      }
-      else {
-        // a double tap on an already scheduled next pattern, schedules it at the beginning of the next beat
-        if (state.nextPattern == pattern) {
-          state.switchPatternOnBeat = true;
-        }
-        // schedule the pattern as the next one
-        else {
-          state.nextPattern = pattern;
-          state.switchPatternOnBeat = false;
-        }
-      }
-    }
-    state.paintPatternSelector();
+    state.selectPattern(pattern);
   }
 }
 
@@ -3098,4 +3091,42 @@ void StepSequencerState::cycleFocus(byte stepNum) {
   updateFocusState();
 
   paintSequencer();
+}
+
+void StepSequencerState::selectNextPattern() {
+  selectPattern((currentPattern+1) % MAX_SEQUENCER_PATTERNS);
+}
+
+void StepSequencerState::selectPattern(byte pattern) {
+  // clear the next pattern if the current pattern is selected again
+  if (currentPattern == pattern) {
+      if (nextPattern != -1) {
+        nextPattern = -1;
+        switchPatternOnBeat = false;
+      }
+  }
+  else {
+    // when the sequencer is not running, switch immediately
+    if (!isRunning()) {
+      currentPattern = pattern;
+      nextPattern = -1;
+      switchPatternOnBeat = false;
+      clearAllFocus();
+      if (isVisibleSequencerForSplit(split)) {
+        paintSequencer();
+      }
+    }
+    else {
+      // a double tap on an already scheduled next pattern, schedules it at the beginning of the next beat
+      if (nextPattern == pattern) {
+        switchPatternOnBeat = true;
+      }
+      // schedule the pattern as the next one
+      else {
+        nextPattern = pattern;
+        switchPatternOnBeat = false;
+      }
+    }
+  }
+  paintPatternSelector();
 }

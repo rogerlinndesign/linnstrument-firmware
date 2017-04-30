@@ -929,7 +929,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Foot Left Assignment
     case 230:
-      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, MAX_ASSIGNED)) {
         Global.switchAssignment[SWITCH_FOOT_L] = value;
         if (value >= ASSIGNED_TAP_TEMPO) {
           Global.customSwitchAssignment[SWITCH_FOOT_L] = value;
@@ -938,7 +938,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Foot Right Assignment
     case 231:
-      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, MAX_ASSIGNED)) {
         Global.switchAssignment[SWITCH_FOOT_R] = value;
         if (value >= ASSIGNED_TAP_TEMPO) {
           Global.customSwitchAssignment[SWITCH_FOOT_R] = value;

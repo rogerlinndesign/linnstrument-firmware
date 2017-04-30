@@ -249,6 +249,14 @@ void performSwitchAssignmentOn(byte whichSwitch, byte assignment, byte split) {
     case ASSIGNED_REVERSE_PITCH_X:
       performReverseSendXToggle();
       break;
+
+    case ASSIGNED_SEQUENCER_PLAY:
+      sequencerTogglePlay(split);
+      break;
+
+    case ASSIGNED_SEQUENCER_NEXT:
+      sequencerNextPattern(split);
+      break;
   }
 }
 

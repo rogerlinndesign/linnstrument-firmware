@@ -1104,6 +1104,12 @@ void paintCustomSwitchAssignmentConfigDisplay() {
     case ASSIGNED_REVERSE_PITCH_X:
       adaptfont_draw_string(0, 0, "PCH", globalColor, true);
       break;
+    case ASSIGNED_SEQUENCER_PLAY:
+      adaptfont_draw_string(0, 0, "PLAY", globalColor, true);
+      break;
+    case ASSIGNED_SEQUENCER_NEXT:
+      adaptfont_draw_string(0, 0, "NEXT", globalColor, true);
+      break;
   }
 }
 
@@ -1405,6 +1411,8 @@ void paintSwitchAssignment(byte mode) {
     case ASSIGNED_PRESET_UP:
     case ASSIGNED_PRESET_DOWN:
     case ASSIGNED_REVERSE_PITCH_X:
+    case ASSIGNED_SEQUENCER_PLAY:
+    case ASSIGNED_SEQUENCER_NEXT:
       setLed(9, 3, getSwitchTapTempoColor(), cellOn);
       break;
     case ASSIGNED_AUTO_OCTAVE:

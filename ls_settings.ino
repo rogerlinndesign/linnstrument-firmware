@@ -1940,7 +1940,15 @@ void handleCCForSwitchSustainConfigRelease() {
 }
 
 void handleCustomSwitchAssignmentConfigNewTouch() {
-  handleNumericDataNewTouchCol(Global.customSwitchAssignment[switchSelect], ASSIGNED_TAP_TEMPO, ASSIGNED_REVERSE_PITCH_X, false);
+  if (switchSelect == SWITCH_SWITCH_1 ||
+      switchSelect == SWITCH_SWITCH_2)
+  {
+    handleNumericDataNewTouchCol(Global.customSwitchAssignment[switchSelect], ASSIGNED_TAP_TEMPO, ASSIGNED_REVERSE_PITCH_X, false);
+  }
+  else
+  {
+    handleNumericDataNewTouchCol(Global.customSwitchAssignment[switchSelect], ASSIGNED_TAP_TEMPO, MAX_ASSIGNED, false);
+  }
 }
 
 void handleCustomSwitchAssignmentConfigRelease() {
