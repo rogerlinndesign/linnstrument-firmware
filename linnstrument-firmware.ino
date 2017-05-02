@@ -1060,7 +1060,6 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay);
 void setDisplayMode(DisplayMode mode);
 void exitDisplayMode(DisplayMode mode);
 
-void applyPresetSettings(PresetSettings& preset);
 void applyBendRange(SplitSettings& target, byte bendRange);
 
 void cellTouched(TouchState state);

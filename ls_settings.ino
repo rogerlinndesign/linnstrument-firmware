@@ -202,7 +202,6 @@ void loadSettings() {
     configOffset = sizeof(Configuration);
   }
   memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));
-  fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
 }
 
 void writeInitialProjectSettings() {
@@ -266,7 +265,7 @@ void loadProject(byte project) {
   fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
 }
 
-void applyPresetSettings(PresetSettings& preset) {
+void applyPresetSettings() {
   applyPitchCorrectHold();
   applyLimitsForY();
   applyLimitsForZ();
@@ -279,7 +278,8 @@ void applyPresetSettings(PresetSettings& preset) {
 }
 
 void applyConfiguration() {
-  applyPresetSettings(config.settings);
+  applyPresetSettings();
+  applySequencerSettings();
 }
 
 void applySystemState() {
@@ -294,7 +294,7 @@ void loadSettingsFromPreset(byte p) {
   memcpy(&Split[LEFT], &config.preset[p].split[LEFT], sizeof(SplitSettings));
   memcpy(&Split[RIGHT], &config.preset[p].split[RIGHT], sizeof(SplitSettings));
 
-  applyPresetSettings(config.settings);
+  applyPresetSettings();
 }
 
 void storeSettingsToPreset(byte p) {

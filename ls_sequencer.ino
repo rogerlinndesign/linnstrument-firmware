@@ -284,6 +284,10 @@ void initializeSequencer() {
   }
 }
 
+void applySequencerSettings() {
+  fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);  
+}
+
 boolean requiresSequencerSlideTracking() {
   if (isSequencerEditing()) return true;
   if (sensorCol >= SEQ_FADER_LEFT && sensorRow <= SEQ_FADER_TOP && (!isWithinSequencerNavigationArea())) return true;
