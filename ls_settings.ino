@@ -122,6 +122,7 @@ void initializeStorage() {
 
 void storeSettings() {
   if (!sequencerIsRunning()) {
+    Project.tempo = FXD4_TO_INT(fxd4CurrentTempo);
     writeSettingsToFlash();
   }
 }
@@ -201,6 +202,7 @@ void loadSettings() {
     configOffset = sizeof(Configuration);
   }
   memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));
+  fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
 }
 
 void writeInitialProjectSettings() {
