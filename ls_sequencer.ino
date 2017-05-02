@@ -3156,5 +3156,7 @@ void StepSequencerState::selectPattern(byte pattern) {
       }
     }
   }
-  paintPatternSelector();
+  if (isVisibleSequencer()) {
+    paintPatternSelector();
+  }
 }
