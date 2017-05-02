@@ -123,6 +123,10 @@ NRPN   Value   Description
 59     0-127   Split Left Initial Value For Relative Y
 60     0-1     Split Left Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
 61     0-11    Split Left Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+62     1       Split Left Sequencer Toggle Play
+63     1       Split Left Sequencer Previous Pattern
+64     1       Split Left Sequencer Next Pattern
+65     0-3     Split Left Sequencer Select Pattern Number
 100    0-2     Split Right MIDI Mode (0: One Channel, 1: Channel Per Note, 2: Channel Per Row)
 101    1-16    Split Right MIDI Main Channel
 102    0-1     Split Right MIDI Per Note Channel 1 (0: Off, 1: On)
@@ -185,6 +189,10 @@ NRPN   Value   Description
 159    0-127   Split Right Initial Value For Relative Y
 160    0-1     Split Right Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
 161    0-11    Split Right Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+162    1       Split Right Sequencer Toggle Play
+163    1       Split Right Sequencer Previous Pattern
+164    1       Split Right Sequencer Next Pattern
+165    0-3     Split Right Sequencer Select Pattern Number
 200    0-1     Global Split Active (0: Inactive, 1: Active)
 201    0-1     Global Selected Split (0: Left Split, 1: Right Split)
 202    2-25    Global Split Point Column

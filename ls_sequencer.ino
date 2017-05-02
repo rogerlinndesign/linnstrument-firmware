@@ -372,6 +372,12 @@ void sequencerNextPattern(byte split) {
   }
 }
 
+void sequencerSelectPattern(byte split, byte pattern) {
+  if (Split[split].sequencer) {
+    seqState[split].selectPattern(pattern);
+  }
+}
+
 boolean sequencerIsRunning() {
   return seqState[LEFT].isRunning() || seqState[RIGHT].isRunning();
 }

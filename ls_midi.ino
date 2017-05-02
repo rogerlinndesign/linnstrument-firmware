@@ -861,6 +861,30 @@ void receivedNrpn(int parameter, int value) {
         Split[split].playedTouchMode = value;
       }
       break;
+    // Split Sequencer Toggle Play
+    case 62:
+      if (value == 1) {
+        sequencerTogglePlay(split);
+      }
+      break;
+    // Split Sequencer Previous Pattern
+    case 63:
+      if (value == 1) {
+        sequencerPreviousPattern(split);
+      }
+      break;
+    // Split Sequencer Next Pattern
+    case 64:
+      if (value == 1) {
+        sequencerNextPattern(split);
+      }
+      break;
+    // Split Sequencer Select Pattern
+    case 65:
+      if (inRange(value, 0, 3)) {
+        sequencerSelectPattern(split, value);
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
