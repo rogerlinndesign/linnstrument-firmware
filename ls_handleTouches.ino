@@ -1823,7 +1823,7 @@ void handleOpenStringsRelease() {
 // Moves on to the next cell witin the total surface scan of all surface cells.
 
 #define MAX_CELLCOUNT 201
-byte CELLCOUNT;
+byte CELLCOUNT = MAX_CELLCOUNT;
 byte SCANNED_CELLS[MAX_CELLCOUNT][2];
 
 // Columns and rows are scanned in non-sequential order to minimize sensor crosstalk

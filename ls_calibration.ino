@@ -15,13 +15,14 @@ For the Y values, it simply measures the top and bottom extremes for cells in 5 
 calculate for each cell the ratio that converts this to usable CC values.
 ***************************************************************************************************/
 
-byte CALROWNUM;
-byte CALCOLNUM;
+byte CALROWNUM = 4;
+byte CALCOLNUM = 9;
 
 // these are default starting points for uncalibrated LinnStruments, might need tweaking
 int32_t FXD_CALX_DEFAULT_LEFT_EDGE;
 int32_t FXD_CALX_DEFAULT_FIRST_CELL;
 int32_t FXD_CALX_DEFAULT_CELL_WIDTH;
+int32_t FXD_CALX_DEFAULT_CELL_HALFWIDTH;
 int32_t FXD_CALX_DEFAULT_RIGHT_EDGE;
 
 // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
@@ -60,6 +61,8 @@ void initializeCalibration() {
     // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
     FXD_CALX_BORDER_OFFSET = FXD_MAKE(15.625);
   }
+
+  FXD_CALX_DEFAULT_CELL_HALFWIDTH = FXD_DIV(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2);
 }
 
 void initializeCalibrationSamples() {
@@ -159,7 +162,7 @@ short calculateCalibratedX(short rawX) {
   int32_t fxdTopX = Device.calRows[sensorCol][sectorTop].fxdReferenceX + FXD_MUL(fxdRawX - Device.calRows[sensorCol][sectorTop].fxdMeasuredX, Device.calRows[sensorCol][sectorTop].fxdRatio);
 
   // The final calibrated X position is the interpolation between the bottom and the top sector rows based on the current sensor row
-  short result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
+  int result = FXD_TO_INT(fxdBottomX + FXD_MUL(FXD_DIV(fxdTopX - fxdBottomX, FXD_FROM_INT(topRow - bottomRow)), FXD_FROM_INT(sensorRow - bottomRow)));
 
   // constrain the calibrated X position to have a full 4095 range between the centers of the left and right cells,
   // but still have values for the remaining left and right halves
@@ -179,8 +182,8 @@ signed char calculateCalibratedY(short rawY) {
   }
 
   byte bias = (sensorCol - 1) % 3;
-  short result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_CONST_3 - FXD_FROM_INT(bias), FXD_CONST_3)) +
-                            FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_CONST_3)));
+  int result = FXD_TO_INT(FXD_MUL(fxdLeftY, FXD_DIV(FXD_CONST_3 - FXD_FROM_INT(bias), FXD_CONST_3)) +
+                          FXD_MUL(fxdRightY, FXD_DIV(FXD_FROM_INT(bias), FXD_CONST_3)));
 
   // Bound the Y position to accepted value limits 
   result = constrain(result, 0, 127);
@@ -192,15 +195,18 @@ boolean handleCalibrationSample() {
   // calibrate the X value distribution by measuring the minimum and maximum for each cell
   if (displayMode == displayCalibration) {
     // only calibrate a deliberate touch that is at least half-way through the pressure sensitivity range
-    if (sensorCell->isStableYTouch()) {
+    if (sensorCell->isStableYTouch() && cellsTouched == 1) {
       short rawX = readX(0);
       short rawY = readY(0);
       if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
         byte row = (sensorRow / 2);
+        int min_limit = FXD_TO_INT(FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol - 1), FXD_CALX_DEFAULT_CELL_WIDTH) - FXD_CALX_DEFAULT_CELL_HALFWIDTH);
+        int max_limit = FXD_TO_INT(FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol), FXD_CALX_DEFAULT_CELL_WIDTH) + FXD_CALX_DEFAULT_CELL_HALFWIDTH);
+        if (rawX < min_limit || rawX > max_limit) return false;
         calSampleRows[sensorCol][row].minValue = min(rawX, calSampleRows[sensorCol][row].minValue);
         calSampleRows[sensorCol][row].maxValue = max(rawX, calSampleRows[sensorCol][row].maxValue);
       }
-      else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+      else if (calibrationPhase == calibrationCols && sensorCol > 0 && (sensorCol % 3 == 1)) {
         byte col = (sensorCol - 1) / 3;
         calSampleCols[col][sensorRow].minValue = min(rawY, calSampleCols[col][sensorRow].minValue);
         calSampleCols[col][sensorRow].maxValue = max(rawY, calSampleCols[col][sensorRow].maxValue);
@@ -404,22 +410,22 @@ boolean validateAndHealCalibrationData() {
 boolean handleCalibrationRelease() {
   // Handle calibration passes, at least two before indicating green
   if (displayMode == displayCalibration) {
-    signed char cellPass = -1;
+    int cellPass = -1;
 
     if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
       byte i1 = sensorCol;
       byte i2 = (sensorRow / 2);
 
-      if (calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 80) {    // only proceed when at least a delta of 80 in X values is measured
+      if (i2 < 4 && calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 80) {    // only proceed when at least a delta of 80 in X values is measured
         cellPass = calSampleRows[i1][i2].pass;
         calSampleRows[i1][i2].pass += 1;
       }
     }
-    else if (calibrationPhase == calibrationCols && (sensorCol % 3 == 1)) {
+    else if (calibrationPhase == calibrationCols && sensorCol > 0 && (sensorCol % 3 == 1)) {
       byte i1 = (sensorCol - 1) / 3;
       byte i2 = sensorRow;
 
-      if (calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue > 180) {    // only proceed when at least a delta of 180 in Y values is measured
+      if (i1 < 9 && calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue > 180) {    // only proceed when at least a delta of 180 in Y values is measured
         cellPass = calSampleCols[i1][i2].pass;
         calSampleCols[i1][i2].pass += 1;
       }
@@ -490,8 +496,8 @@ boolean handleCalibrationRelease() {
             for (byte col = 0; col < CALCOLNUM; ++col) {
               int sampledRange = calSampleCols[col][row].maxValue - calSampleCols[col][row].minValue;
               int cellMarginY = (sampledRange / CALY_MARGIN_FRACTION);
-              Device.calCols[col][row].minY = max(0, calSampleCols[col][row].minValue + cellMarginY);
-              Device.calCols[col][row].maxY = min(4095, calSampleCols[col][row].maxValue - cellMarginY);
+              Device.calCols[col][row].minY = constrain(calSampleCols[col][row].minValue + cellMarginY, 0, 4095);
+              Device.calCols[col][row].maxY = constrain(calSampleCols[col][row].maxValue - cellMarginY, 0, 4095);
               Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), CALY_FULL_UNIT);
             }
           }
