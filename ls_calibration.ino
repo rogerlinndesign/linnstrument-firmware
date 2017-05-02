@@ -22,7 +22,6 @@ byte CALCOLNUM = 9;
 int32_t FXD_CALX_DEFAULT_LEFT_EDGE;
 int32_t FXD_CALX_DEFAULT_FIRST_CELL;
 int32_t FXD_CALX_DEFAULT_CELL_WIDTH;
-int32_t FXD_CALX_DEFAULT_CELL_HALFWIDTH;
 int32_t FXD_CALX_DEFAULT_RIGHT_EDGE;
 
 // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
@@ -61,8 +60,6 @@ void initializeCalibration() {
     // the leftmost and rightmost cells don't reach as far on the edges as other cells, this compensates for that
     FXD_CALX_BORDER_OFFSET = FXD_MAKE(15.625);
   }
-
-  FXD_CALX_DEFAULT_CELL_HALFWIDTH = FXD_DIV(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2);
 }
 
 void initializeCalibrationSamples() {
@@ -200,8 +197,9 @@ boolean handleCalibrationSample() {
       short rawY = readY(0);
       if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
         byte row = (sensorRow / 2);
-        int min_limit = FXD_TO_INT(FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol - 1), FXD_CALX_DEFAULT_CELL_WIDTH) - FXD_CALX_DEFAULT_CELL_HALFWIDTH);
-        int max_limit = FXD_TO_INT(FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol), FXD_CALX_DEFAULT_CELL_WIDTH) + FXD_CALX_DEFAULT_CELL_HALFWIDTH);
+        int32_t fxd_default_center = FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol - 1), FXD_CALX_DEFAULT_CELL_WIDTH);
+        int min_limit = FXD_TO_INT(fxd_default_center - FXD_CALX_DEFAULT_CELL_WIDTH);
+        int max_limit = FXD_TO_INT(fxd_default_center + FXD_CALX_DEFAULT_CELL_WIDTH);
         if (rawX < min_limit || rawX > max_limit) return false;
         calSampleRows[sensorCol][row].minValue = min(rawX, calSampleRows[sensorCol][row].minValue);
         calSampleRows[sensorCol][row].maxValue = max(rawX, calSampleRows[sensorCol][row].maxValue);
