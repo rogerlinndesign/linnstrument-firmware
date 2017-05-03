@@ -1683,7 +1683,7 @@ void handleTouchRelease() {
   }
   // user firmware mode has its own mode of operation
   else if (userFirmwareActive) {
-    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, 0, sensorCell->channel);
+    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);
     sensorCell->clearMusicalData();
   }
   // control mode has its own mode of operation

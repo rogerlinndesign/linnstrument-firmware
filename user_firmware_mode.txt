@@ -101,8 +101,8 @@ MIDI Message Summary
 Outgoing MIDI messages:
 -----------------------
 
-Note On                    Cell Down,    Note Number: Column,  Channel: Row,  Velocity: Pressure Velocity
-Note Off                   Cell Up,      Note Number: Column,  Channel: Row,  Velocity: unused
+Note On                    Cell Down,    Note Number: Column,  Channel: Row,  Velocity: Strike Velocity
+Note Off                   Cell Up,      Note Number: Column,  Channel: Row,  Velocity: Release Velocity
 Polyphonic Pressure        Z data,       Note Number: Column,  Channel: Row,      Data: Per Cell Z Position
 CC 0-25                    X data,         CC Number: Column,  Channel: Row,      Data: Global X Position MSB
 CC 32-57                   X data,      CC Number-32: Column,  Channel: Row,      Data: Global X Position LSB
