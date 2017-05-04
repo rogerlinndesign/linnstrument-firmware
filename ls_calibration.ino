@@ -254,8 +254,8 @@ boolean isValidCalibrationMeasuredX(byte col, byte row) {
     return false;
   }
   int32_t default_measured_x = calculateDefaultMeasuredX(col);
-  return FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) > FXD_TO_INT(default_measured_x - FXD_CALX_DEFAULT_CELL_WIDTH) &&
-         FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) < FXD_TO_INT(default_measured_x + FXD_CALX_DEFAULT_CELL_WIDTH);
+  return FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) > FXD_TO_INT(default_measured_x - FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2)) &&
+         FXD_TO_INT(Device.calRows[col][row].fxdMeasuredX) < FXD_TO_INT(default_measured_x + FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2));
 }
 
 boolean isValidCalibrationRatioY(byte col, byte row) {
