@@ -198,8 +198,8 @@ boolean handleCalibrationSample() {
       if (calibrationPhase == calibrationRows && (sensorRow == 0 || sensorRow == 2 || sensorRow == 5 || sensorRow == 7)) {
         byte row = (sensorRow / 2);
         int32_t fxd_default_center = FXD_CALX_DEFAULT_FIRST_CELL + FXD_MUL(FXD_FROM_INT(sensorCol - 1), FXD_CALX_DEFAULT_CELL_WIDTH);
-        int min_limit = FXD_TO_INT(fxd_default_center - FXD_CALX_DEFAULT_CELL_WIDTH);
-        int max_limit = FXD_TO_INT(fxd_default_center + FXD_CALX_DEFAULT_CELL_WIDTH);
+        int min_limit = FXD_TO_INT(fxd_default_center - FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2));
+        int max_limit = FXD_TO_INT(fxd_default_center + FXD_MUL(FXD_CALX_DEFAULT_CELL_WIDTH, FXD_CONST_2));
         if (rawX < min_limit || rawX > max_limit) return false;
         calSampleRows[sensorCol][row].minValue = min(rawX, calSampleRows[sensorCol][row].minValue);
         calSampleRows[sensorCol][row].maxValue = max(rawX, calSampleRows[sensorCol][row].maxValue);
