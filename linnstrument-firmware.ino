@@ -1249,7 +1249,8 @@ void setup() {
   /*!!*/  
   /*!!*/      clearDisplay();
   /*!!*/  
-  /*!!*/      adaptfont_draw_string(1, 0, "FWUP", COLOR_RED);
+  /*!!*/      if (LINNMODEL == 200) adaptfont_draw_string(1, 0, "FWUP", COLOR_RED);
+  /*!!*/      else                  adaptfont_draw_string(1, 0, "FWU", COLOR_RED);
   /*!!*/      return;
   /*!!*/    }
   /*!!*/  }
