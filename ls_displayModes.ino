@@ -269,6 +269,12 @@ void updateSwitchLeds() {
     return;
   }
 
+  // highlight global settings yellow when user firmware mode is active
+  if (userFirmwareActive) {
+    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);
+    return;
+  }
+
   CellDisplay displaySwitch1 = switchState[SWITCH_SWITCH_1][Global.currentPerSplit] ? cellOn : cellOff;
   if (Global.switchAssignment[SWITCH_SWITCH_1] == ASSIGNED_ARPEGGIATOR) {
     displaySwitch1 = isArpeggiatorEnabled(Global.currentPerSplit) ? cellOn : cellOff;
@@ -341,17 +347,11 @@ void updateSwitchLeds() {
 // paintNormalDisplay:
 // Paints all non-switch columns of the display with the normal performance colors
 void paintNormalDisplay() {
+  if (userFirmwareActive) return;
+
   if (Split[Global.currentPerSplit].sequencer) {
     paintSequencerDisplay(Global.currentPerSplit);
     return;
-  }
-
-  // highlight global settings red when user firmware mode is active
-  if (userFirmwareActive) {
-    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);
-  }
-  else {
-    clearLed(0, GLOBAL_SETTINGS_ROW);
   }
 
   // determine the splits and divider
@@ -387,6 +387,8 @@ void paintNormalDisplay() {
 }
 
 void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
+  if (userFirmwareActive) return;
+
   byte faderLeft, faderLength;
   determineFaderBoundaries(split, faderLeft, faderLength);
 
@@ -423,7 +425,7 @@ void paintCCFaderDisplayRow(byte split, byte row, byte faderLeft, byte faderLeng
 }
 
 void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader, byte faderLeft, byte faderLength) {
-  if (ccForFader > 128) return;
+  if (userFirmwareActive || ccForFader > 128) return;
 
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
@@ -450,6 +452,8 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
 }
 
 void paintStrumDisplayCell(byte split, byte col, byte row) {
+  if (userFirmwareActive) return;
+
   // by default clear the cell color
   byte colour = COLOR_OFF;
   CellDisplay cellDisplay = cellOff;
@@ -468,10 +472,7 @@ void paintStrumDisplayCell(byte split, byte col, byte row) {
 }
 
 void paintNormalDisplayCell(byte split, byte col, byte row) {
-  if (userFirmwareActive) {
-    clearLed(col, row);
-    return;
-  }
+  if (userFirmwareActive) return;
 
   // by default clear the cell color
   byte colour = COLOR_OFF;

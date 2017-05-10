@@ -896,12 +896,12 @@ boolean handleXYZupdate() {
       handleVolumeNewTouch(newVelocity);
     }
   }
-  else if (Split[sensorSplit].ccFaders) {
+  else if (Split[sensorSplit].ccFaders && !userFirmwareActive) {
     if (sensorCell->isMeaningfulTouch()) {
       handleFaderTouch(newVelocity);
     }
   }
-  else if (Split[Global.currentPerSplit].sequencer) {
+  else if (Split[Global.currentPerSplit].sequencer && !userFirmwareActive) {
     if (sensorCell->isMeaningfulTouch()) {
       handleSequencerTouch(newVelocity);
     }
