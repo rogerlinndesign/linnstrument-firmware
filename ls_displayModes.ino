@@ -953,7 +953,7 @@ void paintPlayedTouchModeDisplay(byte side) {
       adaptfont_draw_string(0, 0, "CELL", Split[side].colorMain, true);
       break;
     case playedSame:
-      adaptfont_draw_string(0, 0, "SAME", Split[side].colorMain, true);
+      adaptfont_draw_string(0, 0, LINNMODEL == 200 ? "SAME" : "SAM", Split[side].colorMain, true);
       break;
     case playedCrosses:
       adaptfont_draw_string(0, 0, "CROS", Split[side].colorMain, true);
@@ -965,7 +965,7 @@ void paintPlayedTouchModeDisplay(byte side) {
       adaptfont_draw_string(0, 0, "SQUA", Split[side].colorMain, true);
       break;
     case playedDiamonds:
-      adaptfont_draw_string(0, 0, "DIAM", Split[side].colorMain, true);
+      adaptfont_draw_string(0, 0, LINNMODEL == 200 ? "DIAM" : "DIA", Split[side].colorMain, true);
       break;
     case playedStars:
       adaptfont_draw_string(0, 0, "STAR", Split[side].colorMain, true);
