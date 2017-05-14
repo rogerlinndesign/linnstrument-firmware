@@ -2824,10 +2824,10 @@ void StepSequencerState::paintFocusFader(byte row, byte value) {
 
   for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
     if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
-      setLed(col, row, Split[split].colorAccent, cellOn);
+      setLed(col, row, Split[split].colorMain, cellOn);
     }
     else {
-      setLed(col, row, Split[split].colorMain, cellOn);
+      setLed(col, row, Split[split].colorAccent, cellOn);
     }
   }
 }
@@ -2851,10 +2851,10 @@ void StepSequencerState::paintDurationFader(byte row, unsigned short duration) {
   int faderPosition = SEQ_FADER_LEFT + FXD_TO_INT(FXD_MUL(FXD_FROM_INT(index), FXD_SEQ_DURATION_FADER_RATIO));
   for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
     if (col > faderPosition) {
-      setLed(col, row, Split[split].colorAccent, display);
+      setLed(col, row, Split[split].colorMain, display);
     }
     else {
-      setLed(col, row, Split[split].colorMain, display);
+      setLed(col, row, Split[split].colorAccent, display);
     }
   }
 }
@@ -2868,7 +2868,7 @@ void StepSequencerState::paintPitchOffsetFader(byte row, short pitchOffset) {
         clearLed(col, row);
       }
       else {
-        setLed(col, row, Split[split].colorMain, cellOn);
+        setLed(col, row, Split[split].colorAccent, cellOn);
       }
     }
   }
