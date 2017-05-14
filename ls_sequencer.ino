@@ -53,7 +53,7 @@ const byte SEQ_DURATION_EDIT_PANEL_COUNT = 17;
 int32_t FXD_SEQ_DURATION_FADER_RATIO;
 
 static unsigned long sequencerFaderChangeTime[4];
-static short sequencerFaderLastX[4];
+static int sequencerFaderLastX[4];
 
 static short sequencerCopyPatternSource = -1;
 static short sequencerCopySplitSource = -1;
@@ -1787,34 +1787,36 @@ boolean StepEvent::calculateSequencerFaderValue(boolean newVelocity) {
   }
 
   if (newVelocity) {
-    sequencerFaderLastX[fader] = FXD_FROM_INT(sensorCell->fxdInitialReferenceX());
+    sequencerFaderLastX[fader] = FXD_TO_INT(sensorCell->fxdInitialReferenceX());
   }
 
   short movedX = sensorCell->calibratedX() - sequencerFaderLastX[fader];
-  if (abs(movedX) > sensitivity) {
-    unsigned long now = micros();
-
-    byte increment = 1;
-    if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 70000) {
-      increment = 5;
-    }
-    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 80000) {
-      increment = 3;
-    }
-    else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 100000) {
-      increment = 2;
-    }
-
-    if (movedX > 0) {
-      value = constrain(prev + increment, getFaderMin(fader), getFaderMax(fader));
-    }
-    else {
-      value = constrain(prev - increment, getFaderMin(fader), getFaderMax(fader));
-    }
-
-    sequencerFaderChangeTime[fader] = now;
-    sequencerFaderLastX[fader] = sensorCell->calibratedX();
+  if (abs(movedX) <= sensitivity) {
+    return false;
   }
+
+  unsigned long now = micros();
+
+  byte increment = 1;
+  if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 70000) {
+    increment = 5;
+  }
+  else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 80000) {
+    increment = 3;
+  }
+  else if (calcTimeDelta(now, sequencerFaderChangeTime[fader]) < 100000) {
+    increment = 2;
+  }
+
+  if (movedX > 0) {
+    value = constrain(prev + increment, getFaderMin(fader), getFaderMax(fader));
+  }
+  else {
+    value = constrain(prev - increment, getFaderMin(fader), getFaderMax(fader));
+  }
+
+  sequencerFaderChangeTime[fader] = now;
+  sequencerFaderLastX[fader] = sensorCell->calibratedX();
 
   setFaderValue(fader, value);
 
