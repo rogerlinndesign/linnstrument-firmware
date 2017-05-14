@@ -201,7 +201,6 @@ void refreshLedColumn(unsigned long now) {
   static boolean lastPulseOn = true;
   static unsigned long lastSlowPulse = 0;
   static boolean lastSlowPulseOn = true;
-  static unsigned long lastFocusPulse = 0;
   static boolean lastFocusPulseOn = true;
 
   if (calcTimeDelta(now, lastPulse) > 80000) {
@@ -212,9 +211,11 @@ void refreshLedColumn(unsigned long now) {
     lastSlowPulse = now;
     lastSlowPulseOn = !lastSlowPulseOn;
   }
-  if (calcTimeDelta(now, lastFocusPulse) > (lastFocusPulseOn ? 900000 : 100000)) {
-    lastFocusPulse = now;
-    lastFocusPulseOn = !lastFocusPulseOn;
+  if (clock24PPQ < 6) {
+    lastFocusPulseOn = false;
+  }
+  else {
+    lastFocusPulseOn = true;
   }
 
   static byte ledCol = 0;
