@@ -138,8 +138,8 @@ void transferFromSameRowCell(byte col) {
   fromCell->velocity = 0;
   // do not reset vcount!
 
-  byte channel = sensorCell->channel;
-  if (channel != -1 && col == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
+  signed char channel = sensorCell->channel;
+  if (channel > 0 && col == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
     focus(sensorSplit, channel).col = sensorCol;
     focus(sensorSplit, channel).row = sensorRow;
   }
@@ -187,8 +187,8 @@ void transferToSameRowCell(byte col) {
   sensorCell->velocity = 0;
   // do not reset vcount!
 
-  byte channel = toCell->channel;
-  if (channel != -1 && sensorCol == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
+  signed char channel = toCell->channel;
+  if (channel > 0 && sensorCol == focus(sensorSplit, channel).col && sensorRow == focus(sensorSplit, channel).row) {
     focus(sensorSplit, channel).col = col;
     focus(sensorSplit, channel).row = sensorRow;
   }
