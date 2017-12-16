@@ -43,6 +43,7 @@ displayEditAudienceMessage    : edit an audience message
 displaySleep                  : sleeping
 displaySleepConfig            : sleep mode configuration
 displayRowOffset              : custom row offset selection
+displayGuitarTuning           : guitar tuning configuration
 displayMIDIThrough            : MIDI through configuration
 displaySequencerProjects      : sequencer projects
 displaySequencerDrum0107      : sequencer first 7 drum notes
@@ -197,6 +198,9 @@ void updateDisplay() {
       break;
     case displayRowOffset:
       paintRowOffset();
+      break;
+    case displayGuitarTuning:
+      paintGuitarTuning();
       break;
     case displayMIDIThrough:
       paintMIDIThrough();
@@ -1191,6 +1195,16 @@ void paintRowOffset() {
   }
 }
 
+void paintGuitarTuning() {
+  clearDisplay();
+
+  for (byte r = 0; r < NUMROWS; ++r) {
+    setLed(1, r, guitarTuningRowNum == r ? Split[Global.currentPerSplit].colorAccent : Split[Global.currentPerSplit].colorMain, cellOn);
+  }
+
+  paintNumericDataDisplay(globalColor, Global.guitarTuning[guitarTuningRowNum], 2, true);
+}
+
 void paintMIDIThrough() {
   clearDisplay();
   if (Device.midiThrough) {
@@ -1558,7 +1572,7 @@ void paintGlobalSettingsDisplay() {
       case ROWOFFSET_OCTAVECUSTOM:      // +octave or custom
         setLed(6, 2, getRowOffsetColor(), cellOn);
         break;
-      case 13:      // guitar tuning
+      case ROWOFFSET_GUITAR:            // guitar tuning
         lightLed(6, 3);
         break;
       case ROWOFFSET_ZERO:

@@ -306,7 +306,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 14;
+  Device.version = 15;
   Device.serialMode = false;
   Device.sleepAnimationActive = false;
   Device.sleepActive = false;
@@ -448,6 +448,17 @@ void initializeNoteLights(GlobalSettings& g) {
     g.mainNotes[11] |= 1 << 10;
 }
 
+void initializeGuitarTuning(GlobalSettings& g) {
+    g.guitarTuning[0] = 30;
+    g.guitarTuning[1] = 35;
+    g.guitarTuning[2] = 40;
+    g.guitarTuning[3] = 45;
+    g.guitarTuning[4] = 50;
+    g.guitarTuning[5] = 55;
+    g.guitarTuning[6] = 59;
+    g.guitarTuning[7] = 64;
+}
+
 void initializePresetSettings() {
   Global.splitActive = false;
 
@@ -499,6 +510,7 @@ void initializePresetSettings() {
     g.customSwitchAssignment[SWITCH_SWITCH_2] = ASSIGNED_TAP_TEMPO;
 
     initializeNoteLights(g);
+    initializeGuitarTuning(g);
 
     g.arpDirection = ArpReplayAll;
     g.arpTempo = ArpSixteenthSwing;
@@ -2017,6 +2029,20 @@ void handleRowOffsetRelease() {
   handleNumericDataReleaseCol(false);
 }
 
+void handleGuitarTuningNewTouch() {
+  if (sensorCol == 1) {
+    guitarTuningRowNum = sensorRow;
+    updateDisplay();
+  }
+  else {
+    handleNumericDataNewTouchCol(Global.guitarTuning[guitarTuningRowNum], 0, 127, true);
+  }
+}
+
+void handleGuitarTuningRelease() {
+  handleNumericDataReleaseCol(true);
+}
+
 void handleMinUSBMIDIIntervalNewTouch() {
   handleNumericDataNewTouchCol(Device.minUSBMIDIInterval, 0, 512, false);
 }
@@ -2520,15 +2546,8 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 2:
-            // handled at release
-            break;
           case 3:
-            if (Global.rowOffset == 13) {
-              Global.rowOffset = ROWOFFSET_ZERO;
-            }
-            else {
-              Global.rowOffset = 13;      // guitar
-            }
+            // handled at release
             break;
         }
         break;
@@ -2726,6 +2745,7 @@ void handleGlobalSettingNewTouch() {
     case 6:
       switch (sensorRow) {
         case 2:
+        case 3:
           setLed(sensorCol, sensorRow, getRowOffsetColor(), cellSlowPulse);
           break;
       }
@@ -2827,6 +2847,11 @@ void handleGlobalSettingHold() {
           case 2:
             resetNumericDataChange();
             setDisplayMode(displayRowOffset);
+            updateDisplay();
+            break;
+          case 3:
+            resetNumericDataChange();
+            setDisplayMode(displayGuitarTuning);
             updateDisplay();
             break;
         }
@@ -2948,6 +2973,15 @@ void handleGlobalSettingRelease() {
       }
       else {
         Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
+      }
+  }
+  else if (sensorCol == 6 && sensorRow == 3 &&
+      ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_GUITAR ? cellOn : cellOff)) {
+      if (Global.rowOffset == ROWOFFSET_GUITAR) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = ROWOFFSET_GUITAR;
       }
   }
   else if (sensorRow == 7) {

@@ -692,10 +692,51 @@ struct DeviceSettingsV11 {
   short lastLoadedPreset;                    // the last settings preset that was loaded
   short lastLoadedProject;                   // the last sequencer project that was loaded
 };
+struct GlobalSettingsV9 {
+  void setSwitchAssignment(byte, byte);
+
+  byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
+  byte currentPerSplit;                      // controls which split's settings are being displayed
+  byte activeNotes;                          // controls which collection of note lights presets is active
+  int mainNotes[12];                         // bitmask array that determines which notes receive "main" lights
+  int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
+  byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
+  signed char customRowOffset;               // the custom row offset that can be configured at the location of the octave setting
+  VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
+  unsigned short minForVelocity;             // 1-127
+  unsigned short maxForVelocity;             // 1-127
+  unsigned short valueForFixedVelocity;      // 1-127
+  PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
+  boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
+  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitchCC65[4];         // 0-127
+  unsigned short ccForSwitchSustain[4];      // 0-127
+  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV or ASSIGNED_SEQUENCER_NEXT
+  byte midiIO;                               // 0 = MIDI jacks, 1 = USB
+  ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
+  ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
+  signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
+  SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
+  boolean splitActive;                       // false = split off, true = split on
+};
+struct PresetSettingsV10 {
+  GlobalSettingsV9 global;
+  SplitSettings split[NUMSPLITS];
+};
 struct ConfigurationV13 {
   DeviceSettingsV11 device;
-  PresetSettings settings;
-  PresetSettings preset[NUMPRESETS];
+  PresetSettingsV10 settings;
+  PresetSettingsV10 preset[NUMPRESETS];
+  SequencerProject project;
+};
+/**************************************** Configuration V14 ****************************************
+This is used by firmware v2.1.0
+**************************************************************************************************/
+struct ConfigurationV14 {
+  DeviceSettings device;
+  PresetSettingsV10 settings;
+  PresetSettingsV10 preset[NUMPRESETS];
   SequencerProject project;
 };
 /*************************************************************************************************/
@@ -794,6 +835,12 @@ boolean upgradeConfigurationSettings(int32_t confSize, byte* buff2) {
         break;
       // this is the v14 of the configuration configuration, apply it if the size is right
       case 14:
+        if (confSize == sizeof(ConfigurationV14)) {
+          copyConfigurationFunction = &copyConfigurationV14;
+        }
+        break;
+      // this is the v15 of the configuration configuration, apply it if the size is right
+      case 15:
         if (confSize == sizeof(Configuration)) {
           memcpy(&config, buff2, confSize);
           result = true;
@@ -1783,13 +1830,16 @@ void copyConfigurationV13(void* target, void* source) {
 
   copyDeviceSettingsV11(&t->device, &s->device);
 
-  memcpy(&t->settings, &s->settings, sizeof(PresetSettings));
+  copyPresetSettingsV10(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV10(&t->preset[p], &s->preset[p]);
+  }
+
   // we inserted another touch animation option at the beginning
   // to replace the default one
   t->settings.split[LEFT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
   t->settings.split[RIGHT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
   for (byte p = 0; p < NUMPRESETS; ++p) {
-    memcpy(&t->preset[p], &s->preset[p], sizeof(PresetSettings));
     t->preset[p].split[LEFT].playedTouchMode = t->preset[p].split[LEFT].playedTouchMode + 1;
     t->preset[p].split[RIGHT].playedTouchMode = t->preset[p].split[RIGHT].playedTouchMode + 1;
   }
@@ -1823,4 +1873,60 @@ void copyDeviceSettingsV11(void* target, void* source) {
   t->midiThrough = s->midiThrough;
   t->lastLoadedPreset = s->lastLoadedPreset;
   t->lastLoadedProject = s->lastLoadedProject;
+}
+
+void copyPresetSettingsV10(void* target, void* source) {
+  PresetSettings* t = (PresetSettings*)target;
+  PresetSettingsV10* s = (PresetSettingsV10*)source;
+
+  copyGlobalSettingsV9(&t->global, &s->global);
+
+  memcpy(&t->split[LEFT], &s->split[LEFT], sizeof(SplitSettings));
+  memcpy(&t->split[RIGHT], &s->split[RIGHT], sizeof(SplitSettings));
+}
+
+void copyGlobalSettingsV9(void* target, void* source) {
+  GlobalSettings* t = (GlobalSettings*)target;
+  GlobalSettingsV9* s = (GlobalSettingsV9*)source;
+
+  t->splitPoint = s->splitPoint;
+  t->currentPerSplit = s->currentPerSplit;
+  t->activeNotes = s->activeNotes;
+  memcpy(t->mainNotes, s->mainNotes, sizeof(int)*12);
+  memcpy(t->accentNotes, s->accentNotes, sizeof(int)*12);
+  t->rowOffset = s->rowOffset;
+  t->customRowOffset = s->customRowOffset;
+  t->velocitySensitivity = s->velocitySensitivity;
+  t->minForVelocity = s->minForVelocity;
+  t->maxForVelocity = s->maxForVelocity;
+  t->valueForFixedVelocity = s->valueForFixedVelocity;
+  t->pressureSensitivity = s->pressureSensitivity;
+  t->pressureAftertouch = s->pressureAftertouch;
+  memcpy(t->switchAssignment, s->switchAssignment, sizeof(byte)*4);
+  memcpy(t->switchBothSplits, s->switchBothSplits, sizeof(boolean)*4);
+  memcpy(t->ccForSwitchCC65, s->ccForSwitchCC65, sizeof(unsigned short)*4);
+  memcpy(t->ccForSwitchSustain, s->ccForSwitchSustain, sizeof(unsigned short)*4);
+  memcpy(t->customSwitchAssignment, s->customSwitchAssignment, sizeof(unsigned short)*4);
+  t->midiIO = s->midiIO;
+  t->arpDirection = s->arpDirection;
+  t->arpTempo = s->arpTempo;
+  t->arpOctave = s->arpOctave;
+  t->sustainBehavior = s->sustainBehavior;
+  t->splitActive = s->splitActive;
+}
+
+/*************************************************************************************************/
+
+void copyConfigurationV14(void* target, void* source) {
+  Configuration* t = (Configuration*)target;
+  ConfigurationV14* s = (ConfigurationV14*)source;
+
+  memcpy(&t->device, &s->device, sizeof(DeviceSettings));
+
+  copyPresetSettingsV10(&t->settings, &s->settings);
+  for (byte p = 0; p < NUMPRESETS; ++p) {
+    copyPresetSettingsV10(&t->preset[p], &s->preset[p]);
+  }
+
+  memcpy(&t->project, &s->project, sizeof(SequencerProject));
 }

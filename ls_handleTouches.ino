@@ -637,6 +637,9 @@ void handleNonPlayingTouch() {
     case displayRowOffset:
       handleRowOffsetNewTouch();
       break;
+    case displayGuitarTuning:
+      handleGuitarTuningNewTouch();
+      break;
     case displayMinUSBMIDIInterval:
       handleMinUSBMIDIIntervalNewTouch();
       break;
@@ -1562,6 +1565,9 @@ boolean handleNonPlayingRelease() {
       case displayRowOffset:
         handleRowOffsetRelease();
         break;
+      case displayGuitarTuning:
+        handleGuitarTuningRelease();
+        break;
       case displayMinUSBMIDIInterval:
         handleMinUSBMIDIIntervalRelease();
         break;
@@ -1905,25 +1911,23 @@ inline void updateSensorCell() {
 byte getNoteNumber(byte split, byte col, byte row) {
   byte notenum = 0;
 
-  short offset, lowest;
-  determineNoteOffsetAndLowest(split, row, offset, lowest);
-
   // return the computed note based on the selected rowOffset
   short noteCol = col;
   if (isLeftHandedSplit(split)) {
     noteCol = (NUMCOLS - col);
   }
 
-  notenum = lowest + (row * offset) + noteCol - 1;
+  notenum = determineRowOffsetNote(split, row) + noteCol - 1;
 
   return notenum - Split[split].transposeLights;
 }
 
-void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lowest) {
-  offset = Global.rowOffset;
-  lowest = 30;                                        // 30 = F#2, which is 10 semitones below guitar low E (E3/52). High E = E5/76
+short determineRowOffsetNote(byte split, byte row) {
+  short lowest = 30;                                  // 30 = F#2, which is 10 semitones below guitar low E (E3/52). High E = E5/76
 
   if (Global.rowOffset <= 12) {                       // if rowOffset is set to between 0 and 12..
+    short offset = Global.rowOffset;
+
     if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
       offset = Global.customRowOffset;
     }
@@ -1955,16 +1959,14 @@ void determineNoteOffsetAndLowest(byte split, byte row, short& offset, short& lo
     else if (offset <= -12) {
       lowest = 18 - 7 * offset;
     }
-  }
-  else if (Global.rowOffset == 13) {                  // if rowOffset is set to guitar tuning...
-    offset = 5;                                       // standard guitar offset is 5 semitones
 
-    if (row >= 6) {                                   // except from row 6 onwards where it's shifted by one
-      lowest -= 1;
-    }
+    return lowest + (row * offset);
   }
-  else if (Global.rowOffset == ROWOFFSET_ZERO) {      // if rowOffset is set to zero...
-    offset = 0;
+  else if (Global.rowOffset == ROWOFFSET_GUITAR) {    // if rowOffset is set to guitar tuning...
+    return Global.guitarTuning[row];
+  }
+  else {                                              // Global.rowOffset == ROWOFFSET_ZERO, rowOffset is set to zero...
+    return lowest;
   }
 }
 

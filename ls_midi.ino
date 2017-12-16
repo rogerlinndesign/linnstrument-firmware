@@ -929,7 +929,8 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Row Offset
     case 227:
-      if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 || value == 7 || value == ROWOFFSET_OCTAVECUSTOM || value == 13 || value == ROWOFFSET_ZERO) {
+      if (value == ROWOFFSET_NOOVERLAP || value == 3 || value == 4 || value == 5 || value == 6 ||
+          value == 7 || value == ROWOFFSET_OCTAVECUSTOM || value == ROWOFFSET_GUITAR || value == ROWOFFSET_ZERO) {
         Global.rowOffset = value;
       }
       break;
@@ -1270,10 +1271,8 @@ void resetPossibleNoteCells(byte split, byte notenum) {
 }
 
 short getNoteNumColumn(byte split, byte notenum, byte row) {
-  short offset, lowest;
-  determineNoteOffsetAndLowest(split, row, offset, lowest);
-
-  short col = notenum - (lowest + (row * offset) + Split[split].transposeOctave) + 1   // calculate the column that this MIDI note can be played on
+  short row_offset_note = determineRowOffsetNote(split, row);
+  short col = notenum - (row_offset_note + Split[split].transposeOctave) + 1           // calculate the column that this MIDI note can be played on
             + Split[split].transposeLights - Split[split].transposePitch;;             // adapt for transposition settings
   if (isLeftHandedSplit(split)) {
     col = NUMCOLS - col;

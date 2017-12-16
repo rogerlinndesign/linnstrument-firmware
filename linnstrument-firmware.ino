@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.1.1 =========================================
+======================================== LinnStrument Operating System v2.2.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,8 +56,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "211.";
-const char* OSVersionBuild = ".050";
+const char* OSVersion = "220.";
+const char* OSVersionBuild = ".051";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -113,6 +113,7 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 // Special row offset values, for legacy reasons
 #define ROWOFFSET_NOOVERLAP        0x00
 #define ROWOFFSET_OCTAVECUSTOM     0x0c
+#define ROWOFFSET_GUITAR           0x0d
 #define ROWOFFSET_ZERO             0x7f
 
 #define LED_FLASH_DELAY  50000        // the time before a led is turned off when flashing or pulsing, in microseconds
@@ -470,6 +471,7 @@ enum DisplayMode {
   displaySleepConfig,
   displaySplitHandedness,
   displayRowOffset,
+  displayGuitarTuning,
   displayMIDIThrough,
   displaySequencerProjects,
   displaySequencerDrum0107,
@@ -736,6 +738,7 @@ struct GlobalSettings {
   int accentNotes[12];                       // bitmask array that determines which notes receive accent lights (octaves, white keys, black keys, etc.)
   byte rowOffset;                            // interval between rows. 0 = no overlap, 1-12 = interval, 13 = guitar
   signed char customRowOffset;               // the custom row offset that can be configured at the location of the octave setting
+  byte guitarTuning[MAXROWS];                // the notes used for each row for the guitar tuning, 0-127
   VelocitySensitivity velocitySensitivity;   // See VelocitySensitivity values
   unsigned short minForVelocity;             // 1-127
   unsigned short maxForVelocity;             // 1-127
@@ -1046,6 +1049,8 @@ unsigned long lastTouchMoment = 0;                  // last time someone touched
 unsigned short clock24PPQ = 0;                      // the current clock in 24PPQ, either internal or synced to incoming MIDI clock
 
 short restrictedRow = -1;                           // temporarily restrict touches to a particular row
+
+byte guitarTuningRowNum = 0;                        // active tow number for configuring the guitar tuning
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
