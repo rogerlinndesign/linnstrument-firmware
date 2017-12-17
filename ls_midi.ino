@@ -44,6 +44,7 @@ int32_t fxd4MidiTempoAverage = fxd4CurrentTempo;           // the current averag
 byte midiClockMessageCount = 0;                            // the number of MIDI clock messages we've received, from 1 to 24, with 0 meaning none has been received yet
 byte initialMidiClockMessageCount = 0;                     // the first MIDI clock messages, counted until the minimum number of samples have been received
 unsigned long midiClockLedOn = 0;                          // indicates when the MIDI clock led was turned on
+bool receivedSongPositionPointer = false;                  // tracks whether a song position pointer message was received before the MIDI clock start
 
 byte lastRpnMsb = 127;
 byte lastRpnLsb = 127;
@@ -113,6 +114,11 @@ void handleMidiInput(unsigned long nowMicros) {
       case MIDIContinue:
         midiMessageBytes = 1;
         midiMessageIndex = 1;
+
+        if (!receivedSongPositionPointer) {
+          midiClockMessageCount = 1;
+          setSequencerSongPositionPointer(0);
+        }
 
         midiClockStatus = midiClockStart;
         fxd4MidiTempoAverage = fxd4CurrentTempo;
@@ -267,6 +273,13 @@ void handleMidiInput(unsigned long nowMicros) {
     }
 
     int split = determineSplitForChannel(midiChannel);
+
+    if (midiStatus == MIDISongPositionPointer) {
+      receivedSongPositionPointer = true;
+    }
+    else {
+      receivedSongPositionPointer = false;
+    }
 
     switch (midiStatus) {
       case MIDISongPositionPointer:
