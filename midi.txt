@@ -256,6 +256,14 @@ NRPN   Value   Description
 260    0-127   Global MIDI CC For Foot Right Sustain
 261    0-127   Global MIDI CC For Switch 1 Sustain
 262    0-127   Global MIDI CC For Switch 2 Sustain
+263    0-127   Global Note Number For Guitar Tuning Row 1
+264    0-127   Global Note Number For Guitar Tuning Row 2
+265    0-127   Global Note Number For Guitar Tuning Row 3
+266    0-127   Global Note Number For Guitar Tuning Row 4
+267    0-127   Global Note Number For Guitar Tuning Row 5
+268    0-127   Global Note Number For Guitar Tuning Row 6
+269    0-127   Global Note Number For Guitar Tuning Row 7
+270    0-127   Global Note Number For Guitar Tuning Row 8
 
 Color Values
 ============

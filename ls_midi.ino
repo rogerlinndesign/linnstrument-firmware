@@ -1179,6 +1179,54 @@ void receivedNrpn(int parameter, int value) {
         Global.ccForSwitchSustain[SWITCH_SWITCH_2] = value;
       }
       break;
+    // Global Note Number For Guitar Tuning Row 1
+    case 263:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[0] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 2
+    case 264:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[1] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 3
+    case 265:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[2] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 4
+    case 266:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[3] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 5
+    case 267:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[4] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 6
+    case 268:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[5] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 7
+    case 269:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[6] = value;
+      }
+      break;
+    // Global Note Number For Guitar Tuning Row 8
+    case 270:
+      if (inRange(value, 0, 127)) {
+        Global.guitarTuning[7] = value;
+      }
+      break;
   }
 
   updateDisplay();
