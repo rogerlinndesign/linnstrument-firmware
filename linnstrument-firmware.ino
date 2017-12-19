@@ -188,23 +188,24 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define SWITCH_SWITCH_2  2
 #define SWITCH_SWITCH_1  3
 
-#define ASSIGNED_OCTAVE_DOWN      0
-#define ASSIGNED_OCTAVE_UP        1
-#define ASSIGNED_SUSTAIN          2
-#define ASSIGNED_CC_65            3
-#define ASSIGNED_ARPEGGIATOR      4
-#define ASSIGNED_ALTSPLIT         5
-#define ASSIGNED_AUTO_OCTAVE      6
-#define ASSIGNED_TAP_TEMPO        7
-#define ASSIGNED_LEGATO           8
-#define ASSIGNED_LATCH            9
-#define ASSIGNED_PRESET_UP        10
-#define ASSIGNED_PRESET_DOWN      11
-#define ASSIGNED_REVERSE_PITCH_X  12
-#define ASSIGNED_SEQUENCER_PLAY   13
-#define ASSIGNED_SEQUENCER_PREV   14
-#define ASSIGNED_SEQUENCER_NEXT   15
-#define MAX_ASSIGNED              ASSIGNED_SEQUENCER_NEXT
+#define ASSIGNED_OCTAVE_DOWN            0
+#define ASSIGNED_OCTAVE_UP              1
+#define ASSIGNED_SUSTAIN                2
+#define ASSIGNED_CC_65                  3
+#define ASSIGNED_ARPEGGIATOR            4
+#define ASSIGNED_ALTSPLIT               5
+#define ASSIGNED_AUTO_OCTAVE            6
+#define ASSIGNED_TAP_TEMPO              7
+#define ASSIGNED_LEGATO                 8
+#define ASSIGNED_LATCH                  9
+#define ASSIGNED_PRESET_UP              10
+#define ASSIGNED_PRESET_DOWN            11
+#define ASSIGNED_REVERSE_PITCH_X        12
+#define ASSIGNED_SEQUENCER_PLAY         13
+#define ASSIGNED_SEQUENCER_PREV         14
+#define ASSIGNED_SEQUENCER_NEXT         15
+#define ASSIGNED_STANDALONE_MIDI_CLOCK  16
+#define MAX_ASSIGNED                    ASSIGNED_STANDALONE_MIDI_CLOCK
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1
@@ -749,7 +750,7 @@ struct GlobalSettings {
   boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
   unsigned short ccForSwitchCC65[4];         // 0-127
   unsigned short ccForSwitchSustain[4];      // 0-127
-  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV or ASSIGNED_SEQUENCER_NEXT
+  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV, ASSIGNED_SEQUENCER_NEXT or ASSIGNED_STANDALONE_MIDI_CLOCK
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
@@ -983,6 +984,8 @@ unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
 unsigned long prevLedTimerCount;                         // timer for refreshing leds
 unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
 unsigned long prevTouchAnimTimerCount;                   // timer for refreshing the touch animation
+
+unsigned long tempoLedOn = 0;                       // indicates when the tempo clock led was turned on
 
 ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that are being handed out
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127

@@ -2088,7 +2088,7 @@ void StepSequencerState::turnOn() {
     return;
   }
 
-  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
+  if (!isSyncedToMidiClock() && !sequencerIsRunning() && !isStandaloneMidiClockRunning()) {
     midiSendStart();
     midiSendTimingClock();
   }
@@ -2148,7 +2148,7 @@ void StepSequencerState::turnOff(boolean save) {
     storeSettings();
   }
 
-  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
+  if (!isSyncedToMidiClock() && !sequencerIsRunning() && !isStandaloneMidiClockRunning()) {
     midiSendStop();
   }
 }

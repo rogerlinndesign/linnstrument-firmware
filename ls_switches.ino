@@ -53,7 +53,8 @@ boolean isStatefulSwitchAssignment(byte assignment) {
          assignment == ASSIGNED_ARPEGGIATOR ||
          assignment == ASSIGNED_LEGATO ||
          assignment == ASSIGNED_LATCH ||
-         assignment == ASSIGNED_REVERSE_PITCH_X;
+         assignment == ASSIGNED_REVERSE_PITCH_X ||
+         assignment == ASSIGNED_STANDALONE_MIDI_CLOCK;
 }
 
 void doSwitchPressed(byte whichSwitch) {
@@ -181,13 +182,16 @@ void changeSwitchState(byte whichSwitch, byte assignment, byte split, boolean en
   }
   else {
     switchTargetEnabled[split][assignment] = enabled;
-    if (assignment == ASSIGNED_ALTSPLIT) {
+    if (assignment == ASSIGNED_ALTSPLIT || assignment == ASSIGNED_STANDALONE_MIDI_CLOCK) {
       switchTargetEnabled[otherSplit(split)][assignment] = enabled;
     }
   }
 
   // set the state of the switch
   switchState[whichSwitch][split] = enabled;
+  if (assignment == ASSIGNED_STANDALONE_MIDI_CLOCK) {
+    switchState[whichSwitch][otherSplit(split)] = enabled;
+  }
 }
 
 void switchTransposeOctave(byte split, int interval) {
@@ -261,6 +265,10 @@ void performSwitchAssignmentOn(byte whichSwitch, byte assignment, byte split) {
     case ASSIGNED_SEQUENCER_NEXT:
       sequencerNextPattern(split);
       break;
+
+    case ASSIGNED_STANDALONE_MIDI_CLOCK:
+      standaloneMidiClockStart();
+      break;
   }
 }
 
@@ -315,6 +323,7 @@ void performSwitchAssignmentHoldOff(byte whichSwitch, byte assignment, byte spli
     case ASSIGNED_LEGATO:
     case ASSIGNED_LATCH:
     case ASSIGNED_REVERSE_PITCH_X:
+    case ASSIGNED_STANDALONE_MIDI_CLOCK:
       performSwitchAssignmentOff(whichSwitch, assignment, split);
       break;
 
@@ -346,6 +355,10 @@ void performSwitchAssignmentOff(byte whichSwitch, byte assignment, byte split) {
 
     case ASSIGNED_REVERSE_PITCH_X:
       performReverseSendXToggle();
+      break;
+
+    case ASSIGNED_STANDALONE_MIDI_CLOCK:
+      standaloneMidiClockStop();
       break;
   }
 }

@@ -54,7 +54,6 @@ These routines handle the painting of these display modes on LinnStument's 208 L
 **************************************************************************************************/
 
 
-unsigned long tapTempoLedOn = 0;       // indicates when the tap tempo clock led was turned on
 unsigned long displayModeStart = 0;    // indicates when the current display mode was activated
 boolean blinkMiddleRootNote = false;   // indicates whether the middle root note should be blinking
 
@@ -1118,6 +1117,9 @@ void paintCustomSwitchAssignmentConfigDisplay() {
     case ASSIGNED_SEQUENCER_NEXT:
       adaptfont_draw_string(0, 0, "NEXT", globalColor, true);
       break;
+    case ASSIGNED_STANDALONE_MIDI_CLOCK:
+      adaptfont_draw_string(0, 0, "CLK", globalColor, true);
+      break;
   }
 }
 
@@ -1432,6 +1434,7 @@ void paintSwitchAssignment(byte mode) {
     case ASSIGNED_SEQUENCER_PLAY:
     case ASSIGNED_SEQUENCER_PREV:
     case ASSIGNED_SEQUENCER_NEXT:
+    case ASSIGNED_STANDALONE_MIDI_CLOCK:
       setLed(9, 3, getSwitchTapTempoColor(), cellOn);
       break;
     case ASSIGNED_AUTO_OCTAVE:
@@ -1463,7 +1466,8 @@ void updateGlobalSettingsFlashTempo(unsigned long now) {
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
     paintGlobalSettingsFlashTempo(now);
   }
-  else if (!isSyncedToMidiClock() && isArpeggiatorEnabled(Global.currentPerSplit)) {
+  else if (!isSyncedToMidiClock() &&
+           (isArpeggiatorEnabled(Global.currentPerSplit) || isStandaloneMidiClockRunning())) {
     paintGlobalSettingsFlashTempo(now, 0, 0);
   }
 }
@@ -1477,12 +1481,12 @@ inline void paintGlobalSettingsFlashTempo(unsigned long now, byte col, byte row)
     // flash the tap tempo cell at the beginning of the beat
     if (clock24PPQ == 0) {
       lightLed(col, row);
-      tapTempoLedOn = now;
+      tempoLedOn = now;
     }
 
     // handle turning off the tap tempo led after minimum 30ms
-    if (tapTempoLedOn != 0 && calcTimeDelta(now, tapTempoLedOn) > LED_FLASH_DELAY) {
-      tapTempoLedOn = 0;
+    if (tempoLedOn != 0 && calcTimeDelta(now, tempoLedOn) > LED_FLASH_DELAY) {
+      tempoLedOn = 0;
       clearLed(col, row);
     }
   }

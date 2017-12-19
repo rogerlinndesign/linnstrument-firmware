@@ -79,7 +79,8 @@ inline boolean checkUpdateClock(unsigned long now) {
 
   clock24PPQ = clockCount;
 
-  if (sequencerIsRunning() && !isSyncedToMidiClock()) {
+  if (!isSyncedToMidiClock() &&
+     (sequencerIsRunning() || isStandaloneMidiClockRunning())) {
     midiSendTimingClock();
   }
 

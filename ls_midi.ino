@@ -43,8 +43,8 @@ unsigned long lastMidiClockTime = 0;                       // the last time we r
 int32_t fxd4MidiTempoAverage = fxd4CurrentTempo;           // the current average of the MIDI clock tempo, in fixes precision
 byte midiClockMessageCount = 0;                            // the number of MIDI clock messages we've received, from 1 to 24, with 0 meaning none has been received yet
 byte initialMidiClockMessageCount = 0;                     // the first MIDI clock messages, counted until the minimum number of samples have been received
-unsigned long midiClockLedOn = 0;                          // indicates when the MIDI clock led was turned on
 bool receivedSongPositionPointer = false;                  // tracks whether a song position pointer message was received before the MIDI clock start
+bool standaloneMidiClockRunning = false;                   // indicates whether the MIDI Clock is sending data in a standalone fashion, without sequencer
 
 byte lastRpnMsb = 127;
 byte lastRpnLsb = 127;
@@ -80,9 +80,9 @@ void applyMidiIo() {
 
 void handleMidiInput(unsigned long nowMicros) {
   // handle turning off the MIDI clock led after minimum 30ms
-  if (midiClockLedOn != 0 && calcTimeDelta(nowMicros, midiClockLedOn) > LED_FLASH_DELAY) {
-    midiClockLedOn = 0;
-    clearLed(0, 0);
+  if (tempoLedOn != 0 && calcTimeDelta(nowMicros, tempoLedOn) > LED_FLASH_DELAY) {
+    tempoLedOn = 0;
+    clearLed(0, GLOBAL_SETTINGS_ROW);
   }
 
   // if no serial data is available, return
@@ -189,7 +189,7 @@ void handleMidiInput(unsigned long nowMicros) {
           // flash the global settings led green on tempo, unless it's currently pressed down
           if (controlButton != GLOBAL_SETTINGS_ROW && midiClockMessageCount == 1) {
             setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
-            midiClockLedOn = nowMicros;
+            tempoLedOn = nowMicros;
           }
 
           // play the next arpeggiator and sequencer steps if needed
@@ -949,7 +949,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Switch 1 Assignment
     case 228:
-      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, MAX_ASSIGNED)) {
         Global.switchAssignment[SWITCH_SWITCH_1] = value;
         if (value >= ASSIGNED_TAP_TEMPO) {
           Global.customSwitchAssignment[SWITCH_SWITCH_1] = value;
@@ -958,7 +958,7 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Switch 2 Assignment
     case 229:
-      if (inRange(value, ASSIGNED_OCTAVE_DOWN, ASSIGNED_REVERSE_PITCH_X)) {
+      if (inRange(value, ASSIGNED_OCTAVE_DOWN, MAX_ASSIGNED)) {
         Global.switchAssignment[SWITCH_SWITCH_2] = value;
         if (value >= ASSIGNED_TAP_TEMPO) {
           Global.customSwitchAssignment[SWITCH_SWITCH_2] = value;
@@ -2287,6 +2287,34 @@ void midiSendMpeState(byte mainChannel, byte polyphony) {
 void midiSendMpePitchBendRange(byte split) {
   if (Split[split].mpe && getBendRange(split) == 24) {
     midiSendRPN(0, 24 << 7, Split[split].midiChanMain);
+  }
+}
+
+bool isStandaloneMidiClockRunning() {
+  return standaloneMidiClockRunning;
+}
+
+void standaloneMidiClockStart() {
+  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
+    if (!standaloneMidiClockRunning) {
+      standaloneMidiClockRunning = true;
+      midiSendStart();
+      midiSendTimingClock();
+    }
+  }
+}
+
+void standaloneMidiClockStop() {
+  if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
+    if (standaloneMidiClockRunning) {
+      if (controlButton != GLOBAL_SETTINGS_ROW && tempoLedOn != 0) {
+        tempoLedOn = 0;
+        clearLed(0, GLOBAL_SETTINGS_ROW);
+      }
+
+      standaloneMidiClockRunning = false;
+      midiSendStop();
+    }
   }
 }
 
