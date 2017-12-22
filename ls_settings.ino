@@ -1720,7 +1720,7 @@ void handlePresetNewTouch() {
   }
 
   if (sensorCol == getPresetDisplayColumn()) {
-    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS) {
+    if (sensorRow < NUMPRESETS) {
       // start tracking the touch duration to be able detect a long press
       sensorCell->lastTouch = millis();
       // indicate that a hold operation is being waited for
@@ -1734,7 +1734,7 @@ void handlePresetNewTouch() {
   }
 }
 
-void startPresetLEDBlink(byte p, byte color) {
+void startPresetLEDBlink(byte p, byte row, byte color) {
   if (p >= NUMPRESETS) return;
   
   unsigned long now = millis();
@@ -1743,20 +1743,21 @@ void startPresetLEDBlink(byte p, byte color) {
   }
   presetBlinkStart[p] = now;
 
-  setLed(getPresetDisplayColumn(), p+2, color, cellFastPulse);
+  setLed(getPresetDisplayColumn(), row, color, cellFastPulse);
 }
 
 void handlePresetHold() {
   if (sensorCol == getPresetDisplayColumn() &&
-      sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+      sensorRow < NUMPRESETS &&
       isCellPastEditHoldWait()) {
     // store to the selected preset
-    byte preset = sensorRow-2;
+    int preset = sensorRow-2;
+    if (preset < 0) preset += 6;
     storeSettingsToPreset(preset);
     sensorCell->lastTouch = 0;
 
     updateDisplay();
-    startPresetLEDBlink(preset, COLOR_RED);
+    startPresetLEDBlink(preset, sensorRow, COLOR_RED);
   }
 }
 
@@ -1774,16 +1775,17 @@ void handlePresetRelease() {
     handleNumericDataReleaseCol(true);
   }
   else if (sensorCol == getPresetDisplayColumn()) {
-    if (sensorRow >= 2 && sensorRow < 2 + NUMPRESETS &&
+    if (sensorRow < NUMPRESETS &&
         ensureCellBeforeHoldWait(globalColor, cellOn)) {
-      byte preset = sensorRow-2;
+      int preset = sensorRow-2;
+      if (preset < 0) preset += 6;
 
       // load the selected preset
       loadSettingsFromPreset(preset);
       sensorCell->lastTouch = 0;
 
       updateDisplay();
-      startPresetLEDBlink(preset, COLOR_GREEN);
+      startPresetLEDBlink(preset, sensorRow, COLOR_GREEN);
     }
   }
 }

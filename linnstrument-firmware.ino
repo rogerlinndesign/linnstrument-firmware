@@ -843,7 +843,7 @@ struct SequencerProject {
 };
 #define Project config.project
 
-#define NUMPRESETS 4 
+#define NUMPRESETS 6
 struct Configuration {
   DeviceSettings device;
   PresetSettings settings;

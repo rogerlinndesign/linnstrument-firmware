@@ -234,7 +234,9 @@ inline void checkStopBlinkingLeds(unsigned long now) {
         if (p == Device.lastLoadedPreset) {
           color = COLOR_CYAN;
         }
-        setLed(getPresetDisplayColumn(), p+2, color, cellOn);
+        int row = p+2;
+        if (row >= 6) row -= 6;
+        setLed(getPresetDisplayColumn(), row, color, cellOn);
         presetBlinkStart[p] = 0;
       }
     }
