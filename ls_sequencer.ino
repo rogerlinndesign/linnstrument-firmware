@@ -378,6 +378,10 @@ void sequencerSelectPattern(byte split, byte pattern) {
   }
 }
 
+short sequencerCurrentPatternNumber(byte split) {
+  return seqState[split].currentPattern;
+}
+
 boolean sequencerIsRunning() {
   return seqState[LEFT].isRunning() || seqState[RIGHT].isRunning();
 }

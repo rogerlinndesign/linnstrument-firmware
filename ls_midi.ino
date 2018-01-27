@@ -420,7 +420,7 @@ void handleMidiInput(unsigned long nowMicros) {
             }
             if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
               lastDataLsb = midiData2;
-              receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb);
+              receivedNrpn((lastNrpnMsb<<7)+lastNrpnLsb, (lastDataMsb<<7)+lastDataLsb, midiChannel);
               break;
             }
           case 98:
@@ -516,7 +516,7 @@ void receivedRpn(int parameter, int value) {
   updateDisplay();
 }
 
-void receivedNrpn(int parameter, int value) {
+void receivedNrpn(int parameter, int value, int channel) {
   byte split = LEFT;
   if (parameter >= 100 && parameter < 200) {
     parameter -= 100;
@@ -543,6 +543,7 @@ void receivedNrpn(int parameter, int value) {
         disableMpe(split);
         preResetMidiExpression(split);
       }
+      break;
     // Split MIDI Per Note Channels
     case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
     case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17:
@@ -1121,8 +1122,13 @@ void receivedNrpn(int parameter, int value) {
       break;
     // Global Custom Row Offset Instead Of Octave
     case 253:
-      if (inRange(value, -17, 16)) {
-        Global.customRowOffset = value;
+      if (inRange(value, 0, 33)) {
+        if (value == 33) {
+          Global.customRowOffset = -17;
+        }
+        else {
+          Global.customRowOffset = value - 16;
+        }
       }
       break;
     // Global MIDI Through
@@ -1227,9 +1233,357 @@ void receivedNrpn(int parameter, int value) {
         Global.guitarTuning[7] = value;
       }
       break;
+    // Query for the value of a particular parameter
+    case 299:
+      sendNrpnParameter(value, channel);
+      break;
   }
 
   updateDisplay();
+}
+
+void sendNrpnParameter(int parameter, int channel) {
+  byte split = LEFT;
+  int value = INT_MIN;
+  int param = parameter;
+  if (param >= 100 && param < 200) {
+    param -= 100;
+    split = RIGHT;
+  }
+
+  switch (param) {
+    case 0:
+      value = Split[split].midiMode;
+      break;
+    case 1:
+      value = Split[split].midiChanMain;
+      break;
+    case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
+    case 10: case 11: case 12: case 13: case 14: case 15: case 16: case 17:
+      value = Split[split].midiChanSet[param-2];
+      break;
+    case 18:
+      value = Split[split].midiChanPerRow;
+      break;
+    case 19:
+      value = getBendRange(split);
+      break;
+    case 20:
+      value = Split[split].sendX;
+      break;
+    case 21:
+      value = Split[split].pitchCorrectQuantize;
+      break;
+    case 22:
+      value = Split[split].pitchCorrectHold;
+      break;
+    case 23:
+      value = Split[split].pitchResetOnRelease;
+      break;
+    case 24:
+      value = Split[split].sendY;
+      break;
+    case 25:
+      if (Split[split].expressionForY == timbreCC1) {
+        value = 1;
+      }
+      else {
+        value = Split[split].customCCForY;
+      }
+      break;
+    case 26:
+      value = Split[split].relativeY;
+      break;
+    case 27:
+      value = Split[split].sendZ;
+      break;
+    case 28:
+      value = Split[split].expressionForZ;
+      break;
+    case 29:
+      value = Split[split].customCCForZ;
+      break;
+    case 30:
+      value = Split[split].colorMain;
+      break;
+    case 31:
+      value = Split[split].colorAccent;
+      break;
+    case 32:
+      value = Split[split].colorPlayed;
+      break;
+    case 33:
+      value = Split[split].colorLowRow;
+      break;
+    case 34:
+      value = Split[split].lowRowMode;
+      break;
+    case 35:
+      if (!Split[split].arpeggiator && !Split[split].ccFaders && !Split[split].strum && !Split[split].sequencer) {
+        value = 0;
+      }
+      else if (Split[split].arpeggiator && !Split[split].ccFaders && !Split[split].strum && !Split[split].sequencer) {
+        value = 1;
+      }
+      else if (!Split[split].arpeggiator && Split[split].ccFaders && !Split[split].strum && !Split[split].sequencer) {
+        value = 2;
+      }
+      else if (!Split[split].arpeggiator && !Split[split].ccFaders && Split[split].strum && !Split[split].sequencer) {
+        value = 3;
+      }
+      else if (!Split[split].arpeggiator && !Split[split].ccFaders && !Split[split].strum && Split[split].sequencer) {
+        value = 4;
+      }
+      break;
+    case 36:
+      value = int(Split[split].transposeOctave/12) + 5;
+      break;
+    case 37:
+      value = Split[split].transposePitch + 7;
+      break;
+    case 38:
+      value = Split[split].transposeLights + 7;
+      break;
+    case 39:
+      value = Split[split].expressionForY;
+      break;
+    case 40:
+      value = Split[split].ccForFader[0];
+      break;
+    case 41:
+      value = Split[split].ccForFader[1];
+      break;
+    case 42:
+      value = Split[split].ccForFader[2];
+      break;
+    case 43:
+      value = Split[split].ccForFader[3];
+      break;
+    case 44:
+      value = Split[split].ccForFader[4];
+      break;
+    case 45:
+      value = Split[split].ccForFader[5];
+      break;
+    case 46:
+      value = Split[split].ccForFader[6];
+      break;
+    case 47:
+      value = Split[split].ccForFader[7];
+      break;
+    case 48:
+      value = Split[split].lowRowCCXBehavior;
+      break;
+    case 49:
+      value = Split[split].ccForLowRow;
+      break;
+    case 50:
+      value = Split[split].lowRowCCXYZBehavior;
+      break;
+    case 51:
+      value = Split[split].ccForLowRowX;
+      break;
+    case 52:
+      value = Split[split].ccForLowRowY;
+      break;
+    case 53:
+      value = Split[split].ccForLowRowZ;
+      break;
+    case 54:
+      value = Split[split].minForY;
+      break;
+    case 55:
+      value = Split[split].maxForY;
+      break;
+    case 56:
+      value = Split[split].minForZ;
+      break;
+    case 57:
+      value = Split[split].maxForZ;
+      break;
+    case 58:
+      value = Split[split].ccForZ14Bit;
+      break;
+    case 59:
+      value = Split[split].initialRelativeY;
+      break;
+    case 60:
+      value = Split[split].midiChanPerRowReversed;
+      break;
+    case 61:
+      value = Split[split].playedTouchMode;
+      break;
+    case 62:
+      // Split Sequencer Toggle Play
+      break;
+    case 63:
+      // Split Sequencer Previous Pattern
+      break;
+    case 64:
+      // Split Sequencer Next Pattern
+      break;
+    case 65:
+      value = sequencerCurrentPatternNumber(split);
+      break;
+    case 200:
+      value = Global.splitActive;
+      break;
+    case 201:
+      value = Global.currentPerSplit;
+      break;
+    case 202:
+      value = Global.splitPoint;
+      break;
+    case 203: case 204: case 205: case 206: case 207: case 208:
+    case 209: case 210: case 211: case 212: case 213: case 214:
+      value = (Global.mainNotes[Global.activeNotes] & (1 << (param-203))) != 0;
+      break;
+    case 215: case 216: case 217: case 218: case 219: case 220:
+    case 221: case 222: case 223: case 224: case 225: case 226:
+      value = (Global.accentNotes[Global.activeNotes] & (1 << (param-215))) != 0;
+      break;
+    case 227:
+      value = Global.rowOffset;
+      break;
+    case 228:
+      value = Global.switchAssignment[SWITCH_SWITCH_1];
+      break;
+    case 229:
+      value = Global.switchAssignment[SWITCH_SWITCH_2];
+      break;
+    case 230:
+      value = Global.switchAssignment[SWITCH_FOOT_L];
+      break;
+    case 231:
+      value = Global.switchAssignment[SWITCH_FOOT_R];
+      break;
+    case 232:
+      value = Global.velocitySensitivity;
+      break;
+    case 233:
+      value = Global.pressureSensitivity;
+      break;
+    case 234:
+      value = Global.midiIO;
+      break;
+    case 235:
+      value = Global.arpDirection;
+      break;
+    case 236:
+      value = Global.arpTempo;
+      break;
+    case 237:
+      value = Global.arpOctave;
+      break;
+    case 238:
+      value = FXD4_TO_INT(fxd4CurrentTempo);
+      break;
+    case 239:
+      value = Global.switchBothSplits[3];
+      break;
+    case 240:
+      value = Global.switchBothSplits[2];
+      break;
+    case 241:
+      value = Global.switchBothSplits[0];
+      break;
+    case 242:
+      value = Global.switchBothSplits[1];
+      break;
+    case 243:
+      value = Device.lastLoadedPreset;
+      break;
+    case 244:
+      value = Global.pressureAftertouch;
+      break;
+    case 245:
+      value = userFirmwareActive;
+      break;
+    case 246:
+      value = Device.otherHanded;
+      break;
+    case 247:
+      value = Global.activeNotes;
+      break;
+    case 248:
+      value = Global.ccForSwitchCC65[SWITCH_FOOT_L];
+      break;
+    case 249:
+      value = Global.minForVelocity;
+      break;
+    case 250:
+      value = Global.maxForVelocity;
+      break;
+    case 251:
+      value = Global.valueForFixedVelocity;
+      break;
+    case 252:
+      value = Device.minUSBMIDIInterval;
+      break;
+    case 253:
+      if (Global.customRowOffset == -17) {
+        value = 33;
+      }
+      else {
+        value = Global.customRowOffset + 16;
+      }
+      break;
+    case 254:
+      value = Device.midiThrough;
+      break;
+    case 255:
+      value = Global.ccForSwitchCC65[SWITCH_FOOT_L];
+      break;
+    case 256:
+      value = Global.ccForSwitchCC65[SWITCH_FOOT_R];
+      break;
+    case 257:
+      value = Global.ccForSwitchCC65[SWITCH_SWITCH_1];
+      break;
+    case 258:
+      value = Global.ccForSwitchCC65[SWITCH_SWITCH_2];
+      break;
+    case 259:
+      value = Global.ccForSwitchSustain[SWITCH_FOOT_L];
+      break;
+    case 260:
+      value = Global.ccForSwitchSustain[SWITCH_FOOT_R];
+      break;
+    case 261:
+      value = Global.ccForSwitchSustain[SWITCH_SWITCH_1];
+      break;
+    case 262:
+      value = Global.ccForSwitchSustain[SWITCH_SWITCH_2];
+      break;
+    case 263:
+      value = Global.guitarTuning[0];
+      break;
+    case 264:
+      value = Global.guitarTuning[1];
+      break;
+    case 265:
+      value = Global.guitarTuning[2];
+      break;
+    case 266:
+      value = Global.guitarTuning[3];
+      break;
+    case 267:
+      value = Global.guitarTuning[4];
+      break;
+    case 268:
+      value = Global.guitarTuning[5];
+      break;
+    case 269:
+      value = Global.guitarTuning[6];
+      break;
+    case 270:
+      value = Global.guitarTuning[7];
+      break;
+  }
+
+  if (value != INT_MIN) {
+    midiSendRPN(parameter, value, channel);
+  }
 }
 
 inline boolean isSyncedToMidiClock() {

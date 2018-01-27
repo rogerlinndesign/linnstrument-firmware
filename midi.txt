@@ -246,7 +246,7 @@ NRPN   Value   Description
 250    1-127   Global Maximum Value For Velocity
 251    1-127   Global Value For Fixed Velocity
 252    0-512   Device Minimum Interval Between MIDI Bytes Over USB
-253  -17-16    Global Custom Row Offset Instead Of Octave (-16-16: semitone intervals, -17: inverted Guitar)
+253    0-33    Global Custom Row Offset Instead Of Octave (0-32: -16-16 semitone intervals, 33: inverted Guitar)
 254    0-1     Device MIDI Through (0: Off, 1: On)
 255    0-127   Global MIDI CC For Foot Left CC65
 256    0-127   Global MIDI CC For Foot Right CC65
@@ -264,6 +264,7 @@ NRPN   Value   Description
 268    0-127   Global Note Number For Guitar Tuning Row 6
 269    0-127   Global Note Number For Guitar Tuning Row 7
 270    0-127   Global Note Number For Guitar Tuning Row 8
+299    <any>   Send the current value of a particular NRPN configuration parameter, when possible
 
 Color Values
 ============
