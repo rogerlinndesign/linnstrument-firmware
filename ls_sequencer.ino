@@ -202,6 +202,7 @@ struct StepSequencerState {
   boolean muted;
   boolean advancingForward;
   boolean switch2Waiting;
+  boolean isBeingTurnedOff;
 
   StepEventState previewEvent;
 };
@@ -804,7 +805,7 @@ void handleSequencerViewModeRelease() {
 
 void autoSelectFirstStepForNotesView() {
   StepSequencerState& state = seqState[sensorSplit];
-  if (Split[sensorSplit].sequencerView == sequencerNotes && !state.hasFocus()) {
+  if (Split[sensorSplit].sequencerView == sequencerNotes && !state.hasFocus() && !state.isBeingTurnedOff) {
     state.changeFocus(0, -1);
   }
 }
@@ -1957,6 +1958,7 @@ void StepSequencerState::clear() {
     switch2Waiting = false;
     focused = false;
     focusedEvent = false;
+    isBeingTurnedOff = false;
 
     previewEvent.reset();
   }
@@ -2136,6 +2138,7 @@ void StepSequencerState::turnOff(boolean save) {
     return;
   }
   
+  isBeingTurnedOff = true;
   running = false;
   currentPosition = -1;
   nextPosition = -1;
@@ -2155,6 +2158,8 @@ void StepSequencerState::turnOff(boolean save) {
   if (!isSyncedToMidiClock() && !sequencerIsRunning() && !isStandaloneMidiClockRunning()) {
     midiSendStop();
   }
+
+  isBeingTurnedOff = false;
 }
 
 void StepSequencerState::turnOffEvents() {
