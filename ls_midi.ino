@@ -79,12 +79,6 @@ void applyMidiIo() {
 }
 
 void handleMidiInput(unsigned long nowMicros) {
-  // handle turning off the MIDI clock led after minimum 30ms
-  if (tempoLedOn != 0 && calcTimeDelta(nowMicros, tempoLedOn) > LED_FLASH_DELAY) {
-    tempoLedOn = 0;
-    clearLed(0, GLOBAL_SETTINGS_ROW);
-  }
-
   // if no serial data is available, return
   if (Serial.available() <= 0) {
     return;
@@ -2661,11 +2655,6 @@ void standaloneMidiClockStart() {
 void standaloneMidiClockStop() {
   if (!sequencerIsRunning() && !isSyncedToMidiClock()) {
     if (standaloneMidiClockRunning) {
-      if (controlButton != GLOBAL_SETTINGS_ROW && tempoLedOn != 0) {
-        tempoLedOn = 0;
-        clearLed(0, GLOBAL_SETTINGS_ROW);
-      }
-
       standaloneMidiClockRunning = false;
       midiSendStop();
     }

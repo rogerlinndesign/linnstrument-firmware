@@ -1464,12 +1464,15 @@ void paintSwitchAssignment(byte mode) {
   }
 }
 
-void updateGlobalSettingsFlashTempo(unsigned long now) {
+void updateGlobalSettingsFlashTempo(unsigned long now) {  
   if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) {
     paintGlobalSettingsFlashTempo(now);
   }
-  else if (!isSyncedToMidiClock() &&
-           (isArpeggiatorEnabled(Global.currentPerSplit) || isStandaloneMidiClockRunning())) {
+  else if (controlButton != GLOBAL_SETTINGS_ROW &&
+           !isSyncedToMidiClock() &&
+           (isArpeggiatorEnabled(Global.currentPerSplit) ||
+            isVisibleSequencer() ||
+            isStandaloneMidiClockRunning())) {
     paintGlobalSettingsFlashTempo(now, 0, 0);
   }
 }
