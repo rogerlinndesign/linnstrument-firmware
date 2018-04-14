@@ -1890,7 +1890,7 @@ void StepEventState::sendNoteOff() {
   releaseChannel(split, channel);
 
   StepSequencerState& state = seqState[split];
-  if (state.running && Split[split].sequencerView == sequencerNotes) {
+  if (Split[split].sequencerView == sequencerNotes) {
     unhighlightCell();
   }
 
