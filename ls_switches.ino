@@ -269,6 +269,10 @@ void performSwitchAssignmentOn(byte whichSwitch, byte assignment, byte split) {
     case ASSIGNED_STANDALONE_MIDI_CLOCK:
       standaloneMidiClockStart();
       break;
+
+    case ASSIGNED_SEQUENCER_MUTE:
+      sequencerToggleMute(split);
+      break;
   }
 }
 

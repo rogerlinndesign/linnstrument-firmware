@@ -205,7 +205,8 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define ASSIGNED_SEQUENCER_PREV         14
 #define ASSIGNED_SEQUENCER_NEXT         15
 #define ASSIGNED_STANDALONE_MIDI_CLOCK  16
-#define MAX_ASSIGNED                    ASSIGNED_STANDALONE_MIDI_CLOCK
+#define ASSIGNED_SEQUENCER_MUTE         17
+#define MAX_ASSIGNED                    ASSIGNED_SEQUENCER_MUTE
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1

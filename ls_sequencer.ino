@@ -361,6 +361,17 @@ void sequencerTogglePlay(byte split) {
   }
 }
 
+void sequencerToggleMute(byte split) {
+  seqState[split].muted = !seqState[split].muted;
+  if (seqState[split].muted && seqState[split].running) {
+    seqState[split].turnOffEvents();
+  }
+
+  if (isVisibleSequencerForSplit(split)) {
+    seqState[split].paintMuter();
+  }
+}
+
 void sequencerPreviousPattern(byte split) {
   if (Split[split].sequencer) {
     seqState[split].selectPreviousPattern();
@@ -715,12 +726,7 @@ void handleSequencerLowRowTouch(boolean newVelocity) {
 
 void handleSequencerMuterTouch() {
   byte mutedSplit = 1 - (sensorRow - SEQ_MUTER_BOTTOM);
-  seqState[mutedSplit].muted = !seqState[mutedSplit].muted;
-  if (seqState[mutedSplit].muted && seqState[mutedSplit].running) {
-    seqState[mutedSplit].turnOffEvents();
-  }
-
-  seqState[sensorSplit].paintMuter();
+  sequencerToggleMute(mutedSplit);
 }
 
 void handleSequencerClearTouch() {
@@ -1890,7 +1896,6 @@ void StepEventState::sendNoteOff() {
   midiSendNoteOff(split, note, channel);
   releaseChannel(split, channel);
 
-  StepSequencerState& state = seqState[split];
   if (Split[split].sequencerView == sequencerNotes) {
     unhighlightCell();
   }

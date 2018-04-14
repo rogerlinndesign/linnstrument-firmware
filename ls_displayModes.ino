@@ -1122,6 +1122,9 @@ void paintCustomSwitchAssignmentConfigDisplay() {
     case ASSIGNED_STANDALONE_MIDI_CLOCK:
       adaptfont_draw_string(0, 0, "CLK", globalColor, true);
       break;
+    case ASSIGNED_SEQUENCER_MUTE:
+      adaptfont_draw_string(0, 0, "MUTE", globalColor, true);
+      break;
   }
 }
 
@@ -1437,6 +1440,7 @@ void paintSwitchAssignment(byte mode) {
     case ASSIGNED_SEQUENCER_PREV:
     case ASSIGNED_SEQUENCER_NEXT:
     case ASSIGNED_STANDALONE_MIDI_CLOCK:
+    case ASSIGNED_SEQUENCER_MUTE:
       setLed(9, 3, getSwitchTapTempoColor(), cellOn);
       break;
     case ASSIGNED_AUTO_OCTAVE:

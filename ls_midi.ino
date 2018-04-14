@@ -893,6 +893,12 @@ void receivedNrpn(int parameter, int value, int channel) {
         sequencerSelectPattern(split, value);
       }
       break;
+    // Split Sequencer Toggle Mute
+    case 66:
+      if (value == 1) {
+        sequencerToggleMute(split);
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
