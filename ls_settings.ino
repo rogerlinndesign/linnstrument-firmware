@@ -1687,7 +1687,10 @@ boolean handleShowSplit() {
       // if we're in sub-menus of the per-split settings and the active split cell is tapped again
       // it goes back to the main per-split settings menu
       if (Global.currentPerSplit == newSplit) {
-        if (displayMode != displayVolume && displayMode != displayOctaveTranspose && !isSequencerSettingsDisplayMode()) {
+        if (displayMode != displayPreset &&
+            displayMode != displayVolume &&
+            displayMode != displayOctaveTranspose &&
+            !isSequencerSettingsDisplayMode()) {
           setDisplayMode(displayPerSplit);
         }
       }
@@ -1771,7 +1774,8 @@ void handlePresetRelease() {
     return;
   }
 
-  if (sensorCol < getPresetDisplayColumn()) {
+  if (sensorCol < getPresetDisplayColumn() ||
+     (sensorCol == getPresetDisplayColumn() && sensorRow == 7)) {
     handleNumericDataReleaseCol(true);
   }
   else if (sensorCol == getPresetDisplayColumn()) {
