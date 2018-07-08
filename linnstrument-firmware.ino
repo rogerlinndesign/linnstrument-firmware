@@ -187,6 +187,7 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define SWITCH_FOOT_R    1
 #define SWITCH_SWITCH_2  2
 #define SWITCH_SWITCH_1  3
+#define SWITCH_FOOT_B    4
 
 #define ASSIGNED_OCTAVE_DOWN            0
 #define ASSIGNED_OCTAVE_UP              1
@@ -207,6 +208,7 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define ASSIGNED_STANDALONE_MIDI_CLOCK  16
 #define ASSIGNED_SEQUENCER_MUTE         17
 #define MAX_ASSIGNED                    ASSIGNED_SEQUENCER_MUTE
+#define ASSIGNED_DISABLED               255
 
 #define GLOBAL_SETTINGS_ROW  0
 #define SPLIT_ROW            1
@@ -731,7 +733,7 @@ enum SustainBehavior {
 };
 
 struct GlobalSettings {
-  void setSwitchAssignment(byte, byte);
+  void setSwitchAssignment(byte, byte, boolean);
 
   byte splitPoint;                           // leftmost column number of right split (0 = leftmost column of playable area)
   byte currentPerSplit;                      // controls which split's settings are being displayed
@@ -747,11 +749,11 @@ struct GlobalSettings {
   unsigned short valueForFixedVelocity;      // 1-127
   PressureSensitivity pressureSensitivity;   // See PressureSensitivity values
   boolean pressureAftertouch;                // Indicates whether pressure should behave like traditional piano keyboard aftertouch or be continuous from the start
-  byte switchAssignment[4];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
-  boolean switchBothSplits[4];               // Indicate whether the switches should operate on both splits or only on the focused one
-  unsigned short ccForSwitchCC65[4];         // 0-127
-  unsigned short ccForSwitchSustain[4];      // 0-127
-  unsigned short customSwitchAssignment[4];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV, ASSIGNED_SEQUENCER_NEXT or ASSIGNED_STANDALONE_MIDI_CLOCK
+  byte switchAssignment[5];                  // The element values are ASSIGNED_*.  The index values are SWITCH_*.
+  boolean switchBothSplits[5];               // Indicate whether the switches should operate on both splits or only on the focused one
+  unsigned short ccForSwitchCC65[5];         // 0-127
+  unsigned short ccForSwitchSustain[5];      // 0-127
+  unsigned short customSwitchAssignment[5];  // ASSIGNED_TAP_TEMPO, ASSIGNED_LEGATO, ASSIGNED_LATCH, ASSIGNED_PRESET_UP, ASSIGNED_PRESET_DOWN, ASSIGNED_REVERSE_PITCH_X, ASSIGNED_SEQUENCER_PLAY, ASSIGNED_SEQUENCER_PREV, ASSIGNED_SEQUENCER_NEXT, ASSIGNED_STANDALONE_MIDI_CLOCK and ASSIGNED_SEQUENCER_MUTE
   byte midiIO;                               // 0 = MIDI jacks, 1 = USB
   ArpeggiatorDirection arpDirection;         // the arpeggiator direction that has to be used for the note sequence
   ArpeggiatorStepTempo arpTempo;             // the multiplier that needs to be applied to the current tempo to achieve the arpeggiator's step duration
@@ -994,13 +996,14 @@ byte ccFaderValues[NUMSPLITS][129];                 // the current values of the
 byte currentEditedCCFader[NUMSPLITS];               // the current CC fader number that is being edited
 signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
-unsigned long lastSwitchPress[4];
-boolean switchState[4][NUMSPLITS];
+unsigned long lastSwitchPress[5];                     // the last moment a particular switch was pressed (in milliseconds)
+boolean switchState[5][NUMSPLITS];                    // the current state of each switch for each split
 boolean switchTargetEnabled[NUMSPLITS][MAX_ASSIGNED]; // we keep track of switch targets individually for each split and whether they're active
 boolean switchCCEnabled[NUMSPLITS][128];              // we keep track of the switch targets that send out CC numbers for each split to determine whether they're active
-boolean footSwitchState[2];                           // holds the last read footswitch state, so that we only react on state changes of the input signal
-boolean footSwitchOffState[2];                        // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
+boolean footSwitchState[5];                           // holds the last read footswitch state, so that we only react on state changes of the input signal
+boolean footSwitchOffState[5];                        // holds the OFF state of foot switch, read at startup, thereby permit normally-closed or normally-open switches
 unsigned long prevFootSwitchTimerCount;               // time interval (in microseconds) between foot switch reads
+boolean switchFootBothReleased = false;               // keep track of whether the last release was for both switches, in order to prevent individual releases to happen
 
 boolean doublePerSplit = false;                     // false when only one per split is active, true if they both are
 

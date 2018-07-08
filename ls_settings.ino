@@ -29,8 +29,13 @@ const char* defaultAudienceMessages[16] = {
 
 unsigned long tempoChangeTime = 0;           // time of last touch for tempo change
 
-void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment) {
-  if (Global.switchAssignment[whichSwitch] != assignment) {
+void GlobalSettings::setSwitchAssignment(byte whichSwitch, byte assignment, boolean disableSame) {
+  if (Global.switchAssignment[whichSwitch] == assignment) {
+    if (disableSame) {
+      Global.switchAssignment[whichSwitch] = ASSIGNED_DISABLED;
+    }
+  }
+  else {
     resetSwitchStates(whichSwitch);
     Global.switchAssignment[whichSwitch] = assignment;
   }
@@ -492,22 +497,31 @@ void initializePresetSettings() {
     g.switchAssignment[SWITCH_FOOT_R] = ASSIGNED_SUSTAIN;
     g.switchAssignment[SWITCH_SWITCH_1] = ASSIGNED_SUSTAIN;
     g.switchAssignment[SWITCH_SWITCH_2] = ASSIGNED_ARPEGGIATOR;
+    g.switchAssignment[SWITCH_FOOT_B] = ASSIGNED_DISABLED;
+
     g.switchBothSplits[SWITCH_FOOT_L] = false;
     g.switchBothSplits[SWITCH_FOOT_R] = false;
     g.switchBothSplits[SWITCH_SWITCH_1] = false;
     g.switchBothSplits[SWITCH_SWITCH_2] = false;
+    g.switchBothSplits[SWITCH_FOOT_B] = false;
+    
     g.ccForSwitchCC65[SWITCH_FOOT_L] = 65;
     g.ccForSwitchCC65[SWITCH_FOOT_R] = 65;
     g.ccForSwitchCC65[SWITCH_SWITCH_1] = 65;
     g.ccForSwitchCC65[SWITCH_SWITCH_2] = 65;
+    g.ccForSwitchCC65[SWITCH_FOOT_B] = 65;
+
     g.ccForSwitchSustain[SWITCH_FOOT_L] = 64;
     g.ccForSwitchSustain[SWITCH_FOOT_R] = 64;
     g.ccForSwitchSustain[SWITCH_SWITCH_1] = 64;
     g.ccForSwitchSustain[SWITCH_SWITCH_2] = 64;
+    g.ccForSwitchSustain[SWITCH_FOOT_B] = 64;
+    
     g.customSwitchAssignment[SWITCH_FOOT_L] = ASSIGNED_TAP_TEMPO;
     g.customSwitchAssignment[SWITCH_FOOT_R] = ASSIGNED_TAP_TEMPO;
     g.customSwitchAssignment[SWITCH_SWITCH_1] = ASSIGNED_TAP_TEMPO;
     g.customSwitchAssignment[SWITCH_SWITCH_2] = ASSIGNED_TAP_TEMPO;
+    g.customSwitchAssignment[SWITCH_FOOT_B] = ASSIGNED_SEQUENCER_PLAY;
 
     initializeNoteLights(g);
     initializeGuitarTuning(g);
@@ -1965,7 +1979,7 @@ void handleCustomSwitchAssignmentConfigNewTouch() {
 
 void handleCustomSwitchAssignmentConfigRelease() {
   handleNumericDataReleaseCol(false);
-  Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect]);
+  Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect], false);
 }
 
 void handleLimitsForVelocityNewTouch() {
@@ -2553,7 +2567,13 @@ void handleGlobalSettingNewTouch() {
       case 7:
         // select which switch is being controlled/displayed
         if (sensorRow < 4) {
-          switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
+          if ((cell(7, SWITCH_FOOT_L).touched != untouchedCell && sensorRow == SWITCH_FOOT_R) ||
+              (cell(7, SWITCH_FOOT_R).touched != untouchedCell && sensorRow == SWITCH_FOOT_L)) {
+            switchSelect = SWITCH_FOOT_B;
+          }
+          else {
+            switchSelect = sensorRow;    // assumes the values of SWITCH_* are equal to the row numbers
+          }
         }
         break;
 
@@ -2561,17 +2581,17 @@ void handleGlobalSettingNewTouch() {
       case 8:
         switch (sensorRow) {
           case 0:
-            Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR);
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_ARPEGGIATOR, true);
             break;
           case 1:
             // handled at release
             break;
           case 2:
             if (cell(9, sensorRow).touched != untouchedCell) {
-              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE, true);
             }
             else {
-              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN);
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_DOWN, true);
             }
             break;
           case 3:
@@ -2584,17 +2604,17 @@ void handleGlobalSettingNewTouch() {
       case 9:
         switch (sensorRow) {
           case 0:
-            Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT);
+            Global.setSwitchAssignment(switchSelect, ASSIGNED_ALTSPLIT, true);
             break;
           case 1:
             // handled at release
             break;
           case 2:
             if (cell(8, sensorRow).touched != untouchedCell) {
-              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE);
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_AUTO_OCTAVE, true);
             }
             else {
-              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP);
+              Global.setSwitchAssignment(switchSelect, ASSIGNED_OCTAVE_UP, true);
             }
             break;
           case 3:
@@ -2999,14 +3019,14 @@ void handleGlobalSettingRelease() {
   }
   else if (sensorCol == 8 && sensorRow == 1 &&
       ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_SUSTAIN ? cellOn : cellOff)) {
-    Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN);
+    Global.setSwitchAssignment(switchSelect, ASSIGNED_SUSTAIN, true);
   }
   else if (sensorCol == 9) {
     if (sensorRow == 1 && ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == ASSIGNED_CC_65 ? cellOn : cellOff)) {
-      Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65);
+      Global.setSwitchAssignment(switchSelect, ASSIGNED_CC_65, true);
     }
     else if (sensorRow == 3 && ensureCellBeforeHoldWait(globalColor, Global.switchAssignment[switchSelect] == Global.customSwitchAssignment[switchSelect] ? cellOn : cellOff)) {
-      Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect]);
+      Global.setSwitchAssignment(switchSelect, Global.customSwitchAssignment[switchSelect], true);
     }
   }
   else if (sensorCol == 15) {

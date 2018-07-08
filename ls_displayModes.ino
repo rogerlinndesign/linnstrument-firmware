@@ -1594,7 +1594,13 @@ void paintGlobalSettingsDisplay() {
     }
 
     // This code assumes that switchSelect values are the same as the row numbers
-    lightLed(7, switchSelect);
+    if (switchSelect == SWITCH_FOOT_B) {
+      lightLed(7, SWITCH_FOOT_L);
+      lightLed(7, SWITCH_FOOT_R);
+    }
+    else {
+      lightLed(7, switchSelect);
+    }
     paintSwitchAssignment(Global.switchAssignment[switchSelect]);
 
     // Indicate whether switches operate on both splits or not

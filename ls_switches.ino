@@ -18,20 +18,26 @@ void initializeSwitches() {
   // normally-closed (like VFP2) switches are connected, or if nothing's connected.
   footSwitchOffState[SWITCH_FOOT_L] = digitalRead(FOOT_SW_LEFT);              // check left input
   footSwitchOffState[SWITCH_FOOT_R] = digitalRead(FOOT_SW_RIGHT);             // check right input
+  footSwitchOffState[SWITCH_FOOT_B] = footSwitchOffState[SWITCH_FOOT_L] & footSwitchOffState[SWITCH_FOOT_R];
   footSwitchState[SWITCH_FOOT_L] = footSwitchOffState[SWITCH_FOOT_L];
   footSwitchState[SWITCH_FOOT_R] = footSwitchOffState[SWITCH_FOOT_R];
+  footSwitchState[SWITCH_FOOT_B] = footSwitchOffState[SWITCH_FOOT_B];
 
   lastSwitchPress[SWITCH_FOOT_L] = 0;
   lastSwitchPress[SWITCH_FOOT_R] = 0;
+  lastSwitchPress[SWITCH_FOOT_B] = 0;
   lastSwitchPress[SWITCH_SWITCH_2] = 0;
   lastSwitchPress[SWITCH_SWITCH_1] = 0;
 
   switchState[SWITCH_FOOT_L][LEFT] = (footSwitchState[SWITCH_FOOT_L] != footSwitchOffState[SWITCH_FOOT_L]);
   switchState[SWITCH_FOOT_R][LEFT] = (footSwitchState[SWITCH_FOOT_R] != footSwitchOffState[SWITCH_FOOT_R]);
+  switchState[SWITCH_FOOT_B][LEFT] = (footSwitchState[SWITCH_FOOT_B] != footSwitchOffState[SWITCH_FOOT_B]);
   switchState[SWITCH_SWITCH_2][LEFT] = false;
   switchState[SWITCH_SWITCH_1][LEFT] = false;
+
   switchState[SWITCH_FOOT_L][RIGHT] = (footSwitchState[SWITCH_FOOT_L] != footSwitchOffState[SWITCH_FOOT_L]);
   switchState[SWITCH_FOOT_R][RIGHT] = (footSwitchState[SWITCH_FOOT_R] != footSwitchOffState[SWITCH_FOOT_R]);
+  switchState[SWITCH_FOOT_B][RIGHT] = (footSwitchState[SWITCH_FOOT_B] != footSwitchOffState[SWITCH_FOOT_B]);
   switchState[SWITCH_SWITCH_2][RIGHT] = false;
   switchState[SWITCH_SWITCH_1][RIGHT] = false;
 
@@ -81,6 +87,18 @@ boolean isSwitchTargetEnabled(byte whichSwitch, byte assignment, byte split) {
 }
 
 void doSwitchPressedForSplit(byte whichSwitch, byte assignment, byte split) {
+  // the switches on the LinnStrument trigger immediately,
+  // the foot switches trigger immediately when they're stateful,
+  // or when there's no action for the both footswitches press,
+  // otherwise they trigger on release
+  if (whichSwitch == SWITCH_SWITCH_1 || whichSwitch == SWITCH_SWITCH_2 ||
+      Global.switchAssignment[SWITCH_FOOT_B] == ASSIGNED_DISABLED ||
+      isStatefulSwitchAssignment(assignment)) {
+    doSwitchTriggeredForSplit(whichSwitch, assignment, split);
+  }
+ }
+
+void doSwitchTriggeredForSplit(byte whichSwitch, byte assignment, byte split) {
   // by default, the state of this switch will be on when pressed,
   // unless it's determined later to be a toggle action
   boolean resultingState = true;
@@ -123,12 +141,16 @@ void doSwitchReleasedForSplit(byte whichSwitch, byte assignment, byte split) {
   boolean isHeld = (calcTimeDelta(millis(), lastSwitchPress[whichSwitch]) > SWITCH_HOLD_DELAY);
 
   // foot switches have no hold or toggle havior based on time, but rather based on function
-  if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R) {
+  if (whichSwitch == SWITCH_FOOT_L || whichSwitch == SWITCH_FOOT_R || whichSwitch == SWITCH_FOOT_B) {
     if (isStatefulSwitchAssignment(assignment)) {
       isHeld = true;
     }
     else {
       isHeld = false;
+
+      if (Global.switchAssignment[SWITCH_FOOT_B] != ASSIGNED_DISABLED) {
+        doSwitchTriggeredForSplit(whichSwitch, assignment, split);
+      }
     }
   }
 
@@ -390,11 +412,21 @@ void handleFootSwitchState(byte whichSwitch, boolean state) {
     }
     // handle the foot switch assignments in regular mode
     else {
-      if (state) {                                                   // if the switch is pressed...
+      // if the switch is pressed...
+      if (state) {
         doSwitchPressed(whichSwitch);
       }
-      else {                                                         // if the switch is released...
-        doSwitchReleased(whichSwitch);
+      // if the switch is released...
+      else {
+        if (whichSwitch == SWITCH_FOOT_B) {
+          switchFootBothReleased = true;
+        }
+        if (whichSwitch == SWITCH_FOOT_B || !switchFootBothReleased) {
+          doSwitchReleased(whichSwitch);
+        }
+        if (switchFootBothReleased && !footSwitchState[SWITCH_FOOT_L] && !footSwitchState[SWITCH_FOOT_R]) {
+          switchFootBothReleased = false;
+        }
       }
     }
     
@@ -414,8 +446,12 @@ void resetSwitchStates(byte whichSwitch) {
 // checkFootSwitches:
 // Once every 20 ms, this is called to read foot switch inputs and take action if state changed
 void checkFootSwitches() {
-  handleFootSwitchState(SWITCH_FOOT_L, digitalRead(FOOT_SW_LEFT));   // check left input raw state
-  handleFootSwitchState(SWITCH_FOOT_R, digitalRead(FOOT_SW_RIGHT));  // check raw right input state
+  bool state_left = digitalRead(FOOT_SW_LEFT);
+  bool state_right = digitalRead(FOOT_SW_RIGHT);
+  handleFootSwitchState(SWITCH_FOOT_B, state_left &
+                                       state_right);  // check the combined raw input state
+  handleFootSwitchState(SWITCH_FOOT_L, state_left);   // check raw left input state
+  handleFootSwitchState(SWITCH_FOOT_R, state_right);  // check raw right input state
 }
 
 inline boolean isSwitchAutoOctavePressed(byte split) {
