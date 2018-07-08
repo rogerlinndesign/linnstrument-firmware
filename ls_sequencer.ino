@@ -2148,6 +2148,8 @@ void StepSequencerState::turnOff(boolean save) {
   currentPosition = -1;
   nextPosition = -1;
   ticksUntilNextStep = 0;
+  nextPattern = -1;
+  switchPatternOnBeat = false;
 
   turnOffEvents();
 
