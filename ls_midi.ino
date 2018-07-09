@@ -2415,7 +2415,6 @@ void midiSendNoteOff(byte split, byte notenum, byte channel) {
   if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
       lastValueMidiNotesOn[split][notenum][channel]--;
     midiSendNoteOffRaw(notenum, 0x40, channel);
-    lastValueMidiPB[channel] = 0x7FFF;
   }
 }
 
@@ -2427,7 +2426,6 @@ void midiSendNoteOffWithVelocity(byte split, byte notenum, byte velocity, byte c
   if (lastValueMidiNotesOn[split][notenum][channel] > 0) {
       lastValueMidiNotesOn[split][notenum][channel]--;
     midiSendNoteOffRaw(notenum, velocity, channel);
-    lastValueMidiPB[channel] = 0x7FFF;
   }
 }
 
@@ -2470,11 +2468,11 @@ void midiSendNoteOffForAllTouches(byte split) {
 
 boolean hasPreviousPitchBendValue(byte channel) {
   channel = constrain(channel-1, 0, 15);
-  return lastValueMidiPB[channel] != 8192;
+  return lastValueMidiPB[channel] != 0x2000 && lastValueMidiPB[channel] != 0x7FFF;
 }
 
 void midiSendPitchBend(int pitchval, byte channel) {
-  int bend = constrain(pitchval + 8192, 0, 16383);
+  int bend = constrain(pitchval + 0x2000, 0, 16383);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
