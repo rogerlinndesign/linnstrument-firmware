@@ -409,7 +409,7 @@ void handleMidiInput(unsigned long nowMicros) {
           case 38:
             if (lastRpnMsb != 127 || lastRpnLsb != 127) {
               lastDataLsb = midiData2;
-              receivedRpn((lastRpnMsb<<7)+lastRpnLsb, (lastDataMsb<<7)+lastDataLsb);
+              receivedRpn(midiChannel, (lastRpnMsb<<7)+lastRpnLsb, (lastDataMsb<<7)+lastDataLsb);
               break;
             }
             if (lastNrpnMsb != 127 || lastNrpnLsb != 127) {
@@ -433,24 +433,6 @@ void handleMidiInput(unsigned long nowMicros) {
             break;
           case 101:
             lastRpnMsb = midiData2;
-            break;
-          case 127:
-            // support for activating MPE mode with the standard MPE message
-            if (midiChannel == 0 || midiChannel == 15) {
-              byte split = LEFT;
-              if (midiChannel == 15) {
-                split = RIGHT;
-              }
-
-              if (midiData2 == 0) {
-                disableMpe(split);
-              }
-              else {
-                enableMpe(split, midiChannel + 1, midiData2);
-              }
-
-              updateDisplay();
-            }
             break;
         }
       }
@@ -498,12 +480,31 @@ inline boolean inRange(int value, int lower, int upper) {
   return value >= lower && value <= upper;
 }
 
-void receivedRpn(int parameter, int value) {
+void receivedRpn(byte midiChannel, int parameter, int value) {
   switch (parameter) {
     // Pitch Bend Sensitivity
     case 0:
       applyBendRange(Split[LEFT], constrain(value >> 7, 1, 96));
       applyBendRange(Split[RIGHT], constrain(value >> 7, 1, 96));
+      break;
+    case 6:
+      // support for activating MPE mode with the standard MPE message
+      if (midiChannel == 0 || midiChannel == 15) {
+        byte split = LEFT;
+        if (midiChannel == 15) {
+          split = RIGHT;
+        }
+
+        int polyphony = value >> 7;
+        if (polyphony == 0) {
+          disableMpe(split);
+        }
+        else {
+          enableMpe(split, midiChannel + 1, polyphony);
+        }
+
+        updateDisplay();
+      }
       break;
   }
 
@@ -2635,7 +2636,7 @@ void midiSendRPN(unsigned short number, unsigned short value, byte channel) {
 }
 
 void midiSendMpeState(byte mainChannel, byte polyphony) {
-  midiSendControlChange(127, polyphony, mainChannel, true);
+  midiSendRPN(6, polyphony << 7, mainChannel);
 }
 
 void midiSendMpePitchBendRange(byte split) {
