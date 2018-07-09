@@ -143,7 +143,7 @@ struct DeviceSettingsV2 {
 };
 struct ConfigurationV2 {
   DeviceSettingsV2 device;
-  PresetSettingsV2 preset[NUMPRESETS];
+  PresetSettingsV2 preset[4];
 };
 /**************************************** Configuration V3 ****************************************
 This is used by firmware v1.1.1-beta1, v1.1.1-beta2 and v1.1.1-beta3
@@ -186,7 +186,7 @@ struct PresetSettingsV3 {
 };
 struct ConfigurationV3 {
   DeviceSettingsV3 device;
-  PresetSettingsV3 preset[NUMPRESETS];
+  PresetSettingsV3 preset[4];
 };
 /**************************************** Configuration V4 ****************************************
 This is used by firmware v1.1.1-beta4, v1.1.2-beta1, v1.1.2 and v1.2.0-alpha1
@@ -208,7 +208,7 @@ struct DeviceSettingsV4 {
 struct ConfigurationV4 {
   DeviceSettingsV4 device;
   PresetSettingsV3 settings;
-  PresetSettingsV3 preset[NUMPRESETS];
+  PresetSettingsV3 preset[4];
 };
 /**************************************** Configuration V5 ****************************************
 This is used by firmware v1.2.0-beta1, v1.2.0-beta2 and v1.2.0
@@ -277,7 +277,7 @@ struct PresetSettingsV4 {
 struct ConfigurationV5 {
   DeviceSettingsV4 device;
   PresetSettingsV4 settings;
-  PresetSettingsV4 preset[NUMPRESETS];
+  PresetSettingsV4 preset[4];
 };
 /**************************************** Configuration V6 ****************************************
 This is used by firmware v1.2.1 and v1.2.2
@@ -353,7 +353,7 @@ struct PresetSettingsV5 {
 struct ConfigurationV6 {
   DeviceSettingsV4 device;
   PresetSettingsV5 settings;
-  PresetSettingsV5 preset[NUMPRESETS];
+  PresetSettingsV5 preset[4];
 };
 /**************************************** Configuration V7 ****************************************
 This is used by firmware v1.2.3-beta1, v1.2.3-beta2, v1.2.3-beta3, v1.2.3 and v1.2.4-beta1
@@ -404,7 +404,7 @@ struct PresetSettingsV6 {
 struct ConfigurationV7 {
   DeviceSettingsV5 device;
   PresetSettingsV6 settings;
-  PresetSettingsV6 preset[NUMPRESETS];
+  PresetSettingsV6 preset[4];
 };
 /**************************************** Configuration V8 ****************************************
 This is used by firmware v1.2.4-beta2 and v1.2.5
@@ -459,7 +459,7 @@ struct PresetSettingsV7 {
 struct ConfigurationV8 {
   DeviceSettingsV6 device;
   PresetSettingsV7 settings;
-  PresetSettingsV7 preset[NUMPRESETS];
+  PresetSettingsV7 preset[4];
 };
 /**************************************** Configuration V9 ****************************************
 This is used by firmware v2.0.0-beta1 and v2.0.0-beta2
@@ -538,7 +538,7 @@ struct PresetSettingsV8 {
 struct ConfigurationV9 {
   DeviceSettingsV7 device;
   PresetSettingsV8 settings;
-  PresetSettingsV8 preset[NUMPRESETS];
+  PresetSettingsV8 preset[4];
   SequencerProject project;
 };
 /**************************************** Configuration V10 ****************************************
@@ -568,7 +568,7 @@ struct DeviceSettingsV8 {
 struct ConfigurationV10 {
   DeviceSettingsV8 device;
   PresetSettingsV8 settings;
-  PresetSettingsV8 preset[NUMPRESETS];
+  PresetSettingsV8 preset[4];
   SequencerProject project;
 };
 /**************************************** Configuration V11 ****************************************
@@ -600,7 +600,7 @@ struct DeviceSettingsV9 {
 struct ConfigurationV11 {
   DeviceSettingsV9 device;
   PresetSettingsV8 settings;
-  PresetSettingsV8 preset[NUMPRESETS];
+  PresetSettingsV8 preset[4];
   SequencerProject project;
 };
 /**************************************** Configuration V12 ****************************************
@@ -661,7 +661,7 @@ struct PresetSettingsV9 {
 struct ConfigurationV12 {
   DeviceSettingsV10 device;
   PresetSettingsV9 settings;
-  PresetSettingsV9 preset[NUMPRESETS];
+  PresetSettingsV9 preset[4];
   SequencerProject project;
 };
 /**************************************** Configuration V13 ****************************************
@@ -727,7 +727,7 @@ struct PresetSettingsV10 {
 struct ConfigurationV13 {
   DeviceSettingsV11 device;
   PresetSettingsV10 settings;
-  PresetSettingsV10 preset[NUMPRESETS];
+  PresetSettingsV10 preset[4];
   SequencerProject project;
 };
 /**************************************** Configuration V14 ****************************************
@@ -736,7 +736,7 @@ This is used by firmware v2.1.0
 struct ConfigurationV14 {
   DeviceSettings device;
   PresetSettingsV10 settings;
-  PresetSettingsV10 preset[NUMPRESETS];
+  PresetSettingsV10 preset[4];
   SequencerProject project;
 };
 /*************************************************************************************************/
@@ -936,7 +936,7 @@ void copyConfigurationV1(void* target, void* source) {
   t->device.operatingLowPower = false;
   initializeAudienceMessages();
 
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     t->preset[p].global.splitPoint = g->splitPoint;
     t->preset[p].global.currentPerSplit = g->currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, g->mainNotes, g->accentNotes);
@@ -1092,7 +1092,7 @@ void copyPresetSettingsOfConfigurationV2(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV2* s = (ConfigurationV2*)source;
 
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     t->preset[p].global.splitPoint = s->preset[p].global.splitPoint;
     t->preset[p].global.currentPerSplit = s->preset[p].global.currentPerSplit;
     copyGlobalSettingsNoteLights(&t->preset[p].global, s->preset[p].global.mainNotes, s->preset[p].global.accentNotes);
@@ -1129,7 +1129,7 @@ void copyConfigurationV3(void* target, void* source) {
   t->device.operatingLowPower = false;
   copyAudienceMessages(&(t->device.audienceMessages), &(s->device.audienceMessages));
 
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsOfConfigurationV3(t, s);
   }
   
@@ -1161,7 +1161,7 @@ void copyPresetSettingsOfConfigurationV3(void* target, void* source) {
   Configuration* t = (Configuration*)target;
   ConfigurationV3* s = (ConfigurationV3*)source;
 
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyGlobalSettingsV3(&t->preset[p].global, &s->preset[p].global);
 
     copySplitSettingsV2(&t->preset[p].split[LEFT], &s->preset[p].split[LEFT]);
@@ -1181,7 +1181,7 @@ void copyConfigurationV4(void* target, void* source) {
   copyDeviceSettingsV4(&t->device, &s->device);
 
   copyPresetSettingsV3(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV3(&t->preset[p], &s->preset[p]);
   }
 }
@@ -1219,7 +1219,7 @@ void copyConfigurationV5(void* target, void* source) {
   copyDeviceSettingsV4(&t->device, &s->device);
 
   copyPresetSettingsV4(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV4(&t->preset[p], &s->preset[p]);
   }
 }
@@ -1326,7 +1326,7 @@ void copyConfigurationV6(void* target, void* source) {
   copyDeviceSettingsV4(&t->device, &s->device);
 
   copyPresetSettingsV5(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV5(&t->preset[p], &s->preset[p]);
   }
 }
@@ -1423,7 +1423,7 @@ void copyConfigurationV7(void* target, void* source) {
   copyDeviceSettingsV5(&t->device, &s->device);
 
   copyPresetSettingsV6(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV6(&t->preset[p], &s->preset[p]);
   }
 }
@@ -1493,7 +1493,7 @@ void copyConfigurationV8(void* target, void* source) {
   copyDeviceSettingsV6(&t->device, &s->device);
 
   copyPresetSettingsV7(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV7(&t->preset[p], &s->preset[p]);
   }
 }
@@ -1568,7 +1568,7 @@ void copyConfigurationV9(void* target, void* source) {
   copyDeviceSettingsV7(&t->device, &s->device);
 
   copyPresetSettingsV8(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
   }
 
@@ -1668,7 +1668,7 @@ void copyConfigurationV10(void* target, void* source) {
   copyDeviceSettingsV8(&t->device, &s->device);
 
   copyPresetSettingsV8(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
   }
 
@@ -1708,7 +1708,7 @@ void copyConfigurationV11(void* target, void* source) {
   copyDeviceSettingsV9(&t->device, &s->device);
 
   copyPresetSettingsV8(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV8(&t->preset[p], &s->preset[p]);
   }
 
@@ -1749,7 +1749,7 @@ void copyConfigurationV12(void* target, void* source) {
   copyDeviceSettingsV10(&t->device, &s->device);
 
   copyPresetSettingsV9(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV9(&t->preset[p], &s->preset[p]);
   }
 
@@ -1831,7 +1831,7 @@ void copyConfigurationV13(void* target, void* source) {
   copyDeviceSettingsV11(&t->device, &s->device);
 
   copyPresetSettingsV10(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV10(&t->preset[p], &s->preset[p]);
   }
 
@@ -1839,7 +1839,7 @@ void copyConfigurationV13(void* target, void* source) {
   // to replace the default one
   t->settings.split[LEFT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
   t->settings.split[RIGHT].playedTouchMode = t->settings.split[LEFT].playedTouchMode + 1;
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     t->preset[p].split[LEFT].playedTouchMode = t->preset[p].split[LEFT].playedTouchMode + 1;
     t->preset[p].split[RIGHT].playedTouchMode = t->preset[p].split[RIGHT].playedTouchMode + 1;
   }
@@ -1924,7 +1924,7 @@ void copyConfigurationV14(void* target, void* source) {
   memcpy(&t->device, &s->device, sizeof(DeviceSettings));
 
   copyPresetSettingsV10(&t->settings, &s->settings);
-  for (byte p = 0; p < NUMPRESETS; ++p) {
+  for (byte p = 0; p < 4; ++p) {
     copyPresetSettingsV10(&t->preset[p], &s->preset[p]);
   }
 
