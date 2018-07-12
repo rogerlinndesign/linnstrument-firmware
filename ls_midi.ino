@@ -1822,9 +1822,14 @@ void preSendPitchBend(byte split, int pitchValue) {
   {
     case channelPerNote:
     {
-      for (byte ch = 0; ch < 16; ++ch) {
-        if (Split[split].midiChanSet[ch]) {
-          midiSendPitchBend(pitchValue, ch+1);
+      if (Split[split].midiChanMainEnabled) {
+        midiSendPitchBend(pitchValue, Split[split].midiChanMain);
+      }
+      else {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            midiSendPitchBend(pitchValue, ch+1);
+          }
         }
       }
       break;
@@ -1832,12 +1837,17 @@ void preSendPitchBend(byte split, int pitchValue) {
 
     case channelPerRow:
     {
-      for (byte row = 0; row < NUMROWS; ++row) {
-        byte ch = Split[split].midiChanPerRow + row;
-        if (ch > 16) {
-          ch -= 16;
+      if (Split[split].midiChanMainEnabled) {
+        midiSendPitchBend(pitchValue, Split[split].midiChanMain);
+      }
+      else {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          byte ch = Split[split].midiChanPerRow + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          midiSendPitchBend(pitchValue, ch);
         }
-        midiSendPitchBend(pitchValue, ch);
       }
       break;
     }
@@ -2003,6 +2013,73 @@ void resetLastMidiAfterTouch(byte channel) {
   lastMomentMidiAT[channel] = 0;
 }
 
+void preResetLastMidiCC(byte split, byte controlnum) {
+  switch (Split[split].midiMode) {
+    case channelPerNote:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        if (controlnum == 128) {
+          resetLastMidiAfterTouch(Split[sensorSplit].midiChanMain);
+        }
+        else {
+          resetLastMidiCC(controlnum, Split[split].midiChanMain);
+        }
+      }
+      else {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            if (controlnum == 128) {
+              resetLastMidiAfterTouch(ch+1);
+            }
+            else {
+              resetLastMidiCC(controlnum, ch+1);
+            }
+          }
+        }
+      }
+      break;
+    }
+
+    case channelPerRow:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        if (controlnum == 128) {
+          resetLastMidiAfterTouch(Split[sensorSplit].midiChanMain);
+        }
+        else {
+          resetLastMidiCC(controlnum, Split[split].midiChanMain);
+        }
+      }
+      else {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          byte ch = Split[split].midiChanPerRow + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          if (controlnum == 128) {
+            resetLastMidiAfterTouch(ch);
+          }
+          else {
+            resetLastMidiCC(controlnum, ch);
+          }
+        }
+      }
+      break;
+    }
+
+    case oneChannel:
+    {
+      if (controlnum == 128) {
+        resetLastMidiAfterTouch(Split[sensorSplit].midiChanMain);
+      }
+      else {
+        resetLastMidiCC(controlnum, Split[split].midiChanMain);
+      }
+      break;
+    }
+  }
+}
+
 void resetLastMidiCC(byte controlnum, byte channel) {
   controlnum = constrain(controlnum, 0, 127);
   channel = constrain(channel-1, 0, 15);
@@ -2016,6 +2093,49 @@ void resetLastMidiPitchBend(byte channel) {
   
   lastValueMidiPB[channel] = 0x7FFF;
   lastMomentMidiPB[channel] = 0;
+}
+
+void preResetLastMidiPitchBend(byte split) {
+  switch (Split[split].midiMode)
+  {
+    case channelPerNote:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        resetLastMidiPitchBend(Split[split].midiChanMain);
+      }
+      else {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            resetLastMidiPitchBend(ch+1);
+          }
+        }
+      }
+      break;
+    }
+
+    case channelPerRow:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        resetLastMidiPitchBend(Split[split].midiChanMain);
+      }
+      else {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          byte ch = Split[split].midiChanPerRow + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          resetLastMidiPitchBend(ch);
+        }
+      }
+      break;
+    }
+
+    case oneChannel:
+    {
+      resetLastMidiPitchBend(Split[split].midiChanMain);
+      break;
+    }
+  }
 }
 
 void initializeLastMidiTracking() {
@@ -2148,44 +2268,47 @@ void handlePendingMidi(unsigned long now) {
   }
 }
 
-void midiSendVolume(byte v, byte channel) {
-  midiSendControlChange(7, v, channel);
+void preSendFader(byte split, byte v) {
+}
+
+void preSendVolume(byte split, byte v) {
+  preSendControlChange(split, 7, v, false);
 }
 
 void preSendSustain(byte split, byte v) {
-  if (Split[split].mpe) {
-    midiSendControlChange(64, v, Split[split].midiChanMain, true);
-  }
-  else {
-    preSendControlChange(split, 64, v);
-  }
+  preSendControlChange(split, 64, v, true);
 }
 
 void preSendSwitchSustain(byte whichSwitch, byte split, byte v) {
-  if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchSustain[whichSwitch], v, Split[split].midiChanMain, true);
-  }
-  else {
-    preSendControlChange(split, Global.ccForSwitchSustain[whichSwitch], v);
-  }
+  preSendControlChange(split, Global.ccForSwitchSustain[whichSwitch], v, true);
 }
 
 void preSendSwitchCC65(byte whichSwitch, byte split, byte v) {
-  if (Split[split].mpe) {
-    midiSendControlChange(Global.ccForSwitchCC65[whichSwitch], v, Split[split].midiChanMain, true);
-  }
-  else {
-    preSendControlChange(split, Global.ccForSwitchCC65[whichSwitch], v);
-  }
+  preSendControlChange(split, Global.ccForSwitchCC65[whichSwitch], v, true);
 }
 
-void preSendControlChange(byte split, byte controlnum, byte v) {
+void preSendControlChange(byte split, byte controlnum, byte v, boolean always) {
   switch (Split[split].midiMode) {
     case channelPerNote:
     {
-      for (byte ch = 0; ch < 16; ++ch) {
-        if (Split[split].midiChanSet[ch]) {
-          midiSendControlChange(controlnum, v, ch+1, true);
+      if (Split[split].midiChanMainEnabled) {
+        if (controlnum == 128) {
+          midiSendAfterTouch(v, Split[sensorSplit].midiChanMain, always);
+        }
+        else {
+          midiSendControlChange(controlnum, v, Split[split].midiChanMain, always);
+        }
+      }
+      else {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            if (controlnum == 128) {
+              midiSendAfterTouch(v, ch+1, always);
+            }
+            else {
+              midiSendControlChange(controlnum, v, ch+1, always);
+            }
+          }
         }
       }
       break;
@@ -2193,33 +2316,91 @@ void preSendControlChange(byte split, byte controlnum, byte v) {
 
     case channelPerRow:
     {
-      for ( byte row = 0; row < NUMROWS; ++row) {
-        byte ch = Split[split].midiChanPerRow + row;
-        if (ch > 16) {
-          ch -= 16;
+      if (Split[split].midiChanMainEnabled) {
+        if (controlnum == 128) {
+          midiSendAfterTouch(v, Split[sensorSplit].midiChanMain, always);
         }
-        midiSendControlChange(controlnum, v, ch, true);
+        else {
+          midiSendControlChange(controlnum, v, Split[split].midiChanMain, always);
+        }
+      }
+      else {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          byte ch = Split[split].midiChanPerRow + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          if (controlnum == 128) {
+            midiSendAfterTouch(v, ch, always);
+          }
+          else {
+            midiSendControlChange(controlnum, v, ch, always);
+          }
+        }
       }
       break;
     }
 
     case oneChannel:
     {
-      midiSendControlChange(controlnum, v, Split[split].midiChanMain, true);
+      if (controlnum == 128) {
+        midiSendAfterTouch(v, Split[sensorSplit].midiChanMain, always);
+      }
+      else {
+        midiSendControlChange(controlnum, v, Split[split].midiChanMain, always);
+      }
       break;
     }
   }
 }
 
-void midiSendPreset(byte p, byte channel) {
-  midiSendProgramChange(p, channel);
+void preSendPreset(byte split, byte p) {
+  switch (Split[split].midiMode) {
+    case channelPerNote:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        midiSendProgramChange(p, Split[split].midiChanMain);
+      }
+      else {
+        for (byte ch = 0; ch < 16; ++ch) {
+          if (Split[split].midiChanSet[ch]) {
+            midiSendProgramChange(p, ch+1);
+          }
+        }
+      }
+      break;
+    }
+
+    case channelPerRow:
+    {
+      if (Split[split].midiChanMainEnabled) {
+        midiSendProgramChange(p, Split[split].midiChanMain);
+      }
+      else {
+        for (byte row = 0; row < NUMROWS; ++row) {
+          byte ch = Split[split].midiChanPerRow + row;
+          if (ch > 16) {
+            ch -= 16;
+          }
+          midiSendProgramChange(p, ch);
+        }
+      }
+      break;
+    }
+
+    case oneChannel:
+    {
+      midiSendProgramChange(p, Split[split].midiChanMain);
+      break;
+    }
+  }
 }
 
 void midiSendAllNotesOff(byte split) {
-  preSendControlChange(split, 120, 0);
-  preSendControlChange(split, 123, 0);
+  preSendControlChange(split, 120, 0, true);
+  preSendControlChange(split, 123, 0, true);
 
-  preSendControlChange(split, 64, 0);
+  preSendControlChange(split, 64, 0, true);
   for (byte notenum = 0; notenum < 128; ++notenum) {
     switch (Split[split].midiMode) {
       case channelPerNote:
@@ -2516,12 +2697,18 @@ void midiSendProgramChange(byte preset, byte channel) {
 }
 
 void midiSendAfterTouch(byte value, byte channel) {
+  midiSendAfterTouch(value, channel, false);
+}
+
+void midiSendAfterTouch(byte value, byte channel, boolean always) {
   value = constrain(value, 0, 127);
   channel = constrain(channel-1, 0, 15);
 
   unsigned long now = micros();
-  if (lastValueMidiAT[channel] == value) return;
-  if (value != 0 && calcTimeDelta(now, lastMomentMidiAT[channel]) <= midiDecimateRate) return;
+  if (!always) {
+    if (lastValueMidiAT[channel] == value) return;
+    if (value != 0 && calcTimeDelta(now, lastMomentMidiAT[channel]) <= midiDecimateRate) return;
+  }
   lastValueMidiAT[channel] = value;
   lastMomentMidiAT[channel] = now;
 

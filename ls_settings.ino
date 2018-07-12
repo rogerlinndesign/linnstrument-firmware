@@ -585,6 +585,7 @@ void initializePresetSettings() {
 
     // initialize values that differ between the keyboard splits
     p.split[LEFT].midiChanMain = 1;
+    p.split[LEFT].midiChanMainEnabled = true;
     p.split[LEFT].midiChanSet[0] = false;
     for (byte chan = 1; chan < 8; ++chan) {
       p.split[LEFT].midiChanSet[chan] = true;
@@ -599,6 +600,7 @@ void initializePresetSettings() {
     p.split[LEFT].sequencerView = sequencerScales;
 
     p.split[RIGHT].midiChanMain = 16;
+    p.split[RIGHT].midiChanMainEnabled = true;
     for (byte chan = 0; chan < 8; ++chan) {
       p.split[RIGHT].midiChanSet[chan] = false;
     }
@@ -958,6 +960,13 @@ void toggleChannel(byte chan) {
     case MIDICHANNEL_MAIN:
       // in MPE mode the only valid main channels are 1 and 16
       if (!Split[Global.currentPerSplit].mpe || chan == 1 || chan == 16) {
+        // toggle the main midi channel being enabled in channel per note and channel per row
+        if (Split[Global.currentPerSplit].midiMode != oneChannel &&
+            Split[Global.currentPerSplit].midiChanMain == chan) {
+          Split[Global.currentPerSplit].midiChanMainEnabled = !Split[Global.currentPerSplit].midiChanMainEnabled;
+        }
+
+        // update the main MIDI channel
         Split[Global.currentPerSplit].midiChanMain = chan;
 
         // adapt the per-note MPE channels based on the new main channel
@@ -1779,8 +1788,7 @@ void handlePresetHold() {
 }
 
 void applyMidiPreset() {
-  byte chan = Split[Global.currentPerSplit].midiChanMain;
-  midiSendPreset(midiPreset[Global.currentPerSplit], chan);
+  preSendPreset(Global.currentPerSplit, midiPreset[Global.currentPerSplit]);
 }
 
 void handlePresetRelease() {
@@ -2163,8 +2171,7 @@ void handleVolumeNewTouch(boolean newVelocity) {
       short previous = ccFaderValues[Global.currentPerSplit][7];
       ccFaderValues[Global.currentPerSplit][7] = value;
 
-      byte chan = Split[Global.currentPerSplit].midiChanMain;
-      midiSendVolume(value, chan);     // Send the MIDI volume controller message
+      preSendVolume(Global.currentPerSplit, value);
       if (previous != value) {
         paintVolumeDisplayRow(Global.currentPerSplit);
       }

@@ -1816,7 +1816,9 @@ void setMidiChannelLed(byte chan, byte color) {
 
 // light per-split midi mode and single midi channel lights
 void showMainMidiChannel(byte side) {
-  setMidiChannelLed(Split[side].midiChanMain, Split[side].colorMain);
+  if (Split[side].midiMode == 0 || Split[side].midiChanMainEnabled) {
+    setMidiChannelLed(Split[side].midiChanMain, Split[side].colorMain);
+  }
 }
 
 void showPerRowMidiChannel(byte side) {
@@ -1829,7 +1831,9 @@ void showPerRowMidiChannel(byte side) {
 void showPerNoteMidiChannels(byte side) {
   for (byte chan = 1; chan <= 16; ++chan) {
     // use accent color to show that in MPE mode the main channel is special
-    if (Split[side].mpe && chan == Split[side].midiChanMain) {
+    if (Split[side].mpe &&
+        Split[side].midiChanMainEnabled &&
+        chan == Split[side].midiChanMain) {
       setMidiChannelLed(chan, Split[side].colorAccent);
     }
     else if (Split[side].midiChanSet[chan-1]) {

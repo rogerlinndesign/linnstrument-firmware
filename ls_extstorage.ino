@@ -720,9 +720,60 @@ struct GlobalSettingsV9 {
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
   boolean splitActive;                       // false = split off, true = split on
 };
+struct SplitSettingsV6 {
+  byte midiMode;                          // 0 = one channel, 1 = note per channel, 2 = row per channel
+  byte midiChanMain;                      // main midi channel, 1 to 16
+  byte midiChanPerRow;                    // per-row midi channel, 1 to 16
+  boolean midiChanPerRowReversed;         // indicates whether channel per row channels count upwards or downwards across the rows
+  boolean midiChanSet[16];                // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
+  BendRangeOption bendRangeOption;        // see BendRangeOption
+  byte customBendRange;                   // 1 - 96
+  boolean sendX;                          // true to send continuous X, false if not
+  boolean sendY;                          // true to send continuous Y, false if not
+  boolean sendZ;                          // true to send continuous Z, false if not
+  boolean pitchCorrectQuantize;           // true to quantize pitch of initial touch, false if not
+  byte pitchCorrectHold;                  // See PitchCorrectHoldSpeed values
+  boolean pitchResetOnRelease;            // true to enable pitch bend being set back to 0 when releasing a touch
+  TimbreExpression expressionForY;        // the expression that should be used for timbre
+  unsigned short customCCForY;            // 0-129 (with 128 and 129 being placeholders for PolyPressure and ChannelPressure)
+  unsigned short minForY;                 // 0-127
+  unsigned short maxForY;                 // 0-127
+  boolean relativeY;                      // true when Y should be sent relative to the initial touch, false when it's absolute
+  unsigned short initialRelativeY;        // 0-127
+  LoudnessExpression expressionForZ;      // the expression that should be used for loudness
+  unsigned short customCCForZ;            // 0-127
+  unsigned short minForZ;                 // 0-127
+  unsigned short maxForZ;                 // 0-127
+  boolean ccForZ14Bit;                    // true when 14-bit messages should be sent when Z CC is between 0-31, false when only 7-bit messages should be sent
+  unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-128 (with 128 being placeholder for ChannelPressure)
+  byte colorMain;                         // color for non-accented cells
+  byte colorAccent;                       // color for accented cells
+  byte colorPlayed;                       // color for played notes
+  byte colorLowRow;                       // color for low row if on
+  byte colorSequencerEmpty;               // color for sequencer low row step with no events
+  byte colorSequencerEvent;               // color for sequencer low row step with events
+  byte colorSequencerDisabled;            // color for sequencer low row step that's not being played
+  byte playedTouchMode;                   // see PlayedTouchMode values
+  byte lowRowMode;                        // see LowRowMode values
+  byte lowRowCCXBehavior;                 // see LowRowCCBehavior values
+  unsigned short ccForLowRow;             // 0-128 (with 128 being placeholder for ChannelPressure)
+  byte lowRowCCXYZBehavior;               // see LowRowCCBehavior values
+  unsigned short ccForLowRowX;            // 0-128 (with 128 being placeholder for ChannelPressure)
+  unsigned short ccForLowRowY;            // 0-128 (with 128 being placeholder for ChannelPressure)
+  unsigned short ccForLowRowZ;            // 0-128 (with 128 being placeholder for ChannelPressure)
+  signed char transposeOctave;            // -60, -48, -36, -24, -12, 0, +12, +24, +36, +48, +60
+  signed char transposePitch;             // transpose output midi notes. Range is -12 to +12
+  signed char transposeLights;            // transpose lights on display. Range is -12 to +12
+  boolean ccFaders;                       // true to activated 8 CC faders for this split, false for regular music performance
+  boolean arpeggiator;                    // true when the arpeggiator is on, false if notes should be played directly
+  boolean strum;                          // true when this split strums the touches of the other split
+  boolean mpe;                            // true when MPE is active for this split
+  boolean sequencer;                      // true when the sequencer of this split is displayed
+  SequencerView sequencerView;            // see SequencerView
+};
 struct PresetSettingsV10 {
   GlobalSettingsV9 global;
-  SplitSettings split[NUMSPLITS];
+  SplitSettingsV6 split[NUMSPLITS];
 };
 struct ConfigurationV13 {
   DeviceSettingsV11 device;
@@ -1881,8 +1932,8 @@ void copyPresetSettingsV10(void* target, void* source) {
 
   copyGlobalSettingsV9(&t->global, &s->global);
 
-  memcpy(&t->split[LEFT], &s->split[LEFT], sizeof(SplitSettings));
-  memcpy(&t->split[RIGHT], &s->split[RIGHT], sizeof(SplitSettings));
+  copySplitSettingsV6(&t->split[LEFT], &s->split[LEFT]);
+  copySplitSettingsV6(&t->split[RIGHT], &s->split[RIGHT]);
 }
 
 void copyGlobalSettingsV9(void* target, void* source) {
@@ -1913,6 +1964,62 @@ void copyGlobalSettingsV9(void* target, void* source) {
   t->arpOctave = s->arpOctave;
   t->sustainBehavior = s->sustainBehavior;
   t->splitActive = s->splitActive;
+}
+
+void copySplitSettingsV6(void* target, void* source) {
+  SplitSettings* t = (SplitSettings*)target;
+  SplitSettingsV6* s = (SplitSettingsV6*)source;
+
+  t->midiMode = s->midiMode;
+  t->midiChanMain = s->midiChanMain;
+  t->midiChanMainEnabled = true;
+  t->midiChanPerRow = s->midiChanPerRow;
+  t->midiChanPerRowReversed = s->midiChanPerRowReversed;
+  memcpy(t->midiChanSet, s->midiChanSet, sizeof(boolean)*16);
+  t->bendRangeOption = s->bendRangeOption;
+  t->customBendRange = s->customBendRange;
+  t->sendX = s->sendX;
+  t->sendY = s->sendY;
+  t->sendZ = s->sendZ;
+  t->pitchCorrectQuantize = s->pitchCorrectQuantize;
+  t->pitchCorrectHold = s->pitchCorrectHold;
+  t->pitchResetOnRelease = s->pitchResetOnRelease;
+  t->expressionForY = s->expressionForY;
+  t->customCCForY = s->customCCForY;
+  t->minForY = s->minForY;
+  t->maxForY = s->maxForY;
+  t->relativeY = s->relativeY;
+  t->initialRelativeY = s->initialRelativeY;
+  t->expressionForZ = s->expressionForZ;
+  t->customCCForZ = s->customCCForZ;
+  t->minForZ = s->minForZ;
+  t->maxForZ = s->maxForZ;
+  t->ccForZ14Bit = s->ccForZ14Bit;
+  memcpy(t->ccForFader, s->ccForFader, sizeof(unsigned short)*8);
+  t->colorMain = s->colorMain;
+  t->colorAccent = s->colorAccent;
+  t->colorPlayed = s->colorPlayed;
+  t->colorLowRow = s->colorLowRow;
+  t->colorSequencerEmpty = s->colorSequencerEmpty;
+  t->colorSequencerEvent = s->colorSequencerEvent;
+  t->colorSequencerDisabled = s->colorSequencerDisabled;
+  t->playedTouchMode = playedSame;
+  t->lowRowMode = s->lowRowMode;
+  t->lowRowCCXBehavior = s->lowRowCCXBehavior;
+  t->ccForLowRow = s->ccForLowRow;
+  t->lowRowCCXYZBehavior = s->lowRowCCXYZBehavior;
+  t->ccForLowRowX = s->ccForLowRowX;
+  t->ccForLowRowY = s->ccForLowRowY;
+  t->ccForLowRowZ = s->ccForLowRowZ;
+  t->transposeOctave = s->transposeOctave;
+  t->transposePitch = s->transposePitch;
+  t->transposeLights = s->transposeLights;
+  t->ccFaders = s->ccFaders;
+  t->arpeggiator = s->arpeggiator;
+  t->strum = s->strum;
+  t->mpe = s->mpe;
+  t->sequencer = s->sequencer;
+  t->sequencerView = s->sequencerView;
 }
 
 /*************************************************************************************************/

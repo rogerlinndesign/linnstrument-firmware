@@ -601,6 +601,7 @@ enum SequencerDirection {
 struct SplitSettings {
   byte midiMode;                          // 0 = one channel, 1 = note per channel, 2 = row per channel
   byte midiChanMain;                      // main midi channel, 1 to 16
+  boolean midiChanMainEnabled;            // true when the midi main channel is enabled to send common data, false in not
   byte midiChanPerRow;                    // per-row midi channel, 1 to 16
   boolean midiChanPerRowReversed;         // indicates whether channel per row channels count upwards or downwards across the rows
   boolean midiChanSet[16];                // Indicates whether each channel is used.  If midiMode!=channelPerNote, only one channel can be set.
@@ -1179,7 +1180,9 @@ void applyMidiDecimationRate() {
 void applyMpeMode() {
   for (byte s = 0; s < NUMSPLITS; ++s) {
     if (Split[s].mpe) {
-      midiSendMpeState(Split[s].midiChanMain, countMpePolyphony(s));
+      if (Split[s].midiChanMainEnabled) {
+        midiSendMpeState(Split[s].midiChanMain, countMpePolyphony(s));
+      }
       midiSendMpePitchBendRange(s);
     }
   }

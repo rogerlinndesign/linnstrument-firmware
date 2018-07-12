@@ -155,12 +155,7 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
             case lowRowBend:
             {
               if (pitchBend != SHRT_MAX) {
-                if (Split[sensorSplit].mpe) {
-                  midiSendPitchBend(scalePitch(sensorSplit, pitchBend), Split[sensorSplit].midiChanMain);
-                }
-                else {
-                  preSendPitchBend(sensorSplit, pitchBend);
-                }
+                preSendPitchBend(sensorSplit, pitchBend);
               }
               break;
             }
@@ -241,12 +236,7 @@ void sendLowRowCCX(unsigned short x) {
   }
 
   // send out the MIDI CC
-  if (Split[sensorSplit].ccForLowRow == 128) {
-    midiSendAfterTouch(x, Split[sensorSplit].midiChanMain);
-  }
-  else {
-    midiSendControlChange(Split[sensorSplit].ccForLowRow, x, Split[sensorSplit].midiChanMain);
-  }
+  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, x, false);
 }
 
 void sendLowRowCCXYZ(unsigned short x, short y, short z) {
@@ -259,28 +249,13 @@ void sendLowRowCCXYZ(unsigned short x, short y, short z) {
   }
 
   // send out the MIDI CCs
-  if (Split[sensorSplit].ccForLowRowX == 128) {
-    midiSendAfterTouch(x, Split[sensorSplit].midiChanMain);
-  }
-  else {
-    midiSendControlChange(Split[sensorSplit].ccForLowRowX, x, Split[sensorSplit].midiChanMain);
-  }
+  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowX, x, false);
 
   if (y != SHRT_MAX) {
-    if (Split[sensorSplit].ccForLowRowY == 128) {
-      midiSendAfterTouch(y, Split[sensorSplit].midiChanMain);
-    }
-    else {
-      midiSendControlChange(Split[sensorSplit].ccForLowRowY, y, Split[sensorSplit].midiChanMain);
-    }
+    preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowY, y, false);
   }
 
-  if (Split[sensorSplit].ccForLowRowZ == 128) {
-    midiSendAfterTouch(z, Split[sensorSplit].midiChanMain);
-  }
-  else {
-    midiSendControlChange(Split[sensorSplit].ccForLowRowZ, z, Split[sensorSplit].midiChanMain);
-  }
+  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowZ, z, false);
 }
 
 void handleLowRowRestrike() {
@@ -339,19 +314,19 @@ void lowRowStart() {
       break;
     case lowRowBend:
       lowRowBendActive[sensorSplit] = true;
-      resetLastMidiPitchBend(Split[sensorSplit].midiChanMain);
+      preResetLastMidiPitchBend(sensorSplit);
       startLowRowContinuousExpression();
       break;
     case lowRowCCX:
       lowRowCCXActive[sensorSplit] = true;
-      resetLastMidiCC(Split[sensorSplit].ccForLowRow, Split[sensorSplit].midiChanMain);
+      preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRow);
       startLowRowContinuousExpression();
       break;
     case lowRowCCXYZ:
       lowRowCCXYZActive[sensorSplit] = true;
-      resetLastMidiCC(Split[sensorSplit].ccForLowRowX, Split[sensorSplit].midiChanMain);
-      resetLastMidiCC(Split[sensorSplit].ccForLowRowY, Split[sensorSplit].midiChanMain);
-      resetLastMidiCC(Split[sensorSplit].ccForLowRowZ, Split[sensorSplit].midiChanMain);
+      preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowX);
+      preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowY);
+      preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowZ);
       startLowRowContinuousExpression();
       break;
   }
@@ -422,27 +397,22 @@ void lowRowStop() {
             case lowRowBend:
               // reset the pitchbend since no low row touch is active anymore
               lowRowBendActive[sensorSplit] = false;
-              if (Split[sensorSplit].mpe) {
-                midiSendPitchBend(0, Split[sensorSplit].midiChanMain);
-              }
-              else {
-                preSendPitchBend(sensorSplit, 0);
-              }
+              preSendPitchBend(sensorSplit, 0);
               break;
             case lowRowCCX:
               lowRowCCXActive[sensorSplit] = false;
               if (Split[sensorSplit].lowRowCCXBehavior == lowRowCCHold) {
                 // reset CC for lowRowX since no low row touch is active anymore
-                midiSendControlChange(Split[sensorSplit].ccForLowRow, 0, Split[sensorSplit].midiChanMain);
+                preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, 0, false);
               }
               break;
             case lowRowCCXYZ:
               lowRowCCXYZActive[sensorSplit] = false;
               if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCHold) {
                 // reset CCs for lowRowXYZ since no low row touch is active anymore
-                midiSendControlChange(Split[sensorSplit].ccForLowRowX, 0, Split[sensorSplit].midiChanMain);
-                midiSendControlChange(Split[sensorSplit].ccForLowRowY, 0, Split[sensorSplit].midiChanMain);
-                midiSendControlChange(Split[sensorSplit].ccForLowRowZ, 0, Split[sensorSplit].midiChanMain);
+                preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowX, 0, false);
+                preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowY, 0, false);
+                preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowZ, 0, false);
               }
               break;
           }
