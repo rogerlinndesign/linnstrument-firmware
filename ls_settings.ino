@@ -2770,8 +2770,10 @@ void handleGlobalSettingNewTouch() {
     case 6:
       switch (sensorRow) {
         case 2:
-        case 3:
           setLed(sensorCol, sensorRow, getRowOffsetColor(), cellSlowPulse);
+          break;
+        case 3:
+          setLed(sensorCol, sensorRow, getGuitarTuningColor(), cellSlowPulse);
           break;
       }
       break;
@@ -3001,7 +3003,7 @@ void handleGlobalSettingRelease() {
       }
   }
   else if (sensorCol == 6 && sensorRow == 3 &&
-      ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_GUITAR ? cellOn : cellOff)) {
+      ensureCellBeforeHoldWait(getGuitarTuningColor(), Global.rowOffset == ROWOFFSET_GUITAR ? cellOn : cellOff)) {
       if (Global.rowOffset == ROWOFFSET_GUITAR) {
         Global.rowOffset = ROWOFFSET_ZERO;
       }

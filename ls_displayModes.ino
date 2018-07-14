@@ -814,6 +814,21 @@ byte getSplitHandednessColor() {
   return globalAltColor;
 }
 
+byte getGuitarTuningColor() {
+  byte color = globalColor;
+  if (Global.guitarTuning[0] != 30 ||
+      Global.guitarTuning[1] != 35 ||
+      Global.guitarTuning[2] != 40 ||
+      Global.guitarTuning[3] != 45 ||
+      Global.guitarTuning[4] != 50 ||
+      Global.guitarTuning[5] != 55 ||
+      Global.guitarTuning[6] != 59 ||
+      Global.guitarTuning[7] != 64) {
+    color = globalAltColor;
+  }
+  return color;
+}
+
 // paint one of the two leds that indicate which split is being controlled
 // (e.g. when you're changing per-split settings, or changing the preset or volume)
 void paintShowSplitSelection(byte side) {
@@ -1586,7 +1601,7 @@ void paintGlobalSettingsDisplay() {
         setLed(6, 2, getRowOffsetColor(), cellOn);
         break;
       case ROWOFFSET_GUITAR:            // guitar tuning
-        lightLed(6, 3);
+        setLed(6, 3, getGuitarTuningColor(), cellOn);
         break;
       case ROWOFFSET_ZERO:
         // no nothing
