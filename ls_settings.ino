@@ -2049,6 +2049,16 @@ void handleRowOffsetRelease() {
   handleNumericDataReleaseCol(false);
 }
 
+void ensureGuitarTuningPreviewNoteRelease() {
+  if (guitarTuningPreviewNote != -1 &&
+      guitarTuningPreviewChannel != -1) {
+    midiSendNoteOff(Global.currentPerSplit, guitarTuningPreviewNote, guitarTuningPreviewChannel);
+    releaseChannel(Global.currentPerSplit, guitarTuningPreviewChannel);
+    guitarTuningPreviewNote = -1;
+    guitarTuningPreviewChannel = -1;
+  }
+}
+
 void handleGuitarTuningNewTouch() {
   if (sensorCol == 1) {
     guitarTuningRowNum = sensorRow;
@@ -2057,10 +2067,18 @@ void handleGuitarTuningNewTouch() {
   else {
     handleNumericDataNewTouchCol(Global.guitarTuning[guitarTuningRowNum], 0, 127, true);
   }
+
+  ensureGuitarTuningPreviewNoteRelease();
+  guitarTuningPreviewNote = Global.guitarTuning[guitarTuningRowNum];
+  guitarTuningPreviewChannel = takeChannel(Global.currentPerSplit, sensorRow);
+  midiSendNoteOn(Global.currentPerSplit, guitarTuningPreviewNote, 96, guitarTuningPreviewChannel);
 }
 
 void handleGuitarTuningRelease() {
   handleNumericDataReleaseCol(true);
+  if (cellsTouched == 0) {
+    ensureGuitarTuningPreviewNoteRelease();
+  }
 }
 
 void handleMinUSBMIDIIntervalNewTouch() {

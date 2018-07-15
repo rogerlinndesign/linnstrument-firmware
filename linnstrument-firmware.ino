@@ -1058,7 +1058,9 @@ unsigned short clock24PPQ = 0;                      // the current clock in 24PP
 
 short restrictedRow = -1;                           // temporarily restrict touches to a particular row
 
-byte guitarTuningRowNum = 0;                        // active tow number for configuring the guitar tuning
+byte guitarTuningRowNum = 0;                        // active row number for configuring the guitar tuning
+short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
+short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
