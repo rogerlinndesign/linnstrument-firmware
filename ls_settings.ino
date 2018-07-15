@@ -2565,8 +2565,20 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 2:
+            if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
+            }
+            break;
           case 3:
-            // handled at release
+            if (Global.rowOffset == ROWOFFSET_GUITAR) {
+              Global.rowOffset = ROWOFFSET_ZERO;
+            }
+            else {
+              Global.rowOffset = ROWOFFSET_GUITAR;
+            }
             break;
         }
         break;
@@ -2995,21 +3007,11 @@ void handleGlobalSettingRelease() {
   }
   else if (sensorCol == 6 && sensorRow == 2 &&
       ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_OCTAVECUSTOM ? cellOn : cellOff)) {
-      if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
-        Global.rowOffset = ROWOFFSET_ZERO;
-      }
-      else {
-        Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
-      }
+    // handled at press
   }
   else if (sensorCol == 6 && sensorRow == 3 &&
       ensureCellBeforeHoldWait(getGuitarTuningColor(), Global.rowOffset == ROWOFFSET_GUITAR ? cellOn : cellOff)) {
-      if (Global.rowOffset == ROWOFFSET_GUITAR) {
-        Global.rowOffset = ROWOFFSET_ZERO;
-      }
-      else {
-        Global.rowOffset = ROWOFFSET_GUITAR;
-      }
+    // handled at press
   }
   else if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
