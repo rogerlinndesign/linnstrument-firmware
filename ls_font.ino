@@ -1757,15 +1757,15 @@ static Character cond_plus = { 3,
   "   "
   "   " };
 
-static Character cond_minus = { 3,
-  "   "
-  "   "
-  "   "
-  "   "
-  "000"
-  "   "
-  "   "
-  "   " };
+static Character cond_minus = { 2,
+  "  "
+  "  "
+  "  "
+  "  "
+  "00"
+  "  "
+  "  "
+  "  " };
 
 static Character cond_dot = { 1,
   " "
@@ -2148,6 +2148,16 @@ static Character cond_Z = { 3,
   "000"
   "   " };
 
+static Character cond_b = { 3,
+  "   "
+  "   "
+  "0  "
+  "0  "
+  "00 "
+  "0 0"
+  "00 "
+  "   " };
+
 struct Font {
   byte height;
   const char* chars;
@@ -2183,9 +2193,10 @@ struct Font bigFont = { 8, " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQR
 
 Character* condChars[] = {
   &cond_blank, &cond_plus, &cond_minus, &cond_dot, &cond_div, &cond_0, &cond_1, &cond_2, &cond_3, &cond_4, &cond_5, &cond_6, &cond_7, &cond_8, &cond_9,
-  &cond_A, &cond_B, &cond_C, &cond_D, &cond_E, &cond_F, &cond_G, &cond_H, &cond_I, &cond_J, &cond_K, &cond_L, &cond_M, &cond_N, &cond_O, &cond_P, &cond_Q, &cond_R, &cond_S, &cond_T, &cond_U, &cond_V, &cond_W, &cond_X, &cond_Y, &cond_Z
+  &cond_A, &cond_B, &cond_C, &cond_D, &cond_E, &cond_F, &cond_G, &cond_H, &cond_I, &cond_J, &cond_K, &cond_L, &cond_M, &cond_N, &cond_O, &cond_P, &cond_Q, &cond_R, &cond_S, &cond_T, &cond_U, &cond_V, &cond_W, &cond_X, &cond_Y, &cond_Z,
+  &cond_b
 };
-struct Font condFont = { 8, " +-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", condChars };
+struct Font condFont = { 8, " +-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZb", condChars };
 
 
 unsigned font_width_string(const char* str, struct Font* font) {

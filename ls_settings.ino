@@ -2565,20 +2565,8 @@ void handleGlobalSettingNewTouch() {
             }
             break;
           case 2:
-            if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
-              Global.rowOffset = ROWOFFSET_ZERO;
-            }
-            else {
-              Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
-            }
-            break;
           case 3:
-            if (Global.rowOffset == ROWOFFSET_GUITAR) {
-              Global.rowOffset = ROWOFFSET_ZERO;
-            }
-            else {
-              Global.rowOffset = ROWOFFSET_GUITAR;
-            }
+            // handled at release
             break;
         }
         break;
@@ -2884,11 +2872,13 @@ void handleGlobalSettingHold() {
       case 6:
         switch (sensorRow) {
           case 2:
+            Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
             resetNumericDataChange();
             setDisplayMode(displayRowOffset);
             updateDisplay();
             break;
           case 3:
+            Global.rowOffset = ROWOFFSET_GUITAR;
             resetNumericDataChange();
             setDisplayMode(displayGuitarTuning);
             updateDisplay();
@@ -3007,11 +2997,21 @@ void handleGlobalSettingRelease() {
   }
   else if (sensorCol == 6 && sensorRow == 2 &&
       ensureCellBeforeHoldWait(globalColor, Global.rowOffset == ROWOFFSET_OCTAVECUSTOM ? cellOn : cellOff)) {
-    // handled at press
+      if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = ROWOFFSET_OCTAVECUSTOM;
+      }
   }
   else if (sensorCol == 6 && sensorRow == 3 &&
       ensureCellBeforeHoldWait(getGuitarTuningColor(), Global.rowOffset == ROWOFFSET_GUITAR ? cellOn : cellOff)) {
-    // handled at press
+      if (Global.rowOffset == ROWOFFSET_GUITAR) {
+        Global.rowOffset = ROWOFFSET_ZERO;
+      }
+      else {
+        Global.rowOffset = ROWOFFSET_GUITAR;
+      }
   }
   else if (sensorRow == 7) {
     // only show the messages if the tempo was changed more than 1s ago to prevent accidental touches
