@@ -2003,7 +2003,7 @@ void copySplitSettingsV6(void* target, void* source) {
   t->colorSequencerEmpty = s->colorSequencerEmpty;
   t->colorSequencerEvent = s->colorSequencerEvent;
   t->colorSequencerDisabled = s->colorSequencerDisabled;
-  t->playedTouchMode = playedSame;
+  t->playedTouchMode = s->playedTouchMode;
   t->lowRowMode = s->lowRowMode;
   t->lowRowCCXBehavior = s->lowRowCCXBehavior;
   t->ccForLowRow = s->ccForLowRow;
