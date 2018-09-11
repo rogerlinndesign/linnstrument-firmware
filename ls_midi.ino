@@ -1062,7 +1062,7 @@ void receivedNrpn(int parameter, int value, int channel) {
       break;
     // Global Settings Preset Load
     case 243:
-      if (inRange(value, 0, 3)) {
+      if (inRange(value, 0, 5)) {
         loadSettingsFromPreset(value);
       }
       break;
