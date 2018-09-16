@@ -1526,8 +1526,18 @@ inline void paintGlobalSettingsFlashTempo(unsigned long now) {
 
 inline void paintGlobalSettingsFlashTempo(unsigned long now, byte col, byte row) {
   if (!animationActive && !userFirmwareActive) {
+    bool flash_on = false;
+    if (isVisibleSequencer())
+    {
+      flash_on = sequencerFlashTempoOn();
+    }
+    else
+    {
+      flash_on = (clock24PPQ == 0);
+    }
+
     // flash the tap tempo cell at the beginning of the beat
-    if (clock24PPQ == 0) {
+    if (flash_on) {
       lightLed(col, row);
       tempoLedOn = now;
     }

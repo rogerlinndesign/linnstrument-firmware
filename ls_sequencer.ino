@@ -188,6 +188,7 @@ struct StepSequencerState {
   byte split;
   StepDataState steps[MAX_SEQUENCER_STEPS];
   unsigned short ticksUntilNextStep;
+  unsigned short clock24PPQOffset;
   byte positionOffset;
   byte rowOffset;
   short currentPosition;
@@ -303,6 +304,10 @@ inline void setSequencerSongPositionPointer(unsigned spp) {
 inline void checkAdvanceSequencer() {
   seqState[LEFT].advanceSequencer();
   seqState[RIGHT].advanceSequencer();
+}
+
+boolean sequencerFlashTempoOn() {
+  return (clock24PPQ - seqState[Global.currentPerSplit].clock24PPQOffset) == 0;
 }
 
 boolean isSequencerActive() {
@@ -1949,6 +1954,7 @@ void StepSequencerState::clear() {
     }
 
     ticksUntilNextStep = 0;
+    clock24PPQOffset = 0;
     positionOffset = 0;
     rowOffset = 0;
     currentPosition = -1;
@@ -2114,9 +2120,11 @@ void StepSequencerState::turnOn() {
         ticksUntilNextStep = getCurrentPattern().stepSize - clockModulo;
       }
     }
+    clock24PPQOffset = 0;
   }
   else {
     ticksUntilNextStep = 0;
+    clock24PPQOffset = clock24PPQ;
   }
 
   if (getCurrentPattern().loopScreen) {
@@ -2148,6 +2156,7 @@ void StepSequencerState::turnOff(boolean save) {
   currentPosition = -1;
   nextPosition = -1;
   ticksUntilNextStep = 0;
+  clock24PPQOffset = 0;
   nextPattern = -1;
   switchPatternOnBeat = false;
 
