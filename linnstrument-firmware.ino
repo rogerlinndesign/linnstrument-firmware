@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.2.1 =========================================
+======================================== LinnStrument Operating System v2.2.2 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,7 +56,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "222";
+const char* OSVersion = "222.";
 const char* OSVersionBuild = ".055";
 
 // SPI addresses
@@ -152,13 +152,13 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define PITCH_CORRECT_HOLD_SAMPLES_FAST    8
 #define PITCH_CORRECT_HOLD_SAMPLES_MEDIUM  48
 #define PITCH_CORRECT_HOLD_SAMPLES_SLOW    350
-#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT 48
+#define PITCH_CORRECT_HOLD_SAMPLES_DEFAULT PITCH_CORRECT_HOLD_SAMPLES_MEDIUM
 
 // Threshold below which the average rate of change of X is considered 'stationary'
 #define RATEX_THRESHOLD_FAST    2.2
 #define RATEX_THRESHOLD_MEDIUM  2.0
 #define RATEX_THRESHOLD_SLOW    1.6
-#define RATEX_THRESHOLD_DEFAULT 2.0
+#define RATEX_THRESHOLD_DEFAULT RATEX_THRESHOLD_MEDIUM
 
 #define SENSOR_PITCH_Z           173               // lowest acceptable raw Z value for which pitchbend is sent
 #define ROGUE_SWEEP_X_THRESHOLD  48                // the maximum threshold of instant X changes since the previous sample, anything higher will be considered a rogue pitch sweep
@@ -323,7 +323,7 @@ struct __attribute__ ((packed)) TouchInfo {
 #endif
 
   unsigned long lastTouch:32;                // the timestamp when this cell was last touched
-  short initialX:16;                         // initial calibrated X value of each cell at the start of the touch
+  short initialX:16;                         // initial calibrated X value of each cell at the start of the touch, SHRT_MIN meaning that it's unassigned
   short initialColumn:16;                    // initial column of each cell at the start of the touch
   short quantizationOffsetX:16;              // quantization offset to be applied to the X value
   unsigned short currentRawX:16;             // last raw X value of each cell
@@ -1025,8 +1025,7 @@ int32_t fxd4CurrentTempo = FXD4_FROM_INT(120);               // the current temp
 unsigned long midiDecimateRate = DEFAULT_MIDI_DECIMATION;    // default MIDI decimation rate
 unsigned long midiMinimumInterval = DEFAULT_MIDI_INTERVAL;   // minimum interval between sending two MIDI bytes
 byte lastValueMidiNotesOn[NUMSPLITS][128][16];               // for each split, keep track of MIDI note on to filter out note off messages that are not needed
-unsigned short pitchHoldDuration[NUMSPLITS];                 // for each split the actual pitch hold duration in samples
-int32_t fxdPitchHoldDuration[NUMSPLITS];
+int32_t fxdPitchHoldSamples[NUMSPLITS];                      // for each split the actual pitch hold duration in samples
 int32_t fxdRateXThreshold[NUMSPLITS];                        // the threshold below which the average rate of change of X is considered 'stationary' and pitch hold quantization will start to occur
 int latestNoteNumberForAutoOctave = -1;                      // keep track of the latest note number that was generated to use for auto octave switching
 

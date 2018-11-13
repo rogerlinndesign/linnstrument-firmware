@@ -340,7 +340,7 @@ inline void TouchInfo::refreshX() {
     shouldRefreshX = false;
 
     // if this is the first X read for this touch...
-    if (initialX == -1) {
+    if (initialX == SHRT_MIN) {
       // store the calibrated X reference that corresponds to the cell's note without any pitch bend
       initialColumn = sensorCol;
 

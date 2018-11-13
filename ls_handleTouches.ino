@@ -119,7 +119,7 @@ void transferFromSameRowCell(byte col) {
   noteTouchMapping[sensorSplit].changeCell(sensorCell->note, sensorCell->channel, sensorCol, sensorRow);
 
   fromCell->lastTouch = 0;
-  fromCell->initialX = -1;
+  fromCell->initialX = SHRT_MIN;
   fromCell->initialColumn = -1;
   fromCell->quantizationOffsetX = 0;
   fromCell->lastMovedX = 0;
@@ -168,7 +168,7 @@ void transferToSameRowCell(byte col) {
   noteTouchMapping[sensorSplit].changeCell(toCell->note, toCell->channel, col, sensorRow);
 
   sensorCell->lastTouch = 0;
-  sensorCell->initialX = -1;
+  sensorCell->initialX = SHRT_MIN;
   sensorCell->initialColumn = -1;
   sensorCell->quantizationOffsetX = 0;
   sensorCell->lastMovedX = 0;
@@ -803,9 +803,9 @@ boolean handleXYZupdate() {
     sensorCell->lastMovedX = 0;
     sensorCell->lastValueX = INVALID_DATA;
     sensorCell->shouldRefreshX = true;
-    sensorCell->initialX = -1;
+    sensorCell->initialX = SHRT_MIN;
     sensorCell->quantizationOffsetX = 0;
-    sensorCell->fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
+    sensorCell->fxdRateCountX = fxdPitchHoldSamples[sensorSplit];
 
     if (userFirmwareActive) {
       handleNewUserFirmwareTouch();
@@ -1422,7 +1422,7 @@ short handleXExpression() {
     }
     // if pitch quantize is active on hold, interpolate between the ideal pitch and the current touch pitch
     else {
-      int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldDuration[sensorSplit] - sensorCell->fxdRateCountX, fxdPitchHoldDuration[sensorSplit]);
+      int32_t fxdMovedRatio = FXD_DIV(fxdPitchHoldSamples[sensorSplit] - sensorCell->fxdRateCountX, fxdPitchHoldSamples[sensorSplit]);
       if (fxdMovedRatio > FXD_CONST_1) fxdMovedRatio = FXD_CONST_1;
       else if (fxdMovedRatio < 0)      fxdMovedRatio = 0;
       int32_t fxdCorrectedRatio = FXD_CONST_1 - fxdMovedRatio;
@@ -1434,15 +1434,14 @@ short handleXExpression() {
     }
 
     // keep track of how many times the X changement rate drops below the threshold or above
-    int32_t fxdRateDiff = fxdRateXThreshold[sensorSplit] - sensorCell->fxdRateX;
-    if (fxdRateDiff > 0) {
-      if (sensorCell->fxdRateCountX < fxdPitchHoldDuration[sensorSplit]) {
-        sensorCell->fxdRateCountX += fxdRateDiff;
+    if (fxdRateXThreshold[sensorSplit] >= sensorCell->fxdRateX) {
+      if (sensorCell->fxdRateCountX < fxdPitchHoldSamples[sensorSplit]) {
+        sensorCell->fxdRateCountX += FXD_CONST_1;
 
         // if the pich has just stabilized, adapt the touch's initial X position so that pitch changes start from the stabilized pitch
         if (isQuantizeHoldStable()) {
           // ensure that the rate count can never exceed the pitch hold duration
-          sensorCell->fxdRateCountX = fxdPitchHoldDuration[sensorSplit];
+          sensorCell->fxdRateCountX = fxdPitchHoldSamples[sensorSplit];
 
           if (Split[sensorSplit].pitchCorrectQuantize && Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff) {
             sensorCell->quantizationOffsetX = calibratedX - FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
@@ -1451,10 +1450,8 @@ short handleXExpression() {
       }
     }
     else if (sensorCell->fxdRateCountX > 0) {
-      sensorCell->fxdRateCountX -= FXD_CONST_1;
-
-      if (sensorCell->fxdRateCountX < 0) {
-        sensorCell->fxdRateCountX = 0;
+      if (sensorCell->fxdRateCountX > 0) {
+        sensorCell->fxdRateCountX -= FXD_CONST_1;
       }
     }
   }
@@ -1467,7 +1464,7 @@ boolean doQuantizeHold() {
 }
 
 boolean isQuantizeHoldStable() {
-  return sensorCell->fxdRateCountX >= fxdPitchHoldDuration[sensorSplit];
+  return sensorCell->fxdRateCountX >= fxdPitchHoldSamples[sensorSplit];
 }
 
 short handleYExpression() {

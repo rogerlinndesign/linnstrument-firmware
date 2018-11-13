@@ -677,31 +677,29 @@ void applyPitchCorrectHold() {
     switch (Split[sp].pitchCorrectHold) {
       case pitchCorrectHoldOff:
       {
-        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_DEFAULT;
+        fxdPitchHoldSamples[sp] = FXD_MAKE(PITCH_CORRECT_HOLD_SAMPLES_DEFAULT);
         fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_DEFAULT);
         break;
       }
       case pitchCorrectHoldFast:
       {
-        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_FAST;
+        fxdPitchHoldSamples[sp] = FXD_MAKE(PITCH_CORRECT_HOLD_SAMPLES_FAST);
         fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_FAST);
         break;
       }
       case pitchCorrectHoldMedium:
       {
-        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_MEDIUM;
+        fxdPitchHoldSamples[sp] = FXD_MAKE(PITCH_CORRECT_HOLD_SAMPLES_MEDIUM);
         fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_MEDIUM);
         break;
       }
       case pitchCorrectHoldSlow:
       {
-        pitchHoldDuration[sp] = PITCH_CORRECT_HOLD_SAMPLES_SLOW;
+        fxdPitchHoldSamples[sp] = FXD_MAKE(PITCH_CORRECT_HOLD_SAMPLES_SLOW);
         fxdRateXThreshold[sp] = FXD_MAKE(RATEX_THRESHOLD_SLOW);
         break;
       }
     }
-
-    fxdPitchHoldDuration[sp] = FXD_MAKE(pitchHoldDuration[sp]);
   }
 }
 
