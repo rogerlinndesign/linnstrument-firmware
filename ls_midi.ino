@@ -535,7 +535,7 @@ void receivedNrpn(int parameter, int value, int channel) {
         Split[split].midiMode = value;
         // ensure MPE is turned off
         disableMpe(split);
-        preResetMidiExpression(split);
+        updateSplitMidiChannels(split);
       }
       break;
     // Split MIDI Main Channel
@@ -545,7 +545,7 @@ void receivedNrpn(int parameter, int value, int channel) {
         Split[split].midiChanMain = value;
         // ensure MPE is turned off
         disableMpe(split);
-        preResetMidiExpression(split);
+        updateSplitMidiChannels(split);
       }
       break;
     // Split MIDI Per Note Channels
@@ -556,7 +556,7 @@ void receivedNrpn(int parameter, int value, int channel) {
         Split[split].midiChanSet[parameter-2] = value;
         // ensure MPE is turned off
         disableMpe(split);
-        preResetMidiExpression(split);
+        updateSplitMidiChannels(split);
       }
       break;
     // Split MIDI Per Row Lowest Channel
@@ -564,7 +564,7 @@ void receivedNrpn(int parameter, int value, int channel) {
       if (inRange(value, 1, 16)) {
         preResetMidiExpression(split);
         Split[split].midiChanPerRow = value;
-        preResetMidiExpression(split);
+        updateSplitMidiChannels(split);
       }
       break;
     // Split MIDI Bend Range
@@ -640,25 +640,25 @@ void receivedNrpn(int parameter, int value, int channel) {
       break;
     // Split Color Main
     case 30:
-      if (inRange(value, 1, 6)) {
+      if (inRange(value, 1, 11)) {
         Split[split].colorMain = value;
       }
       break;
     // Split Color Accent
     case 31:
-      if (inRange(value, 1, 6)) {
+      if (inRange(value, 1, 11)) {
         Split[split].colorAccent = value;
       }
       break;
     // Split Color Played
     case 32:
-      if (inRange(value, 0, 6)) {
+      if (inRange(value, 0, 11)) {
         Split[split].colorPlayed = value;
       }
       break;
     // Split Color LowRow
     case 33:
-      if (inRange(value, 1, 6)) {
+      if (inRange(value, 1, 11)) {
         Split[split].colorLowRow = value;
       }
       break;
