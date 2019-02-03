@@ -164,9 +164,6 @@ void initializeTouchInfo() {
   // Initialize the cells array, starting operating with no touched cells
   for (byte col = 0; col < NUMCOLS; ++col) {
     for (byte row = 0; row < NUMROWS; ++row) {
-#ifdef TESTING_SENSOR_DISABLE
-      cell(col, row).disabled = false;
-#endif
       cell(col, row).touched = untouchedCell;
       cell(col, row).lastTouch = 0;
       cell(col, row).clearSensorData();
@@ -388,7 +385,7 @@ byte TouchInfo::calibratedY() {
   return currentCalibratedY;
 }
 
-unsigned short TouchInfo::rawZ() {
+short TouchInfo::rawZ() {
   refreshZ();
   return currentRawZ;
 }
@@ -444,7 +441,7 @@ inline unsigned short calculatePreferredPressureRange(unsigned short sensorRange
 inline void TouchInfo::refreshZ() {
   if (shouldRefreshZ) {
     // store the raw Z data for later comparisons and calculations
-    unsigned short previousPreviousRawZ = previousRawZ;
+    short previousPreviousRawZ = previousRawZ;
     previousRawZ = currentRawZ;
     currentRawZ = readZ();
     featherTouch = false;
@@ -460,8 +457,8 @@ inline void TouchInfo::refreshZ() {
       return;
     }
 
-    unsigned short featherZ = Device.sensorFeatherZ;
-    unsigned short loZ = Device.sensorLoZ;
+    short featherZ = Device.sensorFeatherZ;
+    short loZ = Device.sensorLoZ;
     if (sensorCol == 0) {
       featherZ = SWITCH_FEATHERZ;
       loZ = SWITCH_LOZ;
@@ -498,9 +495,9 @@ inline void TouchInfo::refreshZ() {
     }
 
     // calculate the velocity and pressure for the playing cells
-    unsigned short sensorRange = calculateSensorRangeZ();
+    short sensorRange = calculateSensorRangeZ();
 
-    unsigned short sensorRangeVelocity = sensorRange;
+    short sensorRangeVelocity = sensorRange;
     switch (Global.velocitySensitivity) {
       case velocityHigh:
         sensorRangeVelocity -= 254;
@@ -516,10 +513,10 @@ inline void TouchInfo::refreshZ() {
         break;
     }
 
-    unsigned short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
+    short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
 
-    unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
-    unsigned short usablePressureZ;
+    short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
+    short usablePressureZ;
     if (Global.pressureAftertouch) {
       sensorRangePressure /= 5;
       usablePressureZ = constrain(usableZ - (sensorRangeVelocity - sensorRangePressure), 0, sensorRangePressure);

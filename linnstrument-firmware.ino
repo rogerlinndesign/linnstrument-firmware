@@ -72,7 +72,7 @@ const char* OSVersionBuild = ".055";
 // #define DISPLAY_ZFRAME_AT_LAUNCH
 // #define DISPLAY_SURFACESCAN_AT_LAUNCH
 // #define DISPLAY_FREERAM_AT_LAUNCH
-// #define TESTING_SENSOR_DISABLE
+// #define DISPLAY_ADCVALUES_AT_LAUNCH
 
 // Touch surface constants
 byte LINNMODEL = 200;
@@ -300,7 +300,7 @@ struct __attribute__ ((packed)) TouchInfo {
   unsigned short rawY();                     // ensure that Y is updated to the latest scan and return its raw value
   byte calibratedY();                        // ensure that Y is updated to the latest scan and return its calibrated value
   inline void refreshY();                    // ensure that Y is updated to the latest scan
-  unsigned short rawZ();                     // ensure that Z is updated to the latest scan and return its raw value
+  short rawZ();                              // ensure that Z is updated to the latest scan and return its raw value
   inline boolean isMeaningfulTouch();        // ensure that Z is updated to the latest scan and check if it was a meaningful touch
   inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
   inline boolean isStableYTouch();           // ensure that Z is updated to the latest scan and check if the touch is capable of providing stable Y reading
@@ -317,11 +317,6 @@ struct __attribute__ ((packed)) TouchInfo {
   void clearSensorData();                    // clears the measured sensor data
   boolean isCalculatingVelocity();           // indicates whether the initial velocity is being calculated
   int32_t fxdInitialReferenceX();            // initial calibrated reference X value of each cell at the start of the touch
-
-#ifdef TESTING_SENSOR_DISABLE
-  boolean disabled;
-#endif
-
   unsigned long lastTouch:32;                // the timestamp when this cell was last touched
   short initialX:16;                         // initial calibrated X value of each cell at the start of the touch, SHRT_MIN meaning that it's unassigned
   short initialColumn:16;                    // initial column of each cell at the start of the touch
@@ -344,19 +339,18 @@ struct __attribute__ ((packed)) TouchInfo {
   signed char initialY:8;                    // initial Y value of each cell, -1 meaning it's unassigned
   byte currentCalibratedY:7;                 // last calibrated Y value of each cell
   boolean shouldRefreshY:1;                  // indicate whether it's necessary to refresh Y
+  short currentRawZ:16;                      // the raw Z value
   unsigned short currentRawY:12;             // last raw Y value of each cell
-  unsigned short currentRawZ:12;             // the raw Z value
+  byte vcount:4;                             // the number of times the pressure was measured to obtain a velocity
   byte percentRawZ:7;                        // percentage of Z compared to the raw offset and range
   boolean shouldRefreshX:1;                  // indicate whether it's necessary to refresh X
   TouchState touched:2;                      // touch status of all sensor cells
-  byte vcount:4;                             // the number of times the pressure was measured to obtain a velocity
   boolean slideTransfer:1;                   // indicates whether this touch is part of a slide transfer
   boolean rogueSweepX:1;                     // indicates whether the last X position is a rogue sweep
   byte pendingReleaseCount:4;                // counter before which the note release will be effective
   boolean featherTouch:1;                    // indicates whether this is a feather touch
   unsigned short pressureZ:10;               // the Z value with pressure sensitivity
   unsigned short previousRawZ:12;            // the previous raw Z value
-int :4;
   boolean phantomSet:1;                      // indicates whether phantom touch coordinates are set
   byte velocity:7;                           // velocity from 0 to 127
   boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
@@ -858,13 +852,14 @@ struct Configuration config;
 
 /**************************************** SECRET SWITCHES ****************************************/
 
-#define SECRET_SWITCHES 6
+#define SECRET_SWITCHES 7
 #define SWITCH_DEBUGMIDI secretSwitch[0]
 #define SWITCH_XFRAME secretSwitch[1]
 #define SWITCH_YFRAME secretSwitch[2]
 #define SWITCH_ZFRAME secretSwitch[3]
 #define SWITCH_SURFACESCAN secretSwitch[4]
 #define SWITCH_FREERAM secretSwitch[5]
+#define SWITCH_ADCVALUES secretSwitch[6]
 
 boolean secretSwitch[SECRET_SWITCHES];  // The secretSwitch* values are controlled by cells in column 18
 
@@ -1081,8 +1076,8 @@ void cellTouched(byte col, byte row, TouchState state);
 
 VelocityState calcVelocity(unsigned short z);
 
-inline unsigned short readZ();
 inline short applyRawZBias(short rawZ);
+inline short readZ();
 inline unsigned short calculateSensorRangeZ();
 inline unsigned short calculatePreferredPressureRange(unsigned short sensorRangeZ);
 
@@ -1127,8 +1122,8 @@ boolean switchPressAtStartup(byte switchRow) {
   sensorRow = switchRow;
   updateSensorCell();
   // initially we need read Z a few times for the readings to stabilize
-  readZ(); readZ(); unsigned short switchZ = readZ();
-  if (switchZ > Device.sensorLoZ + 128) {
+  readZ(); readZ(); short switchZ = readZ();
+  if (switchZ > 0) {
     return true;
   }
   return false;
@@ -1379,6 +1374,12 @@ void setup() {
   SWITCH_FREERAM = true;
 #endif
 
+#ifdef DISPLAY_ADCVALUES_AT_LAUNCH
+  #define DEBUG_ENABLED
+  Device.serialMode = true;
+  SWITCH_ADCVALUES = true;
+#endif
+
   setupDone = true;
 
   applySerialMode();
@@ -1388,6 +1389,11 @@ void setup() {
   if (Device.sleepAnimationActive) {
     playSleepAnimation();
   }
+
+
+#ifdef DEBUG_ENABLED
+  if (SWITCH_ADCVALUES) displayADCValues();                      // Display the ADC values
+#endif
 }
 
 
@@ -1457,11 +1463,11 @@ inline void modeLoopPerformance() {
   }
 
 #ifdef DEBUG_ENABLED
-  if (SWITCH_XFRAME) displayXFrame();                            // Turn on secret switch to display the X value of all cells in grid at the end of each total surface scan
-  if (SWITCH_YFRAME) displayYFrame();                            // Turn on secret switch to display the Y value of all cells in grid at the end of each total surface scan
-  if (SWITCH_ZFRAME) displayZFrame();                            // Turn on secret switch to display the pressure value of all cells in grid at the end of each total surface scan
-  if (SWITCH_SURFACESCAN) displaySurfaceScanTime();              // Turn on secret switch to display the total time for a total surface scan
-  if (SWITCH_FREERAM) debugFreeRam();                            // Turn on secret switch to display the available free RAM
+  if (SWITCH_XFRAME) displayXFrame();                            // Display the X value of all cells in grid at the end of each total surface scan
+  if (SWITCH_YFRAME) displayYFrame();                            // Display the Y value of all cells in grid at the end of each total surface scan
+  if (SWITCH_ZFRAME) displayZFrame();                            // Display the pressure value of all cells in grid at the end of each total surface scan
+  if (SWITCH_SURFACESCAN) displaySurfaceScanTime();              // Display the total time for a total surface scan
+  if (SWITCH_FREERAM) debugFreeRam();                            // Display the available free RAM
 #endif
 
   nextSensorCell();                                              // done-- move on to the next sensor cell

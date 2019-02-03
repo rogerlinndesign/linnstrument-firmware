@@ -1807,10 +1807,6 @@ void postTouchRelease() {
   sensorCell->vcount = 0;
 
   sensorCell->clearSensorData();
-
-#ifdef TESTING_SENSOR_DISABLE
-    sensorCell->disabled = true;
-#endif  
 }
 
 void handleOpenStringsRelease() {

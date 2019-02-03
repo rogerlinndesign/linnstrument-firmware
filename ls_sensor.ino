@@ -6,31 +6,40 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the sensing of touches on the LinnStrument's touch surface.
 **************************************************************************************************/
 
-// These are the rectified pressure sensititivies for each column
-// CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
-// actual values in a spreadsheet
-short Z_BIAS[MAXROWS][MAXCOLS];
-const short Z_BIAS_200_SEPTEMBER2014[MAXROWS][MAXCOLS] =  {
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1193},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 1012, 1020, 1032, 1056, 1088, 1150, 1216, 1293, 1150},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 1012, 1020, 1032, 1056, 1088, 1150, 1216, 1293, 1150},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1193},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256}
+short R_COLS[MAXCOLS];
+short R_ROWS[MAXROWS];
+const short R_COLS_200[MAXCOLS] = {
+    214, 270, 396, 511, 613, 704, 783, 851, 907, 951, 984, 1005, 1014, 1012, 998, 972, 935, 886, 826, 753, 670, 574, 467, 348, 218, 75
   };
-const short Z_BIAS_128_SEPTEMBER2016[MAXROWS][MAXCOLS] =  {
-    {500, 2560, 2320, 2150, 2020, 1920, 1840, 1780, 1720, 1700, 1730, 1790, 1860, 1940, 2020, 2100, 2160, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2220, 2040, 1900, 1780, 1680, 1600, 1560, 1520, 1500, 1530, 1570, 1640, 1720, 1800, 1900, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2200, 1980, 1860, 1720, 1600, 1510, 1470, 1440, 1440, 1460, 1470, 1500, 1580, 1680, 1780, 1900, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2100, 1960, 1820, 1700, 1580, 1500, 1440, 1420, 1400, 1440, 1500, 1560, 1640, 1740, 1860, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 1920, 1840, 1740, 1660, 1600, 1540, 1520, 1490, 1480, 1500, 1560, 1660, 1760, 1840, 1960, 2040, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2080, 1920, 1800, 1720, 1640, 1580, 1524, 1500, 1480, 1520, 1580, 1660, 1760, 1860, 1960, 2080, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2240, 2080, 1940, 1800, 1720, 1640, 1580, 1540, 1540, 1560, 1600, 1660, 1760, 1880, 2000, 2140, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2320, 2120, 1980, 1900, 1820, 1740, 1680, 1650, 1660, 1700, 1760, 1820, 1880, 1960, 2060, 2200, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+const short R_ROWS_200[MAXROWS] = {
+    65, 168, 237, 271, 271, 237, 168, 65
   };
-const short Z_BIAS_MULTIPLIER = 1400;
+const short R_COLS_128[MAXCOLS] = {
+    207, 251, 359, 450, 523, 580, 619, 641, 647, 635, 606, 560, 496, 416, 318, 204, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  };
+const short R_ROWS_128[MAXROWS] = {
+    68, 177, 250, 286, 286, 250, 177, 68
+  };
+short ADC_MIN[MAXROWS][MAXCOLS] = {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+  };
+short ADC_MAX[MAXROWS][MAXCOLS] =  {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+  };
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -40,21 +49,59 @@ const short READX_MAX_DELAY = 250;
 const short READX_MIN_DELAY = 150;
 const short READX_RANGE_DELAY = READX_MAX_DELAY - READX_MIN_DELAY;
 
-void initializeSensors() {
+void calculateADCValues() {
   if (LINNMODEL == 200) {
     for (byte r = 0; r < MAXROWS; ++r) {
-      for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS[r][c] = Z_BIAS_200_SEPTEMBER2014[r][c];
-      }
+      R_ROWS[r] = R_ROWS_200[r];
+    }
+    for (byte c = 0; c < MAXCOLS; ++c) {
+      R_COLS[c] = R_COLS_200[c];
     }
   }
   else if (LINNMODEL == 128) {
     for (byte r = 0; r < MAXROWS; ++r) {
-      for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS[r][c] = Z_BIAS_128_SEPTEMBER2016[r][c];
-      }
+      R_ROWS[r] = R_ROWS_128[r];
+    }
+    for (byte c = 0; c < MAXCOLS; ++c) {
+      R_COLS[c] = R_COLS_128[c];
     }
   }
+
+  int pullup_r = 510;
+  int fsr_min = 6000;
+  int fsr_max = 600;
+  for (byte r = 0; r < MAXROWS; ++r) {
+    for (byte c = 0; c < MAXCOLS; ++c) {
+      int fixed_r_min = R_ROWS[r] + fsr_min + R_COLS[c];
+      ADC_MIN[r][c] = 4095 - ((4095 * fixed_r_min) / (fixed_r_min + pullup_r));
+      int fixed_r_max = R_ROWS[r] + fsr_max + R_COLS[c];
+      ADC_MAX[r][c] = 4095 - ((4095 * fixed_r_max) / (fixed_r_max + pullup_r));
+    }
+  }
+}
+
+void displayADCValues() {
+  DEBUGPRINT((-1, "\nADC MIN:\n"));
+  for (byte r = 0; r < NUMROWS; ++r) {
+    for (byte c = 0; c < NUMCOLS; ++c) {
+      DEBUGPRINT((-1, ADC_MIN[r][c]));
+      DEBUGPRINT((-1, ", "));
+    }
+    DEBUGPRINT((-1, "\n"));
+  }
+  DEBUGPRINT((-1, "\nADC MAX:\n"));
+  for (byte r = 0; r < NUMROWS; ++r) {
+    for (byte c = 0; c < NUMCOLS; ++c) {
+      DEBUGPRINT((-1, ADC_MAX[r][c]));
+      DEBUGPRINT((-1, ", "));
+    }
+    DEBUGPRINT((-1, "\n"));
+  }
+  DEBUGPRINT((-1, "\n"));
+}
+
+void initializeSensors() {
+  calculateADCValues();
 
   Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
   Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
@@ -63,12 +110,6 @@ void initializeSensors() {
 }
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
-#ifdef TESTING_SENSOR_DISABLE
-    if (sensorCell->disabled) {
-      return 0;
-    }
-#endif
-
   DEBUGPRINT((3,"readX\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_X);     // set analog switches to this column and row, and to read X
@@ -94,12 +135,6 @@ const short READY_MIN_DELAY = 60;
 const short READY_RANGE_DELAY = READY_MAX_DELAY - READY_MIN_DELAY;
 
 inline short readY(byte zPct) {                       // returns a value of 0-127 within cell's y axis
-#ifdef TESTING_SENSOR_DISABLE
-    if (sensorCell->disabled) {
-      return 0;
-    }
-#endif
-
   DEBUGPRINT((3,"readY\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Y);     // set analog switches to this cell and to read Y
@@ -126,16 +161,17 @@ const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
 inline short applyRawZBias(short rawZ) {
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  return rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
+  if (sensorCol == 0) {
+    rawZ = (rawZ * ADC_MAX[0][3]) / ADC_MIN[sensorRow][sensorCol];
+  }
+  else {
+    rawZ = (rawZ * ADC_MAX[0][3]) / ADC_MAX[sensorRow][sensorCol];
+  }
+
+  return rawZ;
 }
 
-inline unsigned short readZ() {                       // returns the raw Z value
-#ifdef TESTING_SENSOR_DISABLE
-    if (sensorCell->disabled) {
-      return 0;
-    }
-#endif
-
+inline short readZ() {                                // returns the raw Z value
   DEBUGPRINT((3,"readZ\n"));
 
   selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
