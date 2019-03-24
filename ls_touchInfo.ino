@@ -420,6 +420,30 @@ inline unsigned short calculateSensorRangeZ() {
     return constrain(Device.sensorRangeZ + 127, 3 * 127, MAX_SENSOR_RANGE_Z - 127);
 }
 
+inline unsigned short calculatePreferredVelocityRange(unsigned short sensorRangeZ) {
+    // when in pressure sensitivity calibration mode, always use medium sensitivity
+    VelocitySensitivity velocitySensitivity = Global.velocitySensitivity;
+    if (displayMode == displaySensorSensitivityZ) {
+        velocitySensitivity = velocityMedium;
+    }
+    unsigned short sensorRangeVelocity = sensorRangeZ;
+    switch (velocitySensitivity) {
+      case velocityHigh:
+        sensorRangeVelocity -= 254;
+        break;
+      case velocityMedium:
+        sensorRangeVelocity -= 63;
+        break;
+      case velocityLow:
+        sensorRangeVelocity += 127;
+        break;
+      case velocityFixed:
+        // no change
+        break;
+    }
+    return sensorRangeVelocity;
+}
+
 inline unsigned short calculatePreferredPressureRange(unsigned short sensorRangeZ) {
     // when in pressure sensitivity calibration mode, always use medium sensitivity
     PressureSensitivity pressureSensitivity = Global.pressureSensitivity;
@@ -499,23 +523,7 @@ inline void TouchInfo::refreshZ() {
 
     // calculate the velocity and pressure for the playing cells
     unsigned short sensorRange = calculateSensorRangeZ();
-
-    unsigned short sensorRangeVelocity = sensorRange;
-    switch (Global.velocitySensitivity) {
-      case velocityHigh:
-        sensorRangeVelocity -= 254;
-        break;
-      case velocityMedium:
-        sensorRangeVelocity -= 63;
-        break;
-      case velocityLow:
-        sensorRangeVelocity += 127;
-        break;
-      case velocityFixed:
-        // no change
-        break;
-    }
-
+    unsigned short sensorRangeVelocity = calculatePreferredVelocityRange(sensorRange);
     unsigned short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
 
     unsigned short usableVelocityZ = constrain(usableZ, 1, sensorRangeVelocity);
@@ -529,14 +537,11 @@ inline void TouchInfo::refreshZ() {
     }
     percentRawZ = (constrain(usableZ, 0, sensorRange) * 100) / sensorRange;
 
-    int32_t fxd_usableVelocityZ = FXD_MUL(FXD_FROM_INT(usableVelocityZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangeVelocity)));
-    int32_t fxd_usablePressureZ = FXD_MUL(FXD_FROM_INT(usablePressureZ), FXD_DIV(FXD_FROM_INT(MAX_SENSOR_RANGE_Z), FXD_FROM_INT(sensorRangePressure)));
+    // scale to MAX_SENSOR_RANGE_Z without loss of precision
+    usableVelocityZ = (((uint32_t(usableVelocityZ) * MAX_SENSOR_RANGE_Z * 10) / sensorRangeVelocity) + 5) / 10;
+    usablePressureZ = (((uint32_t(usablePressureZ) * MAX_SENSOR_RANGE_Z * 10) / sensorRangePressure) + 5) / 10;
 
-    // apply the sensitivity curve
-    usableVelocityZ = FXD_TO_INT(fxd_usableVelocityZ);
-    usablePressureZ = FXD_TO_INT(fxd_usablePressureZ);
-
-    // scale the result and store it as a byte in the range 0-127
+    // scale or constrain the result and store it as a byte in the range 0-127
     velocityZ = scale1016to127(usableVelocityZ, false);
     pressureZ = constrain(usablePressureZ, 0, 1016);
   }

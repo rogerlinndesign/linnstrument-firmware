@@ -32,6 +32,9 @@ const short Z_BIAS_128_SEPTEMBER2016[MAXROWS][MAXCOLS] =  {
   };
 const short Z_BIAS_MULTIPLIER = 1400;
 
+// These will be filled in by two-dimensional interpolation from the device Z sensitivity setting
+short Z_SENSITIVITY[MAXCOLS][MAXROWS];
+
 // readX:
 // Reads raw X value at the currently addressed column and row
 const short READX_FLATZONE = 25;
@@ -56,10 +59,84 @@ void initializeSensors() {
     }
   }
 
-  Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
+  for (byte r = 0; r < MAXROWS; ++r) {
+    Z_SENSITIVITY[0][r] = 100;
+    for (byte c = 1; c < MAXCOLS; ++c) {
+      Z_SENSITIVITY[c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
+    }
+  }
+  for (int h = 0; h < 3; ++h) {
+    for (int v = 0; v < 3; ++v) {
+      Device.sensorSensitivityZ[h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
+    }
+  }
   Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
   Device.sensorFeatherZ = DEFAULT_SENSOR_FEATHER_Z;
   Device.sensorRangeZ = DEFAULT_SENSOR_RANGE_Z;
+
+  calculateInterpolatedZSensitivity();
+}
+
+void calculateInterpolatedZSensitivity() {
+  int left_col = 1;
+  int mid_col = NUMCOLS/2+1;
+  int right_col = NUMCOLS-1;
+
+  int btm_row = 0;
+  int mid_row = NUMROWS/2;
+  int top_row = NUMROWS-1;
+
+  performContinuousTasks();
+ 
+  // first interpolate in one dimension along the vertical calibration axis
+  int r_range = mid_row - btm_row;
+  for (int r = btm_row; r <= mid_row; ++r) {
+    int btm_part = r_range - (r - btm_row);
+    int mid_part = r - btm_row;
+    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][0] * btm_part + Device.sensorSensitivityZ[0][1] * mid_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][0] * btm_part + Device.sensorSensitivityZ[1][1] * mid_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][0] * btm_part + Device.sensorSensitivityZ[2][1] * mid_part + r_range / 2) / r_range;
+  }
+  performContinuousTasks();
+  r_range = top_row - mid_row;
+  for (int r = mid_row; r <= top_row; ++r) {
+    int mid_part = r_range - (r - mid_row);
+    int top_part = r - mid_row;
+    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][1] * mid_part + Device.sensorSensitivityZ[0][2] * top_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][1] * mid_part + Device.sensorSensitivityZ[1][2] * top_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][1] * mid_part + Device.sensorSensitivityZ[2][2] * top_part + r_range / 2) / r_range;
+  }
+  performContinuousTasks();
+
+  int c_range = mid_col - left_col;
+  for (int c = left_col; c <= mid_col; ++c) {
+    int left_part = c_range - (c - left_col);
+    int mid_part = c - left_col;
+    for (int r = 0; r < NUMROWS; ++r) {
+      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[left_col][r] * left_part + Z_SENSITIVITY[mid_col][r] * mid_part + c_range / 2) / c_range;
+    }
+  }
+  performContinuousTasks();
+  c_range = right_col - mid_col;
+  for (int c = mid_col; c <= right_col; ++c) {
+    int mid_part = c_range - (c - mid_col);
+    int right_part = c - mid_col;
+     for (int r = 0; r < NUMROWS; ++r) {
+      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[mid_col][r] * mid_part + Z_SENSITIVITY[right_col][r] * right_part + c_range / 2) / c_range;
+    }
+  }
+  performContinuousTasks();
+}
+
+void displaySensitivityValues() {
+  for (byte r = 0; r < NUMROWS; ++r) {
+    for (byte c = 1; c < NUMCOLS; ++c) {
+      DEBUGPRINT((-1, Z_SENSITIVITY[c][r]));
+      DEBUGPRINT((-1, ", "));
+    }
+    DEBUGPRINT((-1, "\n"));
+  }
+  DEBUGPRINT((-1, "\n"));
 }
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
@@ -126,7 +203,10 @@ const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
 inline short applyRawZBias(short rawZ) {
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  return rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
+  return (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
+}
+inline short reverseRawZBias(short biasedZ) {
+  return biasedZ * Z_BIAS[sensorRow][sensorCol] / Z_BIAS_MULTIPLIER;
 }
 
 inline unsigned short readZ() {                       // returns the raw Z value
@@ -172,7 +252,7 @@ inline unsigned short readZ() {                       // returns the raw Z value
   lastReadSensorRawZ = rawZ;
 
   // scale the sensor based on the sensitivity setting
-  rawZ = rawZ * Device.sensorSensitivityZ / 100;
+  rawZ = rawZ * Z_SENSITIVITY[sensorCol][sensorRow] / 100;
 
   rawZ = applyRawZBias(rawZ);
 

@@ -675,7 +675,7 @@ struct DeviceSettings {
   boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
   boolean calibrationHealed;                 // indicates whether the calibration data was healed
   unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
-  byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorSensitivityZ[3][3];   // the scaling factor of the raw value of Z in percentage
   unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;               // the maximum raw value of Z
@@ -1060,6 +1060,9 @@ short restrictedRow = -1;                           // temporarily restrict touc
 byte guitarTuningRowNum = 0;                        // active row number for configuring the guitar tuning
 short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
 short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
+
+byte sensorSensZHoriz = 0;                          // active horizontal configuration point for Z sensitivity
+byte sensorSensZVert = 0;                           // active vertical configuration point for Z sensitivity
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
@@ -1457,11 +1460,11 @@ inline void modeLoopPerformance() {
   }
 
 #ifdef DEBUG_ENABLED
-  if (SWITCH_XFRAME) displayXFrame();                            // Turn on secret switch to display the X value of all cells in grid at the end of each total surface scan
-  if (SWITCH_YFRAME) displayYFrame();                            // Turn on secret switch to display the Y value of all cells in grid at the end of each total surface scan
-  if (SWITCH_ZFRAME) displayZFrame();                            // Turn on secret switch to display the pressure value of all cells in grid at the end of each total surface scan
-  if (SWITCH_SURFACESCAN) displaySurfaceScanTime();              // Turn on secret switch to display the total time for a total surface scan
-  if (SWITCH_FREERAM) debugFreeRam();                            // Turn on secret switch to display the available free RAM
+  if (SWITCH_XFRAME) displayXFrame();                            // Display the X value of all cells in grid at the end of each total surface scan
+  if (SWITCH_YFRAME) displayYFrame();                            // Display the Y value of all cells in grid at the end of each total surface scan
+  if (SWITCH_ZFRAME) displayZFrame();                            // Display the pressure value of all cells in grid at the end of each total surface scan
+  if (SWITCH_SURFACESCAN) displaySurfaceScanTime();              // Display the total time for a total surface scan
+  if (SWITCH_FREERAM) debugFreeRam();                            // Display the available free RAM
 #endif
 
   nextSensorCell();                                              // done-- move on to the next sensor cell

@@ -1242,12 +1242,110 @@ void paintMinUSBMIDIIntervalDisplay() {
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
 }
 
-void paintSensorSensitivityZDisplay() {
-  for (byte row = 1; row < NUMROWS; ++row) {
-    clearRow(row);
+void setSensorSensCalCell(byte col, byte row) {
+  byte sensor_horiz = calcSensorSensHoriz(col);
+  byte sensor_vert = calcSensorSensVert(row);
+  byte color = COLOR_BLUE;
+  if (Device.sensorSensitivityZ[sensor_horiz][sensor_vert] != DEFAULT_SENSOR_SENSITIVITY_Z) {
+    color = COLOR_CYAN;
   }
-  setLed(NUMCOLS-1, NUMROWS-1,  globalAltColor, cellOn);
-  paintNumericDataDisplay(globalColor, Device.sensorSensitivityZ, 0, false);
+  setLed(col, row, color, (sensorSensZHoriz == sensor_horiz && sensorSensZVert == sensor_vert) ? cellSlowPulse : cellOn);
+}
+
+void paintSensorSensitivityZDisplay() {
+  for (byte row = 0; row < NUMROWS; ++row) {
+    if (row != 2) {
+      clearRow(row);
+    }
+  }
+
+  setSensorSensCalCell(1, NUMROWS-1);
+  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS-1);
+  setSensorSensCalCell(NUMCOLS-1, NUMROWS-1);
+
+  setSensorSensCalCell(1, NUMROWS/2);
+  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS/2);
+  setSensorSensCalCell(NUMCOLS-1, NUMROWS/2);
+
+  setSensorSensCalCell(1, 0);
+  setSensorSensCalCell(NUMCOLS/2+1, 0);
+  setSensorSensCalCell(NUMCOLS-1, 0);
+
+  setLed(NUMCOLS/4+1, 0, COLOR_GREEN, cellOn);
+  setLed(3*NUMCOLS/4+1, 0, COLOR_RED, cellOn);
+
+  paintSensorSensitivityZNumericDataDisplay(COLOR_GREEN, Device.sensorSensitivityZ[sensorSensZHoriz][sensorSensZVert], 5);
+}
+
+void paintSensorSensitivityZNumericDataDisplay(byte color, short value, byte offset) {
+  char str[10];
+  const char* format = "%2d";
+
+  short hundreds_digit = value / 100;
+  short hundreds = hundreds_digit * 100;
+  short value_tens = value - hundreds;
+
+  // if the second digit is number one, compensate for the reduced spacing
+  if ((value_tens >= 10 && value_tens < 20)) {
+    offset += 1;
+  }
+
+  if (value >= 200 && value <= 999) {
+    // Handle the hundreds character specially, to get the spacing right
+    char digit_string[2] = "0";
+    digit_string[0] += hundreds_digit;
+    tinyfont_draw_string(offset - 4, 4, digit_string, color, true);
+    value = value_tens;
+    format = "%02d";     // to make sure a leading zero is included
+  }
+  else if (value >= 100 && value < 200) {
+    // Handle the "1" character specially, to get the spacing right
+    tinyfont_draw_string(offset - 3, 4, "1", color, true);
+    value = value_tens;
+    format = "%02d";     // to make sure a leading zero is included
+  }
+
+  snprintf(str, sizeof(str), format, value);
+  tinyfont_draw_string(offset, 4, str, color, true);
+}
+
+void paintSensorSensitivityZPressureBar() {
+  int usableZ = sensorCell->currentRawZ - Device.sensorLoZ;
+  unsigned short sensorRange = calculateSensorRangeZ();
+  unsigned short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
+
+  byte color = COLOR_CYAN;
+  int pressureColumn = 0;
+  if (sensorCell->currentRawZ == 0)
+  {
+    pressureColumn = 0;
+  }
+  else if (usableZ < 0) {
+    pressureColumn = 1;
+  }
+  else {
+    if (usableZ > sensorRangePressure) {
+      color = COLOR_RED;
+    }
+    else if (usableZ >= 0) {
+      color = COLOR_GREEN;
+    }
+    int usablePressureZ = (((usableZ * MAX_SENSOR_RANGE_Z * 10) / sensorRangePressure) + 5) / 10;
+    int pressureColumnRange = NUMCOLS-4;
+    pressureColumn = (((usablePressureZ * pressureColumnRange * 10) / MAX_SENSOR_RANGE_Z) + 5) / 10 + 2;
+  }
+
+  for (byte c = 1; c < NUMCOLS; ++c) {
+    if (c <= pressureColumn) {
+      setLed(c, 2, color, cellOn);
+    }
+    else {
+      clearLed(c, 2);
+    }
+  }
+
+  setLed(2, 2, COLOR_GREEN, cellOn);
+  setLed(NUMCOLS-2, 2, COLOR_RED, cellOn);
 }
 
 void paintSensorLoZDisplay() {
