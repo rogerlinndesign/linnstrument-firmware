@@ -1808,9 +1808,11 @@ void copyConfigurationV11(void* target, void* source) {
 }
 
 void copyDeviceSensorSensitivityZ(DeviceSettings* t, byte value) {
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < 3; ++j) {
-      Device.sensorSensitivityZ[i][j] = value;
+      for (int k = 0; k < 3; ++k) {
+        Device.sensorSensitivityZ[i][j][k] = value;
+      }
     }
   }
 }

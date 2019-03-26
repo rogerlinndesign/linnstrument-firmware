@@ -33,7 +33,7 @@ const short Z_BIAS_128_SEPTEMBER2016[MAXROWS][MAXCOLS] =  {
 const short Z_BIAS_MULTIPLIER = 1400;
 
 // These will be filled in by two-dimensional interpolation from the device Z sensitivity setting
-short Z_SENSITIVITY[MAXCOLS][MAXROWS];
+short Z_SENSITIVITY[2][MAXCOLS][MAXROWS];
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -59,15 +59,17 @@ void initializeSensors() {
     }
   }
 
-  for (byte r = 0; r < MAXROWS; ++r) {
-    Z_SENSITIVITY[0][r] = 100;
-    for (byte c = 1; c < MAXCOLS; ++c) {
-      Z_SENSITIVITY[c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
+   for (int t = 0; t < 2; ++t) {
+   for (byte r = 0; r < MAXROWS; ++r) {
+      Z_SENSITIVITY[t][0][r] = 100;
+      for (byte c = 1; c < MAXCOLS; ++c) {
+        Z_SENSITIVITY[t][c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
+      }
     }
-  }
-  for (int h = 0; h < 3; ++h) {
-    for (int v = 0; v < 3; ++v) {
-      Device.sensorSensitivityZ[h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
+    for (int h = 0; h < 3; ++h) {
+      for (int v = 0; v < 3; ++v) {
+        Device.sensorSensitivityZ[t][h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
+      }
     }
   }
   Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
@@ -89,54 +91,61 @@ void calculateInterpolatedZSensitivity() {
   performContinuousTasks();
  
   // first interpolate in one dimension along the vertical calibration axis
-  int r_range = mid_row - btm_row;
-  for (int r = btm_row; r <= mid_row; ++r) {
-    int btm_part = r_range - (r - btm_row);
-    int mid_part = r - btm_row;
-    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][0] * btm_part + Device.sensorSensitivityZ[0][1] * mid_part + r_range / 2) / r_range;
-    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][0] * btm_part + Device.sensorSensitivityZ[1][1] * mid_part + r_range / 2) / r_range;
-    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][0] * btm_part + Device.sensorSensitivityZ[2][1] * mid_part + r_range / 2) / r_range;
-  }
-  performContinuousTasks();
-  r_range = top_row - mid_row;
-  for (int r = mid_row; r <= top_row; ++r) {
-    int mid_part = r_range - (r - mid_row);
-    int top_part = r - mid_row;
-    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][1] * mid_part + Device.sensorSensitivityZ[0][2] * top_part + r_range / 2) / r_range;
-    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][1] * mid_part + Device.sensorSensitivityZ[1][2] * top_part + r_range / 2) / r_range;
-    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][1] * mid_part + Device.sensorSensitivityZ[2][2] * top_part + r_range / 2) / r_range;
-  }
-  performContinuousTasks();
+  for (int t = 0; t < 2; ++t) {
+    int r_range = mid_row - btm_row;
+    for (int r = btm_row; r <= mid_row; ++r) {
+      int btm_part = r_range - (r - btm_row);
+      int mid_part = r - btm_row;
+      Z_SENSITIVITY[t][left_col][r]  = (Device.sensorSensitivityZ[t][0][0] * btm_part + Device.sensorSensitivityZ[t][0][1] * mid_part + r_range / 2) / r_range;
+      Z_SENSITIVITY[t][mid_col][r]   = (Device.sensorSensitivityZ[t][1][0] * btm_part + Device.sensorSensitivityZ[t][1][1] * mid_part + r_range / 2) / r_range;
+      Z_SENSITIVITY[t][right_col][r] = (Device.sensorSensitivityZ[t][2][0] * btm_part + Device.sensorSensitivityZ[t][2][1] * mid_part + r_range / 2) / r_range;
+    }
+    performContinuousTasks();
+    r_range = top_row - mid_row;
+    for (int r = mid_row; r <= top_row; ++r) {
+      int mid_part = r_range - (r - mid_row);
+      int top_part = r - mid_row;
+      Z_SENSITIVITY[t][left_col][r]  = (Device.sensorSensitivityZ[t][0][1] * mid_part + Device.sensorSensitivityZ[t][0][2] * top_part + r_range / 2) / r_range;
+      Z_SENSITIVITY[t][mid_col][r]   = (Device.sensorSensitivityZ[t][1][1] * mid_part + Device.sensorSensitivityZ[t][1][2] * top_part + r_range / 2) / r_range;
+      Z_SENSITIVITY[t][right_col][r] = (Device.sensorSensitivityZ[t][2][1] * mid_part + Device.sensorSensitivityZ[t][2][2] * top_part + r_range / 2) / r_range;
+    }
+    performContinuousTasks();
 
-  int c_range = mid_col - left_col;
-  for (int c = left_col; c <= mid_col; ++c) {
-    int left_part = c_range - (c - left_col);
-    int mid_part = c - left_col;
-    for (int r = 0; r < NUMROWS; ++r) {
-      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[left_col][r] * left_part + Z_SENSITIVITY[mid_col][r] * mid_part + c_range / 2) / c_range;
+    int c_range = mid_col - left_col;
+    for (int c = left_col; c <= mid_col; ++c) {
+      int left_part = c_range - (c - left_col);
+      int mid_part = c - left_col;
+      for (int r = 0; r < NUMROWS; ++r) {
+        Z_SENSITIVITY[t][c][r] = (Z_SENSITIVITY[t][left_col][r] * left_part + Z_SENSITIVITY[t][mid_col][r] * mid_part + c_range / 2) / c_range;
+      }
     }
-  }
-  performContinuousTasks();
-  c_range = right_col - mid_col;
-  for (int c = mid_col; c <= right_col; ++c) {
-    int mid_part = c_range - (c - mid_col);
-    int right_part = c - mid_col;
-     for (int r = 0; r < NUMROWS; ++r) {
-      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[mid_col][r] * mid_part + Z_SENSITIVITY[right_col][r] * right_part + c_range / 2) / c_range;
+    performContinuousTasks();
+    c_range = right_col - mid_col;
+    for (int c = mid_col; c <= right_col; ++c) {
+      int mid_part = c_range - (c - mid_col);
+      int right_part = c - mid_col;
+       for (int r = 0; r < NUMROWS; ++r) {
+        Z_SENSITIVITY[t][c][r] = (Z_SENSITIVITY[t][mid_col][r] * mid_part + Z_SENSITIVITY[t][right_col][r] * right_part + c_range / 2) / c_range;
+      }
     }
+    performContinuousTasks();
   }
-  performContinuousTasks();
 }
 
 void displaySensitivityValues() {
-  for (byte r = 0; r < NUMROWS; ++r) {
-    for (byte c = 1; c < NUMCOLS; ++c) {
-      DEBUGPRINT((-1, Z_SENSITIVITY[c][r]));
-      DEBUGPRINT((-1, ", "));
+  for (byte t = 0; t < 2; ++t) {
+    DEBUGPRINT((-1, "TYPE "));
+    DEBUGPRINT((-1, t));
+    DEBUGPRINT((-1, "\n"));
+    for (byte r = 0; r < NUMROWS; ++r) {
+      for (byte c = 1; c < NUMCOLS; ++c) {
+        DEBUGPRINT((-1, Z_SENSITIVITY[t][c][r]));
+        DEBUGPRINT((-1, ", "));
+      }
+      DEBUGPRINT((-1, "\n"));
     }
     DEBUGPRINT((-1, "\n"));
   }
-  DEBUGPRINT((-1, "\n"));
 }
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
@@ -251,12 +260,20 @@ inline unsigned short readZ() {                       // returns the raw Z value
   // store the last value that was read straight off of the sensor without any compensation
   lastReadSensorRawZ = rawZ;
 
-  // scale the sensor based on the sensitivity setting
-  rawZ = rawZ * Z_SENSITIVITY[sensorCol][sensorRow] / 100;
+  // scale the sensor based on the lower sensitivity setting
+  short lowRawZ = rawZ * Z_SENSITIVITY[0][sensorCol][sensorRow] / 100;
+  lowRawZ = applyRawZBias(lowRawZ);
+  // if the result is up to the intial touch threshold, return that
+  if (lowRawZ <= Device.sensorLoZ) {
+    return lowRawZ;
+  }
 
-  rawZ = applyRawZBias(rawZ);
-
-  return rawZ;
+  // scale the sensor based on the higher sensitivity setting
+  short unbiased_loz = reverseRawZBias(Device.sensorLoZ);
+  short threshold = unbiased_loz * 100 / Z_SENSITIVITY[1][sensorCol][sensorRow];
+  short highRawZ = unbiased_loz + (rawZ - threshold) * Z_SENSITIVITY[1][sensorCol][sensorRow] / 100;
+  highRawZ = applyRawZBias(highRawZ);
+  return highRawZ;
 }
 
 // spiAnalogRead:

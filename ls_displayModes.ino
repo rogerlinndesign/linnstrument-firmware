@@ -1246,7 +1246,7 @@ void setSensorSensCalCell(byte col, byte row) {
   byte sensor_horiz = calcSensorSensHoriz(col);
   byte sensor_vert = calcSensorSensVert(row);
   byte color = COLOR_BLUE;
-  if (Device.sensorSensitivityZ[sensor_horiz][sensor_vert] != DEFAULT_SENSOR_SENSITIVITY_Z) {
+  if (Device.sensorSensitivityZ[sensorSensType][sensor_horiz][sensor_vert] != DEFAULT_SENSOR_SENSITIVITY_Z) {
     color = COLOR_CYAN;
   }
   setLed(col, row, color, (sensorSensZHoriz == sensor_horiz && sensorSensZVert == sensor_vert) ? cellSlowPulse : cellOn);
@@ -1271,13 +1271,22 @@ void paintSensorSensitivityZDisplay() {
   setSensorSensCalCell(NUMCOLS/2+1, 0);
   setSensorSensCalCell(NUMCOLS-1, 0);
 
-  setLed(NUMCOLS/4+1, 0, COLOR_GREEN, cellOn);
-  setLed(3*NUMCOLS/4+1, 0, COLOR_RED, cellOn);
+  setLed(NUMCOLS/4+1, 0, COLOR_GREEN, (sensorCol == NUMCOLS/4+1 && sensorRow == 0) ? cellSlowPulse : cellOn);
+  setLed(3*NUMCOLS/4+1, 0, COLOR_RED, (sensorCol == 3*NUMCOLS/4+1 && sensorRow == 0) ? cellSlowPulse : cellOn);
 
-  paintSensorSensitivityZNumericDataDisplay(COLOR_GREEN, Device.sensorSensitivityZ[sensorSensZHoriz][sensorSensZVert], 5);
+  paintSensorSensitivityZNumericDataDisplay();
 }
 
-void paintSensorSensitivityZNumericDataDisplay(byte color, short value, byte offset) {
+void paintSensorSensitivityZNumericDataDisplay() {
+  byte color = sensorSensType == 0 ? COLOR_GREEN : COLOR_RED;
+  short value = Device.sensorSensitivityZ[sensorSensType][sensorSensZHoriz][sensorSensZVert];
+  byte offset = 5;
+  for (byte c = 2; c < 14; ++c) {
+    for (byte r = 4; r < 8; ++r) {
+      clearLed(c, r);
+    }
+  }
+
   char str[10];
   const char* format = "%2d";
 
