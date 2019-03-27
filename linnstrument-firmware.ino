@@ -675,7 +675,7 @@ struct DeviceSettings {
   boolean calibrated;                         // indicates whether the calibration data actually resulted from a calibration operation
   boolean calibrationHealed;                  // indicates whether the calibration data was healed
   unsigned short minUSBMIDIInterval;          // the minimum delay between MIDI bytes when sent over USB
-  unsigned short sensorSensitivityZ[2][3][3]; // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorSensitivityZ[3][3];    // the scaling factor of the raw value of Z in percentage
   unsigned short sensorLoZ;                   // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;              // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;                // the maximum raw value of Z
@@ -1059,7 +1059,6 @@ byte guitarTuningRowNum = 0;                        // active row number for con
 short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
 short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
 
-byte sensorSensType = 0;                            // active configuration type for Z sensitivity
 byte sensorSensZHoriz = 0;                          // active horizontal configuration point for Z sensitivity
 byte sensorSensZVert = 0;                           // active vertical configuration point for Z sensitivity
 
@@ -1085,8 +1084,6 @@ void cellTouched(byte col, byte row, TouchState state);
 VelocityState calcVelocity(unsigned short z);
 
 inline unsigned short readZ();
-inline short applyRawZBias(short rawZ, byte col, byte row);
-inline short reverseRawZBias(short biasedZ, byte col, byte row);
 inline unsigned short calculateSensorRangeZ();
 inline unsigned short calculatePreferredPressureRange(unsigned short sensorRangeZ);
 

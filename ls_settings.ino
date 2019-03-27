@@ -2137,23 +2137,25 @@ void handleSensorSensitivityZNewTouch() {
     sensorSensZHoriz = calcSensorSensHoriz(sensorCol);
     sensorSensZVert = calcSensorSensVert(sensorRow);
   }
-  setLed(NUMCOLS/4+1, 0, COLOR_CYAN, cellOn);
 
-  if (sensorRow == 0) {
-    if (sensorCol == NUMCOLS/4+1) {
-      sensorCell->lastTouch = millis();
-      sensorSensType = 0;
-      calculateInterpolatedZSensitivity();
-    }
-    else if (sensorCol == 3*NUMCOLS/4+1) {
-      sensorCell->lastTouch = millis();
-      sensorSensType = 1;
-      calculateInterpolatedZSensitivity();
-    }
+  if (sensorRow == 0 && sensorCol == 3*NUMCOLS/4+1) {
+    byte col = calcSensorSensCol(sensorSensZHoriz);
+    byte row = calcSensorSensRow(sensorSensZVert);
+    int rawZ = readAdcZ(col, row);
+    rawZ += readAdcZ(col, row);
+    rawZ += readAdcZ(col, row);
+    rawZ /= 3;
+
+    int sensorRange = calculateSensorRangeZ();
+    int sensorRangePressure = calculatePreferredPressureRange(sensorRange);
+    Device.sensorSensitivityZ[sensorSensZHoriz][sensorSensZVert] = constrain((((sensorRangePressure + Device.sensorLoZ) * 100 * 10) / rawZ + 5) / 10, 25, 400);
+    calculateInterpolatedZSensitivity();
+    paintSensorSensitivityZNumericDataDisplay();
+    paintSensorSensCalCells();
   }
 
   if (sensorRow == 2) {
-    handleNumericDataNewTouchCol(Device.sensorSensitivityZ[sensorSensType][sensorSensZHoriz][sensorSensZVert], 25, 400, false);
+    handleNumericDataNewTouchCol(Device.sensorSensitivityZ[sensorSensZHoriz][sensorSensZVert], 25, 400, false);
     calculateInterpolatedZSensitivity();
   }
 
@@ -2161,37 +2163,6 @@ void handleSensorSensitivityZNewTouch() {
 }
 
 void handleSensorSensitivityZHold() {
-  if (sensorRow == 0 && isCellPastEditHoldWait()) {
-    sensorCell->lastTouch = 0;
-
-    byte col = calcSensorSensCol(sensorSensZHoriz);
-    byte row = calcSensorSensRow(sensorSensZVert);
-    int rawZ = readAdcZ(col, row);
-    int minRawZ = rawZ;
-    int maxRawZ = rawZ;
-    rawZ = readAdcZ(col, row);
-    minRawZ = min(minRawZ, rawZ);
-    maxRawZ = max(maxRawZ, rawZ);
-    rawZ = readAdcZ(col, row);
-    minRawZ = min(minRawZ, rawZ);
-    maxRawZ = max(maxRawZ, rawZ);
-
-    if (sensorCol == NUMCOLS/4+1) {
-      Device.sensorSensitivityZ[0][sensorSensZHoriz][sensorSensZVert] = constrain(((reverseRawZBias(Device.sensorLoZ, col, row) * 100 * 10) / maxRawZ + 5) / 10, 25, 400);
-      calculateInterpolatedZSensitivity();
-      paintSensorSensitivityZNumericDataDisplay();
-      setLed(sensorCol, sensorRow, COLOR_GREEN, cellOn);
-    }
-    else if (sensorCol == 3*NUMCOLS/4+1) {
-      int sensorRange = calculateSensorRangeZ();
-      int sensorRangePressure = calculatePreferredPressureRange(sensorRange);
-      Device.sensorSensitivityZ[1][sensorSensZHoriz][sensorSensZVert] = constrain(((reverseRawZBias(sensorRangePressure + Device.sensorLoZ, col, row) * 100 * 10) / minRawZ + 5) / 10, 25, 400);
-      calculateInterpolatedZSensitivity();
-      paintSensorSensitivityZNumericDataDisplay();
-      setLed(sensorCol, sensorRow, COLOR_RED, cellOn);
-    }
-  }
-
   if (isSensorSensitivityZCell()) {
     paintSensorSensitivityZPressureBar();
   }
@@ -2200,12 +2171,6 @@ void handleSensorSensitivityZHold() {
 void handleSensorSensitivityZRelease() {
   if (sensorRow == 2) {
     handleNumericDataReleaseCol(false);
-  }
-  else if (sensorRow == 0 && sensorCol == NUMCOLS/4+1) {
-    setLed(sensorCol, sensorRow, COLOR_GREEN, cellOn);
-  }
-  else if (sensorRow == 0 && sensorCol == 3*NUMCOLS/4+1) {
-    setLed(sensorCol, sensorRow, COLOR_RED, cellOn);
   }
   else {
     sensorCell->currentRawZ = 0;

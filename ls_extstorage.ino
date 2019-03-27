@@ -1808,12 +1808,33 @@ void copyConfigurationV11(void* target, void* source) {
 }
 
 void copyDeviceSensorSensitivityZ(DeviceSettings* t, byte value) {
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      for (int k = 0; k < 3; ++k) {
-        Device.sensorSensitivityZ[i][j][k] = value;
-      }
-    }
+  // Since the bias per-cell grid was removed after firmare 2.2.1, we include it in the
+  // regional sensor sensitivity settings to approximate the previous feel after an upgrade
+  if (LINNMODEL == 200) {
+    Device.sensorSensitivityZ[0][0] = (140000 / 1506) + value; 
+    Device.sensorSensitivityZ[0][1] = (140000 / 1087) + value; 
+    Device.sensorSensitivityZ[0][2] = (140000 / 1256) + value; 
+
+    Device.sensorSensitivityZ[1][0] = (140000 / 1400) + value; 
+    Device.sensorSensitivityZ[1][1] = (140000 / 1000) + value; 
+    Device.sensorSensitivityZ[1][2] = (140000 / 1150) + value; 
+
+    Device.sensorSensitivityZ[2][0] = (140000 / 1506) + value; 
+    Device.sensorSensitivityZ[2][1] = (140000 / 1087) + value; 
+    Device.sensorSensitivityZ[2][2] = (140000 / 1256) + value; 
+  }
+  else if (LINNMODEL == 128) {
+    Device.sensorSensitivityZ[0][0] = (140000 / 2560) + value; 
+    Device.sensorSensitivityZ[0][1] = (140000 / 1700) + value; 
+    Device.sensorSensitivityZ[0][2] = (140000 / 2160) + value;
+
+    Device.sensorSensitivityZ[1][0] = (140000 / 1920) + value; 
+    Device.sensorSensitivityZ[1][1] = (140000 / 1480) + value; 
+    Device.sensorSensitivityZ[1][2] = (140000 / 2040) + value;
+
+    Device.sensorSensitivityZ[2][0] = (140000 / 2320) + value; 
+    Device.sensorSensitivityZ[2][1] = (140000 / 1660) + value; 
+    Device.sensorSensitivityZ[2][2] = (140000 / 2200) + value; 
   }
 }
 

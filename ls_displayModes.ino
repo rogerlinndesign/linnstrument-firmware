@@ -1242,11 +1242,25 @@ void paintMinUSBMIDIIntervalDisplay() {
   paintNumericDataDisplay(globalColor, Device.minUSBMIDIInterval, 0, true);
 }
 
+void paintSensorSensCalCells() {
+  setSensorSensCalCell(1, NUMROWS-1);
+  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS-1);
+  setSensorSensCalCell(NUMCOLS-1, NUMROWS-1);
+
+  setSensorSensCalCell(1, NUMROWS/2);
+  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS/2);
+  setSensorSensCalCell(NUMCOLS-1, NUMROWS/2);
+
+  setSensorSensCalCell(1, 0);
+  setSensorSensCalCell(NUMCOLS/2+1, 0);
+  setSensorSensCalCell(NUMCOLS-1, 0);
+}
+
 void setSensorSensCalCell(byte col, byte row) {
   byte sensor_horiz = calcSensorSensHoriz(col);
   byte sensor_vert = calcSensorSensVert(row);
   byte color = COLOR_BLUE;
-  if (Device.sensorSensitivityZ[sensorSensType][sensor_horiz][sensor_vert] != DEFAULT_SENSOR_SENSITIVITY_Z) {
+  if (Device.sensorSensitivityZ[sensor_horiz][sensor_vert] != DEFAULT_SENSOR_SENSITIVITY_Z) {
     color = COLOR_CYAN;
   }
   setLed(col, row, color, (sensorSensZHoriz == sensor_horiz && sensorSensZVert == sensor_vert) ? cellSlowPulse : cellOn);
@@ -1259,33 +1273,19 @@ void paintSensorSensitivityZDisplay() {
     }
   }
 
-  setSensorSensCalCell(1, NUMROWS-1);
-  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS-1);
-  setSensorSensCalCell(NUMCOLS-1, NUMROWS-1);
-
-  setSensorSensCalCell(1, NUMROWS/2);
-  setSensorSensCalCell(NUMCOLS/2+1, NUMROWS/2);
-  setSensorSensCalCell(NUMCOLS-1, NUMROWS/2);
-
-  setSensorSensCalCell(1, 0);
-  setSensorSensCalCell(NUMCOLS/2+1, 0);
-  setSensorSensCalCell(NUMCOLS-1, 0);
-
-  setLed(NUMCOLS/4+1, 0, COLOR_GREEN, (sensorCol == NUMCOLS/4+1 && sensorRow == 0) ? cellSlowPulse : cellOn);
-  setLed(3*NUMCOLS/4+1, 0, COLOR_RED, (sensorCol == 3*NUMCOLS/4+1 && sensorRow == 0) ? cellSlowPulse : cellOn);
+  setLed(3*NUMCOLS/4+1, 0, COLOR_RED, cellOn);
 
   paintSensorSensitivityZNumericDataDisplay();
+  paintSensorSensCalCells();
 }
 
 void paintSensorSensitivityZNumericDataDisplay() {
-  byte color = sensorSensType == 0 ? COLOR_GREEN : COLOR_RED;
-  short value = Device.sensorSensitivityZ[sensorSensType][sensorSensZHoriz][sensorSensZVert];
+  byte color = COLOR_RED;
+  short value = Device.sensorSensitivityZ[sensorSensZHoriz][sensorSensZVert];
   byte offset = 5;
   for (byte c = 2; c < 14; ++c) {
-    if (c != NUMCOLS/2+1) {
-      for (byte r = 4; r < 8; ++r) {
-        clearLed(c, r);
-      }
+    for (byte r = 4; r < 8; ++r) {
+      clearLed(c, r);
     }
   }
 

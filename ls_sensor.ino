@@ -6,34 +6,8 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 These functions handle the sensing of touches on the LinnStrument's touch surface.
 **************************************************************************************************/
 
-// These are the rectified pressure sensititivies for each column
-// CAREFUL, contrary to all the other arrays these are rows first and columns second since it makes it much easier to visualize and edit the
-// actual values in a spreadsheet
-short Z_BIAS[MAXROWS][MAXCOLS];
-const short Z_BIAS_200_SEPTEMBER2014[MAXROWS][MAXCOLS] =  {
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1193},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 1012, 1020, 1032, 1056, 1088, 1150, 1216, 1293, 1150},
-    {350, 1400, 1320, 1260, 1200, 1152, 1120, 1096, 1072, 1048, 1036, 1024, 1016, 1006, 1000, 1000, 1006, 1012, 1020, 1032, 1056, 1088, 1150, 1216, 1293, 1150},
-    {350, 1443, 1359, 1295, 1227, 1175, 1143, 1119, 1095, 1067, 1051, 1039, 1031, 1019, 1016, 1018, 1023, 1029, 1039, 1051, 1079, 1111, 1171, 1243, 1331, 1193},
-    {350, 1506, 1418, 1350, 1282, 1222, 1178, 1150, 1126, 1101, 1086, 1070, 1062, 1054, 1050, 1050, 1054, 1062, 1074, 1086, 1114, 1150, 1214, 1290, 1386, 1256},
-    {350, 1506, 1497, 1417, 1357, 1297, 1241, 1205, 1177, 1153, 1129, 1109, 1093, 1087, 1087, 1089, 1095, 1093, 1109, 1121, 1157, 1209, 1277, 1361, 1441, 1256}
-  };
-const short Z_BIAS_128_SEPTEMBER2016[MAXROWS][MAXCOLS] =  {
-    {500, 2560, 2320, 2150, 2020, 1920, 1840, 1780, 1720, 1700, 1730, 1790, 1860, 1940, 2020, 2100, 2160, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2220, 2040, 1900, 1780, 1680, 1600, 1560, 1520, 1500, 1530, 1570, 1640, 1720, 1800, 1900, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2200, 1980, 1860, 1720, 1600, 1510, 1470, 1440, 1440, 1460, 1470, 1500, 1580, 1680, 1780, 1900, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2100, 1960, 1820, 1700, 1580, 1500, 1440, 1420, 1400, 1440, 1500, 1560, 1640, 1740, 1860, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 1920, 1840, 1740, 1660, 1600, 1540, 1520, 1490, 1480, 1500, 1560, 1660, 1760, 1840, 1960, 2040, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2080, 1920, 1800, 1720, 1640, 1580, 1524, 1500, 1480, 1520, 1580, 1660, 1760, 1860, 1960, 2080, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2240, 2080, 1940, 1800, 1720, 1640, 1580, 1540, 1540, 1560, 1600, 1660, 1760, 1880, 2000, 2140, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {500, 2320, 2120, 1980, 1900, 1820, 1740, 1680, 1650, 1660, 1700, 1760, 1820, 1880, 1960, 2060, 2200, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-  };
-const short Z_BIAS_MULTIPLIER = 1400;
-
 // These will be filled in by two-dimensional interpolation from the device Z sensitivity setting
-short Z_SENSITIVITY[2][MAXCOLS][MAXROWS];
+short Z_SENSITIVITY[MAXCOLS][MAXROWS];
 
 // readX:
 // Reads raw X value at the currently addressed column and row
@@ -44,32 +18,15 @@ const short READX_MIN_DELAY = 150;
 const short READX_RANGE_DELAY = READX_MAX_DELAY - READX_MIN_DELAY;
 
 void initializeSensors() {
-  if (LINNMODEL == 200) {
-    for (byte r = 0; r < MAXROWS; ++r) {
-      for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS[r][c] = Z_BIAS_200_SEPTEMBER2014[r][c];
-      }
+ for (byte r = 0; r < MAXROWS; ++r) {
+    Z_SENSITIVITY[0][r] = 300;
+    for (byte c = 1; c < MAXCOLS; ++c) {
+      Z_SENSITIVITY[c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
     }
   }
-  else if (LINNMODEL == 128) {
-    for (byte r = 0; r < MAXROWS; ++r) {
-      for (byte c = 0; c < MAXCOLS; ++c) {
-        Z_BIAS[r][c] = Z_BIAS_128_SEPTEMBER2016[r][c];
-      }
-    }
-  }
-
-   for (int t = 0; t < 2; ++t) {
-   for (byte r = 0; r < MAXROWS; ++r) {
-      Z_SENSITIVITY[t][0][r] = 100;
-      for (byte c = 1; c < MAXCOLS; ++c) {
-        Z_SENSITIVITY[t][c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
-      }
-    }
-    for (int h = 0; h < 3; ++h) {
-      for (int v = 0; v < 3; ++v) {
-        Device.sensorSensitivityZ[t][h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
-      }
+  for (int h = 0; h < 3; ++h) {
+    for (int v = 0; v < 3; ++v) {
+      Device.sensorSensitivityZ[h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
     }
   }
   Device.sensorLoZ = DEFAULT_SENSOR_LO_Z;
@@ -91,61 +48,54 @@ void calculateInterpolatedZSensitivity() {
   performContinuousTasks();
  
   // first interpolate in one dimension along the vertical calibration axis
-  for (int t = 0; t < 2; ++t) {
-    int r_range = mid_row - btm_row;
-    for (int r = btm_row; r <= mid_row; ++r) {
-      int btm_part = r_range - (r - btm_row);
-      int mid_part = r - btm_row;
-      Z_SENSITIVITY[t][left_col][r]  = (Device.sensorSensitivityZ[t][0][0] * btm_part + Device.sensorSensitivityZ[t][0][1] * mid_part + r_range / 2) / r_range;
-      Z_SENSITIVITY[t][mid_col][r]   = (Device.sensorSensitivityZ[t][1][0] * btm_part + Device.sensorSensitivityZ[t][1][1] * mid_part + r_range / 2) / r_range;
-      Z_SENSITIVITY[t][right_col][r] = (Device.sensorSensitivityZ[t][2][0] * btm_part + Device.sensorSensitivityZ[t][2][1] * mid_part + r_range / 2) / r_range;
-    }
-    performContinuousTasks();
-    r_range = top_row - mid_row;
-    for (int r = mid_row; r <= top_row; ++r) {
-      int mid_part = r_range - (r - mid_row);
-      int top_part = r - mid_row;
-      Z_SENSITIVITY[t][left_col][r]  = (Device.sensorSensitivityZ[t][0][1] * mid_part + Device.sensorSensitivityZ[t][0][2] * top_part + r_range / 2) / r_range;
-      Z_SENSITIVITY[t][mid_col][r]   = (Device.sensorSensitivityZ[t][1][1] * mid_part + Device.sensorSensitivityZ[t][1][2] * top_part + r_range / 2) / r_range;
-      Z_SENSITIVITY[t][right_col][r] = (Device.sensorSensitivityZ[t][2][1] * mid_part + Device.sensorSensitivityZ[t][2][2] * top_part + r_range / 2) / r_range;
-    }
-    performContinuousTasks();
-
-    int c_range = mid_col - left_col;
-    for (int c = left_col; c <= mid_col; ++c) {
-      int left_part = c_range - (c - left_col);
-      int mid_part = c - left_col;
-      for (int r = 0; r < NUMROWS; ++r) {
-        Z_SENSITIVITY[t][c][r] = (Z_SENSITIVITY[t][left_col][r] * left_part + Z_SENSITIVITY[t][mid_col][r] * mid_part + c_range / 2) / c_range;
-      }
-    }
-    performContinuousTasks();
-    c_range = right_col - mid_col;
-    for (int c = mid_col; c <= right_col; ++c) {
-      int mid_part = c_range - (c - mid_col);
-      int right_part = c - mid_col;
-       for (int r = 0; r < NUMROWS; ++r) {
-        Z_SENSITIVITY[t][c][r] = (Z_SENSITIVITY[t][mid_col][r] * mid_part + Z_SENSITIVITY[t][right_col][r] * right_part + c_range / 2) / c_range;
-      }
-    }
-    performContinuousTasks();
+  int r_range = mid_row - btm_row;
+  for (int r = btm_row; r <= mid_row; ++r) {
+    int btm_part = r_range - (r - btm_row);
+    int mid_part = r - btm_row;
+    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][0] * btm_part + Device.sensorSensitivityZ[0][1] * mid_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][0] * btm_part + Device.sensorSensitivityZ[1][1] * mid_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][0] * btm_part + Device.sensorSensitivityZ[2][1] * mid_part + r_range / 2) / r_range;
   }
+  performContinuousTasks();
+  r_range = top_row - mid_row;
+  for (int r = mid_row; r <= top_row; ++r) {
+    int mid_part = r_range - (r - mid_row);
+    int top_part = r - mid_row;
+    Z_SENSITIVITY[left_col][r]  = (Device.sensorSensitivityZ[0][1] * mid_part + Device.sensorSensitivityZ[0][2] * top_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[mid_col][r]   = (Device.sensorSensitivityZ[1][1] * mid_part + Device.sensorSensitivityZ[1][2] * top_part + r_range / 2) / r_range;
+    Z_SENSITIVITY[right_col][r] = (Device.sensorSensitivityZ[2][1] * mid_part + Device.sensorSensitivityZ[2][2] * top_part + r_range / 2) / r_range;
+  }
+  performContinuousTasks();
+
+  int c_range = mid_col - left_col;
+  for (int c = left_col; c <= mid_col; ++c) {
+    int left_part = c_range - (c - left_col);
+    int mid_part = c - left_col;
+    for (int r = 0; r < NUMROWS; ++r) {
+      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[left_col][r] * left_part + Z_SENSITIVITY[mid_col][r] * mid_part + c_range / 2) / c_range;
+    }
+  }
+  performContinuousTasks();
+  c_range = right_col - mid_col;
+  for (int c = mid_col; c <= right_col; ++c) {
+    int mid_part = c_range - (c - mid_col);
+    int right_part = c - mid_col;
+     for (int r = 0; r < NUMROWS; ++r) {
+      Z_SENSITIVITY[c][r] = (Z_SENSITIVITY[mid_col][r] * mid_part + Z_SENSITIVITY[right_col][r] * right_part + c_range / 2) / c_range;
+    }
+  }
+  performContinuousTasks();
 }
 
 void displaySensitivityValues() {
-  for (byte t = 0; t < 2; ++t) {
-    DEBUGPRINT((-1, "TYPE "));
-    DEBUGPRINT((-1, t));
-    DEBUGPRINT((-1, "\n"));
-    for (byte r = 0; r < NUMROWS; ++r) {
-      for (byte c = 1; c < NUMCOLS; ++c) {
-        DEBUGPRINT((-1, Z_SENSITIVITY[t][c][r]));
-        DEBUGPRINT((-1, ", "));
-      }
-      DEBUGPRINT((-1, "\n"));
+  for (byte r = 0; r < NUMROWS; ++r) {
+    for (byte c = 1; c < NUMCOLS; ++c) {
+      DEBUGPRINT((-1, Z_SENSITIVITY[c][r]));
+      DEBUGPRINT((-1, ", "));
     }
     DEBUGPRINT((-1, "\n"));
   }
+  DEBUGPRINT((-1, "\n"));
 }
 
 inline short readX(byte zPct) {                       // returns the raw X value at the addressed cell
@@ -210,15 +160,6 @@ const short READZ_DELAY_SENSOR = 15;
 const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
-inline short applyRawZBias(short rawZ, byte col, byte row) {
-  // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  return (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[row][col];
-}
-
-inline short reverseRawZBias(short biasedZ, byte col, byte row) {
-  return biasedZ * Z_BIAS[row][col] / Z_BIAS_MULTIPLIER;
-}
-
 inline short readAdcZ(byte col, byte row) {           // returns the ADC Z value for a particular column and row
   selectSensorCell(col, row, READ_Z);                 // set analog switches to current cell in touch sensor and read Z
 
@@ -263,21 +204,8 @@ inline unsigned short readZ() {                       // returns the raw Z value
   DEBUGPRINT((3,"readZ\n"));
 
   short rawZ = readAdcZ(sensorCol, sensorRow);
-
-  // scale the sensor based on the lower sensitivity setting
-  short lowRawZ = rawZ * Z_SENSITIVITY[0][sensorCol][sensorRow] / 100;
-  lowRawZ = applyRawZBias(lowRawZ, sensorCol, sensorRow);
-  // if the result is up to the intial touch threshold, return that
-  if (lowRawZ <= Device.sensorLoZ) {
-    return lowRawZ;
-  }
-
-  // scale the sensor based on the higher sensitivity setting
-  short unbiased_loz = reverseRawZBias(Device.sensorLoZ, sensorCol, sensorRow);
-  short threshold = unbiased_loz * 100 / Z_SENSITIVITY[1][sensorCol][sensorRow];
-  short highRawZ = unbiased_loz + (rawZ - threshold) * Z_SENSITIVITY[1][sensorCol][sensorRow] / 100;
-  highRawZ = applyRawZBias(highRawZ, sensorCol, sensorRow);
-  return highRawZ;
+  rawZ = rawZ * Z_SENSITIVITY[sensorCol][sensorRow] / 100;
+  return rawZ;
 }
 
 // spiAnalogRead:
