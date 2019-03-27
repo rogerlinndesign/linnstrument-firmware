@@ -1282,8 +1282,10 @@ void paintSensorSensitivityZNumericDataDisplay() {
   short value = Device.sensorSensitivityZ[sensorSensType][sensorSensZHoriz][sensorSensZVert];
   byte offset = 5;
   for (byte c = 2; c < 14; ++c) {
-    for (byte r = 4; r < 8; ++r) {
-      clearLed(c, r);
+    if (c != NUMCOLS/2+1) {
+      for (byte r = 4; r < 8; ++r) {
+        clearLed(c, r);
+      }
     }
   }
 
@@ -1320,8 +1322,8 @@ void paintSensorSensitivityZNumericDataDisplay() {
 
 void paintSensorSensitivityZPressureBar() {
   int usableZ = sensorCell->currentRawZ - Device.sensorLoZ;
-  unsigned short sensorRange = calculateSensorRangeZ();
-  unsigned short sensorRangePressure = calculatePreferredPressureRange(sensorRange);
+  int sensorRange = calculateSensorRangeZ();
+  int sensorRangePressure = calculatePreferredPressureRange(sensorRange);
 
   byte color = COLOR_CYAN;
   int pressureColumn = 0;

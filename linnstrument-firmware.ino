@@ -971,8 +971,6 @@ boolean firstTimeBoot = false;                      // this will be true when th
 boolean globalReset = false;                        // this will be true when the LinnStrument was just globally reset
 unsigned long lastReset;                            // the last time a reset was started
 
-short lastReadSensorRawZ = 0;                       // the last pressure value that was read straight off of the sensor without any sensor bias nor sensitivity calibration
-
 byte globalColor = COLOR_BLUE;                      // color for global, split point and transpose settings
 byte globalAltColor = COLOR_CYAN;                   // alternate color for global, split point and transpose settings
 byte globalLowRowColor = COLOR_GREEN;               // color for low row painting in global settings
@@ -1064,7 +1062,6 @@ short guitarTuningPreviewChannel = -1;              // active channel that is pr
 byte sensorSensType = 0;                            // active configuration type for Z sensitivity
 byte sensorSensZHoriz = 0;                          // active horizontal configuration point for Z sensitivity
 byte sensorSensZVert = 0;                           // active vertical configuration point for Z sensitivity
-unsigned short lastAutoSensorSensitivityZ = 0;      // last auto sensor sensitivity calibration
 
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
@@ -1088,7 +1085,8 @@ void cellTouched(byte col, byte row, TouchState state);
 VelocityState calcVelocity(unsigned short z);
 
 inline unsigned short readZ();
-inline short applyRawZBias(short rawZ);
+inline short applyRawZBias(short rawZ, byte col, byte row);
+inline short reverseRawZBias(short biasedZ, byte col, byte row);
 inline unsigned short calculateSensorRangeZ();
 inline unsigned short calculatePreferredPressureRange(unsigned short sensorRangeZ);
 

@@ -210,24 +210,17 @@ const short READZ_DELAY_SENSOR = 15;
 const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
-inline short applyRawZBias(short rawZ) {
+inline short applyRawZBias(short rawZ, byte col, byte row) {
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
-  return (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
-}
-inline short reverseRawZBias(short biasedZ) {
-  return biasedZ * Z_BIAS[sensorRow][sensorCol] / Z_BIAS_MULTIPLIER;
+  return (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[row][col];
 }
 
-inline unsigned short readZ() {                       // returns the raw Z value
-#ifdef TESTING_SENSOR_DISABLE
-    if (sensorCell->disabled) {
-      return 0;
-    }
-#endif
+inline short reverseRawZBias(short biasedZ, byte col, byte row) {
+  return biasedZ * Z_BIAS[row][col] / Z_BIAS_MULTIPLIER;
+}
 
-  DEBUGPRINT((3,"readZ\n"));
-
-  selectSensorCell(sensorCol, sensorRow, READ_Z);     // set analog switches to current cell in touch sensor and read Z
+inline short readAdcZ(byte col, byte row) {           // returns the ADC Z value for a particular column and row
+  selectSensorCell(col, row, READ_Z);                 // set analog switches to current cell in touch sensor and read Z
 
   short rawZ;
 
@@ -239,10 +232,10 @@ inline unsigned short readZ() {                       // returns the raw Z value
   }
   else {
     // if there are active touches in the column, always use a settling time
-    if (sensorCol == 0) {
+    if (col == 0) {
       delayUsec(READZ_DELAY_SWITCH);
     }
-    else if (rowsInColsTouched[sensorCol]) {
+    else if (rowsInColsTouched[col]) {
       delayUsec(READZ_DELAY_SENSOR);
     }
 
@@ -251,28 +244,39 @@ inline unsigned short readZ() {                       // returns the raw Z value
 
     // if there are no active touches in the column, but the raw pressure without settling time exceeds the value threshold,
     // introduce a settling time to read the proper stabilized value
-    if (rowsInColsTouched[sensorCol] == 0 && rawZ > READZ_SETTLING_PRESSURE_THRESHOLD) {
+    if (rowsInColsTouched[col] == 0 && rawZ > READZ_SETTLING_PRESSURE_THRESHOLD) {
         delayUsec(READZ_DELAY_SENSORINITIAL);
         rawZ = 4095 - spiAnalogRead();
     }
   }
 
-  // store the last value that was read straight off of the sensor without any compensation
-  lastReadSensorRawZ = rawZ;
+  return rawZ;
+}
+
+inline unsigned short readZ() {                       // returns the raw Z value
+#ifdef TESTING_SENSOR_DISABLE
+    if (sensorCell->disabled) {
+      return 0;
+    }
+#endif
+
+  DEBUGPRINT((3,"readZ\n"));
+
+  short rawZ = readAdcZ(sensorCol, sensorRow);
 
   // scale the sensor based on the lower sensitivity setting
   short lowRawZ = rawZ * Z_SENSITIVITY[0][sensorCol][sensorRow] / 100;
-  lowRawZ = applyRawZBias(lowRawZ);
+  lowRawZ = applyRawZBias(lowRawZ, sensorCol, sensorRow);
   // if the result is up to the intial touch threshold, return that
   if (lowRawZ <= Device.sensorLoZ) {
     return lowRawZ;
   }
 
   // scale the sensor based on the higher sensitivity setting
-  short unbiased_loz = reverseRawZBias(Device.sensorLoZ);
+  short unbiased_loz = reverseRawZBias(Device.sensorLoZ, sensorCol, sensorRow);
   short threshold = unbiased_loz * 100 / Z_SENSITIVITY[1][sensorCol][sensorRow];
   short highRawZ = unbiased_loz + (rawZ - threshold) * Z_SENSITIVITY[1][sensorCol][sensorRow] / 100;
-  highRawZ = applyRawZBias(highRawZ);
+  highRawZ = applyRawZBias(highRawZ, sensorCol, sensorRow);
   return highRawZ;
 }
 
