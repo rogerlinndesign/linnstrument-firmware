@@ -466,6 +466,7 @@ enum DisplayMode {
   displayValueForFixedVelocity,
   displayMinUSBMIDIInterval,
   displaySensorSensitivityZ,
+  displaySensorSensitivityBias,
   displaySensorLoZ,
   displaySensorFeatherZ,
   displaySensorRangeZ,
@@ -675,7 +676,8 @@ struct DeviceSettings {
   boolean calibrated;                         // indicates whether the calibration data actually resulted from a calibration operation
   boolean calibrationHealed;                  // indicates whether the calibration data was healed
   unsigned short minUSBMIDIInterval;          // the minimum delay between MIDI bytes when sent over USB
-  unsigned short sensorSensitivityZ[3][3];    // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorSensitivityZ[3][3];    // the regional scaling factor of the raw value of Z in percentage
+  short sensorSensitivityBias;                // the global bias that offsets the regional scaling factor
   unsigned short sensorLoZ;                   // the lowest acceptable raw Z value to start a touch
   unsigned short sensorFeatherZ;              // the lowest acceptable raw Z value to continue a touch
   unsigned short sensorRangeZ;                // the maximum raw value of Z

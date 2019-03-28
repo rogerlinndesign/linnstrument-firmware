@@ -2109,6 +2109,7 @@ void copyDeviceSettingsV12(void* target, void* source) {
   t->calibrationHealed = s->calibrationHealed;
   t->minUSBMIDIInterval = s->minUSBMIDIInterval;
   copyDeviceSensorSensitivityZ(t, s->sensorSensitivityZ);
+  t->sensorSensitivityBias = 0;
   t->sensorLoZ = s->sensorLoZ;
   t->sensorFeatherZ = s->sensorFeatherZ;
   t->sensorRangeZ = s->sensorRangeZ;

@@ -34,7 +34,8 @@ displayCustomSwitchAssignment : custom switch behavior for Switches
 displayLimitsForVelocity      : min and max value selection for velocity
 displayValueForFixedVelocity  : value selection for fixed velocity
 displayMinUSBMIDIInterval     : minimum delay between MIDI bytes when sent over USB
-displaySensorSensitivityZ     : sensor sensitivity setting for Z
+displaySensorSensitivityZ     : regional sensor sensitivity setting for Z
+displaySensorSensitivityBias  : global bias that offsets the regional scaling factor
 displaySensorLoZ              : sensor low Z sensitivity selection
 displaySensorFeatherZ         : sensor feather Z sensitivity selection
 displaySensorRangeZ           : max Z sensor range selection
@@ -171,6 +172,9 @@ void updateDisplay() {
     case displaySensorSensitivityZ:
       paintSensorSensitivityZDisplay();
       break;
+    case displaySensorSensitivityBias:
+      paintSensorSensitivityBiasDisplay();
+      break;
     case displaySensorLoZ:
       paintSensorLoZDisplay();
       break;
@@ -238,6 +242,7 @@ void enterDisplayMode(DisplayMode mode) {
       controlButton = -1;
       break;
     case displaySensorSensitivityZ:
+    case displaySensorSensitivityBias:
       clearDisplay();
       break;
 #ifdef DEBUG_ENABLED
@@ -1264,6 +1269,13 @@ void setSensorSensCalCell(byte col, byte row) {
     color = COLOR_CYAN;
   }
   setLed(col, row, color, (sensorSensZHoriz == sensor_horiz && sensorSensZVert == sensor_vert) ? cellSlowPulse : cellOn);
+}
+
+void paintSensorSensitivityBiasDisplay() {
+  for (byte row = 1; row < NUMROWS; ++row) {
+    clearRow(row);
+  }
+  paintNumericDataDisplay(globalColor, Device.sensorSensitivityBias, 0, false);
 }
 
 void paintSensorSensitivityZDisplay() {

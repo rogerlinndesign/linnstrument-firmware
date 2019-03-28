@@ -24,6 +24,7 @@ void initializeSensors() {
       Z_SENSITIVITY[c][r] = DEFAULT_SENSOR_SENSITIVITY_Z;
     }
   }
+  Device.sensorSensitivityBias = 0;
   for (int h = 0; h < 3; ++h) {
     for (int v = 0; v < 3; ++v) {
       Device.sensorSensitivityZ[h][v] = DEFAULT_SENSOR_SENSITIVITY_Z;
@@ -204,7 +205,7 @@ inline unsigned short readZ() {                       // returns the raw Z value
   DEBUGPRINT((3,"readZ\n"));
 
   short rawZ = readAdcZ(sensorCol, sensorRow);
-  rawZ = rawZ * Z_SENSITIVITY[sensorCol][sensorRow] / 100;
+  rawZ = rawZ * (Z_SENSITIVITY[sensorCol][sensorRow] + Device.sensorSensitivityBias) / 100;
   return rawZ;
 }
 

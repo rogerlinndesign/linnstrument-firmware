@@ -649,6 +649,9 @@ void handleNonPlayingTouch() {
     case displaySensorSensitivityZ:
       handleSensorSensitivityZNewTouch();
       break;
+    case displaySensorSensitivityBias:
+      handleSensorSensitivityBiasNewTouch();
+      break;
     case displaySensorLoZ:
       handleSensorLoZNewTouch();
       break;
@@ -728,6 +731,10 @@ boolean handleXYZupdate() {
 
       case displaySensorSensitivityZ:
         handleSensorSensitivityZHold();
+        break;
+
+      case displaySensorSensitivityBias:
+        handleSensorSensitivityBiasHold();
         break;
 
       default:
@@ -1576,6 +1583,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displaySensorSensitivityZ:
         handleSensorSensitivityZRelease();
+        break;
+      case displaySensorSensitivityBias:
+        handleSensorSensitivityBiasRelease();
         break;
       case displaySensorLoZ:
         handleSensorLoZRelease();

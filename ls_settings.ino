@@ -2178,6 +2178,35 @@ void handleSensorSensitivityZRelease() {
   }
 }
 
+void handleSensorSensitivityBiasNewTouch() {
+  if (sensorRow == 0) {
+    if (sensorCol == NUMCOLS-1) {
+      cellTouched(ignoredCell);
+      resetNumericDataChange();
+      setDisplayMode(displaySensorSensitivityZ);
+      updateDisplay();
+    }
+    else {
+      handleNumericDataNewTouchCol(Device.sensorSensitivityBias, -99, 99, false);
+    }
+  }
+}
+
+void handleSensorSensitivityBiasHold() {
+  if (sensorCol != 0 && sensorRow != 0 && !(sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1)) {
+    paintLowRowPressureBar();
+  }
+}
+
+void handleSensorSensitivityBiasRelease() {
+  if (sensorRow == 0) {
+    handleNumericDataReleaseCol(false);
+  }
+  else if (!(sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1)) {
+    paintLowRowPressureBar();
+  }
+}
+
 void handleSensorLoZNewTouch() {
   handleNumericDataNewTouchCol(Device.sensorLoZ, max(100, Device.sensorFeatherZ), 1024, false);
 }
@@ -2470,7 +2499,7 @@ void handleGlobalSettingNewTouch() {
           Global.pressureSensitivity = PressureSensitivity(sensorRow);
           if (isCalibrationCellHeld()) {
             resetNumericDataChange();
-            setDisplayMode(displaySensorSensitivityZ);
+            setDisplayMode(displaySensorSensitivityBias);
             updateDisplay();
           }
           break;
