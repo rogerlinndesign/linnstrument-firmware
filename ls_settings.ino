@@ -903,6 +903,7 @@ void handleControlButtonRelease() {
         disableMpe(RIGHT);
 
         // reset all values to default
+        Device.sensorSensitivityBias = 0;
         reset();
       }
       // fallthrough is on purpose
@@ -2180,15 +2181,7 @@ void handleSensorSensitivityZRelease() {
 
 void handleSensorSensitivityBiasNewTouch() {
   if (sensorRow == 0) {
-    if (sensorCol == NUMCOLS-1) {
-      cellTouched(ignoredCell);
-      resetNumericDataChange();
-      setDisplayMode(displaySensorSensitivityZ);
-      updateDisplay();
-    }
-    else {
-      handleNumericDataNewTouchCol(Device.sensorSensitivityBias, -99, 99, false);
-    }
+    handleNumericDataNewTouchCol(Device.sensorSensitivityBias, -50, 99, false);
   }
 }
 
@@ -2492,15 +2485,15 @@ void handleGlobalSettingNewTouch() {
       switch (sensorRow) {
         // Note: this assumes the PressureSensitivity values exactly match the sensor rows
         case pressureLow:
+        case pressureMedium:
         case pressureHigh:
           Global.pressureSensitivity = PressureSensitivity(sensorRow);
-          break;
-        case pressureMedium:
-          Global.pressureSensitivity = PressureSensitivity(sensorRow);
           if (isCalibrationCellHeld()) {
+            cellTouched(ignoredCell);
             resetNumericDataChange();
-            setDisplayMode(displaySensorSensitivityBias);
+            setDisplayMode(displaySensorSensitivityZ);
             updateDisplay();
+            return;
           }
           break;
         case 3:
@@ -2907,6 +2900,16 @@ void handleGlobalSettingNewTouch() {
       }
       break;
 
+    case 11:
+      switch (sensorRow) {
+        case 0:
+        case 1:
+        case 2:
+          setLed(sensorCol, sensorRow, getPressureColor(), cellSlowPulse);
+          break;
+      }
+      break;
+
     case 15:
       switch (sensorRow) {
         case 0:
@@ -3020,6 +3023,18 @@ void handleGlobalSettingHold() {
           case 3:
             resetNumericDataChange();
             setDisplayMode(displayValueForFixedVelocity);
+            updateDisplay();
+            break;
+        }
+        break;
+
+      case 11:
+        switch (sensorRow) {
+          case 0:
+          case 1:
+          case 2:
+            resetNumericDataChange();
+            setDisplayMode(displaySensorSensitivityBias);
             updateDisplay();
             break;
         }

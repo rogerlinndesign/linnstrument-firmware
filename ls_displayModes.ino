@@ -1275,7 +1275,7 @@ void paintSensorSensitivityBiasDisplay() {
   for (byte row = 1; row < NUMROWS; ++row) {
     clearRow(row);
   }
-  paintNumericDataDisplay(globalColor, Device.sensorSensitivityBias, 0, false);
+  paintNumericDataDisplay(globalColor, Device.sensorSensitivityBias, 0, true, true);
 }
 
 void paintSensorSensitivityZDisplay() {
@@ -1392,13 +1392,28 @@ void paintSplitNumericDataDisplay(byte side, unsigned short value, byte offset, 
 }
 
 void paintNumericDataDisplay(byte color, short value, short offset, boolean condensed) {
+  paintNumericDataDisplay(color, value, offset, condensed, false);
+}
+
+void paintNumericDataDisplay(byte color, short value, short offset, boolean condensed, boolean displayPositive) {
   char str[10];
   const char* format;
   byte pos;
 
   if (value < 100) {
-    format = "%2d";
-    pos = condensed ? 3 : 5;
+    if (displayPositive) {
+      if (value == 0) {
+        format = "%2d";      
+      }
+      else {
+        format = "%+d";
+      }
+      pos = 0;
+    }
+    else {
+      format = "%2d";
+      pos = condensed ? 3 : 5;      
+    }
   }
   else if (value >= 100 && value < 200) {
     // Handle the "1" character specially, to get the spacing right
