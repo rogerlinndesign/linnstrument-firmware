@@ -1874,7 +1874,10 @@ void StepEventState::sendNoteOn(StepEvent& event, byte splitNum) {
 
   split = splitNum;
   channel = takeChannel(split, event.getRow()-1);
-  note = event.getNote() + Split[splitNum].transposePitch + Split[splitNum].transposeOctave;
+  note = event.getNote();
+  if (Split[split].sequencerView != sequencerDrums) {
+    note = min(max(note + Split[splitNum].transposePitch + Split[splitNum].transposeOctave, 0), 127);
+  }
   remainingDuration = event.getDuration();
 
   if (Split[split].sendX) {
