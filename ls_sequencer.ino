@@ -372,8 +372,11 @@ void sequencerToggleMute(byte split) {
     seqState[split].turnOffEvents();
   }
 
-  if (isVisibleSequencerForSplit(split)) {
-    seqState[split].paintMuter();
+  if (isVisibleSequencerForSplit(RIGHT)) {
+    seqState[LEFT].paintMuter();
+  }
+  if (isVisibleSequencerForSplit(LEFT)) {
+    seqState[RIGHT].paintMuter();
   }
 }
 
