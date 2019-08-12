@@ -92,8 +92,8 @@ boolean isReadyForSlideTransfer(byte col) {
 
 boolean hasImpossibleX() {             // checks whether the calibrated X is outside of the possible bounds for the current cell
   return Device.calibrated &&
-    (sensorCell->calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - CALX_PHANTOM_RANGE) ||
-     sensorCell->calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + CALX_PHANTOM_RANGE));
+    (sensorCell->calibratedX() < FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX - FXD_CALX_PHANTOM_RANGE) ||
+     sensorCell->calibratedX() > FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX + FXD_CALX_PHANTOM_RANGE));
 }
 
 void transferFromSameRowCell(byte col) {
@@ -1381,13 +1381,13 @@ short handleXExpression() {
     if (Split[sensorSplit].pitchCorrectHold != pitchCorrectHoldOff && sensorCell->quantizationOffsetX != 0) {
       int32_t fxdQuantRefDist = FXD_FROM_INT(calibratedX - sensorCell->quantizationOffsetX) - Device.calRows[sensorCol][0].fxdReferenceX;
       if (fxdQuantRefDist > 0) {
-        if (fxdQuantRefDist > CALX_HALF_UNIT) {
-          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist - CALX_HALF_UNIT));
+        if (fxdQuantRefDist > FXD_CALX_HALF_UNIT) {
+          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist - FXD_CALX_HALF_UNIT));
         }
       }
       else {
-        if (abs(fxdQuantRefDist) > CALX_HALF_UNIT) {
-          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist + CALX_HALF_UNIT));
+        if (abs(fxdQuantRefDist) > FXD_CALX_HALF_UNIT) {
+          movedX = FXD_TO_INT(FXD_FROM_INT(movedX) - (fxdQuantRefDist + FXD_CALX_HALF_UNIT));
         }
       }
     }

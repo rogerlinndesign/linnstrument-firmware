@@ -2853,10 +2853,10 @@ void StepSequencerState::clearFocusFader(byte row) {
 }
 
 void StepSequencerState::paintFocusFader(byte row, byte value) {
-  int32_t fxdFaderPosition = fxdCalculateFaderPosition(value, SEQ_FADER_LEFT, SEQ_FADER_LENGTH) - CALX_HALF_UNIT;
+  int32_t fxdFaderPosition = fxdCalculateFaderPosition(value, SEQ_FADER_LEFT, SEQ_FADER_LENGTH) - FXD_CALX_HALF_UNIT;
 
   for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
-    if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+    if (Device.calRows[col][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
       setLed(col, row, Split[split].colorMain, cellOn);
     }
     else {
@@ -2893,11 +2893,11 @@ void StepSequencerState::paintDurationFader(byte row, unsigned short duration) {
 }
 
 void StepSequencerState::paintPitchOffsetFader(byte row, short pitchOffset) {
-  int32_t fxdFaderPosition = fxdCalculateFaderPosition(abs(pitchOffset), SEQ_FADER_LEFT, SEQ_FADER_LENGTH, FXD_CONST_50) - CALX_HALF_UNIT;
+  int32_t fxdFaderPosition = fxdCalculateFaderPosition(abs(pitchOffset), SEQ_FADER_LEFT, SEQ_FADER_LENGTH, FXD_CONST_50) - FXD_CALX_HALF_UNIT;
 
   if (pitchOffset >= 0) {
     for (byte col = SEQ_FADER_RIGHT; col >= SEQ_FADER_LEFT; --col) {
-      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+      if (Device.calRows[col][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
         clearLed(col, row);
       }
       else {
@@ -2907,7 +2907,7 @@ void StepSequencerState::paintPitchOffsetFader(byte row, short pitchOffset) {
   }
   else {
     for (byte col = SEQ_FADER_LEFT; col <= SEQ_FADER_RIGHT; ++col) {
-      if (Device.calRows[SEQ_FADER_RIGHT - col + SEQ_FADER_LEFT][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+      if (Device.calRows[SEQ_FADER_RIGHT - col + SEQ_FADER_LEFT][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
         clearLed(col, row);
       }
       else {

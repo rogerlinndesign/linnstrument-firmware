@@ -444,7 +444,7 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
     int32_t fxdFaderPosition = fxdCalculateFaderPosition(ccFaderValues[split][ccForFader], faderLeft, faderLength);
 
     for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
-      if (Device.calRows[col][0].fxdReferenceX - CALX_HALF_UNIT > fxdFaderPosition) {
+      if (Device.calRows[col][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
         clearLed(col, row);
       }
       else {

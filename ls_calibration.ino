@@ -83,13 +83,13 @@ void initializeCalibrationSamples() {
 
 int32_t calculateReferenceX(byte col) {
   if (col == 0) {
-    return FXD_MUL(FXD_FROM_INT(-1), CALX_HALF_UNIT) + FXD_CALX_BORDER_OFFSET;;
+    return FXD_MUL(FXD_FROM_INT(-1), FXD_CALX_HALF_UNIT) + FXD_CALX_BORDER_OFFSET;;
   }
   else if (col < NUMCOLS) {
-    return FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
+    return FXD_MUL(FXD_CALX_FULL_UNIT, FXD_FROM_INT(col - 1)); // center in the middle of the cells
   }
   else {
-    return FXD_MUL(CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - CALX_HALF_UNIT - FXD_CALX_BORDER_OFFSET;
+    return FXD_MUL(FXD_CALX_FULL_UNIT, FXD_FROM_INT(NUMCOLS - 1)) - FXD_CALX_HALF_UNIT - FXD_CALX_BORDER_OFFSET;
   }
 }
 
@@ -120,7 +120,7 @@ void initializeCalibrationData() {
     for (byte col = 1; col < NUMCOLS; ++col) {
       Device.calRows[col][row].fxdReferenceX = calculateReferenceX(col);
       Device.calRows[col][row].fxdMeasuredX = calculateDefaultMeasuredX(col);
-      Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, FXD_CALX_DEFAULT_CELL_WIDTH);
+      Device.calRows[col][row].fxdRatio = FXD_DIV(FXD_CALX_FULL_UNIT, FXD_CALX_DEFAULT_CELL_WIDTH);
     }
 
     Device.calRows[NUMCOLS][row].fxdReferenceX = calculateReferenceX(NUMCOLS);
@@ -133,7 +133,7 @@ void initializeCalibrationData() {
     for (byte row = 0; row < NUMROWS; ++row) {
       Device.calCols[col][row].minY = CALY_DEFAULT_MIN[row];
       Device.calCols[col][row].maxY = CALY_DEFAULT_MAX[row];
-      Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), CALY_FULL_UNIT);
+      Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), FXD_CALY_FULL_UNIT);
     }
   }
 }
@@ -481,7 +481,7 @@ boolean handleCalibrationRelease() {
             // Calculate all the calibration entries in between that use the width of the cells
             for (byte col = 1; col < NUMCOLS; ++col) {
               Device.calRows[col][row].fxdMeasuredX = FXD_FROM_INT(calSampleRows[col][row].minValue) + FXD_DIV(FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue), FXD_CONST_2);
-              Device.calRows[col][row].fxdRatio = FXD_DIV(CALX_FULL_UNIT, FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue));
+              Device.calRows[col][row].fxdRatio = FXD_DIV(FXD_CALX_FULL_UNIT, FXD_FROM_INT(calSampleRows[col][row].maxValue - calSampleRows[col][row].minValue));
             }
 
             // The last entry marks the rightmost measured X value
@@ -496,7 +496,7 @@ boolean handleCalibrationRelease() {
               int cellMarginY = (sampledRange / CALY_MARGIN_FRACTION);
               Device.calCols[col][row].minY = constrain(calSampleCols[col][row].minValue + cellMarginY, 0, 4095);
               Device.calCols[col][row].maxY = constrain(calSampleCols[col][row].maxValue - cellMarginY, 0, 4095);
-              Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), CALY_FULL_UNIT);
+              Device.calCols[col][row].fxdRatio = FXD_DIV(FXD_FROM_INT(Device.calCols[col][row].maxY - Device.calCols[col][row].minY), FXD_CALY_FULL_UNIT);
             }
           }
 

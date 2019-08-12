@@ -953,11 +953,12 @@ const int32_t FXD_CONST_255 = FXD_FROM_INT(255);
 const int32_t FXD_CONST_1016 = FXD_FROM_INT(1016);
 
 const int CALX_VALUE_MARGIN = 85;                         // 4095 / 48
-const int32_t CALX_HALF_UNIT = FXD_MAKE(85.3125);         // 4095 / 48
-const int32_t CALX_PHANTOM_RANGE = FXD_MAKE(128);         // 4095 / 32
-const int32_t CALX_FULL_UNIT = FXD_MAKE(170.625);         // 4095 / 24
+const int32_t FXD_CALX_HALF_UNIT = FXD_MAKE(85.3125);     // 4095 / 48
+const int32_t FXD_CALX_PHANTOM_RANGE = FXD_MAKE(128);     // 4095 / 32
+const int32_t FXD_CALX_FULL_UNIT = FXD_MAKE(170.625);     // 4095 / 24
+const int32_t CALX_QUARTER_UNIT = FXD_TO_INT(FXD_CALX_FULL_UNIT) / 4;
 
-const int32_t CALY_FULL_UNIT = FXD_FROM_INT(127);    // range of 7-bit CC
+const int32_t FXD_CALY_FULL_UNIT = FXD_FROM_INT(127);     // range of 7-bit CC
 
 
 /*************************************** OTHER RUNTIME STATE *************************************/
@@ -1431,9 +1432,18 @@ inline void modeLoopPerformance() {
     else if (previousTouch == touchedCell && sensorCell->isActiveTouch()) {      // if touched now and touched before
       canShortCircuit = handleXYZupdate();                                       // handle any X, Y or Z movements
     }
-    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch() &&   // if not touched now but touched before, it's been released
-             calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {             // only release if it's later than 70ms after the touch to debounce some note starts
-      handleTouchRelease();
+    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch()) {   // if not touched now but touched before, it's been released
+      if (sensorCell->initialX != SHRT_MIN &&                                    // check if there was movement on the cell
+          abs(sensorCell->initialX - sensorCell->currentCalibratedX) > CALX_QUARTER_UNIT) {
+        if (calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {              // only release if it's later than 70ms after the touch to debounce some note starts
+          handleTouchRelease();
+        }
+      }
+      else {                                                                     // this release happened on a mostly stationary touch, reduce the debounce time
+        if (calcTimeDelta(millis(), sensorCell->lastTouch) > 35 ) {              // only release if it's later than 35ms after the touch to debounce some note starts
+          handleTouchRelease();
+        }
+      }
     }
 
     if (canShortCircuit) {
