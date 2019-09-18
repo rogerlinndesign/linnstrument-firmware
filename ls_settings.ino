@@ -2104,7 +2104,7 @@ void handleSensorSensitivityZNewTouch() {
     updateDisplay();
   }
   else if (sensorRow == 0) {
-    handleNumericDataNewTouchCol(Device.sensorSensitivityZ, 50, 100, false);
+    handleNumericDataNewTouchCol(Device.sensorSensitivityZ, 50, 200, false);
   }
 }
 
