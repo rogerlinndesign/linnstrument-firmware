@@ -1592,7 +1592,7 @@ void sendNrpnParameter(int parameter, int channel) {
   }
 
   if (value != INT_MIN) {
-    midiSendRPN(parameter, value, channel);
+    midiSendNRPN(parameter, value, channel);
   }
 }
 
