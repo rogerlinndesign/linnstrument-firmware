@@ -270,14 +270,14 @@ NRPN   Value   Description
 
 Color Values
 ============
-0   Off
+0   as set in Note Lights settings
 1   Red
 2   Yellow
 3   Green
 4   Cyan
 5   Blue
 6   Magenta
-7   Black
+7   Off
 8   White
 9   Orange
 10  Lime
