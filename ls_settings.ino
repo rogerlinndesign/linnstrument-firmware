@@ -1068,7 +1068,7 @@ boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
 
 void configureStandardMpeExpression(byte split) {
   Split[split].bendRangeOption = bendRange24;
-  Split[split].customBendRange = 24;
+  Split[split].customBendRange = 48;
   Split[split].expressionForY = timbreCC74;
   Split[split].customCCForY = 74;
   Split[split].expressionForZ = loudnessChannelPressure;

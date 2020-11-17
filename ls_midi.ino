@@ -2834,8 +2834,8 @@ void midiSendMpeState(byte mainChannel, byte polyphony) {
 }
 
 void midiSendMpePitchBendRange(byte split) {
-  if (Split[split].mpe && getBendRange(split) == 24) {
-    midiSendRPN(0, 24 << 7, Split[split].midiChanMain);
+  if (Split[split].mpe && getBendRange(split) == 48) {
+    midiSendRPN(0, 48 << 7, Split[split].midiChanMain);
   }
 }
 
