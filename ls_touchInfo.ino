@@ -317,6 +317,11 @@ boolean TouchInfo::isCalculatingVelocity() {
   return sensorCell->vcount > 0 && sensorCell->vcount < VELOCITY_TOTAL_SAMPLES;
 }
 
+boolean TouchInfo::isPastDebounceDelay() {
+    // dynamically adapt the debounce time based on whether the touch has moved a significant amount
+    return calcTimeDelta(millis(), lastTouch) > (didMove ? 70 : 35);
+}
+
 void TouchInfo::shouldRefreshData() {
   shouldRefreshX = true;
   shouldRefreshY = true;
@@ -340,7 +345,7 @@ inline void TouchInfo::refreshX() {
     shouldRefreshX = false;
 
     // if this is the first X read for this touch...
-    if (initialX == SHRT_MIN) {
+    if (initialX == INVALID_DATA) {
       // store the calibrated X reference that corresponds to the cell's note without any pitch bend
       initialColumn = sensorCol;
 
@@ -353,6 +358,9 @@ inline void TouchInfo::refreshX() {
       fxdRateX = 0;
       lastMovedX = 0;
       lastValueX = INVALID_DATA;
+    }
+    else if (abs(initialX - currentCalibratedX) > CALX_QUARTER_UNIT) {
+        didMove = true;
     }
   }
 }
@@ -596,7 +604,7 @@ void TouchInfo::clearMusicalData() {
 }
 
 void TouchInfo::clearSensorData() {
-  initialX = -1;
+  initialX = INVALID_DATA;
   initialColumn = -1;
   quantizationOffsetX = 0;
   currentRawX = 0;
@@ -620,6 +628,7 @@ void TouchInfo::clearSensorData() {
   pressureZ = 0;
   shouldRefreshZ = true;
   pendingReleaseCount = 0;
+  didMove = false;
 }
 
 boolean VirtualTouchInfo::hasNote() {

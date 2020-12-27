@@ -250,6 +250,8 @@ const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 /*************************************** CONVENIENCE MACROS **************************************/
 
+#define INVALID_DATA SHRT_MAX
+
 // convenience macros to easily access the cells with touch information
 #define cell(col, row)             touchInfo[col][row]
 #define virtualCell()              virtualTouchInfo[sensorRow]
@@ -305,6 +307,7 @@ struct __attribute__ ((packed)) TouchInfo {
   inline boolean isActiveTouch();            // ensure that Z is updated to the latest scan and check if it was an active touch
   inline boolean isStableYTouch();           // ensure that Z is updated to the latest scan and check if the touch is capable of providing stable Y reading
   inline void refreshZ();                    // ensure that Z is updated to the latest scan
+  inline boolean isPastDebounceDelay();      // indicates whether the touch is past the debounce delay
   boolean hasNote();                         // check if a MIDI note is active for this touch
   void clearPhantoms();                      // clear the phantom coordinates
   void clearAllPhantoms();                   // clear the phantom coordinates of all the cells that are involved
@@ -323,7 +326,7 @@ struct __attribute__ ((packed)) TouchInfo {
 #endif
 
   unsigned long lastTouch:32;                // the timestamp when this cell was last touched
-  short initialX:16;                         // initial calibrated X value of each cell at the start of the touch, SHRT_MIN meaning that it's unassigned
+  short initialX:16;                         // initial calibrated X value of each cell at the start of the touch, INVALID_DATA meaning that it's unassigned
   short initialColumn:16;                    // initial column of each cell at the start of the touch
   short quantizationOffsetX:16;              // quantization offset to be applied to the X value
   unsigned short currentRawX:16;             // last raw X value of each cell
@@ -356,7 +359,8 @@ struct __attribute__ ((packed)) TouchInfo {
   boolean featherTouch:1;                    // indicates whether this is a feather touch
   unsigned short pressureZ:10;               // the Z value with pressure sensitivity
   unsigned short previousRawZ:12;            // the previous raw Z value
-int :4;
+  boolean didMove:1;                         // indicates whether the touch has ever moved
+int :3;
   boolean phantomSet:1;                      // indicates whether phantom touch coordinates are set
   byte velocity:7;                           // velocity from 0 to 127
   boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
@@ -1252,7 +1256,7 @@ void setup() {
   /*!!*/      globalReset = true;
   /*!!*/      dueFlashStorage.write(0, 254);
   /*!!*/    }
-  /*!!*/    // if only the global settings button is pressed at startup, activatate firmware upgrade mode
+  /*!!*/    // if only the global settings button is pressed at startup, activate firmware upgrade mode
   /*!!*/    else {
   /*!!*/      operatingMode = modeFirmware;
   /*!!*/  
@@ -1432,18 +1436,9 @@ inline void modeLoopPerformance() {
     else if (previousTouch == touchedCell && sensorCell->isActiveTouch()) {      // if touched now and touched before
       canShortCircuit = handleXYZupdate();                                       // handle any X, Y or Z movements
     }
-    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch()) {   // if not touched now but touched before, it's been released
-      if (sensorCell->initialX != SHRT_MIN &&                                    // check if there was movement on the cell
-          abs(sensorCell->initialX - sensorCell->currentCalibratedX) > CALX_QUARTER_UNIT) {
-        if (calcTimeDelta(millis(), sensorCell->lastTouch) > 70 ) {              // only release if it's later than 70ms after the touch to debounce some note starts
-          handleTouchRelease();
-        }
-      }
-      else {                                                                     // this release happened on a mostly stationary touch, reduce the debounce time
-        if (calcTimeDelta(millis(), sensorCell->lastTouch) > 35 ) {              // only release if it's later than 35ms after the touch to debounce some note starts
-          handleTouchRelease();
-        }
-      }
+    else if (previousTouch != untouchedCell && !sensorCell->isActiveTouch() &&   // if not touched now but touched before, it's been released
+             sensorCell->isPastDebounceDelay()) {
+        handleTouchRelease();
     }
 
     if (canShortCircuit) {
