@@ -311,7 +311,7 @@ void storeSettingsToPreset(byte p) {
 // The first time after new code is loaded into the Linnstrument, this sets the initial defaults of all settings.
 // On subsequent startups, these values are overwritten by loading the settings stored in flash.
 void initializeDeviceSettings() {
-  Device.version = 15;
+  Device.version = 16;
   Device.serialMode = false;
   Device.sleepAnimationActive = false;
   Device.sleepActive = false;
@@ -327,6 +327,7 @@ void initializeDeviceSettings() {
   Global.splitActive = false;
 
   initializeAudienceMessages();
+  clearStoredCustomLedLayer();
 }
 
 void initializeAudienceMessages() {
@@ -1125,6 +1126,10 @@ boolean ensureCellBeforeHoldWait(byte resetColor, CellDisplay resetDisplay) {
     setLed(sensorCol, sensorRow, resetColor, resetDisplay);
   }
   return false;
+}
+
+boolean isCellPastSensorHoldWait() {
+  return sensorCell->lastTouch != 0 && calcTimeDelta(millis(), sensorCell->lastTouch) > SENSOR_HOLD_DELAY;
 }
 
 boolean isCellPastEditHoldWait() {
@@ -2496,9 +2501,9 @@ void handleGlobalSettingNewTouch() {
         switch (sensorRow) {
           case LIGHTS_MAIN:
           case LIGHTS_ACCENT:
-          case LIGHTS_ACTIVE:
             lightSettings = sensorRow;
             break;
+          case 2:
           case 3:
             // handled at release
             break;
@@ -2777,6 +2782,9 @@ void handleGlobalSettingNewTouch() {
   switch (sensorCol) {
     case 1:
       switch (sensorRow) {
+        case 2:
+          setLed(sensorCol, sensorRow, getCustomLedsStoredColor(), cellSlowPulse);
+          break;
         case 3:
           setLed(sensorCol, sensorRow, getSplitHandednessColor(), cellSlowPulse);
           break;
@@ -2877,6 +2885,11 @@ void handleGlobalSettingHold() {
     switch (sensorCol) {
       case 1:
         switch (sensorRow) {
+          case 2:
+            cellTouched(ignoredCell);
+            setDisplayMode(displayCustomLedsEditor);
+            updateDisplay();
+            break;
           case 3:
             resetNumericDataChange();
             setDisplayMode(displaySplitHandedness);
@@ -3007,7 +3020,11 @@ void handleGlobalSettingHold() {
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorCol == 1 && sensorRow == 3 &&
+  if (sensorCol == 1 && sensorRow == 2 &&
+      ensureCellBeforeHoldWait(getCustomLedsStoredColor(), lightSettings == LIGHTS_ACTIVE ? cellOn : cellOff)) {
+    lightSettings = LIGHTS_ACTIVE;
+  }
+  else if (sensorCol == 1 && sensorRow == 3 &&
       ensureCellBeforeHoldWait(getSplitHandednessColor(), Device.otherHanded ? cellOn : cellOff)) {
     Device.otherHanded = !Device.otherHanded;
   }
@@ -3149,5 +3166,80 @@ void trimEditedAudienceMessage() {
         break;
       }
     }  
+  }
+}
+
+bool findOtherCustomLedsEditorTouch(int& otherCol, int& otherRow) {
+  otherCol = -1;
+  otherRow = -1;
+  for (int row = 0; row < MAXROWS && otherRow == -1; ++row) {
+    if (colsInRowsTouched[row]) {
+      for (int col = 1; col < MAXCOLS && otherCol == -1; ++col) {
+        if (col != sensorCol && colsInRowsTouched[row] & (int32_t)(1 << col)) {
+          otherCol = col;
+          otherRow = row;
+          break;
+        }
+      }
+    }
+  }
+  return otherCol != -1 && otherRow != -1;
+}
+
+void handleCustomLedsEditorNewTouch() {
+  if (sensorCol > 0) {
+    // start tracking the touch duration to be able to enable hold functionality
+    sensorCell->lastTouch = millis();
+
+    bool cleared_area = false;
+    if (cellsTouched > 1) {
+      int other_col = -1;
+      int other_row = -1;
+
+      if (findOtherCustomLedsEditorTouch(other_col, other_row)) {
+        TouchInfo& other_cell = (cell(other_col, other_row));
+        if (other_cell.lastTouch != 0 && calcTimeDelta(millis(), other_cell.lastTouch) > SENSOR_HOLD_DELAY) {
+          cleared_area = true;
+          cellTouched(other_col, other_row, ignoredCell);
+
+          for (int col = min(other_col, sensorCol); col <= max(other_col, sensorCol); ++col) {
+            for (int row = min(other_row, sensorRow); row <= max(other_row, sensorRow); ++row) {
+              setLed(col, row, COLOR_OFF, cellOff, LED_LAYER_CUSTOM1);
+            }
+          }
+          cellTouched(ignoredCell);
+        }
+      }
+    }
+
+    if (!cleared_area) {
+      byte color = getLedColor(sensorCol, sensorRow, LED_LAYER_CUSTOM1);
+      if (color != COLOR_OFF) {
+        setLed(sensorCol, sensorRow, color, cellSlowPulse, LED_LAYER_CUSTOM1);
+      }
+    }
+  }
+}
+
+void handleCustomLedsEditorHold() {
+  if (sensorCol > 0 && isCellPastSensorHoldWait()) {
+    setLed(sensorCol, sensorRow, COLOR_OFF, cellOff, LED_LAYER_CUSTOM1);
+  }
+}
+
+void handleCustomLedsEditorRelease() {
+  if (sensorCol > 0) {
+    if (!isCellPastSensorHoldWait()) {
+      byte color = getLedColor(sensorCol, sensorRow, LED_LAYER_CUSTOM1);
+      if (color == COLOR_OFF && lastCustomLedColor != COLOR_OFF) {
+        color = lastCustomLedColor;
+      }
+      else {
+        color = colorCycle(color, true);
+        lastCustomLedColor = color;
+      }
+      setLed(sensorCol, sensorRow, color, cellOn, LED_LAYER_CUSTOM1);
+    }
+    sensorCell->lastTouch = 0;
   }
 }

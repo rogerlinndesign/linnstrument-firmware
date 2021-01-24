@@ -49,6 +49,7 @@ displaySequencerProjects      : sequencer projects
 displaySequencerDrum0107      : sequencer first 7 drum notes
 displaySequencerDrum0814      : sequencer second 7 drum notes
 displaySequencerColors        : sequencer low row colors
+displayCustomLedsEditor       : editor for custom LEDs
 
 These routines handle the painting of these display modes on LinnStument's 208 LEDs.
 **************************************************************************************************/
@@ -216,6 +217,9 @@ void updateDisplay() {
     case displaySequencerColors:
       paintSequencerColors();
       break;
+    case displayCustomLedsEditor:
+      paintCustomLedsEditor();
+      break;
   }
 
   updateSwitchLeds();
@@ -259,6 +263,10 @@ void exitDisplayMode(DisplayMode mode) {
       break;
     case displayEditAudienceMessage:
       trimEditedAudienceMessage();
+      storeSettings();
+      break;
+    case displayCustomLedsEditor:
+      storeCustomLedLayer();
       storeSettings();
       break;
     default:
@@ -805,6 +813,15 @@ byte getCalibrationColor() {
     return COLOR_GREEN;
   }
   return COLOR_RED;
+}
+
+byte getCustomLedsStoredColor() {
+  for (int i = 0; i < LED_LAYER_SIZE; ++i) {
+    if (Device.customLeds[i] != 0) {
+      return globalAltColor;
+    }
+  }
+  return globalColor;
 }
 
 byte getSplitHandednessColor() {
@@ -1597,6 +1614,7 @@ void paintGlobalSettingsDisplay() {
       setLed(1, 3, getSplitHandednessColor(), cellOn);
     }
 
+    byte custom_leds_stored_color = getCustomLedsStoredColor();
     switch (lightSettings) {
       case LIGHTS_MAIN:
         lightLed(1, 0);
@@ -1607,9 +1625,12 @@ void paintGlobalSettingsDisplay() {
         displayNoteLights(Global.accentNotes[Global.activeNotes]);
         break;
       case LIGHTS_ACTIVE:
-        lightLed(1, 2);
+        setLed(1, 2, custom_leds_stored_color, cellOn);
         displayActiveNotes();
         break;
+    }
+    if (custom_leds_stored_color != globalColor) {
+      setLed(1, 2, custom_leds_stored_color, cellOn);
     }
 
     switch (Global.rowOffset) {
@@ -1745,6 +1766,10 @@ void paintGlobalSettingsDisplay() {
     }
   }
 #endif
+}
+
+void paintCustomLedsEditor() {
+  // nothing to do, everything is handled in the regular LED rendering routine
 }
 
 byte getRowOffsetColor() {

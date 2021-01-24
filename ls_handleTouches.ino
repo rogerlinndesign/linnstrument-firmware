@@ -693,6 +693,9 @@ void handleNonPlayingTouch() {
     case displaySequencerColors:
       handleSequencerColorsNewTouch();
       break;
+    case displayCustomLedsEditor:
+      handleCustomLedsEditorNewTouch();
+      break;
   }
 }
 
@@ -731,6 +734,10 @@ boolean handleXYZupdate() {
       case displaySensorSensitivityZ:
         handleSensorSensitivityZHold();
         break;
+
+      case displayCustomLedsEditor:
+        handleCustomLedsEditorHold();
+        return false;
 
       default:
         // other displays don't need hold features
@@ -1613,6 +1620,9 @@ boolean handleNonPlayingRelease() {
         break;
       case displaySequencerColors:
         handleSequencerColorsRelease();
+        break;
+      case displayCustomLedsEditor:
+        handleCustomLedsEditorRelease();
         break;
       default:
         return false;

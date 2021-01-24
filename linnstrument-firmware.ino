@@ -1,5 +1,5 @@
 /*=====================================================================================================================
-======================================== LinnStrument Operating System v2.2.2 =========================================
+======================================== LinnStrument Operating System v2.3.0 =========================================
 =======================================================================================================================
 
 Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
@@ -56,8 +56,8 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 
 /******************************************** CONSTANTS ******************************************/
 
-const char* OSVersion = "222";
-const char* OSVersionBuild = ".057";
+const char* OSVersion = "230.";
+const char* OSVersionBuild = ".058";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -230,6 +230,13 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define TEMPO_ARP_SIXTEENTH_SWING 0xff
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+
+// Two buffers of ...
+// A 26 by 8 byte array containing one byte for each LED:
+// bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
+// bits 0-2: 0:off, 1: on, 2: pulse
+const unsigned long LED_LAYER_SIZE = MAXCOLS * MAXROWS;
+const unsigned long LED_ARRAY_SIZE = (MAX_LED_LAYERS+1) * LED_LAYER_SIZE;
 
 /******************************************** VELOCITY *******************************************/
 
@@ -484,7 +491,8 @@ enum DisplayMode {
   displaySequencerProjects,
   displaySequencerDrum0107,
   displaySequencerDrum0814,
-  displaySequencerColors
+  displaySequencerColors,
+  displayCustomLedsEditor
 };
 DisplayMode displayMode = displayNormal;
 
@@ -694,6 +702,7 @@ struct DeviceSettings {
   boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
   short lastLoadedPreset;                    // the last settings preset that was loaded
   short lastLoadedProject;                   // the last sequencer project that was loaded
+  byte customLeds[LED_LAYER_SIZE];           // the custom LEDs that persist across power cycle
 };
 #define Device config.device
 
@@ -1066,6 +1075,8 @@ byte guitarTuningRowNum = 0;                        // active row number for con
 short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
 short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
 
+byte lastCustomLedColor = COLOR_OFF;
+
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
 inline void selectSensorCell(byte col, byte row, byte switchCode);
@@ -1277,10 +1288,6 @@ void setup() {
   /*!!*/
   //*************************************************************************************************************************************************
 
-  // set display to normal performance mode & refresh it
-  clearDisplay();
-  setDisplayMode(displayNormal);
-
   // initialize input pins for 2 foot switches
   pinMode(FOOT_SW_LEFT, INPUT_PULLUP);
   pinMode(FOOT_SW_RIGHT, INPUT_PULLUP);
@@ -1291,6 +1298,10 @@ void setup() {
   initializeSequencer();
 
   reset();
+
+  // set display to normal performance mode & refresh it
+  clearDisplay();
+  setDisplayMode(displayNormal);
 
   // ensure that the switches that are pressed down for the global reset at boot are not taken into account any further
   if (globalReset) {
@@ -1305,6 +1316,8 @@ void setup() {
   initializeCalibrationSamples();
   initializeStorage();
   applyConfiguration();
+  loadCustomLedLayer();
+
 
   for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
     secretSwitch[ss] = false;

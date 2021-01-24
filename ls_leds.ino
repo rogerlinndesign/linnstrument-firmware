@@ -37,12 +37,6 @@ byte COL_INDEX[MAXCOLS];
 const byte COL_INDEX_200[MAXCOLS] = {0, 1, 6, 11, 16, 21, 2, 7, 12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24, 5, 10, 15, 20, 25};
 const byte COL_INDEX_128[MAXCOLS] = {0, 1, 6, 11, 16, 2, 7, 12, 3, 8, 13, 4, 9, 14, 5, 10, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-// Two buffers of ...
-// A 26 by 8 byte array containing one byte for each LED:
-// bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
-// bits 0-2: 0:off, 1: on, 2: pulse
-const unsigned long LED_LAYER_SIZE = MAXCOLS * MAXROWS;
-const unsigned long LED_ARRAY_SIZE = (MAX_LED_LAYERS+1) * LED_LAYER_SIZE;
 // array holding contents of display
 byte leds[2][LED_ARRAY_SIZE];
 byte visibleLeds = 0;
@@ -71,6 +65,23 @@ void initializeLedsLayer(byte layer) {
   memset(&leds[bufferedLeds][layer * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
 }
 
+void loadCustomLedLayer()
+{
+  memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[0], LED_LAYER_SIZE);
+  memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[0], LED_LAYER_SIZE);
+  completelyRefreshLeds();
+}
+
+void storeCustomLedLayer()
+{
+  memcpy(&Device.customLeds[0], &leds[visibleLeds][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], LED_LAYER_SIZE);
+}
+
+void clearStoredCustomLedLayer()
+{
+  memset(&Device.customLeds[0], 0, LED_LAYER_SIZE);  
+}
+
 void startBufferedLeds() {
   bufferedLeds = 1;
   memcpy(leds[bufferedLeds], leds[visibleLeds], LED_ARRAY_SIZE);
@@ -86,6 +97,11 @@ inline byte getCombinedLedData(byte col, byte row) {
   byte layer = MAX_LED_LAYERS;
   do {
     layer -= 1;
+    // when custom LED editor is active, only display those LEDs
+    if (col > 0 && displayMode == displayCustomLedsEditor) {
+      if (layer != LED_LAYER_CUSTOM1) continue;
+      data = ledBuffered(layer, col, row);
+    }
     // don't show the custom layer 1 in user firmware mode
     if (userFirmwareActive) {
       if (layer == LED_LAYER_CUSTOM1) continue;
@@ -130,6 +146,11 @@ void setLed(byte col, byte row, byte color, CellDisplay disp, byte layer) {
   if (bufferedLeds == 1) {
     performContinuousTasks();
   }
+}
+
+byte getLedColor(byte col, byte row, byte layer) {
+  if (col >= NUMCOLS || row >= NUMROWS || layer > MAX_LED_LAYERS) return COLOR_OFF;
+  return (ledVisible(layer, col, row) >> 3) & B00011111;
 }
 
 // light up a single LED with the default color
