@@ -414,7 +414,17 @@ boolean handleCalibrationRelease() {
       byte i1 = sensorCol;
       byte i2 = (sensorRow / 2);
 
-      if (i2 < 4 && calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 80) {    // only proceed when at least a delta of 80 in X values is measured
+#ifdef DEBUG_ENABLED
+      DEBUGPRINT((0,"calRows"));
+      DEBUGPRINT((0," col="));DEBUGPRINT((0,(int)sensorCol));
+      DEBUGPRINT((0," row="));DEBUGPRINT((0,(int)sensorRow));
+      DEBUGPRINT((0," sampleMin="));DEBUGPRINT((0,(int)calSampleRows[i1][i2].minValue));
+      DEBUGPRINT((0," sampleMax="));DEBUGPRINT((0,(int)calSampleRows[i1][i2].maxValue));
+      DEBUGPRINT((0," diff="));DEBUGPRINT((0,(int)calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue));
+      DEBUGPRINT((0,"\n"));
+#endif
+
+      if (i2 < 4 && calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 70) {    // only proceed when at least a delta of 75 in X values is measured
         cellPass = calSampleRows[i1][i2].pass;
         calSampleRows[i1][i2].pass += 1;
       }
