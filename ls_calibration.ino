@@ -424,7 +424,7 @@ boolean handleCalibrationRelease() {
       DEBUGPRINT((0,"\n"));
 #endif
 
-      if (i2 < 4 && calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 70) {    // only proceed when at least a delta of 75 in X values is measured
+      if (i2 < 4 && calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue > 65) {     // only proceed when at least a delta of 65 in X values is measured
         cellPass = calSampleRows[i1][i2].pass;
         calSampleRows[i1][i2].pass += 1;
       }
