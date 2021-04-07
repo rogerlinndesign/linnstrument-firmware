@@ -1263,7 +1263,6 @@ void paintSensorSensitivityZDisplay() {
   for (byte row = 1; row < NUMROWS; ++row) {
     clearRow(row);
   }
-  setLed(NUMCOLS-1, NUMROWS-1,  globalAltColor, cellOn);
   paintNumericDataDisplay(globalColor, Device.sensorSensitivityZ, 0, false);
 }
 
