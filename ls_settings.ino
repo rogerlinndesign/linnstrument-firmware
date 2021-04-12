@@ -327,7 +327,9 @@ void initializeDeviceSettings() {
   Global.splitActive = false;
 
   initializeAudienceMessages();
-  clearStoredCustomLedLayer();
+  for (int p = 0; p < LED_PATTERNS; ++p) {
+    clearStoredCustomLedLayer(p);
+  }
 }
 
 void initializeAudienceMessages() {
@@ -2286,14 +2288,6 @@ void toggleNoteLights(int& notelights) {
   notelights ^= 1 << light;
 }
 
-void setActiveNoteLights() {
-  if (sensorCol < 2 || sensorCol > 4 || sensorRow > 3) {
-    return;
-  }
-
-  Global.activeNotes = sensorCol-2 + (sensorRow*3);
-}
-
 boolean isArpeggiatorTempoTriplet() {
   return Global.arpTempo == ArpEighthTriplet || Global.arpTempo == ArpSixteenthTriplet || Global.arpTempo == ArpThirtysecondTriplet;
 }
@@ -2501,9 +2495,9 @@ void handleGlobalSettingNewTouch() {
         switch (sensorRow) {
           case LIGHTS_MAIN:
           case LIGHTS_ACCENT:
+          case LIGHTS_ACTIVE:
             lightSettings = sensorRow;
             break;
-          case 2:
           case 3:
             // handled at release
             break;
@@ -2523,7 +2517,9 @@ void handleGlobalSettingNewTouch() {
               toggleNoteLights(Global.accentNotes[Global.activeNotes]);
               break;
             case LIGHTS_ACTIVE:
-              setActiveNoteLights();
+              Global.activeNotes = sensorCol-2 + (sensorRow*3);
+              loadCustomLedLayer(getActiveCustomLedPattern());
+              break;
           }
         }
         break;
@@ -2782,14 +2778,19 @@ void handleGlobalSettingNewTouch() {
   switch (sensorCol) {
     case 1:
       switch (sensorRow) {
-        case 2:
-          setLed(sensorCol, sensorRow, getCustomLedsStoredColor(), cellSlowPulse);
-          break;
         case 3:
           setLed(sensorCol, sensorRow, getSplitHandednessColor(), cellSlowPulse);
           break;
       }
       break;
+
+      case 2:
+      case 3:
+      case 4:
+        if (lightSettings == LIGHTS_ACTIVE && sensorRow == 3) {
+          setLed(sensorCol, sensorRow, customLedPatternActive ? globalAltColor : globalColor, cellSlowPulse);
+        }
+        break;
 
     case 6:
       switch (sensorRow) {
@@ -2885,16 +2886,22 @@ void handleGlobalSettingHold() {
     switch (sensorCol) {
       case 1:
         switch (sensorRow) {
-          case 2:
-            cellTouched(ignoredCell);
-            setDisplayMode(displayCustomLedsEditor);
-            updateDisplay();
-            break;
           case 3:
             resetNumericDataChange();
             setDisplayMode(displaySplitHandedness);
             updateDisplay();
             break;
+        }
+        break;
+
+      case 2:
+      case 3:
+      case 4:
+        if (lightSettings == LIGHTS_ACTIVE && sensorRow == 3) {
+            cellTouched(ignoredCell);
+            loadCustomLedLayer(getActiveCustomLedPattern());
+            setDisplayMode(displayCustomLedsEditor);
+            updateDisplay();
         }
         break;
 
@@ -3020,11 +3027,7 @@ void handleGlobalSettingHold() {
 }
 
 void handleGlobalSettingRelease() {
-  if (sensorCol == 1 && sensorRow == 2 &&
-      ensureCellBeforeHoldWait(getCustomLedsStoredColor(), lightSettings == LIGHTS_ACTIVE ? cellOn : cellOff)) {
-    lightSettings = LIGHTS_ACTIVE;
-  }
-  else if (sensorCol == 1 && sensorRow == 3 &&
+  if (sensorCol == 1 && sensorRow == 3 &&
       ensureCellBeforeHoldWait(getSplitHandednessColor(), Device.otherHanded ? cellOn : cellOff)) {
     Device.otherHanded = !Device.otherHanded;
   }

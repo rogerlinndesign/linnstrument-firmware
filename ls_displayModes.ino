@@ -266,7 +266,7 @@ void exitDisplayMode(DisplayMode mode) {
       storeSettings();
       break;
     case displayCustomLedsEditor:
-      storeCustomLedLayer();
+      storeCustomLedLayer(getActiveCustomLedPattern());
       storeSettings();
       break;
     default:
@@ -497,7 +497,7 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
     colour = COLOR_OFF;
     cellDisplay = cellOff;
   }
-  else {
+  else if (!customLedPatternActive) {
     byte octaveNote = abs(displayedNote % 12);
 
     // first paint all cells in split to its background color
@@ -815,12 +815,11 @@ byte getCalibrationColor() {
   return COLOR_RED;
 }
 
-byte getCustomLedsStoredColor() {
-  for (int i = 0; i < LED_LAYER_SIZE; ++i) {
-    if (Device.customLeds[i] != 0) {
-      return globalAltColor;
-    }
+byte getCustomLedsStoredColor(int pattern) {
+  if (hasCustomLedPattern(pattern)) {
+    return globalAltColor;
   }
+
   return globalColor;
 }
 
@@ -1477,7 +1476,7 @@ void displayActiveNotes() {
     for (byte col = 0; col < 3; ++col) {
       byte light = col + (row * 3);
       if (light == Global.activeNotes) {
-        lightLed(2+col, row);
+        setLed(2 + col, row, getCustomLedsStoredColor(light - 9), cellOn);
       }
     }
   }
@@ -1613,7 +1612,6 @@ void paintGlobalSettingsDisplay() {
       setLed(1, 3, getSplitHandednessColor(), cellOn);
     }
 
-    byte custom_leds_stored_color = getCustomLedsStoredColor();
     switch (lightSettings) {
       case LIGHTS_MAIN:
         lightLed(1, 0);
@@ -1624,12 +1622,9 @@ void paintGlobalSettingsDisplay() {
         displayNoteLights(Global.accentNotes[Global.activeNotes]);
         break;
       case LIGHTS_ACTIVE:
-        setLed(1, 2, custom_leds_stored_color, cellOn);
+        lightLed(1, 2);
         displayActiveNotes();
         break;
-    }
-    if (custom_leds_stored_color != globalColor) {
-      setLed(1, 2, custom_leds_stored_color, cellOn);
     }
 
     switch (Global.rowOffset) {

@@ -231,6 +231,8 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
+const unsigned int LED_PATTERNS = 3;
+
 // Two buffers of ...
 // A 26 by 8 byte array containing one byte for each LED:
 // bits 4-6: 3 bits to select the color: 0:off, 1:red, 2:yellow, 3:green, 4:cyan, 5:blue, 6:magenta
@@ -678,31 +680,31 @@ enum SplitHandednessType {
 };
 
 struct DeviceSettings {
-  byte version;                              // the version of the configuration format
-  boolean serialMode;                        // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
-  CalibrationX calRows[MAXCOLS+1][4];        // store four rows of calibration data
-  CalibrationY calCols[9][MAXROWS];          // store nine columns of calibration data
-  uint32_t calCrc;                           // the CRC check value of the calibration data to see if it's still valid
-  boolean calCrcCalculated;                  // indicates whether the CRC of the calibration was calculated, previous firmware versions didn't
-  boolean calibrated;                        // indicates whether the calibration data actually resulted from a calibration operation
-  boolean calibrationHealed;                 // indicates whether the calibration data was healed
-  unsigned short minUSBMIDIInterval;         // the minimum delay between MIDI bytes when sent over USB
-  byte sensorSensitivityZ;                   // the scaling factor of the raw value of Z in percentage
-  unsigned short sensorLoZ;                  // the lowest acceptable raw Z value to start a touch
-  unsigned short sensorFeatherZ;             // the lowest acceptable raw Z value to continue a touch
-  unsigned short sensorRangeZ;               // the maximum raw value of Z
-  boolean sleepAnimationActive;              // store whether an animation was active last
-  boolean sleepActive;                       // store whether LinnStrument should go to sleep automatically
-  byte sleepDelay;                           // the number of minutes it takes for sleep to kick in
-  byte sleepAnimationType;                   // the animation type to use during sleep, see SleepAnimationType
-  char audienceMessages[16][31];             // the 16 audience messages that will scroll across the surface
-  boolean operatingLowPower;                 // whether low power mode is active or not
-  boolean otherHanded;                       // whether change the handedness of the splits
-  byte splitHandedness;                      // see SplitHandednessType
-  boolean midiThrough;                       // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
-  short lastLoadedPreset;                    // the last settings preset that was loaded
-  short lastLoadedProject;                   // the last sequencer project that was loaded
-  byte customLeds[LED_LAYER_SIZE];           // the custom LEDs that persist across power cycle
+  byte version;                                   // the version of the configuration format
+  boolean serialMode;                             // 0 = normal MIDI I/O, 1 = Arduino serial mode for OS update and serial monitor
+  CalibrationX calRows[MAXCOLS+1][4];             // store four rows of calibration data
+  CalibrationY calCols[9][MAXROWS];               // store nine columns of calibration data
+  uint32_t calCrc;                                // the CRC check value of the calibration data to see if it's still valid
+  boolean calCrcCalculated;                       // indicates whether the CRC of the calibration was calculated, previous firmware versions didn't
+  boolean calibrated;                             // indicates whether the calibration data actually resulted from a calibration operation
+  boolean calibrationHealed;                      // indicates whether the calibration data was healed
+  unsigned short minUSBMIDIInterval;              // the minimum delay between MIDI bytes when sent over USB
+  byte sensorSensitivityZ;                        // the scaling factor of the raw value of Z in percentage
+  unsigned short sensorLoZ;                       // the lowest acceptable raw Z value to start a touch
+  unsigned short sensorFeatherZ;                  // the lowest acceptable raw Z value to continue a touch
+  unsigned short sensorRangeZ;                    // the maximum raw value of Z
+  boolean sleepAnimationActive;                   // store whether an animation was active last
+  boolean sleepActive;                            // store whether LinnStrument should go to sleep automatically
+  byte sleepDelay;                                // the number of minutes it takes for sleep to kick in
+  byte sleepAnimationType;                        // the animation type to use during sleep, see SleepAnimationType
+  char audienceMessages[16][31];                  // the 16 audience messages that will scroll across the surface
+  boolean operatingLowPower;                      // whether low power mode is active or not
+  boolean otherHanded;                            // whether change the handedness of the splits
+  byte splitHandedness;                           // see SplitHandednessType
+  boolean midiThrough;                            // false if incoming MIDI should be isolated, true if it should be passed through to the outgoing MIDI port
+  short lastLoadedPreset;                         // the last settings preset that was loaded
+  short lastLoadedProject;                        // the last sequencer project that was loaded
+  byte customLeds[LED_PATTERNS][LED_LAYER_SIZE];  // the custom LEDs that persist across power cycle
 };
 #define Device config.device
 
@@ -1002,6 +1004,8 @@ unsigned long ledRefreshInterval = DEFAULT_LED_REFRESH;  // LED timing
 unsigned long prevLedTimerCount;                         // timer for refreshing leds
 unsigned long prevGlobalSettingsDisplayTimerCount;       // timer for refreshing the global settings display
 unsigned long prevTouchAnimTimerCount;                   // timer for refreshing the touch animation
+
+boolean customLedPatternActive = false;                  // was a custom led pattern loaded from flash
 
 unsigned long tempoLedOn = 0;                       // indicates when the tempo clock led was turned on
 
@@ -1316,8 +1320,7 @@ void setup() {
   initializeCalibrationSamples();
   initializeStorage();
   applyConfiguration();
-  loadCustomLedLayer();
-
+  loadCustomLedLayer(getActiveCustomLedPattern());
 
   for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
     secretSwitch[ss] = false;

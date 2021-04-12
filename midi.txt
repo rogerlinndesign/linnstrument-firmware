@@ -37,8 +37,8 @@ CC Number   Used for
 21          Row coordinate for cell color change with CC 22 (starts from 0)
 22          Change the color of the cell with the provided column and row coordinates
             see color value table below, 11+: default color
-23			Make current custom cell colors persistent (1: persist)
-24			Clear persisted custom cell colors (1: clear)
+23			Make current custom cell colors persistent as pattern (0-2) 
+24			Clear persisted custom cell colors pattern (0-2)
 
 NRPN input
 ==========

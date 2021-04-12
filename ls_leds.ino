@@ -65,21 +65,45 @@ void initializeLedsLayer(byte layer) {
   memset(&leds[bufferedLeds][layer * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
 }
 
-void loadCustomLedLayer()
+boolean hasCustomLedPattern(int pattern) {
+  if (pattern >= 0 && pattern < LED_PATTERNS) {
+  for (int i = 0; i < LED_LAYER_SIZE; ++i) {
+    if (Device.customLeds[pattern][i] != 0) {
+      return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+int getActiveCustomLedPattern() {
+  return Global.activeNotes - 9;
+}
+
+void loadCustomLedLayer(int pattern)
 {
-  memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[0], LED_LAYER_SIZE);
-  memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[0], LED_LAYER_SIZE);
+  if (pattern < 0 || pattern >= LED_PATTERNS) return;
+
+  memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+  memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+  customLedPatternActive = hasCustomLedPattern(pattern);
   completelyRefreshLeds();
 }
 
-void storeCustomLedLayer()
+void storeCustomLedLayer(int pattern)
 {
-  memcpy(&Device.customLeds[0], &leds[visibleLeds][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], LED_LAYER_SIZE);
+  if (pattern < 0 || pattern >= LED_PATTERNS) return;
+
+  memcpy(&Device.customLeds[pattern][0], &leds[visibleLeds][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], LED_LAYER_SIZE);
+  customLedPatternActive = hasCustomLedPattern(pattern);
 }
 
-void clearStoredCustomLedLayer()
+void clearStoredCustomLedLayer(int pattern)
 {
-  memset(&Device.customLeds[0], 0, LED_LAYER_SIZE);  
+  if (pattern < 0 || pattern >= LED_PATTERNS) return;
+
+  memset(&Device.customLeds[pattern][0], 0, LED_LAYER_SIZE);  
 }
 
 void startBufferedLeds() {
@@ -103,11 +127,11 @@ inline byte getCombinedLedData(byte col, byte row) {
       data = ledBuffered(layer, col, row);
     }
     // don't show the custom layer 1 in user firmware mode
-    if (userFirmwareActive) {
+    if (userFirmwareActive || isVisibleSequencer()) {
       if (layer == LED_LAYER_CUSTOM1) continue;
     }
     // don't show the custom layer 2 in regular firmware mode
-    else {
+    if (!userFirmwareActive) {
       if (layer == LED_LAYER_CUSTOM2) continue;
     }
     if (!isVisibleSequencer()) {

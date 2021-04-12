@@ -2091,7 +2091,9 @@ void copyDeviceSettingsV12(void* target, void* source) {
   t->midiThrough = s->midiThrough;
   t->lastLoadedPreset = s->lastLoadedPreset;
   t->lastLoadedProject = s->lastLoadedProject;
-  memset(&t->customLeds[0], 0, LED_LAYER_SIZE);
+  memset(&t->customLeds[0][0], 0, LED_LAYER_SIZE);
+  memset(&t->customLeds[1][0], 0, LED_LAYER_SIZE);
+  memset(&t->customLeds[2][0], 0, LED_LAYER_SIZE);
 }
 
 void copyConfigurationV14(void* target, void* source) {

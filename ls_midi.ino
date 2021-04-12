@@ -416,15 +416,14 @@ void handleMidiInput(unsigned long nowMicros) {
             }
             break;
           case 23:
-            if (midiData2 == 1) {
-              storeCustomLedLayer();
+            if (midiData2 < LED_PATTERNS) {
+              storeCustomLedLayer(midiData2);
               storeSettings();
             }
             break;
           case 24:
-            if (midiData2 == 1) {
-              clearStoredCustomLedLayer();
-              loadCustomLedLayer();
+            if (midiData2 < LED_PATTERNS) {
+              loadCustomLedLayer(midiData2);
               storeSettings();
             }
             break;
@@ -1103,7 +1102,7 @@ void receivedNrpn(int parameter, int value, int channel) {
     case 247:
       if (inRange(value, 0, 11)) {
         Global.activeNotes = value;
-        completelyRefreshLeds();
+        loadCustomLedLayer(getActiveCustomLedPattern());
         updateDisplay();
       }
       break;
