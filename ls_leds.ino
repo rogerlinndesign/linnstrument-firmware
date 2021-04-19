@@ -87,7 +87,7 @@ void loadCustomLedLayer(int pattern)
 
   memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
   memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
-  customLedPatternActive = hasCustomLedPattern(pattern);
+  customLedPatternActive = hasCustomLedPattern(getActiveCustomLedPattern());
   completelyRefreshLeds();
 }
 
@@ -96,14 +96,15 @@ void storeCustomLedLayer(int pattern)
   if (pattern < 0 || pattern >= LED_PATTERNS) return;
 
   memcpy(&Device.customLeds[pattern][0], &leds[visibleLeds][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], LED_LAYER_SIZE);
-  customLedPatternActive = hasCustomLedPattern(pattern);
+  customLedPatternActive = hasCustomLedPattern(getActiveCustomLedPattern());
 }
 
 void clearStoredCustomLedLayer(int pattern)
 {
   if (pattern < 0 || pattern >= LED_PATTERNS) return;
 
-  memset(&Device.customLeds[pattern][0], 0, LED_LAYER_SIZE);  
+  memset(&Device.customLeds[pattern][0], 0, LED_LAYER_SIZE);
+  loadCustomLedLayer(pattern);
 }
 
 void startBufferedLeds() {

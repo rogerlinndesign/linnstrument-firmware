@@ -399,7 +399,7 @@ void handleMidiInput(unsigned long nowMicros) {
             }
             break;
           case 22:
-            if (displayMode == displayNormal) {
+            if (displayMode == displayNormal || displayMode == displayCustomLedsEditor) {
               byte layer = LED_LAYER_CUSTOM1;
               // we light the LEDs of user firmware mode in a dedicated custom layer
               // this will be cleared when switching back to regular firmware mode
@@ -423,7 +423,7 @@ void handleMidiInput(unsigned long nowMicros) {
             break;
           case 24:
             if (midiData2 < LED_PATTERNS) {
-              loadCustomLedLayer(midiData2);
+              clearStoredCustomLedLayer(midiData2);
               storeSettings();
             }
             break;
