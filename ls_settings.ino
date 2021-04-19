@@ -634,6 +634,8 @@ void initializePresetSettings() {
   config.preset[1].split[RIGHT].midiMode = channelPerNote;
   config.preset[1].split[LEFT].bendRangeOption = bendRange24;
   config.preset[1].split[RIGHT].bendRangeOption = bendRange24;
+  config.preset[1].split[LEFT].customBendRange = 48;
+  config.preset[1].split[RIGHT].customBendRange = 48;
   config.preset[1].split[LEFT].expressionForZ = loudnessChannelPressure;
   config.preset[1].split[RIGHT].expressionForZ = loudnessChannelPressure;
   config.preset[1].split[LEFT].midiChanMain = 1;
