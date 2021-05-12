@@ -44,6 +44,8 @@ byte bufferedLeds = 0;
 #define ledBuffered(layer, col, row)  leds[bufferedLeds][layer * LED_LAYER_SIZE + row * MAXCOLS + col]
 #define ledVisible(layer, col, row)  leds[visibleLeds][layer * LED_LAYER_SIZE + row * MAXCOLS + col]
 
+bool ledDisplayEnabled = true;
+
 void initializeLeds() {
   if (LINNMODEL == 200) {
     for (byte i = 0; i < MAXCOLS; ++i) {
@@ -65,38 +67,42 @@ void initializeLedsLayer(byte layer) {
   memset(&leds[bufferedLeds][layer * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
 }
 
-boolean hasCustomLedPattern(int pattern) {
-  if (pattern >= 0 && pattern < LED_PATTERNS) {
-  for (int i = 0; i < LED_LAYER_SIZE; ++i) {
-    if (Device.customLeds[pattern][i] != 0) {
-      return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 int getActiveCustomLedPattern() {
   return Global.activeNotes - 9;
 }
 
 void loadCustomLedLayer(int pattern)
 {
-  if (pattern < 0 || pattern >= LED_PATTERNS) return;
+  if (pattern < 0 || pattern >= LED_PATTERNS) {
+    if (customLedPatternActive) {
+      memset(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
+      memset(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
+    }
+    customLedPatternActive = false;
+    return;
+  }
 
   memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
   memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
-  customLedPatternActive = hasCustomLedPattern(getActiveCustomLedPattern());
+  customLedPatternActive = true;
+  lightSettings = 2;
   completelyRefreshLeds();
 }
 
 void storeCustomLedLayer(int pattern)
 {
-  if (pattern < 0 || pattern >= LED_PATTERNS) return;
+  if (pattern < 0 || pattern >= LED_PATTERNS) {
+    if (customLedPatternActive) {
+      memset(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
+      memset(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], 0, LED_LAYER_SIZE);
+    }
+    customLedPatternActive = false;
+    return;
+  }
 
   memcpy(&Device.customLeds[pattern][0], &leds[visibleLeds][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], LED_LAYER_SIZE);
-  customLedPatternActive = hasCustomLedPattern(getActiveCustomLedPattern());
+  customLedPatternActive = true;
+  lightSettings = 2;
 }
 
 void clearStoredCustomLedLayer(int pattern)
@@ -236,9 +242,22 @@ void clearDisplayImmediately() {
   digitalWrite(37, HIGH);
 }
 
+void disableLedDisplay() {
+  ledDisplayEnabled = false;
+  clearDisplayImmediately();
+}
+
+void enableLedDisplay() {
+  // enable the outputs of the LED driver chips
+  digitalWrite(37, LOW);
+  ledDisplayEnabled = true;
+}
+
 // refreshLedColumn:
 // Called when it's time to refresh the next column of LEDs. Internally increments the column number every time it's called.
 void refreshLedColumn(unsigned long now) {
+  if (!ledDisplayEnabled) return;
+
   // disabling the power output from the LED driver pins early prevents power leaking into unwanted cells.
   digitalWrite(37, HIGH);                                         // disable the outputs of the LED driver chips
 

@@ -171,9 +171,7 @@ void writeSettingsToFlash() {
   DEBUGPRINT((2," bytes"));
   DEBUGPRINT((2,"\n"));
 
-  clearDisplayImmediately();
-  clearFullDisplay();
-  completelyRefreshLeds();
+  disableLedDisplay();
 
   // read the marker to know which configuration version was last written successfully
   byte marker = dueFlashStorage.read(SETTINGS_OFFSET);
@@ -195,8 +193,11 @@ void writeSettingsToFlash() {
   // write the marker after the configuration data so that this version becomes to latest coherent one
   dueFlashStorage.write(SETTINGS_OFFSET, marker);
 
+  clearFullDisplay();
+  completelyRefreshLeds();
   updateDisplay();
-}
+  enableLedDisplay();
+ }
 
 void loadSettings() {
   // read the marker to know which configuration version was last written successfully
@@ -920,9 +921,8 @@ void handleControlButtonRelease() {
       clearLed(0, sensorRow);
 
       setDisplayMode(displayNormal);
-      updateDisplay();
-
       storeSettings();
+      updateDisplay();
       break;
 
     case SPLIT_ROW:                                          // SPLIT button released
@@ -2498,7 +2498,9 @@ void handleGlobalSettingNewTouch() {
           case LIGHTS_MAIN:
           case LIGHTS_ACCENT:
           case LIGHTS_ACTIVE:
-            lightSettings = sensorRow;
+            if (!customLedPatternActive) {
+              lightSettings = sensorRow;
+            }
             break;
           case 3:
             // handled at release
@@ -2513,10 +2515,14 @@ void handleGlobalSettingNewTouch() {
           // select individual scale notes or accent notes
           switch (lightSettings) {
             case LIGHTS_MAIN:
-              toggleNoteLights(Global.mainNotes[Global.activeNotes]);
+              if (!customLedPatternActive) {
+                toggleNoteLights(Global.mainNotes[Global.activeNotes]);
+              }
               break;
             case LIGHTS_ACCENT:
-              toggleNoteLights(Global.accentNotes[Global.activeNotes]);
+              if (!customLedPatternActive) {
+                toggleNoteLights(Global.accentNotes[Global.activeNotes]);
+              }
               break;
             case LIGHTS_ACTIVE:
               Global.activeNotes = sensorCol-2 + (sensorRow*3);
@@ -2790,7 +2796,7 @@ void handleGlobalSettingNewTouch() {
       case 3:
       case 4:
         if (lightSettings == LIGHTS_ACTIVE && sensorRow == 3) {
-          setLed(sensorCol, sensorRow, customLedPatternActive ? globalAltColor : globalColor, cellSlowPulse);
+          setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
         }
         break;
 

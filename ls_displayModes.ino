@@ -815,14 +815,6 @@ byte getCalibrationColor() {
   return COLOR_RED;
 }
 
-byte getCustomLedsStoredColor(int pattern) {
-  if (hasCustomLedPattern(pattern)) {
-    return globalAltColor;
-  }
-
-  return globalColor;
-}
-
 byte getSplitHandednessColor() {
   if (Device.splitHandedness == reversedBoth) {
     return globalColor;
@@ -1476,7 +1468,7 @@ void displayActiveNotes() {
     for (byte col = 0; col < 3; ++col) {
       byte light = col + (row * 3);
       if (light == Global.activeNotes) {
-        setLed(2 + col, row, getCustomLedsStoredColor(light - 9), cellOn);
+        setLed(2 + col, row, globalColor, cellOn);
       }
     }
   }
@@ -1614,12 +1606,16 @@ void paintGlobalSettingsDisplay() {
 
     switch (lightSettings) {
       case LIGHTS_MAIN:
-        lightLed(1, 0);
-        displayNoteLights(Global.mainNotes[Global.activeNotes]);
+        if (!customLedPatternActive) {
+          lightLed(1, 0);
+          displayNoteLights(Global.mainNotes[Global.activeNotes]);
+        }
         break;
       case LIGHTS_ACCENT:
-        lightLed(1, 1);
-        displayNoteLights(Global.accentNotes[Global.activeNotes]);
+        if (!customLedPatternActive) {
+          lightLed(1, 1);
+          displayNoteLights(Global.accentNotes[Global.activeNotes]);
+        }
         break;
       case LIGHTS_ACTIVE:
         lightLed(1, 2);
