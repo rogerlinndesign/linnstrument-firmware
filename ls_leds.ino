@@ -110,7 +110,9 @@ void clearStoredCustomLedLayer(int pattern)
   if (pattern < 0 || pattern >= LED_PATTERNS) return;
 
   memset(&Device.customLeds[pattern][0], 0, LED_LAYER_SIZE);
-  loadCustomLedLayer(pattern);
+  if (getActiveCustomLedPattern() == pattern) {
+    loadCustomLedLayer(pattern);
+  }
 }
 
 void startBufferedLeds() {
