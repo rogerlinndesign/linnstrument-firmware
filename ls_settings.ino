@@ -3234,7 +3234,7 @@ void handleCustomLedsEditorNewTouch() {
 
       if (findOtherCustomLedsEditorTouch(other_col, other_row)) {
         TouchInfo& other_cell = (cell(other_col, other_row));
-        if (other_cell.lastTouch != 0 && calcTimeDelta(millis(), other_cell.lastTouch) > SENSOR_HOLD_DELAY) {
+        if (other_cell.lastTouch != 0 && abs(sensorCol - other_col) > 1 && abs(sensorRow - other_row) > 0) {
           cleared_area = true;
           cellTouched(other_col, other_row, ignoredCell);
 
