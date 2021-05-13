@@ -57,7 +57,7 @@ For any questions about this, contact Roger Linn Design at support@rogerlinndesi
 /******************************************** CONSTANTS ******************************************/
 
 const char* OSVersion = "230.";
-const char* OSVersionBuild = ".060";
+const char* OSVersionBuild = ".061";
 
 // SPI addresses
 #define SPI_LEDS    10               // Arduino pin for LED control over SPI
@@ -1079,7 +1079,7 @@ byte guitarTuningRowNum = 0;                        // active row number for con
 short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
 short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
 
-byte lastCustomLedColor = COLOR_OFF;
+byte customLedColor = COLOR_GREEN;
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 

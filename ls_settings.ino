@@ -856,6 +856,10 @@ void handleControlButtonNewTouch() {
         updateDisplay();
         updateSwitchLeds();
       }
+      else if (displayMode == displayCustomLedsEditor) {
+        customLedColor = colorCycle(customLedColor, false);
+        updateDisplay();
+      }
       else {
         doSwitchPressed(SWITCH_SWITCH_1);
         updateSwitchLeds();
@@ -3234,7 +3238,7 @@ void handleCustomLedsEditorNewTouch() {
 
       if (findOtherCustomLedsEditorTouch(other_col, other_row)) {
         TouchInfo& other_cell = (cell(other_col, other_row));
-        if (other_cell.lastTouch != 0 && abs(sensorCol - other_col) > 1 && abs(sensorRow - other_row) > 0) {
+        if (other_cell.lastTouch != 0 && abs(sensorCol - other_col) > 0 && abs(sensorRow - other_row) > 0) {
           cleared_area = true;
           cellTouched(other_col, other_row, ignoredCell);
 
@@ -3250,20 +3254,25 @@ void handleCustomLedsEditorNewTouch() {
 
     if (!cleared_area) {
       byte color = getLedColor(sensorCol, sensorRow, LED_LAYER_CUSTOM1);
-      if (color == COLOR_OFF && lastCustomLedColor != COLOR_OFF) {
-        color = lastCustomLedColor;
+      if (color != COLOR_OFF) {
+        setLed(sensorCol, sensorRow, color, cellSlowPulse, LED_LAYER_CUSTOM1);
       }
-      else {
-        color = colorCycle(color, true);
-        lastCustomLedColor = color;
-      }
-      setLed(sensorCol, sensorRow, color, cellOn, LED_LAYER_CUSTOM1);
     }
   }
 }
 
 void handleCustomLedsEditorHold() {
+  if (sensorCol > 0 && isCellPastSensorHoldWait()) {
+    setLed(sensorCol, sensorRow, COLOR_OFF, cellOff, LED_LAYER_CUSTOM1);
+    cellTouched(ignoredCell);
+  }
 }
 
 void handleCustomLedsEditorRelease() {
+  if (sensorCol > 0) {
+    if (!isCellPastSensorHoldWait()) {
+      setLed(sensorCol, sensorRow, customLedColor, cellOn, LED_LAYER_CUSTOM1);
+    }
+    sensorCell->lastTouch = 0;
+  }
 }

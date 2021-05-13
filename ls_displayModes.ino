@@ -348,6 +348,9 @@ void updateSwitchLeds() {
     case displayPerSplit:
       lightLed(0, PER_SPLIT_ROW);
       break;
+    case displayCustomLedsEditor:
+      setLed(0, SWITCH_SWITCH_1, customLedColor, cellSlowPulse);
+      break;
     default:
       break;
   }
