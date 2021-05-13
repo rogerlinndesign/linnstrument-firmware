@@ -309,6 +309,7 @@ void applyPresetSettings() {
 void applyConfiguration() {
   applyPresetSettings();
   applySequencerSettings();
+  loadCustomLedLayer(getActiveCustomLedPattern());
 }
 
 void applySystemState() {

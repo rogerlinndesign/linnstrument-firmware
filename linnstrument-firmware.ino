@@ -1320,7 +1320,6 @@ void setup() {
   initializeCalibrationSamples();
   initializeStorage();
   applyConfiguration();
-  loadCustomLedLayer(getActiveCustomLedPattern());
 
   for (byte ss=0; ss<SECRET_SWITCHES; ++ss) {
     secretSwitch[ss] = false;
