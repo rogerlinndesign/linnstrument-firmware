@@ -3250,23 +3250,6 @@ void handleCustomLedsEditorNewTouch() {
 
     if (!cleared_area) {
       byte color = getLedColor(sensorCol, sensorRow, LED_LAYER_CUSTOM1);
-      if (color != COLOR_OFF) {
-        setLed(sensorCol, sensorRow, color, cellSlowPulse, LED_LAYER_CUSTOM1);
-      }
-    }
-  }
-}
-
-void handleCustomLedsEditorHold() {
-  if (sensorCol > 0 && isCellPastSensorHoldWait()) {
-    setLed(sensorCol, sensorRow, COLOR_OFF, cellOff, LED_LAYER_CUSTOM1);
-  }
-}
-
-void handleCustomLedsEditorRelease() {
-  if (sensorCol > 0) {
-    if (!isCellPastSensorHoldWait()) {
-      byte color = getLedColor(sensorCol, sensorRow, LED_LAYER_CUSTOM1);
       if (color == COLOR_OFF && lastCustomLedColor != COLOR_OFF) {
         color = lastCustomLedColor;
       }
@@ -3276,6 +3259,11 @@ void handleCustomLedsEditorRelease() {
       }
       setLed(sensorCol, sensorRow, color, cellOn, LED_LAYER_CUSTOM1);
     }
-    sensorCell->lastTouch = 0;
   }
+}
+
+void handleCustomLedsEditorHold() {
+}
+
+void handleCustomLedsEditorRelease() {
 }
