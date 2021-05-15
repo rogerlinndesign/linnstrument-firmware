@@ -430,22 +430,26 @@ boolean handleCalibrationRelease() {
         int delta = calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue;
         if (delta > 1) {
           cellPass = calSampleRows[i1][i2].pass;
-          calSampleRows[i1][i2].pass += 1;
 
           // Adapt the color if the the delta is below expected values
           if (delta <= 40) {
             cellColor = COLOR_RED;
           }
-          else if (delta <= 65) {
-            cellColor = COLOR_YELLOW;
-          }
-          // This is the first pass for a sensor, switch the led to cyan
-          else if (cellPass == 0) {
-            cellColor = COLOR_CYAN;
-          }
-          // This is the second pass for a sensor, switch the led to green
-          else if (cellPass > 0) {
-            cellColor = COLOR_GREEN;
+          else {
+            // Only advance the pass when at least a delta of 40 in X values is measured
+            calSampleRows[i1][i2].pass += 1;
+
+            if (delta <= 65) {
+              cellColor = COLOR_YELLOW;
+            }
+            // This is the first pass for a sensor, switch the led to cyan
+            else if (cellPass == 0) {
+              cellColor = COLOR_CYAN;
+            }
+            // This is the second pass for a sensor, switch the led to green
+            else if (cellPass > 0) {
+              cellColor = COLOR_GREEN;
+            }
           }
         }
       }
@@ -459,22 +463,26 @@ boolean handleCalibrationRelease() {
         int delta = calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue;
         if (delta > 1) {
           cellPass = calSampleCols[i1][i2].pass;
-          calSampleCols[i1][i2].pass += 1;
 
           // Adapt the color if the the delta is below expected values
-          if (delta <= 100) {
+          if (delta <= 110) {
             cellColor = COLOR_RED;
           }
-          else if (delta <= 180) {
-            cellColor = COLOR_YELLOW;
-          }
-          // This is the first pass for a sensor, switch the led to cyan
-          else if (cellPass == 0) {
-            cellColor = COLOR_CYAN;
-          }
-          // This is the second pass for a sensor, switch the led to green
-          else if (cellPass > 0) {
-            cellColor = COLOR_GREEN;
+          else {
+            // Only advance the pass when at least a delta of 110 in Y values is measured
+            calSampleCols[i1][i2].pass += 1;
+
+            if (delta <= 180) {
+              cellColor = COLOR_YELLOW;
+            }
+            // This is the first pass for a sensor, switch the led to cyan
+            else if (cellPass == 0) {
+              cellColor = COLOR_CYAN;
+            }
+            // This is the second pass for a sensor, switch the led to green
+            else if (cellPass > 0) {
+              cellColor = COLOR_GREEN;
+            }
           }
         }
       }
