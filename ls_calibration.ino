@@ -425,10 +425,10 @@ boolean handleCalibrationRelease() {
       DEBUGPRINT((0,"\n"));
 #endif
 
-      // Only proceed when at least a positive delta in X values is measured
+      // Only proceed when at least a delta of 20 in X values is measured
       if (i2 < 4) {
         int delta = calSampleRows[i1][i2].maxValue - calSampleRows[i1][i2].minValue;
-        if (delta > 1) {
+        if (delta >= 20) {
           cellPass = calSampleRows[i1][i2].pass;
 
           // Adapt the color if the the delta is below expected values
@@ -458,10 +458,10 @@ boolean handleCalibrationRelease() {
       byte i1 = (sensorCol - 1) / 3;
       byte i2 = sensorRow;
 
-      // Only proceed when at least a positive delta in Y values is measured
+      // Only proceed when at least a delta of 60 in Y values is measured
       if (i1 < 9) {
         int delta = calSampleCols[i1][i2].maxValue - calSampleCols[i1][i2].minValue;
-        if (delta > 1) {
+        if (delta >= 60) {
           cellPass = calSampleCols[i1][i2].pass;
 
           // Adapt the color if the the delta is below expected values
