@@ -1079,7 +1079,7 @@ byte guitarTuningRowNum = 0;                        // active row number for con
 short guitarTuningPreviewNote = -1;                 // active note that is previewing the guitar tuning pitch
 short guitarTuningPreviewChannel = -1;              // active channel that is previewing the guitar tuning pitch
 
-byte customLedColor = COLOR_GREEN;
+byte customLedColor = COLOR_GREEN;                  // color is used for drawing in the custom LED editor
 
 /************************* FUNCTION DECLARATIONS TO WORK AROUND COMPILER *************************/
 
