@@ -151,7 +151,7 @@ inline byte getCombinedLedData(byte col, byte row) {
       data = ledBuffered(layer, col, row);
     }    
   }
-  while(layer > 0 && (data & B00000111) == cellOff);
+  while (layer > 0 && (data & B00000111) == cellOff);
 
   return data;
 }
@@ -194,6 +194,7 @@ void lightLed(byte col, byte row) {
 // clear a single LED
 void clearLed(byte col, byte row) {
   clearLed(col, row, LED_LAYER_MAIN);
+  clearLed(col, row, LED_LAYER_LOWROW);
 }
 
 void clearLed(byte col, byte row, byte layer) {

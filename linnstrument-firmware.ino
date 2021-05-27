@@ -172,10 +172,11 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 #define LED_LAYER_MAIN      0
 #define LED_LAYER_CUSTOM1   1
 #define LED_LAYER_CUSTOM2   2
-#define LED_LAYER_PLAYED    3
-#define LED_LAYER_SEQUENCER 4
-#define LED_LAYER_COMBINED  5
-#define MAX_LED_LAYERS      5
+#define LED_LAYER_LOWROW    3
+#define LED_LAYER_PLAYED    4
+#define LED_LAYER_SEQUENCER 5
+#define LED_LAYER_COMBINED  6
+#define MAX_LED_LAYERS      6
 
 // The values here MUST be the same as the row numbers of the cells in GlobalSettings
 #define LIGHTS_MAIN    0

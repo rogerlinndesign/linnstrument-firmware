@@ -422,10 +422,10 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
 
       if (!userFirmwareActive && row == 0 && Split[split].lowRowMode != lowRowNormal) {
         if (Split[split].lowRowMode == lowRowCCX && Split[split].lowRowCCXBehavior == lowRowCCFader) {
-          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow, faderLeft, faderLength);
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRow, faderLeft, faderLength, LED_LAYER_LOWROW);
         }
         if (Split[split].lowRowMode == lowRowCCXYZ && Split[split].lowRowCCXYZBehavior == lowRowCCFader) {
-          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRowX, faderLeft, faderLength);
+          paintCCFaderDisplayRow(split, 0, Split[split].colorLowRow, Split[split].ccForLowRowX, faderLeft, faderLength, LED_LAYER_LOWROW);
         }
       }
     }
@@ -439,15 +439,19 @@ void paintCCFaderDisplayRow(byte split, byte row, byte faderLeft, byte faderLeng
 }
 
 void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader, byte faderLeft, byte faderLength) {
+  paintCCFaderDisplayRow(split, row, color, ccForFader, faderLeft, faderLength, LED_LAYER_MAIN);
+}
+
+void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccForFader, byte faderLeft, byte faderLength, byte layer) {
   if (userFirmwareActive || ccForFader > 128) return;
 
   // when the fader only spans one cell, it acts as a toggle
   if (faderLength == 0) {
       if (ccFaderValues[split][ccForFader] > 0) {
-        setLed(faderLeft, row, color, cellOn);
+        setLed(faderLeft, row, color, cellOn, layer);
       }
       else {
-        clearLed(faderLeft, row);
+        clearLed(faderLeft, row, layer);
       }
   }
   // otherwise calculate the fader position based on its value and light the appropriate leds
@@ -456,10 +460,10 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
 
     for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
       if (Device.calRows[col][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
-        clearLed(col, row);
+        clearLed(col, row, layer);
       }
       else {
-        setLed(col, row, color, cellOn);
+        setLed(col, row, color, cellOn, layer);
       }
     }
   }
@@ -533,10 +537,13 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
       colour = Split[split].colorLowRow;
       cellDisplay = cellOn;
     }
+    // actually set the cell's color
+    setLed(col, row, colour, cellDisplay, LED_LAYER_LOWROW);
   }
-
-  // actually set the cell's color
-  setLed(col, row, colour, cellDisplay);
+  else {
+    // actually set the cell's color
+    setLed(col, row, colour, cellDisplay);
+  }
 }
 
 // paintPerSplitDisplay:
