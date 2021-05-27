@@ -460,7 +460,7 @@ void paintCCFaderDisplayRow(byte split, byte row, byte color, unsigned short ccF
 
     for (byte col = faderLength + faderLeft; col >= faderLeft; --col ) {
       if (Device.calRows[col][0].fxdReferenceX - FXD_CALX_HALF_UNIT > fxdFaderPosition) {
-        clearLed(col, row, layer);
+        setLed(col, row, COLOR_BLACK, cellOn, layer);
       }
       else {
         setLed(col, row, color, cellOn, layer);
@@ -542,7 +542,10 @@ void paintNormalDisplayCell(byte split, byte col, byte row) {
   }
   else {
     // actually set the cell's color
-    setLed(col, row, colour, cellDisplay);
+    if (row == 0) {
+      clearLed(col, row, LED_LAYER_LOWROW);
+    }
+    setLed(col, row, colour, cellDisplay, LED_LAYER_MAIN);
   }
 }
 
