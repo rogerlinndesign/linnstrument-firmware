@@ -1732,18 +1732,23 @@ void handleTouchRelease() {
       preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
     }
 
-    // unregister the note <> cell mapping
-    if (!isSwitchLegatoPressed(sensorSplit) && (!isArpeggiatorEnabled(sensorSplit) || !isSwitchLatchPressed(sensorSplit))) {
-      noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
-    }
-
+    // See if we should unregister the note <> cell mapping
+    boolean shouldUnregisterNote = !isSwitchLegatoPressed(sensorSplit) && (!isArpeggiatorEnabled(sensorSplit) || !isSwitchLatchPressed(sensorSplit));
+    
     // send the Note Off
     if (isArpeggiatorEnabled(sensorSplit)) {
       if (!isSwitchLatchPressed(sensorSplit)) {
         handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
       }
+      else if(shouldUnregisterNote) {
+        noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
+      }
     }
     else {
+      if(shouldUnregisterNote) {
+        noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
+      }
+      
       if (isStrummedSplit(sensorSplit)) {
         handleStrummedRowChange(false, sensorCell->velocity);
       }
