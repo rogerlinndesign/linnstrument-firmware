@@ -232,7 +232,7 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 
 const unsigned short ccFaderDefaults[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
-const unsigned int LED_PATTERNS = 3;
+const int LED_PATTERNS = 3;
 
 // Two buffers of ...
 // A 26 by 8 byte array containing one byte for each LED:
