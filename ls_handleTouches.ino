@@ -1733,14 +1733,16 @@ void handleTouchRelease() {
     }
 
     // unregister the note <> cell mapping
-    if (!isSwitchLegatoPressed(sensorSplit) && (!isArpeggiatorEnabled(sensorSplit) || !isSwitchLatchPressed(sensorSplit))) {
+    // the arpeggiator unregistration logic is more involved due to stale note handling
+    // inside the arpeggiator code itself
+    if (!isSwitchLegatoPressed(sensorSplit) && !isArpeggiatorEnabled(sensorSplit)) {
       noteTouchMapping[sensorSplit].noteOff(sensorCell->note, sensorCell->channel);
     }
 
     // send the Note Off
     if (isArpeggiatorEnabled(sensorSplit)) {
       if (!isSwitchLatchPressed(sensorSplit)) {
-        handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel);
+        handleArpeggiatorNoteOff(sensorSplit, sensorCell->note, sensorCell->channel, true);
       }
     }
     else {

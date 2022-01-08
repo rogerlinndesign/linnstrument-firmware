@@ -29,6 +29,12 @@ void initializeArpeggiator() {
 }
 
 void resetArpeggiatorState(byte split) {
+  // send note off event to stale note
+  if (noteTouchMapping[split].hasStaleNote()) {
+    midiSendNoteOff(split, noteTouchMapping[split].staleNote, noteTouchMapping[split].staleChannel);
+    noteTouchMapping[split].noteOff(noteTouchMapping[split].staleNote, noteTouchMapping[split].staleChannel);
+  }
+
   lastArpNote[split] = -1;
   lastArpChannel[split] = -1;
   lastArpStepOdd[split] = false;
@@ -54,7 +60,10 @@ void disableTemporaryArpeggiator() {
   turnArpeggiatorOff(sensorSplit);
 }
 
-void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
+void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel, bool handleStaleNotes) {
+  // represents whether a note should be removed from the cell mapping
+  boolean shouldRemoveMapping = true;
+
   // handle replay all differently since it plays multiple notes simultaneously
   if (Global.arpDirection == ArpReplayAll) {
     if (lastArpNote[split] != -1) {
@@ -69,21 +78,36 @@ void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
       midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
     }
   }
-  // handle single note sequences, send the note off and reset the arpeggiator state if the note off was the last played
-  else  if (lastArpNote[split] == notenum && lastArpChannel[split] == channel) {
-    midiSendNoteOff(split, getArpeggiatorNote(split, notenum), channel);
-    resetArpeggiatorState(split);
+  // handle single note sequences
+  else if (lastArpNote[split] == notenum && lastArpChannel[split] == channel) {
+    // if stale notes should be handled and we release the note that the arp is playing,
+    // then set that note as stale and defer both the midi off and the note to touch
+    // map removal until later in the arp update when the note has been turned off
+    if (handleStaleNotes) {
+      noteTouchMapping[split].setStaleNote(notenum, channel);
+      shouldRemoveMapping = false;
+    }
+    // when not handling stale notes, send the note off and reset the arpeggiator
+    // state if the note off was the last played
+    else {
+      midiSendNoteOff(split, getArpeggiatorNote(split, notenum), channel);
+      resetArpeggiatorState(split);
+    }
+  }
+
+  if (shouldRemoveMapping) {
+    noteTouchMapping[split].noteOff(notenum, channel);
   }
 
   // reset state when no notes are played at all anymore
-  if (noteTouchMapping[split].noteCount == 0) {
+  if (!noteTouchMapping[split].isAnyNotePressed()) {
     resetArpeggiatorState(split);
   }
 }
 
 void turnArpeggiatorOff(byte split) {
   sendArpeggiatorStepMidiOff(split);
-  resetArpeggiatorState( split);
+  resetArpeggiatorState(split);
 }
 
 void sendArpeggiatorStepMidiOff(byte split) {
@@ -192,7 +216,7 @@ void advanceArpeggiatorForSplit(byte split) {
   }
   // handle single note sequences
   else {
-    if (noteTouchMapping[split].noteCount > 0) {
+    if (noteTouchMapping[split].isAnyNotePressed()) {
 
       switch (Global.arpDirection) {
 
@@ -410,6 +434,13 @@ void advanceArpeggiatorForSplit(byte split) {
           }
           midiSendNoteOn(split, getArpeggiatorNote(split, arpNote), entry_cell->velocity, arpChannel);
         }
+      }
+
+      // if the note that just ended was stale, remove it from the note to touch mapping,
+      // it's important to do this after we've processed the next note for the arp,
+      // otherwise next/previous note info will be wiped out
+      if (noteTouchMapping[split].isNoteStale(lastArpNote[split], lastArpChannel[split])) {
+        noteTouchMapping[split].noteOff(lastArpNote[split], lastArpChannel[split]);
       }
 
       lastArpNote[split] = arpNote;

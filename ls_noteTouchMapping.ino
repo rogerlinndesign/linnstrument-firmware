@@ -75,6 +75,8 @@ void NoteTouchMapping::initialize() {
   firstChannel = -1;
   lastNote = -1;
   lastChannel = -1;
+  clearStaleNote();
+
   for (byte c = 0; c < 16; ++c) {
     for (byte n = 0; n < 128; ++n) {
       mapping[n][c].colRow = 0;
@@ -101,7 +103,7 @@ void NoteTouchMapping::releaseLatched(byte split) {
     TouchInfo* entry_cell = &cell(entry.getCol(), entry.getRow());
     if (entry_cell->touched != touchedCell) {
       if (isArpeggiatorEnabled(split)) {
-        handleArpeggiatorNoteOff(split, entryNote, entryChannel);
+        handleArpeggiatorNoteOff(split, entryNote, entryChannel, false);
       }
       else {
         midiSendNoteOffWithVelocity(split, entryNote, entry_cell->velocity, entryChannel);
@@ -216,6 +218,12 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte
     }
   }
 
+  // this could be a stale note where the note was released and then pressed again
+  // before the next arp advance, clear the state if so.
+  if (isNoteStale(noteNum, noteChannel)) {
+    clearStaleNote();
+  }
+
   mapping[noteNum][channel].setColRow(col, row);
 
   debugNoteChain();
@@ -273,6 +281,10 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char noteChannel) {
     mapping[noteNum][channel].nextNote = -1;
     mapping[noteNum][channel].previousNote = -1;
     mapping[noteNum][channel].nextPreviousChannel = 0;
+
+    if (isNoteStale(noteNum, noteChannel)) {
+      clearStaleNote();
+    }
   }
 
   debugNoteChain();
@@ -289,6 +301,35 @@ void NoteTouchMapping::changeCell(signed char noteNum, signed char noteChannel, 
   if (mapping[noteNum][channel].colRow != 0) {
     mapping[noteNum][channel].setColRow(col, row);
   }
+}
+
+boolean NoteTouchMapping::isAnyNotePressed() {
+  // if there's a stale note, compensate the noteCount check by ignoring that stale note
+  if (hasStaleNote()) {
+    return noteCount > 1;
+  }
+
+  return noteCount > 0;
+}
+
+void NoteTouchMapping::clearStaleNote() {
+  staleNote = -1;
+  staleChannel = 0;
+}
+
+void NoteTouchMapping::setStaleNote(signed char noteNum, signed char noteChannel) {
+  staleNote = noteNum;
+  staleChannel = noteChannel;
+}
+
+boolean NoteTouchMapping::isNoteStale(signed char noteNum, signed char noteChannel) {
+  return validNoteNumAndChannel(noteNum, noteChannel) && (staleNote == noteNum) && (staleChannel == noteChannel);
+}
+
+boolean NoteTouchMapping::hasStaleNote() {
+  // when we clear the stale note vars, we set them to an invalid note/channel. 
+  // checking for there's a stale note is simply checking for validity.
+  return validNoteNumAndChannel(staleNote, staleChannel);
 }
 
 void NoteTouchMapping::debugNoteChain() {
