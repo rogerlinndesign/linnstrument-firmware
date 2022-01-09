@@ -734,6 +734,11 @@ void applyPitchCorrectHold() {
   }
 }
 
+void setBendRange(byte split, byte bendRange) {
+  applyBendRange(Split[split], bendRange);
+  midiSendMpePitchBendRange(split);
+}
+
 void applyBendRange(SplitSettings& target, byte bendRange) {
   switch (bendRange) {
     case 2:
@@ -1048,6 +1053,7 @@ void updateSplitMidiChannels(byte sp) {
     }
   }
   preResetMidiExpression(sp);
+  midiSendMpePitchBendRange(sp);
 }
 
 byte countMpePolyphony(byte split) {
@@ -1101,13 +1107,11 @@ boolean activateMpeChannels(byte split, byte mainChannel, byte polyphony) {
 }
 
 void configureStandardMpeExpression(byte split) {
-  Split[split].bendRangeOption = bendRange24;
-  Split[split].customBendRange = 48;
   Split[split].expressionForY = timbreCC74;
   Split[split].customCCForY = 74;
   Split[split].expressionForZ = loudnessChannelPressure;
 
-  midiSendMpePitchBendRange(split);
+  setBendRange(split, 48);
 }
 
 void enableMpe(byte split, byte mainChannel, byte polyphony) {
@@ -1239,16 +1243,19 @@ void handlePerSplitSettingNewTouch() {
     case 7:
       switch (sensorRow) {
         case 7:
-          Split[Global.currentPerSplit].bendRangeOption = bendRange2;
+          setBendRange(Global.currentPerSplit, 2);
           break;
         case 6:
-          Split[Global.currentPerSplit].bendRangeOption = bendRange3;
+          setBendRange(Global.currentPerSplit, 3);
           break;
         case 5:
-          Split[Global.currentPerSplit].bendRangeOption = bendRange12;
+          setBendRange(Global.currentPerSplit, 12);
           break;
         case 4:
+          // just switch the option and don't set the bend range because
+          // otherwise we'll overwrite the existing custom range setting
           Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+          midiSendMpePitchBendRange(Global.currentPerSplit);
           break;
       }
       break;
@@ -1623,6 +1630,7 @@ void handlePerSplitSettingRelease() {
           if (ensureCellBeforeHoldWait(getBendRangeColor(Global.currentPerSplit),
                                        Split[Global.currentPerSplit].bendRangeOption == bendRange24 ? cellOn : cellOff)) {
             Split[Global.currentPerSplit].bendRangeOption = bendRange24;
+            midiSendMpePitchBendRange(Global.currentPerSplit);
           }
           break;
       }
@@ -1858,6 +1866,7 @@ void handleBendRangeNewTouch() {
 
 void handleBendRangeRelease() {
   handleNumericDataReleaseCol(true);
+  midiSendMpePitchBendRange(Global.currentPerSplit);
 }
 
 void handleLimitsForYNewTouch() {

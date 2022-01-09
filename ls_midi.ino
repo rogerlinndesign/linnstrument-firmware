@@ -505,8 +505,8 @@ void receivedRpn(byte midiChannel, int parameter, int value) {
   switch (parameter) {
     // Pitch Bend Sensitivity
     case 0:
-      applyBendRange(Split[LEFT], constrain(value >> 7, 1, 96));
-      applyBendRange(Split[RIGHT], constrain(value >> 7, 1, 96));
+      setBendRange(LEFT, constrain(value >> 7, 1, 96));
+      setBendRange(RIGHT, constrain(value >> 7, 1, 96));
       break;
     case 6:
       // support for activating MPE mode with the standard MPE message
@@ -582,7 +582,7 @@ void receivedNrpn(int parameter, int value, int channel) {
     // Split MIDI Bend Range
     case 19:
       if (inRange(value, 1, 96)) {
-        applyBendRange(Split[split], value);
+        setBendRange(split, value);
       }
       break;
     // Split Send X
@@ -2846,8 +2846,21 @@ void midiSendMpeState(byte mainChannel, byte polyphony) {
 }
 
 void midiSendMpePitchBendRange(byte split) {
-  if (Split[split].mpe && getBendRange(split) == 48) {
-    midiSendRPN(0, 48 << 7, Split[split].midiChanMain);
+  if (Split[split].mpe) {
+    unsigned short pb_sens = getBendRange(split) << 7;
+    midiSendRPN(0, pb_sens, Split[split].midiChanMain);
+
+    byte polyphony = countMpePolyphony(split);
+    if (Split[split].midiChanMain == 1) {
+      for (byte ch = 1; ch <= polyphony; ++ch) {
+        midiSendRPN(0, pb_sens, Split[split].midiChanMain + ch);
+      }
+    }
+    else if (Split[split].midiChanMain == 16) {
+      for (byte ch = 1; ch <= polyphony; ++ch) {
+        midiSendRPN(0, pb_sens, Split[split].midiChanMain - ch);
+      }
+    }
   }
 }
 
