@@ -133,13 +133,13 @@ void handleMidiInput(unsigned long nowMicros) {
         midiMessageBytes = 1;
         midiMessageIndex = 1;
 
+        sequencersTurnOff(false);
+
         midiClockStatus = midiClockOff;
         midiClockMessageCount = 0;
         lastMidiClockTime = 0;
         initialMidiClockMessageCount = 0;
         resetClockAdvancement(nowMicros);
-
-        sequencersTurnOff(false);
         break;
       case MIDISongPositionPointer:
         midiMessageBytes = 3;
