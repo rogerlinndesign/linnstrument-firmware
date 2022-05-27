@@ -505,8 +505,8 @@ void receivedRpn(byte midiChannel, int parameter, int value) {
   switch (parameter) {
     // Pitch Bend Sensitivity
     case 0:
-      setBendRange(LEFT, constrain(value >> 7, 1, 96));
-      setBendRange(RIGHT, constrain(value >> 7, 1, 96));
+      applyBendRange(Split[LEFT], constrain(value >> 7, 1, 96));
+      applyBendRange(Split[RIGHT], constrain(value >> 7, 1, 96));
       break;
     case 6:
       // support for activating MPE mode with the standard MPE message
@@ -582,7 +582,7 @@ void receivedNrpn(int parameter, int value, int channel) {
     // Split MIDI Bend Range
     case 19:
       if (inRange(value, 1, 96)) {
-        setBendRange(split, value);
+        applyBendRange(Split[split], value);
       }
       break;
     // Split Send X
