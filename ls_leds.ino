@@ -82,8 +82,84 @@ void loadCustomLedLayer(int pattern)
     return;
   }
 
-  memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
-  memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+  byte split = Global.currentPerSplit;
+  byte divider = NUMCOLS;
+  
+  divider = Global.splitPoint;
+  byte CUSTOM_LEDS_PATTERN_SPLITTESTER[LED_LAYER_SIZE];
+
+  bool RightSplitSpecial = (config.settings.split[RIGHT].ccFaders)||(config.settings.split[RIGHT].strum);
+  bool LeftSplitSpecial = (config.settings.split[LEFT].ccFaders)||(config.settings.split[LEFT].strum);
+
+  //correct over-mapping for all split conditions
+  //if the split is active or display split point is occuring...
+  if (Global.splitActive || displayMode == displaySplitPoint) 
+  {
+
+    //check to see if split is just a scale split (no special splits)
+    if ((!LeftSplitSpecial)&&(!RightSplitSpecial))
+    {
+      memcpy(&CUSTOM_LEDS_PATTERN_SPLITTESTER[0], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+      memcpy(&CUSTOM_LEDS_PATTERN_SPLITTESTER[0], &Device.customLeds[pattern][0], LED_LAYER_SIZE); 
+
+      byte splitsepcolor = 73;
+
+      //construct split column
+      for(int i=0;i<NUMROWS;i++)
+      {
+        CUSTOM_LEDS_PATTERN_SPLITTESTER[divider+i*NUMCOLS] = splitsepcolor;
+      }
+
+    } 
+    // if either of the split sides is not just the 'scale' display...
+    else
+    {
+      //copy 'transparent' customLED map into buffer
+      memcpy(&CUSTOM_LEDS_PATTERN_SPLITTESTER[0], &Device.customLeds[2][0], LED_LAYER_SIZE);
+      memcpy(&CUSTOM_LEDS_PATTERN_SPLITTESTER[0], &Device.customLeds[2][0], LED_LAYER_SIZE); 
+
+        // if the right side is a cc fader and left is not; draw the left
+        if((RightSplitSpecial)&&(!LeftSplitSpecial))
+        {
+          //load left half of custom led pattern into buffer
+          for(int i=0;i<NUMROWS;i++)
+          {
+            for(int j=1;j<divider;j++)
+            {
+              CUSTOM_LEDS_PATTERN_SPLITTESTER[j+i*NUMCOLS] = Device.customLeds[pattern][j+i*NUMCOLS];
+            }
+          }   
+        } 
+        // if the left side is a cc fader and right is not; draw the right
+        if((LeftSplitSpecial)&&(!RightSplitSpecial))
+        {
+          //load right half of custom led pattern into buffer
+          for(int i=0;i<NUMROWS;i++)
+          {
+            for(int j=divider;j<NUMCOLS;j++)
+            {
+              CUSTOM_LEDS_PATTERN_SPLITTESTER[j+i*NUMCOLS] = Device.customLeds[pattern][j+i*NUMCOLS];
+            }
+          }   
+        } 
+    }
+
+    memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &CUSTOM_LEDS_PATTERN_SPLITTESTER[0], LED_LAYER_SIZE);
+    memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &CUSTOM_LEDS_PATTERN_SPLITTESTER[0], LED_LAYER_SIZE);
+
+  } 
+  // if global split isn't activated, and current split is a cc fader
+  else if ((!Global.splitActive)&&(config.settings.split[Global.currentPerSplit].ccFaders))
+  {
+      memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[2][0], LED_LAYER_SIZE);
+      memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[2][0], LED_LAYER_SIZE); 
+  }   
+  else //draw normally (load whole custom led pattern)
+  {
+      memcpy(&leds[0][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+      memcpy(&leds[1][LED_LAYER_CUSTOM1 * LED_LAYER_SIZE], &Device.customLeds[pattern][0], LED_LAYER_SIZE);
+  }
+
   customLedPatternActive = true;
   lightSettings = 2;
   completelyRefreshLeds();
