@@ -409,6 +409,11 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
   for (byte row = 0; row < NUMROWS; ++row) {
     if (Split[split].ccFaders) {
       paintCCFaderDisplayRow(split, row, faderLeft, faderLength);
+      if (row == 0) {
+        for (byte col = leftEdge; col < rightEdge; ++col) {
+          clearLed(col, row, LED_LAYER_LOWROW);
+        }
+      }
     }
     else if (isStrummingSplit(split)) {
       for (byte col = leftEdge; col < rightEdge; ++col) {
