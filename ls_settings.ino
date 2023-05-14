@@ -500,6 +500,12 @@ void initializeMidiSettings(byte split, PresetSettings& p) {
   }
   p.split[split].midiMode = oneChannel;
   p.split[split].midiChanPerRowReversed = false;
+  p.split[split].expressionForY = timbreCC74;
+  p.split[split].customCCForY = 74;
+  p.split[split].expressionForZ = loudnessPolyPressure;
+  p.split[split].bendRangeOption = bendRange2;
+  p.split[split].customBendRange = 24;
+  p.split[split].mpe = false;
 
   // initialize values that differ between the keyboard splits
   if (split == LEFT) {
@@ -598,21 +604,16 @@ void initializePresetSettings() {
 
     // initialize all identical values in the keyboard split data
     for (byte s = 0; s < NUMSPLITS; ++s) {
-        p.split[s].bendRangeOption = bendRange2;
-        p.split[s].customBendRange = 24;
         p.split[s].sendX = true;
         p.split[s].sendY = true;
         p.split[s].sendZ = true;
         p.split[s].pitchCorrectQuantize = true;
         p.split[s].pitchCorrectHold = true;
         p.split[s].pitchResetOnRelease = false;
-        p.split[s].expressionForY = timbreCC74;
         p.split[s].minForY = 0;
         p.split[s].maxForY = 127;
-        p.split[s].customCCForY = 74;
         p.split[s].relativeY = false;
         p.split[s].initialRelativeY = 64;
-        p.split[s].expressionForZ = loudnessPolyPressure;
         p.split[s].minForZ = 0;
         p.split[s].maxForZ = 127;
         p.split[s].customCCForZ = 11;
@@ -636,7 +637,6 @@ void initializePresetSettings() {
         p.split[s].arpeggiator = false;
         p.split[s].ccFaders = false;
         p.split[s].strum = false;
-        p.split[s].mpe = false;
 
         p.split[s].sequencer = false;
     }
