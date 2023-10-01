@@ -426,11 +426,6 @@ struct NoteTouchMapping {
   boolean hasTouch(signed char, signed char);                // indicates whether there's a touch active for a particular note and channel
   inline NoteEntry* getNoteEntry(signed char, signed char);  // get the entry for a particular note and channel
   inline byte getMusicalTouchCount(signed char);             // the number of musical touches for a particular MIDI channel
-  inline boolean isAnyNotePressed();                         // true if any note is actively being pressed, accounts for stale notes that are being deferred
-  void clearStaleNote();                                     // clear the stale note, resetting it for next use
-  void setStaleNote(signed char, signed char);               // set the stale note to the designated note/channel
-  inline boolean isNoteStale(signed char, signed char);      // true if the passed in note/channel are the stale note last set
-  inline boolean hasStaleNote();                             // true if there is a valid stale note set
 
   void debugNoteChain();
 
@@ -440,13 +435,6 @@ struct NoteTouchMapping {
   signed char firstChannel;
   signed char lastNote;
   signed char lastChannel;
-
-  // When using the arp, a stale note is a note that gets released while the arp is actively playing the note. For these notes, we want to keep them in the
-  // mapping until the arp has finished playing them. Once the arp sequence turns the stale note off, it is no longer needed. It's phsyically impossible
-  // to ever have more than 1 stale note at a time on a single split.
-  signed char staleNote;
-  signed char staleChannel;
-
   NoteEntry mapping[128][16];
 };
 NoteTouchMapping noteTouchMapping[NUMSPLITS];
