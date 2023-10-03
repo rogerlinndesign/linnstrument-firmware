@@ -9,8 +9,10 @@ the actual cell that was pressed, allowing velocity to be continuously varied du
 sequence.
 ***************************************************************************************************/
      
-signed char lastArpNote[NUMSPLITS];                   // the last note played by the arpeggiator or -1 if it should be starting from scratch
-signed char lastArpChannel[NUMSPLITS];                // the last channel played by the arpeggiator or -1 if it should be starting from scratch
+signed char playingArpNote[NUMSPLITS];                // the last note played by the arpeggiator or -1 if no note is still playing
+signed char playingArpChannel[NUMSPLITS];             // the last channel played by the arpeggiator or -1 if no note is still playing
+signed char stepArpNote[NUMSPLITS];                   // the current step note of the arpeggiator or -1 if it should be starting from scratch
+signed char stepArpChannel[NUMSPLITS];                // the current step channel of the arpeggiator or -1 if it should be starting from scratch
 boolean lastArpStepOdd[NUMSPLITS];                    // indicates whether the last arpeggiator step was odd (1-based : 1, 3, 5)
 ArpeggiatorDirection arpUpDownState[NUMSPLITS];       // the state in the alternating up/down pattern
 signed char arpOctaveState[NUMSPLITS];                // the octave that is used while playing the arpeggiator sequence
@@ -23,14 +25,16 @@ void initializeArpeggiator() {
   randomSeed(analogRead(0));
 
   for (byte split = 0; split < NUMSPLITS; ++split) {
-    noteTouchMapping[split].initialize();
+    noteTouchMapping[split].initialize(split);
     resetArpeggiatorState(split);
   }
 }
 
 void resetArpeggiatorState(byte split) {
-  lastArpNote[split] = -1;
-  lastArpChannel[split] = -1;
+  playingArpNote[split] = -1;
+  playingArpChannel[split] = -1;
+  stepArpNote[split] = -1;
+  stepArpChannel[split] = -1;
   lastArpStepOdd[split] = false;
   arpUpDownState[split] = ArpUp;
   arpOctaveState[split] = 0;
@@ -57,7 +61,7 @@ void disableTemporaryArpeggiator() {
 void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
   // handle replay all differently since it plays multiple notes simultaneously
   if (Global.arpDirection == ArpReplayAll) {
-    if (lastArpNote[split] != -1) {
+    if (playingArpNote[split] != -1) {
       for (byte octave = 0; octave <= Global.arpOctave; ++octave) {
         midiSendNoteOff(split, getOctaveNote(octave, notenum), channel);
       }
@@ -70,9 +74,8 @@ void handleArpeggiatorNoteOff(byte split, byte notenum, byte channel) {
     }
   }
   // handle single note sequences, send the note off and reset the arpeggiator state if the note off was the last played
-  else  if (lastArpNote[split] == notenum && lastArpChannel[split] == channel) {
+  else if (playingArpNote[split] == notenum && playingArpChannel[split] == channel) {
     midiSendNoteOff(split, getArpeggiatorNote(split, notenum), channel);
-    resetArpeggiatorState(split);
   }
 
   // reset state when no notes are played at all anymore
@@ -87,7 +90,7 @@ void turnArpeggiatorOff(byte split) {
 }
 
 void sendArpeggiatorStepMidiOff(byte split) {
-  if (lastArpNote[split] != -1) {
+  if (playingArpNote[split] != -1) {
     if (Global.arpDirection == ArpReplayAll) {
       if (noteTouchMapping[split].noteCount > 0) {
         signed char arpNote = noteTouchMapping[split].firstNote;
@@ -110,7 +113,7 @@ void sendArpeggiatorStepMidiOff(byte split) {
       }
     }
     else {
-      midiSendNoteOff(split, getArpeggiatorNote(split, lastArpNote[split]), lastArpChannel[split]);
+      midiSendNoteOff(split, getArpeggiatorNote(split, playingArpNote[split]), playingArpChannel[split]);
     }
   }
 }
@@ -181,13 +184,17 @@ void advanceArpeggiatorForSplit(byte split) {
         }
       }
 
-      lastArpNote[split] = noteTouchMapping[split].firstNote;
-      lastArpChannel[split] = noteTouchMapping[split].firstChannel;
+      playingArpNote[split] = noteTouchMapping[split].firstNote;
+      playingArpChannel[split] = noteTouchMapping[split].firstChannel;
+      stepArpNote[split] = playingArpNote[split];
+      stepArpChannel[split] = playingArpChannel[split];
       lastArpStepOdd[split] = !lastArpStepOdd[split];
     }
     else {
-      lastArpNote[split] = -1;
-      lastArpChannel[split] = -1;
+      playingArpNote[split] = -1;
+      playingArpChannel[split] = -1;
+      stepArpNote[split] = -1;
+      stepArpChannel[split] = -1;
     }
   }
   // handle single note sequences
@@ -199,18 +206,18 @@ void advanceArpeggiatorForSplit(byte split) {
         // sequence steps upwards
         case ArpUp:
         {
-          if (lastArpNote[split] == -1) {
+          if (stepArpNote[split] == -1) {
             arpNote = noteTouchMapping[split].firstNote;
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
-            if (lastEntry == NULL) {
+            NoteEntry* stepEntry = noteTouchMapping[split].getNoteEntry(stepArpNote[split], stepArpChannel[split]);
+            if (stepEntry == NULL) {
               arpNote = -1;
             }
             else {
-              arpNote = lastEntry->getNextNote();
-              arpChannel = lastEntry->getNextChannel();
+              arpNote = stepEntry->getNextNote();
+              arpChannel = stepEntry->getNextChannel();
             }
 
             // start again from the beginning
@@ -228,18 +235,18 @@ void advanceArpeggiatorForSplit(byte split) {
         // sequence steps downwards
         case ArpDown:
         {
-          if (lastArpNote[split] == -1) {
+          if (stepArpNote[split] == -1) {
             arpNote = noteTouchMapping[split].lastNote;
             arpChannel = noteTouchMapping[split].lastChannel;
           }
           else {
-            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
-            if (lastEntry == NULL) {
+            NoteEntry* stepEntry = noteTouchMapping[split].getNoteEntry(stepArpNote[split], stepArpChannel[split]);
+            if (stepEntry == NULL) {
               arpNote = -1;
             }
             else {
-              arpNote = lastEntry->getPreviousNote();
-              arpChannel = lastEntry->getPreviousChannel();
+              arpNote = stepEntry->getPreviousNote();
+              arpChannel = stepEntry->getPreviousChannel();
             }
 
             // start again from the end
@@ -257,24 +264,24 @@ void advanceArpeggiatorForSplit(byte split) {
         // sequence steps alternativing upwards and downwards
         case ArpUpDown:
         {
-          if (lastArpNote[split] == -1) {
+          if (stepArpNote[split] == -1) {
             arpUpDownState[split] = ArpUp;
             arpNote = noteTouchMapping[split].firstNote;
             arpChannel = noteTouchMapping[split].firstChannel;
           }
           else {
-            NoteEntry* lastEntry = noteTouchMapping[split].getNoteEntry(lastArpNote[split], lastArpChannel[split]);
-            if (lastEntry == NULL) {
+            NoteEntry* stepEntry = noteTouchMapping[split].getNoteEntry(stepArpNote[split], stepArpChannel[split]);
+            if (stepEntry == NULL) {
               arpNote = -1;
             }
             else {
               if (arpUpDownState[split] == ArpDown) {
-                arpNote = lastEntry->getPreviousNote();
-                arpChannel = lastEntry->getPreviousChannel();
+                arpNote = stepEntry->getPreviousNote();
+                arpChannel = stepEntry->getPreviousChannel();
               }
               else {
-                arpNote = lastEntry->getNextNote();
-                arpChannel = lastEntry->getNextChannel();
+                arpNote = stepEntry->getNextNote();
+                arpChannel = stepEntry->getNextChannel();
               }
             }
 
@@ -326,6 +333,10 @@ void advanceArpeggiatorForSplit(byte split) {
                     if (entry == NULL) {
                       arpNote = -1;
                     }
+                    else if (stepEntry == NULL || !stepEntry->hasTouch()) {
+                      arpNote = noteTouchMapping[split].lastNote;
+                      arpChannel = noteTouchMapping[split].lastChannel;
+                    }
                     else {
                       arpNote = entry->getPreviousNote();
                       arpChannel = entry->getPreviousChannel();
@@ -344,6 +355,10 @@ void advanceArpeggiatorForSplit(byte split) {
                     NoteEntry* entry = noteTouchMapping[split].getNoteEntry(noteTouchMapping[split].firstNote, noteTouchMapping[split].firstChannel);
                     if (entry == NULL) {
                       arpNote = -1;
+                    }
+                    else if (stepEntry == NULL || !stepEntry->hasTouch()) {
+                      arpNote = noteTouchMapping[split].firstNote;
+                      arpChannel = noteTouchMapping[split].firstChannel;
                     }
                     else {
                       arpNote = entry->getNextNote();
@@ -389,7 +404,7 @@ void advanceArpeggiatorForSplit(byte split) {
 
       if (arpNote != -1) {
         // if this is the first step in a new sequence, this will be an odd step (starting at one)
-        if (lastArpNote[split] == -1) {
+        if (stepArpNote[split] == -1) {
           lastArpStepOdd[split] = true;
         }
         else {
@@ -400,6 +415,7 @@ void advanceArpeggiatorForSplit(byte split) {
         NoteEntry* entry = noteTouchMapping[split].getNoteEntry(arpNote, arpChannel);
         if (entry == NULL) {
           arpNote = -1;
+          arpChannel = -1;
         }
         else {
           // after the initial velocity, new velocity values are continuously being calculated simply based
@@ -412,8 +428,10 @@ void advanceArpeggiatorForSplit(byte split) {
         }
       }
 
-      lastArpNote[split] = arpNote;
-      lastArpChannel[split] = arpChannel;
+      playingArpNote[split] = arpNote;
+      playingArpChannel[split] = arpChannel;
+      stepArpNote[split] = arpNote;
+      stepArpChannel[split] = arpChannel;
     }
   }
 }

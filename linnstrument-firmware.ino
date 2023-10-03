@@ -409,6 +409,7 @@ struct NoteEntry {
   inline void setColRow(byte, byte);
   inline byte getCol();
   inline byte getRow();
+  inline boolean hasTouch();
 
   inline byte getNextNote();
   inline byte getNextChannel();
@@ -418,8 +419,8 @@ struct NoteEntry {
   inline void setPreviousChannel(byte);
 };
 struct NoteTouchMapping {
-  void initialize();                                         // initialize the mapping data
-  void releaseLatched(byte split);                           // release all the note mappings that are latched and have no real active touch
+  void initialize(byte mappedSplit);                         // initialize the mapping data
+  void releaseLatched();                                     // release all the note mappings that are latched and have no real active touch
   void noteOn(signed char, signed char, byte, byte);         // register the cell for which a note was turned on
   void noteOff(signed char, signed char);                    // turn off a note
   void changeCell(signed char, signed char, byte, byte);     // changes the cell of an active note
@@ -429,6 +430,7 @@ struct NoteTouchMapping {
 
   void debugNoteChain();
 
+  unsigned char split;
   unsigned short noteCount;
   byte musicalTouchCount[16];
   signed char firstNote;

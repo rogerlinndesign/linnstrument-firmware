@@ -13,8 +13,8 @@ iteration to constitute the arpeggiated sequence.
 void resetAllTouches() {
   midiSendNoteOffForAllTouches(LEFT);
   midiSendNoteOffForAllTouches(RIGHT);
-  noteTouchMapping[LEFT].initialize();
-  noteTouchMapping[RIGHT].initialize();
+  noteTouchMapping[LEFT].initialize(LEFT);
+  noteTouchMapping[RIGHT].initialize(RIGHT);
 }
 
 boolean validNoteNumAndChannel(signed char noteNum, signed char noteChannel) {
@@ -45,6 +45,10 @@ inline byte NoteEntry::getRow() {
   return (colRow & B11100000) >> 5;
 }
 
+inline boolean NoteEntry::hasTouch() {
+  return colRow != 0;
+}
+
 inline byte NoteEntry::getNextNote() {
   return nextNote;
 }
@@ -69,7 +73,8 @@ inline byte NoteEntry::getPreviousChannel() {
   return (nextPreviousChannel & B00001111) + 1;
 }
 
-void NoteTouchMapping::initialize() {
+void NoteTouchMapping::initialize(byte mappedSplit) {
+  split = mappedSplit;
   noteCount = 0;
   firstNote = -1;
   firstChannel = -1;
@@ -90,7 +95,7 @@ void NoteTouchMapping::initialize() {
   performContinuousTasks();
 }
 
-void NoteTouchMapping::releaseLatched(byte split) {
+void NoteTouchMapping::releaseLatched() {
   signed char entryNote = firstNote;
   signed char entryChannel = firstChannel;
   while (entryNote != -1) {
@@ -148,7 +153,7 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte
 
   musicalTouchCount[channel] += 1;
 
-  if (mapping[noteNum][channel].colRow == 0) {
+  if (!mapping[noteNum][channel].hasTouch()) {
     noteCount++;
 
     // no notes are in the chain yet, add this one as the first note
@@ -218,6 +223,14 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte
 
   mapping[noteNum][channel].setColRow(col, row);
 
+  // this note on is the same as the currently playing note, restore the arp step to this note
+  if (!isSwitchLegatoPressed(split) && !isSwitchLatchPressed(split)) {
+    if (playingArpNote[split] == noteNum && playingArpChannel[split] == noteChannel) {
+      stepArpNote[split] = noteNum;
+      stepArpChannel[split] = noteChannel;
+    }
+  }
+
   debugNoteChain();
 }
 
@@ -256,6 +269,27 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char noteChannel) {
       signed char prevChannel = mapping[noteNum][channel].getPreviousChannel();
       signed char nxtNote = mapping[noteNum][channel].nextNote;
       signed char nxtChannel = mapping[noteNum][channel].getNextChannel();
+      
+      // verify if the removed note entry is the current active arp step, if that's
+      // the case, update the step so that linked chain of notes is not interrupted
+      if (!isSwitchLegatoPressed(split) && !isSwitchLatchPressed(split)) {
+        if (stepArpNote[split] == noteNum && stepArpChannel[split] == noteChannel) {
+          // when the arp is going up, update the step with the previous note entry,
+          // however when it's in up/down mode, don't do this when the last note is reached
+          // otherwise the arp will skip a note
+          if (Global.arpDirection == ArpUp || (Global.arpDirection == ArpUpDown && arpUpDownState[split] == ArpUp && (noteNum != lastNote || noteChannel != lastChannel))) {
+            stepArpNote[split] = prevNote;
+            stepArpChannel[split] = prevChannel;
+          }
+          // when the arp is going down, update the step with the next note entry
+          else if (Global.arpDirection == ArpDown || (Global.arpDirection == ArpUpDown && arpUpDownState[split] == ArpDown)) {
+            stepArpNote[split] = nxtNote;
+            stepArpChannel[split] = nxtChannel;
+          }
+        }
+      }
+
+      // update the next and previous entries
       mapping[prevNote][prevChannel - 1].nextNote = nxtNote;
       mapping[prevNote][prevChannel - 1].setNextChannel(nxtChannel);
       if (nxtNote == -1) {
@@ -286,7 +320,7 @@ void NoteTouchMapping::changeCell(signed char noteNum, signed char noteChannel, 
   // offset the channel for a 0-based arrays
   signed char channel = noteChannel - 1;
 
-  if (mapping[noteNum][channel].colRow != 0) {
+  if (mapping[noteNum][channel].hasTouch()) {
     mapping[noteNum][channel].setColRow(col, row);
   }
 }

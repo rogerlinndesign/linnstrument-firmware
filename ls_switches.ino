@@ -384,7 +384,7 @@ void performSwitchAssignmentOff(byte whichSwitch, byte assignment, byte split) {
 
     case ASSIGNED_LEGATO:
     case ASSIGNED_LATCH:
-      noteTouchMapping[split].releaseLatched(split);
+      noteTouchMapping[split].releaseLatched();
       break;
 
     case ASSIGNED_REVERSE_PITCH_X:

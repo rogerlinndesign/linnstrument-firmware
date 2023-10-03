@@ -1032,7 +1032,7 @@ boolean handleXYZupdate() {
         // when the legato switch is pressed and this is the only new touch in the split,
         // release all the latched notes after the new note on message
         if (isSwitchLegatoPressed(sensorSplit) && !hasOtherTouchInSplit(sensorSplit)) {
-          noteTouchMapping[sensorSplit].releaseLatched(sensorSplit);
+          noteTouchMapping[sensorSplit].releaseLatched();
         }
       }
 
