@@ -96,6 +96,9 @@ void NoteTouchMapping::initialize(byte mappedSplit) {
 }
 
 void NoteTouchMapping::releaseLatched() {
+  DEBUGPRINT((1,"releaseLatched"));
+  DEBUGPRINT((1,"\n"));
+
   signed char entryNote = firstNote;
   signed char entryChannel = firstChannel;
   while (entryNote != -1) {
@@ -104,7 +107,7 @@ void NoteTouchMapping::releaseLatched() {
     signed char nextChannel = entry.getNextChannel();
 
     TouchInfo* entry_cell = &cell(entry.getCol(), entry.getRow());
-    if (entry_cell->touched != touchedCell) {
+    if (entry_cell->touched != touchedCell || entry_cell->note != entryNote || entry_cell->channel != entryChannel) {
       if (isArpeggiatorEnabled(split)) {
         handleArpeggiatorNoteOff(split, entryNote, entryChannel);
       }
@@ -207,7 +210,7 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte
           lastNote = noteNum;
           lastChannel = noteChannel;
           mapping[noteNum][channel].nextNote = -1;
-          mapping[noteNum][channel].setNextChannel(1);
+          mapping[noteNum][channel].setNextChannel(0);
           mapping[noteNum][channel].previousNote = entryNote;
           mapping[noteNum][channel].setPreviousChannel(entryChannel);
           entry.nextNote = noteNum;
@@ -230,6 +233,11 @@ void NoteTouchMapping::noteOn(signed char noteNum, signed char noteChannel, byte
       stepArpChannel[split] = noteChannel;
     }
   }
+
+  DEBUGPRINT((1,"noteOn"));
+  DEBUGPRINT((1," noteNum="));DEBUGPRINT((1,(int)noteNum));
+  DEBUGPRINT((1," noteChannel="));DEBUGPRINT((1,(int)noteChannel));
+  DEBUGPRINT((1,"\n"));
 
   debugNoteChain();
 }
@@ -259,7 +267,7 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char noteChannel) {
       }
       else {
         mapping[firstNote][firstChannel - 1].previousNote = -1;
-        mapping[firstNote][firstChannel - 1].setPreviousChannel(1);
+        mapping[firstNote][firstChannel - 1].setPreviousChannel(0);
       }
     }
     // simply remove this note entry from the chain by pointing the previous and
@@ -309,6 +317,11 @@ void NoteTouchMapping::noteOff(signed char noteNum, signed char noteChannel) {
     mapping[noteNum][channel].nextPreviousChannel = 0;
   }
 
+  DEBUGPRINT((1,"noteOff"));
+  DEBUGPRINT((1," noteNum="));DEBUGPRINT((1,(int)noteNum));
+  DEBUGPRINT((1," noteChannel="));DEBUGPRINT((1,(int)noteChannel));
+  DEBUGPRINT((1,"\n"));
+
   debugNoteChain();
 }
 
@@ -337,15 +350,19 @@ void NoteTouchMapping::debugNoteChain() {
     signed char entryNote = firstNote;
     signed char entryChannel = firstChannel;
     while (entryNote != -1) {
-      NoteEntry& entry = mapping[entryNote][entryChannel];
+      NoteEntry& entry = mapping[entryNote][entryChannel-1];
 
       DEBUGPRINT((1," note="));DEBUGPRINT((1,entryNote));
       DEBUGPRINT((1," channel="));DEBUGPRINT((1,entryChannel));
       DEBUGPRINT((1," col="));DEBUGPRINT((1,entry.getCol()));
       DEBUGPRINT((1," row="));DEBUGPRINT((1,entry.getRow()));
-      DEBUGPRINT((1," previous="));DEBUGPRINT((1,entry.previousNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getPreviousChannel()));
-      DEBUGPRINT((1," next="));DEBUGPRINT((1,entry.nextNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getNextChannel()));
+      DEBUGPRINT((1," previous="));DEBUGPRINT((1,(int)entry.previousNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getPreviousChannel()));
+      DEBUGPRINT((1," next="));DEBUGPRINT((1,(int)entry.nextNote));DEBUGPRINT((1,","));DEBUGPRINT((1,entry.getNextChannel()));
       DEBUGPRINT((1,"\n"));
+      if (entry.nextNote == entryNote && entry.getNextChannel() == entryChannel) {
+        DEBUGPRINT((1," INFINITE LOOP\n"));
+        break;
+      }
       entryNote = entry.nextNote;
       entryChannel = entry.getNextChannel();
     }  
