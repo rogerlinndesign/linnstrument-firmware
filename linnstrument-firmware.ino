@@ -2,36 +2,25 @@
 ======================================== LinnStrument Operating System v2.3.4 =========================================
 =======================================================================================================================
 
-Operating System for the LinnStrument (c) music controller by Roger Linn Design (www.rogerlinndesign.com).
+Operating System for the LinnStrument (c) music controller by
+Roger Linn Design (https://www.rogerlinndesign.com).
 
-Written by Roger Linn and Geert Bevin (http://gbevin.com) with significant help by Tim Thompson (http://timthompson.com).
+Written by Roger Linn and Geert Bevin (https://www.uwyn.com) with significant
+help by Tim Thompson (https://timthompson.com).
 
-LinnStrument Operating System is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License,
-viewable at <http://creativecommons.org/licenses/by-sa/3.0/>.
+Copyright 2023 Roger Linn Design (https://www.rogerlinndesign.com)
 
-You are free:
-1) to Share — to copy, distribute and transmit the work
-2) to Remix — to adapt the work
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Under the following conditions:
-1) Attribution — You must attribute the work in the manner specified by the author or licensor
-(but not in any way that suggests that they endorse you or your use of the work).
-2) Noncommercial — You may not use this work for commercial purposes.
-3) Share Alike — If you alter, transform, or build upon this work, you may distribute the resulting work
-only under the same or similar license to this one.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-With the understanding that:
-1) Waiver — Any of the above conditions can be waived if you get permission from the copyright holder.
-2) Public Domain — Where the work or any of its elements is in the public domain under applicable law,
-that status is in no way affected by the license.
-3) Other Rights — In no way are any of the following rights affected by the license:
-      a) Your fair dealing or fair use rights, or other applicable copyright exceptions and limitations;
-      b) The author's moral rights;
-      c) Rights other persons may have either in the work itself or in how the work is used, such as
-      publicity or privacy rights.
-
-Notice — For any reuse or distribution, you must make clear to others the license terms of this work.
-The best way to do this is with a link to http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 For any questions about this, contact Roger Linn Design at support@rogerlinndesign.com.
 
