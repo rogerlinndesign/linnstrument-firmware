@@ -98,7 +98,7 @@ NRPN   Value   Description
 32     0-6     Split Left Color Played (see color value table below)
 33     1-6     Split Left Color LowRow (see color value table below)
 34     0-7     Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
+35     0-4     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
 36     0-10    Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
@@ -165,7 +165,7 @@ NRPN   Value   Description
 132    0-6     Split Right Color Played (see color value table below)
 133    1-6     Split Right Color LowRow (see color value table below)
 134    0-7     Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer
+135    0-4     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer
 136    0-10    Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
