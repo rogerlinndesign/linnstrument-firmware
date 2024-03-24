@@ -98,7 +98,7 @@ NRPN   Value   Description
 32     0-6     Split Left Color Played (see color value table below)
 33     1-6     Split Left Color LowRow (see color value table below)
 34     0-7     Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-35     0-3     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
+35     0-4     Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
 36     0-10    Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 37     0-14    Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 38     0-14    Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
@@ -124,7 +124,7 @@ NRPN   Value   Description
 58     0-1     Split Left CC Value For Z in 14-bit
 59     0-127   Split Left Initial Value For Relative Y
 60     0-1     Split Left Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
-61     0-11    Split Left Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+61     0-14    Split Left Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
 62     1       Split Left Sequencer Toggle Play
 63     1       Split Left Sequencer Previous Pattern
 64     1       Split Left Sequencer Next Pattern
@@ -152,20 +152,20 @@ NRPN   Value   Description
 119    1-96    Split Right MIDI Bend Range
 120    0-1     Split Right Send X (0: Off, 1: On)
 121    0-1     Split Right Pitch Quantize (0: Off, 1: On)
-122    0-1     Split Right Pitch Quantize Hold (0: Off, 1: Medium, 2: Fast, 3: Slow)
+122    0-3     Split Right Pitch Quantize Hold (0: Off, 1: Medium, 2: Fast, 3: Slow)
 123    0-1     Split Right Pitch Reset On Release (unprinted parameter, 0: Off, 1: On)
 124    0-1     Split Right Send Y (0: Off, 1: On)
 125    0-127   Split Right MIDI CC For Y (CC 1 or CC 74 are recommended, any CC is possible though)
 126    0-1     Split Right Relative Y (0: Off, 1: On)
 127    0-1     Split Right Send Z (0: Off, 1: On)
-128    0-2     Split Right MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #129) 
+128    0-2     Split Right MIDI Expression For Z (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #129)
 129    0-127   Split Right MIDI CC For Z (CC 11 is recommended, any CC is possible though)
 130    1-6     Split Right Color Main (see color value table below)
 131    1-6     Split Right Color Accent (see color value table below)
 132    0-6     Split Right Color Played (see color value table below)
 133    1-6     Split Right Color LowRow (see color value table below)
 134    0-7     Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
-135    0-1     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer
+135    0-4     Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
 136    0-10    Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 137    0-14    Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 138    0-14    Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
@@ -191,7 +191,7 @@ NRPN   Value   Description
 158    0-1     Split Right CC Value For Z in 14-bit
 159    0-127   Split Right Initial Value For Relative Y
 160    0-1     Split Right Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
-161    0-11    Split Right Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+161    0-14    Split Right Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
 162    1       Split Right Sequencer Toggle Play
 163    1       Split Right Sequencer Previous Pattern
 164    1       Split Right Sequencer Next Pattern
@@ -225,10 +225,10 @@ NRPN   Value   Description
 225    0-1     Global Accent Note Light A# (0: Off, 1: On)
 226    0-1     Global Accent Note Light B (0: Off, 1: On)
 227    0-13    Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar, 127: 0 offset)
-228    0-5     Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
-229    0-5     Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
-230    0-5     Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
-231    0-5     Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
+228    0-17    Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
+229    0-17    Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
+230    0-17    Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
+231    0-17    Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, 17: Sequencer Mute)
 232    0-3     Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
 233    0-2     Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
 234    0-1     Device MIDI I/O (0: MIDI Jacks, 1: USB)
