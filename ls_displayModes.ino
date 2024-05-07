@@ -1768,7 +1768,7 @@ void paintGlobalSettingsDisplay() {
     byte color = Split[LEFT].colorMain;
     char str[4];
     const char* format = "%3d";
-    snprintf(str, sizeof(str), format, (byte)FXD4_TO_INT(fxd4CurrentTempo));
+    snprintf(str, sizeof(str), format, FXD4_TO_INT(fxd4CurrentTempo));
     tinyfont_draw_string(0, 4, str, color);
   }
 
