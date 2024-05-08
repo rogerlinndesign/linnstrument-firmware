@@ -166,7 +166,11 @@ inline unsigned short readZ() {                       // returns the raw Z value
 
   short rawZ;
 
-  if (controlModeActive) {
+  rawZ = 4095 - spiAnalogRead();
+
+  if (rawZ < 10) {
+    // just proceed - a very low value rarely settles high
+  } else if (controlModeActive) {
     delayUsec(READZ_DELAY_CONTROLMODE);
 
     // read raw Z value and invert it from (4095 - 0) to (0-4095)
