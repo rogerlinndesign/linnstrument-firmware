@@ -11,7 +11,7 @@ API to control LEDs for user feedback of the custom functionalities through MIDI
 Activating User Firmware Mode
 =============================
 
-User Mode can be activated by sending LinnStrument the value 1 for MIDI NRPN 245 on any MIDI channel, sending value 0
+User Mode can be activated by sending LinnStrument the value 1 for MIDI [NRPN](https://en.wikipedia.org/wiki/NRPN) 245 on any MIDI channel, sending value 0
 will turn it off. When User Mode is active, all standard firmware features will be disabled and all LEDs will be turned
 off, except for the Global Settings panel. This panel will only have settings available for Velocity Sensitivity,
 Pressure Sensitivity, MIDI I/O and Actions, the others will be disabled. When the Global Settings panel is active, no
