@@ -101,6 +101,7 @@ void updateDisplay() {
     case displayNormal:
     case displaySplitPoint:
       if (!controlModeActive) {
+        loadCustomLedLayer(getActiveCustomLedPattern());
         paintNormalDisplay();
       }
       break;
