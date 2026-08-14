@@ -156,6 +156,9 @@ void updateDisplay() {
     case displayCCForFader:
       paintCCForFaderDisplay(Global.currentPerSplit);
       break;
+    case displayKeyswitchNotes:
+      paintKeyswitchNotesDisplay(Global.currentPerSplit);
+      break;
     case displayLowRowBendConfig:
       paintLowRowBendConfigDisplay(Global.currentPerSplit);
       break;
@@ -188,6 +191,12 @@ void updateDisplay() {
       break;
     case displaySensorLoZ:
       paintSensorLoZDisplay();
+      break;
+    case displayVelocityBlendHoldMs:
+      paintVelocityBlendHoldMsDisplay();
+      break;
+    case displayLegatoFadePauseMs:
+      paintLegatoFadePauseDisplay();
       break;
     case displaySensorFeatherZ:
       paintSensorFeatherZDisplay();
@@ -421,6 +430,18 @@ void paintOctaveTransposeLed() {
 void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
   if (userFirmwareActive) return;
 
+  // when the keyswitch column is enabled, the leftmost column of a keys split is reserved
+  byte playLeft = leftEdge;
+  boolean hasKSColumn = Global.keyswitchColumnEnabled &&
+                        !Split[split].ccFaders &&
+                        !Split[split].sequencer;
+  if (hasKSColumn) {
+    for (byte row = 0; row < NUMROWS; ++row) {
+      setLed(leftEdge, row, COLOR_PINK, cellDim);
+    }
+    playLeft = leftEdge + 1;
+  }
+
   byte faderLeft, faderLength;
   determineFaderBoundaries(split, faderLeft, faderLength);
 
@@ -428,18 +449,18 @@ void paintNormalDisplaySplit(byte split, byte leftEdge, byte rightEdge) {
     if (Split[split].ccFaders) {
       paintCCFaderDisplayRow(split, row, faderLeft, faderLength);
       if (row == 0) {
-        for (byte col = leftEdge; col < rightEdge; ++col) {
+        for (byte col = playLeft; col < rightEdge; ++col) {
           clearLed(col, row, LED_LAYER_LOWROW);
         }
       }
     }
     else if (isStrummingSplit(split)) {
-      for (byte col = leftEdge; col < rightEdge; ++col) {
+      for (byte col = playLeft; col < rightEdge; ++col) {
         paintStrumDisplayCell(split, col, row);
       }
     }
     else {
-      for (byte col = leftEdge; col < rightEdge; ++col) {
+      for (byte col = playLeft; col < rightEdge; ++col) {
         paintNormalDisplayCell(split, col, row);
       }
 
@@ -770,6 +791,9 @@ void paintPerSplitDisplay(byte side) {
       break;
     case lowRowCCXYZ:
       setLed(13, 4, getLowRowCCXYZColor(side), cellOn);
+      if (Split[side].lowRowXYZAbsoluteX) {
+        setLed(13, 3, COLOR_CYAN, cellOn);
+      }
       break;
   }
 
@@ -781,6 +805,10 @@ void paintPerSplitDisplay(byte side) {
   // set CC faders
   if (Split[side].ccFaders)  {
     setLed(14, 6, getCCFadersColor(side), cellOn);
+    // single-column fader source: lit = Y axis, dark = Z axis (pressure)
+    if (Split[side].faderSingleColumnUseY) {
+      lightLed(14, 3);
+    }
   }
 
   // set strum
@@ -791,6 +819,14 @@ void paintPerSplitDisplay(byte side) {
   // set sequencer
   if (Split[side].sequencer)  {
     setLed(14, 4, Split[side].colorMain, cellOn);
+  }
+
+  // show keyswitch notes config entry point (col 15) when KS column is enabled
+  if (Global.keyswitchColumnEnabled && !Split[side].ccFaders) {
+    for (byte r = 0; r < NUMROWS; ++r) {
+      setLed(15, r, COLOR_PINK, cellSlowPulse);
+    }
+    setLed(15, currentEditedKSNote[side], COLOR_PINK, cellOn);
   }
 
   // set "show split" led
@@ -1066,6 +1102,15 @@ void paintCCForFaderDisplay(byte side) {
   else {
     paintSplitNumericDataDisplay(side, cc, 0, false);
   }
+}
+
+void paintKeyswitchNotesDisplay(byte side) {
+  clearDisplay();
+  for (byte r = 0; r < NUMROWS; ++r) {
+    setLed(NUMCOLS-1, r, COLOR_PINK, cellOn);
+  }
+  setLed(NUMCOLS-1, currentEditedKSNote[side], COLOR_WHITE, cellOn);
+  paintSplitNumericDataDisplay(side, Split[side].keyswitchNotes[currentEditedKSNote[side]], 0, false);
 }
 
 void paintPlayedTouchModeDisplay(byte side) {
@@ -1367,6 +1412,16 @@ void paintSensorSensitivityZDisplay() {
     clearRow(row);
   }
   paintNumericDataDisplay(globalColor, Device.sensorSensitivityZ, 0, false);
+}
+
+void paintVelocityBlendHoldMsDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(COLOR_YELLOW, Global.velocityBlendHoldMs, 0, false);
+}
+
+void paintLegatoFadePauseDisplay() {
+  clearDisplay();
+  paintNumericDataDisplay(COLOR_CYAN, Global.legatoFadePauseMs, 0, false);
 }
 
 void paintSensorLoZDisplay() {
@@ -1847,6 +1902,23 @@ void paintGlobalSettingsDisplay() {
     }
     else if (Global.arpOctave == 2) {
       lightLed(14, 1);
+    }
+
+    // show pressure mode (col 14, row 2): off = dark, legato = cyan, velocity blend = yellow
+    if (Global.pressureMode == pressureModeLegatoFade) {
+      setLed(14, 2, COLOR_CYAN, cellOn);
+    } else if (Global.pressureMode == pressureModeVelocityBlend) {
+      setLed(14, 2, COLOR_YELLOW, cellOn);
+    }
+
+    // show low row slide fix (col 17, row 0) — LinnStrument 200 only
+    if (Global.lowRowSlideFix) {
+      lightLed(17, 0);
+    }
+
+    // show keyswitch column enabled (col 17, row 1)
+    if (Global.keyswitchColumnEnabled) {
+      setLed(17, 1, COLOR_PINK, cellOn);
     }
 
     paintGlobalSettingsFlashTempo(micros());
