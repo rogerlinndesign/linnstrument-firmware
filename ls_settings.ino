@@ -570,6 +570,12 @@ void initializePresetSettings() {
     g.valueForFixedVelocity = DEFAULT_FIXED_VELOCITY;
     g.pressureSensitivity = pressureMedium;
     g.pressureAftertouch = false;
+    g.pressureMode = pressureModeNormal;
+    g.velocityBlendHoldMs = 10;
+    g.velocityBlendFadeMs = 10;
+    g.legatoFadePauseMs = 10;
+    g.lowRowSlideFix = false;
+    g.keyswitchColumnEnabled = false;
     g.midiIO = 1;      // set to 1 for USB jacks (not MIDI jacks)
 
     // initialize switch settings
@@ -639,6 +645,7 @@ void initializePresetSettings() {
         p.split[s].lowRowCCXBehavior = lowRowCCHold;
         p.split[s].ccForLowRow = 1;
         p.split[s].lowRowCCXYZBehavior = lowRowCCHold;
+        p.split[s].lowRowXYZAbsoluteX = false;
         p.split[s].ccForLowRowX = 16;
         p.split[s].ccForLowRowY = 17;
         p.split[s].ccForLowRowZ = 18;
@@ -719,6 +726,11 @@ void initializePresetSettings() {
     }
     ccFaderValues[s][7] = 63;
     currentEditedCCFader[s] = 0;
+    currentEditedKSNote[s] = 0;
+    Split[s].faderSingleColumnUseY = false;
+    for (byte r = 0; r < NUMROWS; ++r) {
+      Split[s].keyswitchNotes[r] = r;  // default to notes 0-7
+    }
     midiPreset[0] = 0;
     arpTempoDelta[s] = 0;
     splitChannels[s].clear();
@@ -1443,6 +1455,12 @@ void handlePerSplitSettingNewTouch() {
             setSplitSequencerEnabled(Global.currentPerSplit, false);
           }
           break;
+        case 3:
+          // toggle single-column fader source: Z (pressure) vs Y axis
+          if (Split[Global.currentPerSplit].ccFaders) {
+            Split[Global.currentPerSplit].faderSingleColumnUseY = !Split[Global.currentPerSplit].faderSingleColumnUseY;
+          }
+          break;
         case 4:
           setSplitSequencerEnabled(Global.currentPerSplit, !Split[Global.currentPerSplit].sequencer);
           Global.splitActive = false;
@@ -1641,6 +1659,10 @@ void handlePerSplitSettingHold() {
             setDisplayMode(displayLowRowCCXYZConfig);
             updateDisplay();
             break;
+          case 3:
+            Split[Global.currentPerSplit].lowRowXYZAbsoluteX = !Split[Global.currentPerSplit].lowRowXYZAbsoluteX;
+            updateDisplay();
+            break;
         }
         break;
 
@@ -1650,6 +1672,18 @@ void handlePerSplitSettingHold() {
             resetNumericDataChange();
             setDisplayMode(displayCCForFader);
             updateDisplay();
+            break;
+        }
+        break;
+
+      case 15:
+        switch (sensorRow) {
+          case 7:
+            if (Global.keyswitchColumnEnabled && !Split[Global.currentPerSplit].ccFaders) {
+              resetNumericDataChange();
+              setDisplayMode(displayKeyswitchNotes);
+              updateDisplay();
+            }
             break;
         }
         break;
@@ -1999,6 +2033,23 @@ void handleCCForFaderRelease() {
   }
 }
 
+void handleKeyswitchNotesNewTouch() {
+  if (sensorCol == NUMCOLS-1) {
+    currentEditedKSNote[Global.currentPerSplit] = sensorRow;
+    updateDisplay();
+  }
+  else {
+    byte current = currentEditedKSNote[Global.currentPerSplit];
+    handleNumericDataNewTouchCol(Split[Global.currentPerSplit].keyswitchNotes[current], 0, 127, false);
+  }
+}
+
+void handleKeyswitchNotesRelease() {
+  if (sensorCol < NUMCOLS-1) {
+    handleNumericDataReleaseCol(true);
+  }
+}
+
 void handleLowRowBendConfigNewTouch() {
   handleNumericDataNewTouchCol(Split[Global.currentPerSplit].lowRowBendBehavior, 0, 1, false);
 }
@@ -2208,6 +2259,22 @@ void handleSensorSensitivityZRelease() {
   else if (!(sensorCol == NUMCOLS-1 && sensorRow == NUMROWS-1)) {
     paintLowRowPressureBar();
   }
+}
+
+void handleVelocityBlendHoldMsNewTouch() {
+  handleNumericDataNewTouchCol(Global.velocityBlendHoldMs, 0, 99, false);
+}
+
+void handleVelocityBlendHoldMsRelease() {
+  handleNumericDataReleaseCol(false);
+}
+
+void handleLegatoFadePauseMsNewTouch() {
+  handleNumericDataNewTouchCol(Global.legatoFadePauseMs, 0, 99, false);
+}
+
+void handleLegatoFadePauseMsRelease() {
+  handleNumericDataReleaseCol(false);
 }
 
 void handleSensorLoZNewTouch() {
@@ -2839,6 +2906,18 @@ void handleGlobalSettingNewTouch() {
               Global.arpOctave = 2;
             }
             break;
+          case 2:
+            if (isCalibrationCellHeld() && Global.pressureMode == pressureModeVelocityBlend) {
+              resetNumericDataChange();
+              setDisplayMode(displayVelocityBlendHoldMs);
+            } else if (isCalibrationCellHeld() && Global.pressureMode == pressureModeLegatoFade) {
+              resetNumericDataChange();
+              setDisplayMode(displayLegatoFadePauseMs);
+            } else {
+              // short tap: cycle through modes
+              Global.pressureMode = (Global.pressureMode + 1) % 3;
+            }
+            break;
           case 3:
             if (!isSyncedToMidiClock()) {
               lightLed(14, 3);
@@ -2850,6 +2929,15 @@ void handleGlobalSettingNewTouch() {
               clearLed(14, 3);
             }
             break;
+        }
+        break;
+
+      case 17:
+        if (sensorRow == 0) {
+          Global.lowRowSlideFix = !Global.lowRowSlideFix;
+        }
+        else if (sensorRow == 1) {
+          Global.keyswitchColumnEnabled = !Global.keyswitchColumnEnabled;
         }
         break;
     }

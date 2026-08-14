@@ -69,8 +69,9 @@ byte LINNMODEL = 200;
 #define MAXCOLS 26
 #define MAXROWS 8
 
+constexpr byte MAX_ROWS = 8;         // compile-time constant for array sizing
 byte NUMCOLS = 26;                   // number of touch sensor columns currently used for device
-byte NUMROWS = 8;                    // number of touch sensor rows
+byte NUMROWS = MAX_ROWS;             // number of touch sensor rows
 
 #define NUMSPLITS  2                 // number of splits supported
 #define LEFT       0
@@ -440,7 +441,8 @@ enum CellDisplay {
   cellOn = 1,
   cellFastPulse = 2,
   cellSlowPulse = 3,
-  cellFocusPulse = 4
+  cellFocusPulse = 4,
+  cellDim = 5
 };
 
 enum DisplayMode {
@@ -489,7 +491,10 @@ enum DisplayMode {
   displaySequencerDrum0107,
   displaySequencerDrum0814,
   displaySequencerColors,
-  displayCustomLedsEditor
+  displayCustomLedsEditor,
+  displayVelocityBlendHoldMs,
+  displayLegatoFadePauseMs,
+  displayKeyswitchNotes
 };
 DisplayMode displayMode = displayNormal;
 
@@ -664,6 +669,9 @@ struct SplitSettings {
   boolean mpe;                            // true when MPE is active for this split
   boolean sequencer;                      // true when the sequencer of this split is displayed
   SequencerView sequencerView;            // see SequencerView
+  byte keyswitchNotes[MAX_ROWS];          // MIDI note for each of the 8 keyswitch column pads (row 0–7)
+  boolean faderSingleColumnUseY;          // when true, 1-col fader mode uses Y instead of Z as the value source
+  boolean lowRowXYZAbsoluteX;             // when true, X in CC XYZ mode is absolute position (not delta)
 };
 
 #define Split config.settings.split
@@ -724,6 +732,12 @@ enum PressureSensitivity {
   pressureHigh
 };
 
+enum PressureMode {
+  pressureModeNormal = 0,        // standard: Z=0 reset on every new note
+  pressureModeLegatoFade = 1,    // suppress Z=0 on overlap, fade from last-sent Z (single channel only)
+  pressureModeVelocityBlend = 2  // start Z at note-on velocity, hold vel_ms, fade to live Z over fade_ms
+};
+
 enum ArpeggiatorStepTempo {
   ArpFourth = 0,
   ArpEighth = 1,
@@ -777,6 +791,12 @@ struct GlobalSettings {
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
   boolean splitActive;                       // false = split off, true = split on
+  byte pressureMode;                         // see PressureMode enum: normal / legato fade / velocity blend
+  byte velocityBlendHoldMs;                  // velocity blend: ms to hold at velocity value before fading (stored 0-99 = 0-990ms)
+  byte velocityBlendFadeMs;                  // velocity blend: ms to fade from velocity value to live Z (stored 0-99 = 0-990ms)
+  boolean lowRowSlideFix;                    // true to enable X continuity correction and Y/Z gating on low row slides
+  boolean keyswitchColumnEnabled;            // true to reserve the leftmost column of each keys split as a keyswitch column
+  byte legatoFadePauseMs;                    // legato fade: ms to fade from last-sent Z to live Z (stored 0-99 = 0-990ms)
 };
 #define Global config.settings.global
 
@@ -1014,6 +1034,7 @@ ChannelBucket splitChannels[NUMSPLITS];             // the MIDI channels that ar
 unsigned short midiPreset[NUMSPLITS];               // preset number 0-127
 byte ccFaderValues[NUMSPLITS][129];                 // the current values of the CC faders
 byte currentEditedCCFader[NUMSPLITS];               // the current CC fader number that is being edited
+byte currentEditedKSNote[NUMSPLITS];                // the current keyswitch note row being edited (0–7)
 signed char arpTempoDelta[NUMSPLITS];               // ranges from -24 to 24 to apply a speed difference to the selected arpeggiator speed
 
 unsigned long lastSwitchPress[5];                     // the last moment a particular switch was pressed (in milliseconds)
@@ -1030,6 +1051,18 @@ boolean doublePerSplit = false;                     // false when only one per s
 byte switchSelect = SWITCH_FOOT_L;                  // determines which switch setting is being displayed/changed
 byte midiChannelSelect = MIDICHANNEL_MAIN;          // determines which midi channel setting is being displayed/changed
 byte lightSettings = LIGHTS_MAIN;                   // determines which Lights array is being displayed/changed
+
+// pressure transition state, keyed per channel (1-indexed MIDI ch → index ch-1) within each split.
+// Must be per-channel so that channelPerNote mode doesn't have multiple touches clobber each other.
+boolean pressureTransitionActive[NUMSPLITS][16];        // true while hold+fade is in progress
+unsigned long pressureTransitionStartMs[NUMSPLITS][16]; // millis() when the transition began
+unsigned short pressureTransitionFromZ[NUMSPLITS][16];  // the Z value to transition from
+unsigned short lastSentZ[NUMSPLITS][16];                // last pressure value sent, per channel
+
+// last-note-priority Z tracking: only the most recently pressed note sends Z in polyphonic modes.
+// col==0 means "no note tracked yet" (col 0 is the switch column, never a note).
+byte latestPressureCellCol[NUMSPLITS];
+byte latestPressureCellRow[NUMSPLITS];
 
 boolean userFirmwareActive = false;                 // indicates whether user firmware mode is active or not
 boolean userFirmwareSlideMode[MAXROWS];             // indicates whether slide mode is on for a particular row
@@ -1219,12 +1252,12 @@ void setup() {
   /*!!*/  if (digitalRead(38) == HIGH) {
   /*!!*/    LINNMODEL = 200;
   /*!!*/    NUMCOLS = 26;
-  /*!!*/    NUMROWS = 8;
+  /*!!*/    NUMROWS = MAX_ROWS;
   /*!!*/  }
   /*!!*/  else {
   /*!!*/    LINNMODEL = 128;
   /*!!*/    NUMCOLS = 17;
-  /*!!*/    NUMROWS = 8;
+  /*!!*/    NUMROWS = MAX_ROWS;
   /*!!*/  }
   /*!!*/
   /*!!*/  initializeSensors();

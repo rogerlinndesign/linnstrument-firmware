@@ -17,6 +17,31 @@ These routines handle the processing of new touch events, continuous updates of 
 released touch events
 **************************************************************************************************/
 
+inline byte keyswitchColumnOf(byte split) {
+  if (!Global.splitActive) return 1;
+  if (split == LEFT) return 1;
+  return Global.splitPoint;
+}
+
+inline boolean isKeyswitchColumn() {
+  if (!Global.keyswitchColumnEnabled) return false;
+  if (Split[sensorSplit].ccFaders) return false;
+  if (Split[sensorSplit].sequencer) return false;
+  return sensorCol == keyswitchColumnOf(sensorSplit);
+}
+
+void handleKeyswitchColumnNewTouch() {
+  byte note = Split[sensorSplit].keyswitchNotes[sensorRow];
+  midiSendNoteOn(sensorSplit, note, 127, Split[sensorSplit].midiChanMain);
+  setLed(sensorCol, sensorRow, COLOR_PINK, cellOn);
+}
+
+void handleKeyswitchColumnRelease() {
+  byte note = Split[sensorSplit].keyswitchNotes[sensorRow];
+  midiSendNoteOff(sensorSplit, note, Split[sensorSplit].midiChanMain);
+  setLed(sensorCol, sensorRow, COLOR_PINK, cellDim);
+}
+
 void cellTouched(TouchState state) {
   cellTouched(sensorCol, sensorRow, state);
 };
@@ -619,6 +644,9 @@ void handleNonPlayingTouch() {
     case displayCCForFader:
       handleCCForFaderNewTouch();
       break;
+    case displayKeyswitchNotes:
+      handleKeyswitchNotesNewTouch();
+      break;
     case displayLowRowBendConfig:
       handleLowRowBendConfigNewTouch();
       break;
@@ -669,6 +697,12 @@ void handleNonPlayingTouch() {
       break;
     case displaySensorFeatherZ:
       handleSensorFeatherZNewTouch();
+      break;
+    case displayVelocityBlendHoldMs:
+      handleVelocityBlendHoldMsNewTouch();
+      break;
+    case displayLegatoFadePauseMs:
+      handleLegatoFadePauseMsNewTouch();
       break;
     case displaySensorRangeZ:
       handleSensorRangeZNewTouch();
@@ -812,6 +846,7 @@ boolean handleXYZupdate() {
   }
   // in regular firmware mode, some features need special non-MIDI note handling
   else if (isLowRow() ||
+      isKeyswitchColumn() ||
       displayMode == displayVolume ||
       Split[sensorSplit].ccFaders ||
       Split[Global.currentPerSplit].sequencer ||
@@ -839,6 +874,10 @@ boolean handleXYZupdate() {
     // is this cell used for low row functionality
     else if (isLowRow()) {
       lowRowStart();
+    }
+    // keyswitch column sends a configurable note directly
+    else if (isKeyswitchColumn()) {
+      handleKeyswitchColumnNewTouch();
     }
     // Split strum only triggers notes in the other split
     else if (isStrummingSplit(sensorSplit)) {
@@ -1052,7 +1091,59 @@ boolean handleXYZupdate() {
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-        preSendLoudness(sensorSplit, valueZ, valueZHi, sensorCell->note, sensorCell->channel);
+        // last-note-priority: in polyphonic channel modes, only the most recently pressed note
+        // sends Z. oneChannel mode is already handled by isFocusedCell() inside isZExpressiveCell().
+        // Poly pressure is excluded since each note legitimately sends its own pressure.
+        boolean isLatestNote = (Split[sensorSplit].midiMode == oneChannel ||
+                                Split[sensorSplit].expressionForZ == loudnessPolyPressure ||
+                                latestPressureCellCol[sensorSplit] == 0 ||
+                                (sensorCol == latestPressureCellCol[sensorSplit] &&
+                                 sensorRow == latestPressureCellRow[sensorSplit]));
+        if (isLatestNote) {
+        unsigned short effectiveZ = valueZ;
+        unsigned short effectiveZHi = valueZHi;
+        byte ch = sensorCell->channel - 1;
+        if (pressureTransitionActive[sensorSplit][ch]) {
+          unsigned long elapsed = millis() - pressureTransitionStartMs[sensorSplit][ch];
+          if (Global.pressureMode == pressureModeLegatoFade) {
+            // two phases keyed off legatoFadePauseMs: hold flat during the lock
+            // window, then ease to live pressure over an equal window. Each new
+            // note resets the timer (in sendNewNote), so rapid slurs stay in the
+            // flat-hold phase and the volume never wavers.
+            unsigned long holdMs = (unsigned long)Global.legatoFadePauseMs * 10;
+            unsigned long fadeMs = holdMs;
+            if (elapsed < holdMs) {
+              // flat hold at the pre-slur pressure
+              effectiveZ = pressureTransitionFromZ[sensorSplit][ch];
+              effectiveZHi = 0;
+            } else if (fadeMs > 0 && elapsed < holdMs + fadeMs) {
+              // note sustained past the lock window: interpolate to live pressure
+              long fadeElapsed = (long)(elapsed - holdMs);
+              long delta = (long)valueZ - (long)pressureTransitionFromZ[sensorSplit][ch];
+              effectiveZ = (unsigned short)((long)pressureTransitionFromZ[sensorSplit][ch] + delta * fadeElapsed / (long)fadeMs);
+              effectiveZHi = 0;
+            } else {
+              pressureTransitionActive[sensorSplit][ch] = false;
+            }
+          } else if (Global.pressureMode == pressureModeVelocityBlend) {
+            unsigned long holdMs = (unsigned long)Global.velocityBlendHoldMs * 10;
+            unsigned long fadeMs = (unsigned long)Global.velocityBlendFadeMs * 10;
+            if (elapsed < holdMs) {
+              effectiveZ = pressureTransitionFromZ[sensorSplit][ch];
+              effectiveZHi = 0;
+            } else if (fadeMs > 0 && elapsed < holdMs + fadeMs) {
+              long fadeElapsed = (long)(elapsed - holdMs);
+              long delta = (long)valueZ - (long)pressureTransitionFromZ[sensorSplit][ch];
+              effectiveZ = (unsigned short)((long)pressureTransitionFromZ[sensorSplit][ch] + delta * fadeElapsed / (long)fadeMs);
+              effectiveZHi = 0;
+            } else {
+              pressureTransitionActive[sensorSplit][ch] = false;
+            }
+          }
+        }
+        lastSentZ[sensorSplit][ch] = effectiveZ;
+        preSendLoudness(sensorSplit, effectiveZ, effectiveZHi, sensorCell->note, sensorCell->channel);
+        } // isLatestNote
       }
 
       // after the initial velocity, new velocity values are continuously being calculated simply based
@@ -1246,6 +1337,10 @@ void prepareNewNote(signed char notenum) {
 
 void sendNewNote() {
   if (!isArpeggiatorEnabled(sensorSplit)) {
+    // track which note was pressed most recently for Z last-note-priority
+    latestPressureCellCol[sensorSplit] = sensorCol;
+    latestPressureCellRow[sensorSplit] = sensorRow;
+
     // if we've switched from pitch X enabled to pitch X disabled and the last
     // pitch bend value was not neutral, reset it first to prevent skewed pitches
     if (!Split[sensorSplit].sendX && hasPreviousPitchBendValue(sensorCell->channel)) {
@@ -1253,9 +1348,25 @@ void sendNewNote() {
     }
 
     // reset pressure to 0 before sending the note, the actually pressure value will
-    // be sent right after the note on
+    // be sent right after the note on.
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      if (Global.pressureMode == pressureModeLegatoFade &&
+          hasOtherTouchInSplit(sensorSplit)) {
+        // legato fade: suppress Z=0, fade from last-sent Z to live Z over 10ms
+        byte ch = sensorCell->channel - 1;
+        pressureTransitionFromZ[sensorSplit][ch] = lastSentZ[sensorSplit][ch];
+        pressureTransitionStartMs[sensorSplit][ch] = millis();
+        pressureTransitionActive[sensorSplit][ch] = true;
+      } else if (Global.pressureMode == pressureModeVelocityBlend) {
+        // velocity blend: immediately send velocity as Z, then hold + fade to live Z
+        byte ch = sensorCell->channel - 1;
+        preSendLoudness(sensorSplit, sensorCell->velocity, 0, sensorCell->note, sensorCell->channel);
+        pressureTransitionFromZ[sensorSplit][ch] = sensorCell->velocity;
+        pressureTransitionStartMs[sensorSplit][ch] = millis();
+        pressureTransitionActive[sensorSplit][ch] = true;
+      } else {
+        preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      }
     }
 
     // if the same channel and note is already active, send a note off first
@@ -1557,6 +1668,9 @@ boolean handleNonPlayingRelease() {
       case displayCCForFader:
         handleCCForFaderRelease();
         break;
+      case displayKeyswitchNotes:
+        handleKeyswitchNotesRelease();
+        break;
       case displayLowRowBendConfig:
         handleLowRowBendConfigRelease();
         break;
@@ -1607,6 +1721,12 @@ boolean handleNonPlayingRelease() {
         break;
       case displaySensorFeatherZ:
         handleSensorFeatherZRelease();
+        break;
+      case displayVelocityBlendHoldMs:
+        handleVelocityBlendHoldMsRelease();
+        break;
+      case displayLegatoFadePauseMs:
+        handleLegatoFadePauseMsRelease();
         break;
       case displaySensorRangeZ:
         handleSensorRangeZRelease();
@@ -1740,11 +1860,27 @@ void handleTouchRelease() {
   else if (isLowRow()) {
     lowRowStop();
   }
+  // keyswitch column: send note off and restore dim indicator
+  else if (isKeyswitchColumn()) {
+    handleKeyswitchColumnRelease();
+  }
   else if (sensorCell->hasNote()) {
 
-    // reset the pressure when the note is released and that setting is active
+    // when the latest pressed note is released, clear tracking so remaining held notes resume Z
+    if (sensorCol == latestPressureCellCol[sensorSplit] &&
+        sensorRow == latestPressureCellRow[sensorSplit]) {
+      latestPressureCellCol[sensorSplit] = 0;
+      latestPressureCellRow[sensorSplit] = 0;
+    }
+
+    // reset the pressure when the note is released and that setting is active.
+    // In any non-normal pressure mode, suppress this if another touch is still held
+    // so the pressure stream doesn't dip to 0 during overlapping notes.
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      if (!(Global.pressureMode != pressureModeNormal &&
+            hasOtherTouchInSplit(sensorSplit))) {
+        preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      }
     }
 
     // unregister the note <> cell mapping
