@@ -1351,6 +1351,13 @@ void receivedNrpn(int parameter, int value, int channel) {
         Global.guitarTuning[7] = value;
       }
       break;
+    // Device Serial Mode, same as tapping OS Update in Global Settings
+    case 271:
+      if (value == 1) {
+        switchSerialMode(true);
+        storeSettings();
+      }
+      break;
     // Query for the value of a particular parameter
     case 299:
       sendNrpnParameter(value, channel);

@@ -34,14 +34,14 @@ features, than the CC faders will take precedence.
 | CC Number     | Used for
 | --------------|--------------------------------------------------------------------------------------------------
 | 1-8 (default) | Change the position of the CC faders, the split is determined by its active MIDI mode channels
-| 9             | Configure User Firmware X-axis row slide, the channel specifies the row (0: disable, 1: enable)
-| 10            | Configure User Firmware X-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
-| 11            | Configure User Firmware Y-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
-| 12            | Configure User Firmware Z-axis data, the channel specifies the row, default is off (0: disable, 1: enable)
+| 9             | User Firmware X-axis slide for the row given by the channel (0: disable, 1: enable)
+| 10            | User Firmware X-axis data for the row given by the channel (0: disable, 1: enable), default off
+| 11            | User Firmware Y-axis data for the row given by the channel (0: disable, 1: enable), default off
+| 12            | User Firmware Z-axis data for the row given by the channel (0: disable, 1: enable), default off
 | 13            | Configure User Firmware MIDI decimation rate in milliseconds (minimum 12 ms in low power mode)
 | 20            | Column coordinate for cell color change with CC 22 (starts from 0)
 | 21            | Row coordinate for cell color change with CC 22 (starts from 0)
-| 22            | Change the color of the cell with the provided column and row coordinates see color value table below, 11+: default color
+| 22            | Change the color of the cell at the column and row set with CC 20 and 21, see the color values below
 | 23            | Make current custom cell colors persistent as pattern (0-2) 
 | 24            | Clear persisted custom cell colors pattern (0-2)
 
@@ -106,7 +106,7 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 33   | 1-6   | Split Left Color LowRow (see color value table below)
 | 34   | 0-7   | Split Left LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
 | 35   | 0-4   | Split Left Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
-| 36   | 0-10  | Split Left Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
+| 36   | 0-10  | Split Left Octave (0: -5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 | 37   | 0-14  | Split Left Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 | 38   | 0-14  | Split Left Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 | 39   | 0-2   | Split Left MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #25) 
@@ -131,7 +131,7 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 58   | 0-1   | Split Left CC Value For Z in 14-bit
 | 59   | 0-127 | Split Left Initial Value For Relative Y
 | 60   | 0-1   | Split Left Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
-| 61   | 0-14  | Split Left Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, 9: | Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+| 61   | 0-14  | Split Left Touch Animation, see the touch animation values below
 | 62   | 1     | Split Left Sequencer Toggle Play
 | 63   | 1     | Split Left Sequencer Previous Pattern
 | 64   | 1     | Split Left Sequencer Next Pattern
@@ -173,7 +173,7 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 133  | 1-6   | Split Right Color LowRow (see color value table below)
 | 134  | 0-7   | Split Right LowRow Mode (0: Off, 1: Sust, 2: Restr, 3: Strum, 4: Arp, 5: Bend, 6: CC1, 7: CC16-18)
 | 135  | 0-4   | Split Right Special (0: Off, 1: Arpeg, 2: CC Faders, 3: Strum, 4: Sequencer)
-| 136  | 0-10  | Split Right Octave (0: —5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
+| 136  | 0-10  | Split Right Octave (0: -5, 1: -4, 2: -3, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +3, 9: +4. 10: +5)
 | 137  | 0-14  | Split Right Transpose Pitch (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 | 138  | 0-14  | Split Right Transpose Lights (0-6: -7 to -1, 7: 0, 8-14: +1 to +7)
 | 139  | 0-2   | Split Right MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #125) 
@@ -198,7 +198,7 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 158  | 0-1   | Split Right CC Value For Z in 14-bit
 | 159  | 0-127 | Split Right Initial Value For Relative Y
 | 160  | 0-1   | Split Right Channel Per Row MIDI Channel Order (0: Normal, 1: Reversed)
-| 161  | 0-14  | Split Right Touch Animation (0: Same, 1: Crosses, 2: Circles, 3: Squares, 4: Diamonds, 5: Stars, 6: Sparkles, 7: Curtains, 8: Blinds, | 9: Targets, 10: Up, 11: Down, 12: Left, 13: Right, 14: Orbits)
+| 161  | 0-14  | Split Right Touch Animation, see the touch animation values below
 | 162  | 1     | Split Right Sequencer Toggle Play
 | 163  | 1     | Split Right Sequencer Previous Pattern
 | 164  | 1     | Split Right Sequencer Next Pattern
@@ -232,10 +232,10 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 225  | 0-1   | Global Accent Note Light A# (0: Off, 1: On)
 | 226  | 0-1   | Global Accent Note Light B (0: Off, 1: On)
 | 227  | 0-13  | Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar, 127: 0 offset)
-| 228  | 0-17  | Global Switch 1 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, | 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, | 17: Sequencer Mute)
-| 229  | 0-17  | Global Switch 2 Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: Legato, | 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI Clock, | 17: Sequencer Mute)
-| 230  | 0-17  | Global Foot Left Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: | Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI | Clock, 17: Sequencer Mute)
-| 231  | 0-17  | Global Foot Right Assignment (0: Oct Down, 1: Oct Up, 2: Sustain, 3: CC65, 4: Arp, 5: Alt Split, 6: Auto Octave, 7: Tap Tempo, 8: | Legato, 9: Latch, 10: Preset Up, 11: Preset Down, 12: Reverse Pitch X, 13: Sequencer Play, 14: Sequencer Previous, 15: Sequencer Next, 16: Send MIDI | Clock, 17: Sequencer Mute)
+| 228  | 0-17  | Global Switch 1 Assignment, see the switch assignment values below
+| 229  | 0-17  | Global Switch 2 Assignment, see the switch assignment values below
+| 230  | 0-17  | Global Foot Left Assignment, see the switch assignment values below
+| 231  | 0-17  | Global Foot Right Assignment, see the switch assignment values below
 | 232  | 0-3   | Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
 | 233  | 0-2   | Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
 | 234  | 0-1   | Device MIDI I/O (0: MIDI Jacks, 1: USB)
@@ -275,6 +275,7 @@ The following table lists all the NRPN input values that LinnStrument understand
 | 268  | 0-127 | Global Note Number For Guitar Tuning Row 6
 | 269  | 0-127 | Global Note Number For Guitar Tuning Row 7
 | 270  | 0-127 | Global Note Number For Guitar Tuning Row 8
+| 271  | 1     | Device Serial Mode (1: On, same as tapping OS Update; the updater or OS Update switch it off)
 | 299  | any   | Send the current value of a particular NRPN configuration parameter, when possible
 
 Color Values
@@ -294,3 +295,49 @@ Color Values
 | 9     | Orange
 | 10    | Lime
 | 11    | Pink
+
+Touch Animation Values
+======================
+
+| Value | Meaning
+|-------|---------
+| 0     | Same
+| 1     | Crosses
+| 2     | Circles
+| 3     | Squares
+| 4     | Diamonds
+| 5     | Stars
+| 6     | Sparkles
+| 7     | Curtains
+| 8     | Blinds
+| 9     | Targets
+| 10    | Up
+| 11    | Down
+| 12    | Left
+| 13    | Right
+| 14    | Orbits
+
+Switch Assignment Values
+========================
+
+| Value | Meaning
+|-------|-------------------
+| 0     | Oct Down
+| 1     | Oct Up
+| 2     | Sustain
+| 3     | CC65
+| 4     | Arp
+| 5     | Alt Split
+| 6     | Auto Octave
+| 7     | Tap Tempo
+| 8     | Legato
+| 9     | Latch
+| 10    | Preset Up
+| 11    | Preset Down
+| 12    | Reverse Pitch X
+| 13    | Sequencer Play
+| 14    | Sequencer Previous
+| 15    | Sequencer Next
+| 16    | Send MIDI Clock
+| 17    | Sequencer Mute
+
