@@ -2213,7 +2213,7 @@ unsigned font_width_string(const char* str, struct Font* font) {
   unsigned width = 0;
   char c;
   while ((c=*str++) != 0) {
-    char* p = strchr(font->chars,c);
+    const char* p = strchr(font->chars,c);
     if (p) {
       width += (font->data[p - font->chars]->width + 1);
     }
@@ -2230,7 +2230,7 @@ void font_draw_string(int col, int row, const char* str, byte color, struct Font
 
   while ((reversed && i >= 0) || (!reversed && i < (int)strlen(str))) {
     char c = str[i];
-    char* p = strchr(font->chars, c);
+    const char* p = strchr(font->chars, c);
     if (p) {
       int i = p - font->chars;                        // offset into font_chars gives character index
       font_draw_char(col, row, font->data[i]->data, color, font->data[i]->width, font->height, erase, reversed);
