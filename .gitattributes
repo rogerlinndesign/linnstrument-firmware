@@ -1,0 +1,12 @@
+* text=auto
+*.ino text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.go text eol=lf
+*.tsv text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.js text eol=lf
+*.html text eol=lf
