@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go run ./tools/linnstrument build)",
+      "Bash(go run ./tools/linnstrument test)",
+      "Bash(go run ./tools/linnstrument ports)",
+      "Bash(go run ./tools/linnstrument probe)",
+      "Bash(go run ./tools/linnstrument led *)",
+      "Bash(go run ./tools/linnstrument backup *)",
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(gofmt *)",
+      "Bash(arduino-cli compile *)",
+      "Bash(arduino-cli core list)",
+      "Bash(arduino-cli board list)",
+      "Bash(arduino-cli config get *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(go run ./tools/linnstrument)",
+      "Bash(go mod tidy)",
+      "Bash(git diff)",
+      "Bash(git log)"
+    ]
+  }
+}

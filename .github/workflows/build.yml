@@ -1,0 +1,105 @@
+# Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Build firmware
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# a pull request from a branch in this repository is already built by its push
+jobs:
+  build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # arduino-cli requires the sketch folder to carry the sketch name
+          path: linnstrument-firmware
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install the Arduino SAM core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:sam@1.6.12
+
+      - name: Compile
+        run: |
+          arduino-cli compile \
+            --fqbn arduino:sam:arduino_due_x \
+            --libraries linnstrument-firmware/libraries \
+            --output-dir out \
+            linnstrument-firmware
+
+      - name: Name the firmware file after the version and commit
+        run: |
+          version=$(sed -n 's/^const char\* OSVersion = "\([0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
+          build=$(sed -n 's/^const char\* OSVersionBuild = "\.\([0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
+          sha=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "FIRMWARE_NAME=linnstrument-firmware-${version}.${build}-${sha}" >> "$GITHUB_ENV"
+          cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}.${build}-${sha}.bin"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FIRMWARE_NAME }}
+          path: out/${{ env.FIRMWARE_NAME }}.bin
+          if-no-files-found: error
+
+  tool:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-windows
+          - os: macos-latest
+            name: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Desktop tests
+        run: go run ./tools/linnstrument test
+
+      # the serial port enumerator needs cgo on macOS, so the macOS binaries are built there
+      - name: Build tools/linnstrument for Linux and Windows
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p out
+          GOOS=linux   GOARCH=amd64 go build -o out/linnstrument-linux-amd64 ./tools/linnstrument
+          GOOS=linux   GOARCH=arm64 go build -o out/linnstrument-linux-arm64 ./tools/linnstrument
+          GOOS=windows GOARCH=amd64 go build -o out/linnstrument-windows.exe ./tools/linnstrument
+
+      - name: Build tools/linnstrument for macOS (universal)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p out
+          CGO_ENABLED=1 GOARCH=arm64 go build -o out/linnstrument-arm64 ./tools/linnstrument
+          CGO_ENABLED=1 GOARCH=amd64 go build -o out/linnstrument-amd64 ./tools/linnstrument
+          lipo -create -output out/linnstrument-macos out/linnstrument-arm64 out/linnstrument-amd64
+          rm out/linnstrument-arm64 out/linnstrument-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linnstrument-tool-${{ matrix.name }}
+          path: out/*
