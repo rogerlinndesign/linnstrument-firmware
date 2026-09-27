@@ -35,7 +35,8 @@ const usage = `Usage: go run ./tools/linnstrument [-port PORT] <command> [argume
 
 Commands:
   build                  compile the firmware into build/ and report flash and RAM use
-  test                   build and run the desktop unit tests in tests/ (needs a C++ compiler)
+  test [NAME]            build and run the desktop unit tests in tests/ (needs a C++ compiler),
+                         NAME restricts the run to tests whose name contains it
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -85,7 +86,11 @@ func dispatch(port, command string, args []string) error {
 		if err != nil {
 			return err
 		}
-		return runTests(repo)
+		filter := ""
+		if len(args) > 0 {
+			filter = args[0]
+		}
+		return runTests(repo, filter)
 	case "ports":
 		return listPorts()
 	case "serialmode":

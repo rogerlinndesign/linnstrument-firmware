@@ -31,9 +31,12 @@ static LinnTest* inDeclarationOrder() {
   return reversed;
 }
 
-int main() {
+// An argument restricts the run to tests whose name contains it.
+int main(int argc, char** argv) {
+  const char* filter = argc > 1 ? argv[1] : "";
   int tests = 0, failedTests = 0;
   for (LinnTest* t = inDeclarationOrder(); t; t = t->next) {
+    if (*filter && !strstr(t->name, filter)) continue;
     int before = linnFailures;
     std::printf("%s\n", t->name);
     t->run();

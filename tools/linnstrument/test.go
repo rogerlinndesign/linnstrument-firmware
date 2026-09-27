@@ -152,7 +152,7 @@ func findCompiler() (string, error) {
 	return "", errors.New("no C++ compiler found, " + hint)
 }
 
-func runTests(repo string) error {
+func runTests(repo string, filter string) error {
 	cxx, err := findCompiler()
 	if err != nil {
 		return err
@@ -194,6 +194,9 @@ func runTests(repo string) error {
 	fmt.Printf("Compiling %d test files with the sketch (%s)\n", len(testFiles), cxx)
 	if err := run(cxx, args...); err != nil {
 		return fmt.Errorf("test build failed: %w", err)
+	}
+	if filter != "" {
+		return run(binary, filter)
 	}
 	return run(binary)
 }

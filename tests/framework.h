@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 struct LinnTest {
   const char* name;
