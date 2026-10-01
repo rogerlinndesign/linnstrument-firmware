@@ -1,0 +1,241 @@
+<!doctype html>
+<!--
+Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinnStrument User Firmware Console</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1b1b; --muted: #6b6b6b; --line: #d8d8d8; --cell: #ededed;
+    --accent: #2f6fe0; --pressed: #ffb000;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161616; --fg: #ececec; --muted: #9a9a9a; --line: #3a3a3a; --cell: #262626; }
+  }
+  body { margin: 0; padding: 16px; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+  label { display: inline-flex; gap: 4px; align-items: center; }
+  select, input, button { font: inherit; }
+  button { padding: 4px 10px; }
+  #status { color: var(--muted); }
+  table.axes { border-collapse: collapse; }
+  table.axes td, table.axes th { padding: 2px 8px; text-align: center; border-bottom: 1px solid var(--line); }
+  #grid { display: grid; gap: 3px; margin: 12px 0; max-width: 100%; overflow-x: auto; }
+  .cell { aspect-ratio: 1; min-width: 22px; border: 1px solid var(--line); border-radius: 4px; background: var(--cell);
+          position: relative; cursor: pointer; }
+  .cell.pressed { outline: 2px solid var(--pressed); }
+  .cell .z { position: absolute; left: 0; right: 0; bottom: 0; background: var(--pressed); opacity: .6; }
+  #readout { font-family: ui-monospace, monospace; white-space: pre; color: var(--muted); min-height: 1.4em; }
+  #log { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre; max-height: 200px; overflow: auto;
+         border: 1px solid var(--line); padding: 6px; }
+</style>
+</head>
+<body>
+<h1>LinnStrument User Firmware Console</h1>
+<p id="status">Waiting for Web MIDI. This needs Chrome or Edge.</p>
+
+<div class="row">
+  <label>Input <select id="input"></select></label>
+  <label>Output <select id="output"></select></label>
+  <label>Model <select id="model"><option value="200">LinnStrument 200</option><option value="128">LinnStrument 128</option></select></label>
+  <button id="enter">Enter user firmware mode</button>
+  <button id="leave">Leave</button>
+  <button id="query">Query</button>
+</div>
+
+<div class="row">
+  <table class="axes">
+    <tr><th>Row</th><th>X</th><th>Y</th><th>Z</th><th>Slide</th></tr>
+    <tbody id="axes"></tbody>
+  </table>
+  <div>
+    <label>Decimation <input id="decimation" type="number" min="0" max="127" value="8" style="width:4em"> ms
+      <button id="applyDecimation">Apply</button></label>
+    <br>
+    <label>Paint <select id="color"></select></label>
+    <span id="paintHint">Click a cell to light it, shift-click to switch it off.</span>
+  </div>
+</div>
+
+<div id="grid"></div>
+<div id="readout"></div>
+<div id="log"></div>
+
+<script src="user_firmware_protocol.js"></script>
+<script>
+(function () {
+  "use strict";
+  const ufm = window.LinnUserFirmware;
+  const status = document.getElementById("status");
+  const log = document.getElementById("log");
+  const readout = document.getElementById("readout");
+  const grid = document.getElementById("grid");
+  const inputSelect = document.getElementById("input");
+  const outputSelect = document.getElementById("output");
+  const modelSelect = document.getElementById("model");
+  const colorSelect = document.getElementById("color");
+
+  let access = null;
+  let input = null;
+  let output = null;
+  let columns = 26;
+  let decoder = ufm.createDecoder();
+  let surface = ufm.createSurfaceState(columns);
+  const cellElements = {};
+
+  function say(text) {
+    status.textContent = text;
+  }
+
+  function logLine(text) {
+    log.textContent = (text + "\n" + log.textContent).split("\n").slice(0, 200).join("\n");
+  }
+
+  function send(messages) {
+    if (!output) { say("Choose an output first."); return; }
+    messages.forEach(function (m) { output.send(m); });
+  }
+
+  Object.keys(ufm.COLORS).forEach(function (name) {
+    const option = document.createElement("option");
+    option.value = ufm.COLORS[name];
+    option.textContent = name;
+    if (name === "green") option.selected = true;
+    colorSelect.appendChild(option);
+  });
+
+  function buildAxes() {
+    const body = document.getElementById("axes");
+    body.innerHTML = "";
+    for (let row = 7; row >= 0; row--) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + (row + 1) + "</td>";
+      ["x", "y", "z", "slide"].forEach(function (axis) {
+        const td = document.createElement("td");
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.addEventListener("change", function () {
+          send(ufm.enableAxis(row, axis, box.checked));
+          logLine((box.checked ? "enabled " : "disabled ") + axis + " on row " + (row + 1));
+        });
+        td.appendChild(box);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    }
+  }
+
+  function buildGrid() {
+    columns = ufm.columnsFor(parseInt(modelSelect.value, 10));
+    surface = ufm.createSurfaceState(columns);
+    grid.innerHTML = "";
+    grid.style.gridTemplateColumns = "repeat(" + columns + ", minmax(22px, 1fr))";
+    for (let row = 7; row >= 0; row--) {
+      for (let col = 0; col < columns; col++) {
+        const el = document.createElement("div");
+        el.className = "cell";
+        el.title = "column " + col + ", row " + row;
+        el.innerHTML = '<div class="z" style="height:0"></div>';
+        el.addEventListener("click", function (e) {
+          const color = e.shiftKey ? 0 : parseInt(colorSelect.value, 10);
+          send(ufm.setLed(col, row, color));
+          el.style.background = color === 0 ? "" : colorCss(color);
+        });
+        cellElements[col + ":" + row] = el;
+        grid.appendChild(el);
+      }
+    }
+  }
+
+  function colorCss(color) {
+    return ["", "#e02020", "#e0d020", "#20c040", "#20c0c0", "#2060e0", "#d020d0", "#000000",
+            "#f0f0f0", "#f08020", "#a0e020", "#f080c0"][color] || "";
+  }
+
+  function showCell(c) {
+    const el = cellElements[c.col + ":" + c.row];
+    if (!el) return;
+    el.classList.toggle("pressed", c.pressed);
+    el.firstChild.style.height = c.pressed ? Math.round(c.pressure / 127 * 100) + "%" : "0";
+    readout.textContent = "column " + c.col + " row " + c.row + (c.pressed ? " pressed, velocity " + c.velocity : " released") +
+      (c.pressure ? ", pressure " + c.pressure : "") + (c.x !== null ? ", x " + c.x : "") + (c.y !== null ? ", y " + c.y : "");
+  }
+
+  function onMessage(e) {
+    const event = decoder.decode(Array.from(e.data));
+    if (!event) return;
+    if (event.type === "mode") {
+      say(event.active ? "User firmware mode is on." : "User firmware mode is off.");
+      logLine("instrument reports mode " + (event.active ? "on" : "off") + " on channel " + event.channel);
+      return;
+    }
+    if (event.type === "slide") {
+      logLine("slide leaving column " + event.fromCol + " on row " + event.row);
+      return;
+    }
+    const changed = surface.apply(event);
+    if (changed) showCell(changed);
+    if (event.type === "press" || event.type === "release") {
+      logLine(event.type + " column " + event.col + " row " + event.row + " velocity " + event.velocity);
+    }
+  }
+
+  function fillPorts() {
+    [inputSelect, outputSelect].forEach(function (s) { s.innerHTML = ""; });
+    access.inputs.forEach(function (p) { inputSelect.appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
+    access.outputs.forEach(function (p) { outputSelect.appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
+    choosePorts();
+  }
+
+  function choosePorts() {
+    if (input) input.onmidimessage = null;
+    input = access.inputs.get(inputSelect.value) || null;
+    output = access.outputs.get(outputSelect.value) || null;
+    if (input) input.onmidimessage = onMessage;
+    say(input && output ? "Connected to " + input.name + ". Enter user firmware mode to start." : "Choose the LinnStrument input and output.");
+  }
+
+  inputSelect.addEventListener("change", choosePorts);
+  outputSelect.addEventListener("change", choosePorts);
+  modelSelect.addEventListener("change", buildGrid);
+  document.getElementById("enter").addEventListener("click", function () { send(ufm.enterUserFirmwareMode()); });
+  document.getElementById("leave").addEventListener("click", function () { send(ufm.leaveUserFirmwareMode()); });
+  document.getElementById("query").addEventListener("click", function () { send(ufm.queryUserFirmwareMode()); });
+  document.getElementById("applyDecimation").addEventListener("click", function () {
+    send(ufm.setDecimation(parseInt(document.getElementById("decimation").value, 10)));
+  });
+
+  buildAxes();
+  buildGrid();
+
+  if (!navigator.requestMIDIAccess) {
+    say("Web MIDI is not available in this browser. Use Chrome or Edge.");
+    return;
+  }
+  navigator.requestMIDIAccess().then(function (a) {
+    access = a;
+    access.onstatechange = fillPorts;
+    fillPorts();
+  }, function (err) {
+    say("Web MIDI access was refused: " + err);
+  });
+})();
+</script>
+</body>
+</html>

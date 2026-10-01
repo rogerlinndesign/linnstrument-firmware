@@ -81,6 +81,9 @@ jobs:
       - name: Desktop tests
         run: go run ./tools/linnstrument test
 
+      - name: Example tests
+        run: node --test examples/user_firmware_protocol.test.js
+
       # the serial port enumerator needs cgo on macOS, so the macOS binaries are built there
       - name: Build tools/linnstrument for Linux and Windows
         if: runner.os == 'Linux'

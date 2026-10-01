@@ -85,6 +85,19 @@ mechanism and the helpers; the short version:
   raw fields on a cell and clear its `shouldRefresh*` flags instead, which is
   what `linn::touch()` does.
 
+## User Firmware Mode
+
+`user_firmware_mode.md` describes the mode in which the instrument is a raw MIDI
+touch surface with MIDI-controlled lights: the way to customise what it does
+without touching the firmware. Every claim in that document is checked by
+`tests/test_userfirmware.cpp`; change both together. `examples/` holds a browser
+console for the mode and a shell walkthrough, with the protocol code in
+`examples/user_firmware_protocol.js` tested by `node --test
+examples/user_firmware_protocol.test.js`. A session can drive a connected unit
+in that mode over MIDI through RouteMIDI's MCP server, which `.mcp.json`
+registers when `routemidi` is installed, or through `sendmidi` and `receivemidi`
+from the shell.
+
 ## Flashing and talking to a connected instrument
 
 Flashing erases all settings and calibration on the unit. Only do it when the

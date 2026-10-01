@@ -28,9 +28,15 @@ set any global directly.
 
 `mocks.cpp` has the helpers tests start from: `linn::reset()` for a
 factory-fresh instrument, `linn::select()` to point the sketch's current-cell
-context at a cell, `linn::touch()` to put a touch on a cell, `linn::drainMidi()`
-to let the MIDI queue out, `linn::pumpSerial()` to run the serial protocol over
-fed bytes. `support/host_mock.h` controls the fakes.
+context at a cell, `linn::touch()` to put a touch on a cell without scanning,
+`linn::press()`, `linn::hold()` and `linn::release()` to drive a finger through
+real scans of the fake sensor, `linn::midiIn()` and `linn::midiInNrpn()` to feed
+incoming MIDI, `linn::drainMidi()` to let the MIDI queue out,
+`linn::pumpSerial()` to run the serial protocol over fed bytes.
+`support/host_mock.h` controls the fakes, including `host::setSensor()` for the
+raw X, Y and Z a cell reads. X and Y are single axes across the whole surface,
+not per cell: about 171 raw units of X per column, and a raw Y band per row
+(`CALY_DEFAULT_MIN` and `CALY_DEFAULT_MAX` in `ls_calibration.ino`).
 
 Writing a test
 --------------

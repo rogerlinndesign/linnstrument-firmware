@@ -39,20 +39,19 @@ void drainMidi() {
   }
 }
 
-// Points the sketch's current-cell context at a cell, as the scan loop does before calling
-// the touch handlers.
-void select(byte col, byte row) {
-  sensorCol = col;
-  sensorRow = row;
-  sensorSplit = Global.splitActive && col >= Global.splitPoint ? RIGHT : LEFT;
-  sensorCell = &cell(col, row);
+// Feeds incoming MIDI bytes through the sketch's MIDI parser, as if they arrived over USB.
+void midiIn(std::initializer_list<uint8_t> bytes) {
+  std::vector<uint8_t> data(bytes);
+  host::feedSerial(data.data(), data.size());
+  for (int i = 0; i < 64 && Serial.available() > 0; ++i) {
+    handleMidiInput(micros());
+  }
 }
 
-// Runs the serial protocol state machine over everything fed to Serial.
-void pumpSerial() {
-  while (Serial.available() > 0) {
-    handleSerialIO();
-  }
+void midiInNrpn(int parameter, int value, byte channel) {
+  byte status = 0xB0 | (channel & 0x0F);
+  midiIn({status, 99, (byte)(parameter >> 7), status, 98, (byte)(parameter & 0x7F),
+          status, 6, (byte)(value >> 7), status, 38, (byte)(value & 0x7F)});
 }
 
 // One pass of the scan loop for a cell, the dispatch modeLoopPerformance() does.
@@ -80,6 +79,36 @@ void settle() {
   }
 }
 
+// A finger landing on a cell: pressure ramps up over the velocity window, then holds.
+void press(byte col, byte row, uint16_t x, uint16_t y, uint16_t z) {
+  int ramp = VELOCITY_TOTAL_SAMPLES;
+  for (int i = 1; i <= ramp; ++i) {
+    host::setSensor(col, row, x, y, (uint16_t)(z * i / ramp));
+    scan(col, row);
+  }
+  host::setSensor(col, row, x, y, z);
+  for (int i = 0; i < 4; ++i) {
+    scan(col, row);
+  }
+}
+
+// A held finger moving to new readings.
+void hold(byte col, byte row, uint16_t x, uint16_t y, uint16_t z, int scans = 3) {
+  host::setSensor(col, row, x, y, z);
+  for (int i = 0; i < scans; ++i) {
+    scan(col, row);
+  }
+}
+
+// The finger lifting off, past the release debounce.
+void release(byte col, byte row) {
+  host::setSensor(col, row, 0, 0, 0);
+  for (int i = 0; i < 4; ++i) {
+    scan(col, row);
+    host::advanceMicros(30000);
+  }
+}
+
 // A LinnStrument fresh from the factory, in MIDI mode, with no touches and the clock at zero.
 // Follows the order of setup() in linnstrument-firmware.ino, minus the flash boot logic.
 void reset(byte model) {
@@ -94,27 +123,48 @@ void reset(byte model) {
   initializeSensors();
   initializeCalibration();
   initializeLeds();
+  // the scan starts at cell 0 like the sketch's, never at a cell beyond this model's columns;
+  // leaving user firmware mode marks that cell as touched, so this comes before the sketch's
+  // reset() clears the touch bookkeeping
+  select(0, 0);
+  if (userFirmwareActive) {
+    changeUserFirmwareMode(false);
+  }
+  controlModeActive = false;
   initializeCalibrationData();
   initializeSequencer();
   ::reset();
   initializeCalibrationSamples();
   applyConfiguration();
-  // modes the sketch keeps outside its settings, so its reset() leaves them alone
-  if (userFirmwareActive) {
-    changeUserFirmwareMode(false);
-  }
-  controlModeActive = false;
+  // state the sketch keeps outside its settings, so its reset() leaves it alone
   controlButton = -1;
   memset(lastControlPress, 0, sizeof(lastControlPress));
   splitButtonDown = false;
   changedSplitPoint = false;
   operatingMode = modePerformance;
   setDisplayMode(displayNormal);
+  updateDisplay();
   waitingForCommands = false;
   codePos = 0;
   settle();
   drainMidi();
   host::clearSerialOutput();
+}
+
+// Points the sketch's current-cell context at a cell, as the scan loop does before calling
+// the touch handlers.
+void select(byte col, byte row) {
+  sensorCol = col;
+  sensorRow = row;
+  sensorSplit = Global.splitActive && col >= Global.splitPoint ? RIGHT : LEFT;
+  sensorCell = &cell(col, row);
+}
+
+// Runs the serial protocol state machine over everything fed to Serial.
+void pumpSerial() {
+  while (Serial.available() > 0) {
+    handleSerialIO();
+  }
 }
 
 }

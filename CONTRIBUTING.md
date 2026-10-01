@@ -57,13 +57,14 @@ a few seconds after the LinnStrument enters serial mode.
 Desktop tests
 -------------
 
-`go run ./tools/linnstrument test` compiles the firmware for your computer and runs
-the tests in `tests/` in a few seconds, with no instrument attached. They cover
-the logic that can be checked without hardware: note layout, velocity, phantom
-touch rejection, settings migration, MIDI and serial framing. Run them before
-every push, and add one when you fix a bug in logic they can reach. See
+`go run ./tools/linnstrument test` compiles the firmware for your computer and runs the
+tests in `tests/` in a few seconds, with no instrument attached. They cover the
+logic that can be checked without hardware: note layout, velocity, phantom touch
+rejection, settings migration, MIDI and serial framing. Run them before every
+push, and add one when you fix a bug in logic they can reach. See
 `tests/README.md` for how to write one. GitHub Actions runs them on every push
-as well.
+as well, together with `node --test examples/user_firmware_protocol.test.js` for
+the example code.
 
 
 Flashing and testing on the instrument
