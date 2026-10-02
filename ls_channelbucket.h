@@ -142,8 +142,8 @@ public:
         if (next_[bottomReleased_] != channel) {
 
           // determine the edges of both the released and the taken sections
-          int releasedEdge = bottomReleased_;
-          int takenEdge = next_[bottomReleased_];
+          signed char releasedEdge = bottomReleased_;
+          signed char takenEdge = next_[bottomReleased_];
 
           // extract the channel from the bucket so that nothing is pointing
           // towards it anymore
@@ -166,6 +166,7 @@ public:
   // remove all channels from the bucket
   void clear() {
     top_ = -1;
+    bottomReleased_ = -1;
     for (int ch = 0; ch < 16; ++ch) {
       previous_[ch] = -1;
       next_[ch] = -1;
@@ -186,11 +187,11 @@ private:
   }
 
   void extremize(byte channel) {
-    int bottom = previous_[top_];
+    signed char bottom = previous_[top_];
     if (bottom == channel) {
       bottom = previous_[channel];
     }
-    int top = top_;
+    signed char top = top_;
     if (top == channel) {
       top = next_[channel];
     }
@@ -216,11 +217,12 @@ private:
     Serial.print("\n");
   }
 
-  int top_;            // the channel number of the top one in the bucket
-  int previous_[16];   // the channel number of the previous channel in the bucket for each individual channel
-  int next_[16];       // the channel number of the next channel in the bucket for each individual channel
-  byte taken_[16];     // counts how many times each channel is still taken
-  int bottomReleased_; // marks the bottom of the released section
+  // channel numbers fit in a signed byte, -1 marks the absence of a channel
+  signed char top_;            // the channel number of the top one in the bucket
+  signed char previous_[16];   // the channel number of the previous channel in the bucket for each individual channel
+  signed char next_[16];       // the channel number of the next channel in the bucket for each individual channel
+  byte taken_[16];             // counts how many times each channel is still taken
+  signed char bottomReleased_; // marks the bottom of the released section
 };
 
 #endif
