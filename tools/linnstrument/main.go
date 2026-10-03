@@ -37,6 +37,8 @@ Commands:
   build                  compile the firmware into build/ and report flash and RAM use
   test [NAME]            build and run the desktop unit tests in tests/ (needs a C++ compiler),
                          NAME restricts the run to tests whose name contains it
+  mutate [NAME]          prove the tests can fail: apply each change in tests/mutations.tsv to the
+                         firmware and check the named test fails, restoring the file afterwards
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -91,6 +93,16 @@ func dispatch(port, command string, args []string) error {
 			filter = args[0]
 		}
 		return runTests(repo, filter)
+	case "mutate":
+		repo, err := repoRoot()
+		if err != nil {
+			return err
+		}
+		only := ""
+		if len(args) > 0 {
+			only = args[0]
+		}
+		return runMutations(repo, only)
 	case "ports":
 		return listPorts()
 	case "serialmode":

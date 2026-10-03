@@ -1,0 +1,102 @@
+# test name	firmware file	text to replace (must occur once)	replacement
+# Run with: go run ./tools/linnstrument mutate [NAME]. Each line proves one test fails when the firmware
+# behaviour it checks is broken. Add a line for every new test. \n in a field is a line break.
+notes_default_layout_rises_by_row_offset	ls_handleTouches.ino	short lowest = 30;                                  // 30 = F#2	short lowest = 31;                                  // 30 = F#2
+notes_transposition_shifts_the_played_note	ls_handleTouches.ino	return getNoteNumber(split, col, row) + Split[split].transposePitch + Split[split].transposeOctave;	return getNoteNumber(split, col, row) + Split[split].transposePitch;
+velocity_fixed_setting_overrides_the_strike	ls_touchInfo.ino	    return Global.valueForFixedVelocity;	    return Global.valueForFixedVelocity + 1;
+velocity_rises_with_the_strike	ls_touchInfo.ino	      slope = scale1016to127(slope, false);	      slope = 64;
+phantom_lightest_fourth_corner_is_a_phantom	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return hasNote() || currentRawZ < other;
+phantom_corner_with_a_note_counts_as_firm	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return currentRawZ > other;
+settings_upgrade_rejects_newer_version	ls_extstorage.ino	  if (settingsVersion > Device.version) {\n    result = false;	  if (settingsVersion > Device.version) {\n    result = true;
+settings_upgrade_from_version_16	ls_extstorage.ino	      case 16:	      case 61:
+settings_survive_flash_round_trip	ls_settings.ino	  memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));	  memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), 1);
+midi_note_on_leaves_as_three_bytes	ls_midi.ino	  midiOutQueue.push(channel & 0x0F);	  midiOutQueue.push((channel + 1) & 0x0F);
+midi_channel_pressure_leaves_as_two_bytes	ls_midi.ino	                 (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {	                 (lastType == MIDIProgramChange)) {
+nrpn_query_answers_with_the_value_and_a_null_rpn	ls_midi.ino	      value = Device.otherHanded;	      value = !Device.otherHanded;
+nrpn_271_enters_serial_mode	ls_midi.ino	    case 271:	    case 272:
+serial_m_command_returns_to_midi_mode	ls_serial.ino	  SwitchToMidi = 'm'	  SwitchToMidi = 'n'
+serial_handshake_answers_go_code	ls_serial.ino	        Serial.write(linnGoCode);	        Serial.write(ackCode);
+serial_s_command_streams_the_settings_in_crc_batches	ls_serial.ino	  uint32_t crc = crc_byte_array(buffer, size);	  uint32_t crc = crc_byte_array(buffer, size) + 1;
+ufm_nrpn_245_enters_and_leaves	ls_midi.ino	        changeUserFirmwareMode(value);	        changeUserFirmwareMode(true);
+ufm_change_is_announced_with_nrpn_245_on_channel_9	ls_settings.ino	  midiSendNRPN(245, userFirmwareActive, 9);	  midiSendNRPN(245, userFirmwareActive, 8);
+ufm_cell_press_is_note_on_with_column_and_row	ls_handleTouches.ino	  midiSendNoteOn(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);	  midiSendNoteOn(LEFT, sensorCell->note + 1, sensorCell->velocity, sensorCell->channel);
+ufm_x_data_is_14_bit_lsb_then_msb	ls_handleTouches.ino	          positionX = positionX + 85;	          positionX = positionX + 285;
+ufm_y_data_is_cc_64_plus_column	ls_handleTouches.ino	          midiSendControlChange(sensorCol+64, valueY, sensorCell->channel);	          midiSendControlChange(sensorCol+65, valueY, sensorCell->channel);
+ufm_decimation_is_set_in_milliseconds	ls_midi.ino	              unsigned long rate = midiData2 * 1000;	              unsigned long rate = midiData2 * 100;
+ufm_leds_are_set_with_cc_20_21_22	ls_midi.ino	              if (midiData2 <= COLOR_PINK && midiData2 != COLOR_OFF) {	              if (midiData2 < COLOR_PINK && midiData2 != COLOR_OFF) {
+ufm_slide_transition_sends_cc_119_then_note_on_then_note_off	ls_handleTouches.ino	      midiSendControlChange(119, siblingCol, sensorCell->channel, true);	      midiSendControlChange(118, siblingCol, sensorCell->channel, true);
+ufm_foot_switches_keep_their_assignment	ls_switches.ino	  bool state_left = digitalRead(FOOT_SW_LEFT);	  if (userFirmwareActive) return;\n  bool state_left = digitalRead(FOOT_SW_LEFT);
+ufm_control_column_is_note_0_except_the_global_settings_row	ls_handleTouches.ino	    if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW) {	    if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW || sensorRow == 3) {
+playing_a_cell_sends_its_note_on_the_main_channel	ls_handleTouches.ino	      return Split[split].midiChanMain;	      return Split[split].midiChanMain + 1;
+playing_channel_per_row_uses_the_row	ls_handleTouches.ino	        channel += row;	        channel += row + 1;
+playing_right_of_the_split_point_uses_the_right_split	ls_handleTouches.ino	  if (Global.splitActive && !Split[Global.currentPerSplit].sequencer) {	  if (false) {
+playing_disabling_x_stops_pitch_bend	ls_handleTouches.ino	          Split[sensorSplit].sendX && isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {	          isXExpressiveCell() && !isLowRowBendActive(sensorSplit)) {
+layout_guitar_tuning_uses_the_per_row_notes	ls_handleTouches.ino	    return Global.guitarTuning[row];	    return Global.guitarTuning[row] + 1;
+layout_octave_offset_starts_an_octave_lower	ls_handleTouches.ino	      lowest = 18;	      lowest = 19;
+layout_left_handed_mirrors_the_columns	ls_handleTouches.ino	    noteCol = (NUMCOLS - col);	    noteCol = (NUMCOLS - col - 1);
+switch_octave_up_and_down_move_by_twelve	ls_switches.ino	  Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval, -60, 60);	  Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval + 1, -60, 60);
+switch_octave_is_limited_to_five_octaves	ls_switches.ino	  Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval, -60, 60);	  Split[split].transposeOctave = constrain(Split[split].transposeOctave + interval, -72, 72);
+switch_sustain_sends_cc_64_on_and_off	ls_switches.ino	      preSendSwitchSustain(whichSwitch, split, 0);	      preSendSwitchSustain(whichSwitch, split, 1);
+preset_store_and_load_round_trip	ls_settings.ino	  memcpy(&config.preset[p].split[LEFT], &Split[LEFT], sizeof(SplitSettings));	  memcpy(&config.preset[p].split[RIGHT], &Split[LEFT], sizeof(SplitSettings));
+preset_loads_over_midi_with_nrpn_243	ls_midi.ino	      if (inRange(value, 0, 5)) {	      if (inRange(value, 0, 3)) {
+calibration_y_maps_the_row_band_to_0_127	ls_calibration.ino	FXD_CONST_3 - FXD_FROM_INT(bias)	FXD_CONST_3
+calibration_impossible_x_needs_a_calibrated_instrument	ls_handleTouches.ino	  return Device.calibrated &&	  return Device.calibrated && false &&
+lowrow_sustain_holds_while_the_row_is_touched	ls_lowRow.ino	      preSendSustain(sensorSplit, 127);	      preSendSustain(sensorSplit, 100);
+arpeggiator_up_steps_through_the_held_notes	ls_arpeggiator.ino	      switch (Global.arpDirection) {	      switch (ArpDown) {
+playing_channel_per_note_gives_each_touch_its_own_channel	ls_settings.ino	          splitChannels[sp].add(ch+1);	          splitChannels[sp].add(1);
+serial_crc_is_ieee_crc32	ls_serial.ino	  crc = ~crc;	  crc = crc;
+channelbucket_empty_bucket_hands_out_nothing	ls_channelbucket.h	    if (-1 == top_) return 0;	    if (-1 == top_) return 1;
+channelbucket_hands_out_channels_in_the_order_added_then_reuses	ls_channelbucket.h	    return channel+1;	    return channel+2;
+channelbucket_released_channel_is_reused_last_among_the_free_ones	ls_channelbucket.h	      if (bottomReleased_ == -1) {	      if (true) {
+channelbucket_channel_stays_taken_while_two_notes_share_it	ls_channelbucket.h	    taken_[channel]--;	    taken_[channel] = 0;
+channelbucket_clear_then_a_new_set_starts_fresh	ls_channelbucket.h	      next_[ch] = -1;	      next_[ch] = ch;
+channelbucket_ignores_duplicates_and_channels_above_16	ls_channelbucket.h	    if (channel > 16) return;	    if (channel > 15) return;
+channelbucket_all_sixteen_channels	ls_channelbucket.h	        top_ = channel;	        top_ = next_[channel];
+arpeggiator_octave_adds_the_note_an_octave_up	ls_arpeggiator.ino	            midiSendNoteOn(split, getOctaveNote(octave, arpNote), entry_cell->velocity, arpChannel);	            midiSendNoteOn(split, getOctaveNote(0, arpNote), entry_cell->velocity, arpChannel);
+arpeggiator_replay_all_plays_every_held_note_each_step	ls_arpeggiator.ino	  if (Global.arpDirection == ArpReplayAll) {\n    if (noteTouchMapping[split].noteCount > 0) {	  if (false) {\n    if (noteTouchMapping[split].noteCount > 0) {
+arpeggiator_stops_when_the_notes_are_released	ls_noteTouchMapping.ino	  if (hasTouch(noteNum, noteChannel)) {\n    noteCount--;	  if (false) {\n    noteCount--;
+calibration_x_defaults_map_the_expected_reading_to_the_reference	ls_calibration.ino	  int32_t fxdRawX = FXD_FROM_INT(rawX);	  int32_t fxdRawX = FXD_FROM_INT(rawX + 50);
+calibration_y_is_monotonic_across_the_band	ls_calibration.ino	  result = constrain(result, 0, 127);	  result = 127 - constrain(result, 0, 127);
+layout_custom_row_offset	ls_handleTouches.ino	      offset = Global.customRowOffset;	      offset = Global.customRowOffset + 1;
+layout_no_overlap_offsets_each_row_by_the_width	ls_handleTouches.ino	      offset = highCol - lowCol;                      // calculate the row offset based on the width of the split the column belongs to	      offset = highCol - lowCol + 1;
+layout_transpose_lights_shifts_the_whole_layout	ls_handleTouches.ino	  return notenum - Split[split].transposeLights;	  return notenum;
+lowrow_cc_x_sends_the_configured_controller	ls_lowRow.ino	  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, x, false);	  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, 0, false);
+lowrow_normal_mode_plays_notes_on_the_bottom_row	ls_lowRow.ino	  if (Split[sensorSplit].lowRowMode == lowRowNormal) return false;	  if (false) return false;
+midi_messages_keep_their_order	ls_midi.ino	      Serial.write(outMsgBuffer, outMsgIndex);	      Serial.write(outMsgBuffer, 1);
+notes_row_offset_changes_the_layout	ls_handleTouches.ino	    return lowest + (row * offset);	    return lowest + (row * 5);
+notes_same_formula_on_the_128	ls_handleTouches.ino	  notenum = determineRowOffsetNote(split, row) + noteCol - 1;	  notenum = determineRowOffsetNote(split, row) + noteCol;
+nrpn_271_ignores_other_values	ls_midi.ino	    case 271:\n      if (value == 1) {	    case 271:\n      if (value >= 0) {
+nrpn_ignores_out_of_range_values	ls_midi.ino	    case 246:\n      if (inRange(value, 0, 1)) {	    case 246:\n      if (inRange(value, 0, 127)) {
+nrpn_sets_left_handed_operation	ls_midi.ino	        Device.otherHanded = value;	        Device.otherHanded = !value;
+phantom_firmest_fourth_corner_is_real	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return true;
+phantom_needs_a_complete_rectangle	ls_handleTouches.ino	        if (rowsInColsTouched[touchedCol] & (int32_t)(1 << touchedRow)) {	        if (true) {
+phantom_fourth_corner_of_three_sounding_notes_does_not_sound	ls_handleTouches.ino	      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {	      if (false) {
+playing_moving_a_finger_sends_pitch_bend	ls_handleTouches.ino	        int pitch = valueX;	        int pitch = -valueX;
+serial_command_without_handshake_is_ignored	ls_serial.ino	  if (waitingForCommands) {	  if (true) {
+settings_current_version_is_copied_as_is	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (false) {
+settings_defaults	ls_settings.ino	  Device.version = 17;	  Device.version = 18;
+settings_second_store_keeps_the_newest_copy	ls_settings.ino	  dueFlashStorage.write(SETTINGS_OFFSET, marker);	  dueFlashStorage.write(SETTINGS_OFFSET, 0);
+settings_upgrade_rejects_wrong_size	ls_extstorage.ino	      case 16:\n        if (confSize == sizeof(ConfigurationV16)) {	      case 16:\n        if (true) {
+switch_cc65_sends_the_configured_controller	ls_switches.ino	      preSendSwitchCC65(whichSwitch, split, 127);	      preSendSwitchCC65(whichSwitch, split, 126);
+switch_foot_pedal_follows_the_pedal_and_its_polarity	ls_switches.ino	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = !state_right;	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = state_right;
+ufm_any_channel_enters	ls_midi.ino	        changeUserFirmwareMode(value);	        if (channel == 0) changeUserFirmwareMode(value);
+ufm_bottom_row_is_channel_1_top_row_channel_8	ls_handleTouches.ino	  sensorCell->channel = sensorRow+1;\n  midiSendNoteOn(LEFT,	  sensorCell->channel = sensorRow+2;\n  midiSendNoteOn(LEFT,
+ufm_cell_release_is_note_off_with_release_velocity	ls_handleTouches.ino	    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);	    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, 0, sensorCell->channel);
+ufm_decimation_in_low_power_mode_only_accepts_more_than_12_ms	ls_midi.ino	              if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {	              if (true) {
+ufm_decimation_limits_the_update_rate	ls_midi.ino	  if (value != 0 && calcTimeDelta(now, lastMomentMidiPP[channel][notenum]) <= midiDecimateRate) return;	  if (false) return;
+ufm_entering_turns_the_note_lights_off_and_lights_global_settings_yellow	ls_displayModes.ino	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
+ufm_expression_switches_are_per_row	ls_handleTouches.ino	        if (userFirmwareZActive[sensorRow]) {	        if (true) {
+ufm_global_settings_panel_still_opens	ls_settings.ino	      setDisplayMode(displayGlobal);                   // change to global settings display mode	      setDisplayMode(displayNormal);
+ufm_leds_use_their_own_layer	ls_midi.ino	                layer = LED_LAYER_CUSTOM2;	                layer = LED_LAYER_CUSTOM1;
+ufm_no_expression_until_enabled	ls_handleTouches.ino	        if (userFirmwareXActive[sensorRow] && valueX != INVALID_DATA) {	        if (valueX != INVALID_DATA) {
+ufm_note_velocity_follows_the_global_velocity_setting	ls_handleTouches.ino	  midiSendNoteOn(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);	  midiSendNoteOn(LEFT, sensorCell->note, 127, sensorCell->channel);
+ufm_query_reports_the_state	ls_midi.ino	    case 245:\n      value = userFirmwareActive;	    case 245:\n      value = 0;
+ufm_slide_mode_is_enabled_per_row	ls_midi.ino	              userFirmwareSlideMode[midiChannel] = midiData2;	              userFirmwareSlideMode[midiChannel] = 1;
+ufm_starts_from_a_clean_slate	ls_settings.ino	      userFirmwareXActive[r] = false;	      userFirmwareXActive[r] = userFirmwareXActive[r];
+ufm_x_range_covers_the_surface_of_each_model	linnstrument-firmware.ino	const int32_t FXD_CALX_FULL_UNIT = FXD_MAKE(170.625);     // 4095 / 24	const int32_t FXD_CALX_FULL_UNIT = FXD_MAKE(160.625);     // 4095 / 24
+ufm_y_runs_from_the_bottom_to_the_top_of_the_cell	ls_handleTouches.ino	    valueY = tempY;	    valueY = 127 - tempY;
+ufm_z_data_is_poly_pressure_on_the_row_channel	ls_handleTouches.ino	          midiSendPolyPressure(sensorCell->note, valueZ, sensorCell->channel);	          midiSendPolyPressure(sensorCell->note + 1, valueZ, sensorCell->channel);
+ufm_z_runs_from_the_lightest_to_the_firmest_touch	ls_handleTouches.ino	  byte valueZ = scale1016to127(valueZHi, true);	  byte valueZ = 64;
+velocity_is_decided_within_the_sample_window	ls_touchInfo.ino	    if (sensorCell->vcount == VELOCITY_TOTAL_SAMPLES) {	    if (sensorCell->vcount == VELOCITY_TOTAL_SAMPLES + 1) {
+velocity_sensitivity_scales_the_same_strike	ls_touchInfo.ino	          scale = VELOCITY_SCALE_MEDIUM;\n          curve = Z_CURVE_MEDIUM;	          scale = VELOCITY_SCALE_LOW;\n          curve = Z_CURVE_LOW;
+calibration_y_rightmost_column_of_the_128_maps_through_the_sixth_column	ls_calibration.ino	  int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[col][row].minY, Device.calCols[col][row].maxY) - Device.calCols[col][row].minY), Device.calCols[col][row].fxdRatio);	  int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[0][row].minY, Device.calCols[0][row].maxY) - Device.calCols[0][row].minY), Device.calCols[0][row].fxdRatio);

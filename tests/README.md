@@ -49,6 +49,14 @@ TEST(notes_row_offset_changes_the_layout) {
 }
 ```
 
+Every test also gets a line in `mutations.tsv`: the test's name, a firmware
+file, a line of it, and a broken version of that line. `go run ./tools/linnstrument
+mutate` first runs the whole suite on the real firmware, then applies each
+line in turn, confirms the named test fails on the broken firmware, and
+restores the file, also on an interrupt. A test with no line in the table is
+reported as NO MUTATION and fails the run, as does a mutation that survives.
+`go run ./tools/linnstrument mutate NAME` limits the run to one test.
+
 `TEST(name)` registers itself; `CHECK(condition)`, `CHECK_EQ(actual, expected)`
 and `CHECK_NEAR(actual, expected, tolerance)` report with file and line and keep
 going. Names must be unique across all test files. A new file only needs to

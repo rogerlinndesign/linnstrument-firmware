@@ -71,7 +71,7 @@ TEST(settings_upgrade_rejects_wrong_size) {
 TEST(settings_upgrade_rejects_newer_version) {
   linn::reset();
   Configuration newer = config;
-  newer.device.version = 99;
+  newer.device.version = 18;
   CHECK(!upgradeConfigurationSettings(sizeof(Configuration), (byte*)&newer));
 }
 

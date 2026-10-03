@@ -43,7 +43,7 @@ Rules and facts:
   Any copy, snapshot or git worktree you build must keep that folder name.
 * Requires the `arduino:sam` core, version 1.6.12. Install with
   `arduino-cli core install arduino:sam@1.6.12`.
-* * On Apple silicon the SAM toolchain is x86_64 only and needs Rosetta. If the
+* On Apple silicon the SAM toolchain is x86_64 only and needs Rosetta. If the
   compiler fails with "bad CPU type in executable", Rosetta is missing; tell the
   person rather than working around it. GitHub Actions
   (`.github/workflows/build.yml`) compiles every push on x86 runners and
@@ -65,8 +65,11 @@ go run ./tools/linnstrument test
 
 This compiles the whole sketch for the desktop against the stand-ins in
 `tests/support/` and runs every `tests/test_*.cpp` in a few seconds. Run it
-after every change, before the firmware build. `tests/README.md` explains the
-mechanism and the helpers; the short version:
+after every change, before the firmware build. `tools/ci-linux.sh` runs the
+GitHub jobs in an x86_64 Ubuntu container with Docker; x86 traps on integer
+division by zero where the Due and Apple silicon return 0, so a change that
+touches arithmetic is worth one Linux run before pushing. `tests/README.md`
+explains the mechanism and the helpers; the short version:
 
 * A test is `TEST(name) { ... }` with `CHECK`, `CHECK_EQ` and `CHECK_NEAR`.
   Tests share one translation unit with the sketch, so they call firmware
@@ -77,8 +80,11 @@ mechanism and the helpers; the short version:
   `host::feedSerial()` plus `linn::pumpSerial()` for the serial protocol.
 * The clock is fake: `host::advanceMicros()` moves it, and every `millis()` or
   `micros()` read adds a microsecond so busy waits end.
-* A fix to host-reachable logic ships with a test that fails without it.
-  Verify that by reverting the fix once and watching the test fail.
+* A fix to host-reachable logic ships with a test that fails without it, and
+  every test gets a line in `tests/mutations.tsv`: a one-line change to the
+  firmware that must make exactly that test fail. `go run ./tools/linnstrument mutate`
+  applies each line, checks the test fails, and restores the file. A test that
+  survives its mutation is not a test.
 * Keep the suite fast. A test that needs more than a fraction of a second is
   doing too much.
 * Sensor reads return zero on the desktop. Set `currentRawZ` and the other
@@ -106,7 +112,8 @@ Otherwise flashing is theirs to do with the LinnStrument Updater, which saves
 and restores settings around the update.
 
 When allowed, with the unit in serial mode (OS Update in Global Settings) and
-showing up as `/dev/cu.usbmodem*`:
+showing up as a serial port (`/dev/cu.usbmodem*` on macOS, `/dev/ttyACM*` on
+Linux, `COMn` on Windows):
 
 ```
 go run ./tools/linnstrument ports             # list serial ports, mark the LinnStrument
@@ -147,6 +154,9 @@ Facts about the serial link, measured on a LinnStrument 128:
   batches and CRC32 per batch.
   `ls_serial.ino` is the firmware side, `tools/linnstrument/device.go` the host side.
 * In serial mode the unit sends no MIDI, and in MIDI mode it has no serial port.
+* A mode switch is stored with `storeSettings()`, which does nothing while the
+  sequencer is running. Then the next DTR reset on a port open can undo the
+  switch, so stop the sequencer before `serialmode` or `backup`.
 
 ## Source layout
 
@@ -220,7 +230,7 @@ sequencer advance, MIDI input or serial I/O, sleep.
 
 Hard rules that follow from this:
 
-* * Never block. No `delay()`, no `delayMicroseconds()`, no busy loops waiting
+* Never block. No `delay()`, no `delayMicroseconds()`, no busy loops waiting
   on I/O. Use `delayUsec()` from `ls_rtos.ino`, which keeps LEDs and switches
   alive.
 * Anything that takes time is done incrementally across loop iterations, using
@@ -249,7 +259,7 @@ What differs, and where:
   `CELLCOUNT` (201 or 129) in `ls_handleTouches.ino`, so a full scan of the
   128 is shorter.
 * Sensor: the per-cell `Z_BIAS` table in `ls_sensor.ino`, and the X range over
-  the whole surface (0 to 4265 on a 200, 0 to 2730 on a 128, see
+  the whole surface (0 to 4265 on a 200, about 2660 on a 128, see
   `user_firmware_mode.md`). Calibration samples 9 columns on a 200 and 6 on a
   128 (`CALCOLNUM` in `ls_calibration.ino`).
 * LEDs: `COL_INDEX_200` / `COL_INDEX_128` map columns to the LED hardware in
@@ -282,8 +292,11 @@ Rules that follow:
 * LEDs: `setLed(col, row, color, cellOn)` sets one, `updateDisplay()` repaints
   the current display mode, `setDisplayMode()` switches screens. Never write to
   the LED hardware directly.
-* Hold gestures in settings screens go through `ensureCellBeforeHoldWait()`,
-  which the OS Update cell and others use.
+* Settings cells tell a tap from a hold with `ensureCellBeforeHoldWait()`,
+  which returns true for a release within `SENSOR_HOLD_DELAY`; holds are
+  handled in the `...Hold()` functions. The OS Update cell toggles serial mode
+  on a tap and User Firmware Mode on a hold.
+
 ## Settings and persistence
 
 All persistent state lives in the `Configuration` struct (device, global and
@@ -345,7 +358,7 @@ Transpose switch assignments, commit 41c0451) as a template.
   versus DIN. A flashed build that can no longer reach the OS Update cell in
   Global Settings has no serial port and cannot be reflashed over USB; the
   unit then has to be opened to use the Due's erase button. Never disable
-  Global Settings, the OS Update hold, or `applySerialMode()` in a build you
+  Global Settings, the OS Update tap, or `applySerialMode()` in a build you
   flash.
 * Commented-out `#define` lines near the top of `linnstrument-firmware.ino`
   (frame displays, `TESTING_SENSOR_DISABLE`, diagnostics) are switches for
@@ -358,7 +371,7 @@ Serial output needs the LinnStrument in serial mode (the OS Update cell in
 Global Settings toggles it) and `DEBUG_ENABLED` defined in `ls_debug.h`.
 `DEBUGPRINT((level, "text"))` prints when `debugLevel` is at least `level`.
 `debugLevel` starts at -1, so only level -1 prints until the player sets it:
-with `DEBUG_ENABLED`, column 17 rows 1 to 5 of Global Settings set levels -1
+with `DEBUG_ENABLED`, column 17 rows 0 to 4 of Global Settings set levels -1
 to 3, and the secret switches in column 18 show X, Y, Z frames, scan time and
 free RAM. The `DISPLAY_*_AT_LAUNCH` defines at the top of
 `linnstrument-firmware.ino` force serial mode and one of those switches at
@@ -374,7 +387,7 @@ rather than reasoning alone.
 
 ## Working conventions
 
-* * Style: two-space indentation, K&R braces, `boolean`/`byte`/`short` types as
+* Style: two-space indentation, K&R braces, `boolean`/`byte`/`short` types as
   in the surrounding code, constants in `UPPER_CASE`, camelCase functions. Match
   the file you are in.
 * Comments: the least possible. If the code is self-explanatory, none. Keep only

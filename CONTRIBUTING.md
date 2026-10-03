@@ -64,7 +64,8 @@ rejection, settings migration, MIDI and serial framing. Run them before every
 push, and add one when you fix a bug in logic they can reach. See
 `tests/README.md` for how to write one. GitHub Actions runs them on every push
 as well, together with `node --test examples/user_firmware_protocol.test.js` for
-the example code.
+the example code. `tools/ci-linux.sh` runs those same jobs in an x86_64 Ubuntu
+container with Docker, for checking a change on Linux before pushing it.
 
 
 Flashing and testing on the instrument
@@ -97,7 +98,7 @@ Before considering a change done, test on the instrument:
   with the Updater from the previous firmware.
 * If you own a LinnStrument 128 and 200, try both. If not, say which one you
   tested on.
-* * Check the MIDI output with a MIDI monitor when the change affects what is
+* Check the MIDI output with a MIDI monitor when the change affects what is
   sent.
 
 

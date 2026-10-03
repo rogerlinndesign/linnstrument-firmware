@@ -156,7 +156,7 @@ void reset(byte model) {
 void select(byte col, byte row) {
   sensorCol = col;
   sensorRow = row;
-  sensorSplit = Global.splitActive && col >= Global.splitPoint ? RIGHT : LEFT;
+  sensorSplit = getSplitOf(col);
   sensorCell = &cell(col, row);
 }
 
