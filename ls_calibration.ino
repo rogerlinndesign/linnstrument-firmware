@@ -184,7 +184,7 @@ signed char calculateCalibratedY(short rawY) {
 
   int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[col][row].minY, Device.calCols[col][row].maxY) - Device.calCols[col][row].minY), Device.calCols[col][row].fxdRatio);
   int32_t fxdRightY = 0;
-  if (col < 8) {
+  if (col < CALCOLNUM - 1) {
     fxdRightY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[col+1][row].minY, Device.calCols[col+1][row].maxY) - Device.calCols[col+1][row].minY), Device.calCols[col+1][row].fxdRatio);
   }
 
