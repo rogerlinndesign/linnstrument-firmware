@@ -7,8 +7,7 @@ velocity_fixed_setting_overrides_the_strike	ls_touchInfo.ino	    return Global.v
 velocity_rises_with_the_strike	ls_touchInfo.ino	      slope = scale1016to127(slope, false);	      slope = 64;
 phantom_lightest_fourth_corner_is_a_phantom	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return hasNote() || currentRawZ < other;
 phantom_corner_with_a_note_counts_as_firm	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return currentRawZ > other;
-settings_upgrade_rejects_newer_version	ls_extstorage.ino	  if (settingsVersion > Device.version) {\n    result = false;	  if (settingsVersion > Device.version) {\n    result = true;
-settings_upgrade_from_version_16	ls_extstorage.ino	      case 16:	      case 61:
+upgrade_refuses_a_newer_version	ls_extstorage.ino	  if (settingsVersion > Device.version) {\n    result = false;	  if (settingsVersion > Device.version) {\n    result = true;
 settings_survive_flash_round_trip	ls_settings.ino	  memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), sizeof(Configuration));	  memcpy(&config, dueFlashStorage.readAddress(SETTINGS_OFFSET+sizeof(unsigned long)+configOffset), 1);
 midi_note_on_leaves_as_three_bytes	ls_midi.ino	  midiOutQueue.push(channel & 0x0F);	  midiOutQueue.push((channel + 1) & 0x0F);
 midi_channel_pressure_leaves_as_two_bytes	ls_midi.ino	                 (lastType == MIDIProgramChange || lastType == MIDIChannelPressure)) {	                 (lastType == MIDIProgramChange)) {
@@ -73,10 +72,9 @@ phantom_needs_a_complete_rectangle	ls_handleTouches.ino	        if (rowsInColsTo
 phantom_fourth_corner_of_three_sounding_notes_does_not_sound	ls_handleTouches.ino	      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {	      if (false) {
 playing_moving_a_finger_sends_pitch_bend	ls_handleTouches.ino	        int pitch = valueX;	        int pitch = -valueX;
 serial_command_without_handshake_is_ignored	ls_serial.ino	  if (waitingForCommands) {	  if (true) {
-settings_current_version_is_copied_as_is	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (false) {
+upgrade_copies_the_current_version_as_is	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (false) {
 settings_defaults	ls_settings.ino	  Device.version = 17;	  Device.version = 18;
 settings_second_store_keeps_the_newest_copy	ls_settings.ino	  dueFlashStorage.write(SETTINGS_OFFSET, marker);	  dueFlashStorage.write(SETTINGS_OFFSET, 0);
-settings_upgrade_rejects_wrong_size	ls_extstorage.ino	      case 16:\n        if (confSize == sizeof(ConfigurationV16)) {	      case 16:\n        if (true) {
 switch_cc65_sends_the_configured_controller	ls_switches.ino	      preSendSwitchCC65(whichSwitch, split, 127);	      preSendSwitchCC65(whichSwitch, split, 126);
 switch_foot_pedal_follows_the_pedal_and_its_polarity	ls_switches.ino	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = !state_right;	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = state_right;
 ufm_any_channel_enters	ls_midi.ino	        changeUserFirmwareMode(value);	        if (channel == 0) changeUserFirmwareMode(value);
@@ -100,3 +98,20 @@ ufm_z_runs_from_the_lightest_to_the_firmest_touch	ls_handleTouches.ino	  byte va
 velocity_is_decided_within_the_sample_window	ls_touchInfo.ino	    if (sensorCell->vcount == VELOCITY_TOTAL_SAMPLES) {	    if (sensorCell->vcount == VELOCITY_TOTAL_SAMPLES + 1) {
 velocity_sensitivity_scales_the_same_strike	ls_touchInfo.ino	          scale = VELOCITY_SCALE_MEDIUM;\n          curve = Z_CURVE_MEDIUM;	          scale = VELOCITY_SCALE_LOW;\n          curve = Z_CURVE_LOW;
 calibration_y_rightmost_column_of_the_128_maps_through_the_sixth_column	ls_calibration.ino	  int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[col][row].minY, Device.calCols[col][row].maxY) - Device.calCols[col][row].minY), Device.calCols[col][row].fxdRatio);	  int32_t fxdLeftY = FXD_DIV(FXD_FROM_INT(constrain(rawY, Device.calCols[0][row].minY, Device.calCols[0][row].maxY) - Device.calCols[0][row].minY), Device.calCols[0][row].fxdRatio);
+upgrade_from_v1_fills_the_presets_from_the_single_setup	ls_extstorage.ino	  ConfigurationV1* s = (ConfigurationV1*)source;	  ConfigurationV1* s = (ConfigurationV1*)target;
+upgrade_from_v2	ls_extstorage.ino	  copyPresetSettingsOfConfigurationV2(t, s);	  copyPresetSettingsOfConfigurationV2(t, s); t->preset[0].global.rowOffset = 0;
+upgrade_from_v3	ls_extstorage.ino	  copyPresetSettingsOfConfigurationV3(t, s);	  copyPresetSettingsOfConfigurationV3(t, s); t->preset[0].global.rowOffset = 0;
+upgrade_from_v4	ls_extstorage.ino	  ConfigurationV4* s = (ConfigurationV4*)source;	  ConfigurationV4* s = (ConfigurationV4*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v5	ls_extstorage.ino	  ConfigurationV5* s = (ConfigurationV5*)source;	  ConfigurationV5* s = (ConfigurationV5*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v6	ls_extstorage.ino	  ConfigurationV6* s = (ConfigurationV6*)source;	  ConfigurationV6* s = (ConfigurationV6*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v7	ls_extstorage.ino	  ConfigurationV7* s = (ConfigurationV7*)source;	  ConfigurationV7* s = (ConfigurationV7*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v8	ls_extstorage.ino	  ConfigurationV8* s = (ConfigurationV8*)source;	  ConfigurationV8* s = (ConfigurationV8*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v9	ls_extstorage.ino	  ConfigurationV9* s = (ConfigurationV9*)source;	  ConfigurationV9* s = (ConfigurationV9*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v10	ls_extstorage.ino	  ConfigurationV10* s = (ConfigurationV10*)source;	  ConfigurationV10* s = (ConfigurationV10*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v11	ls_extstorage.ino	  ConfigurationV11* s = (ConfigurationV11*)source;	  ConfigurationV11* s = (ConfigurationV11*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v12	ls_extstorage.ino	  ConfigurationV12* s = (ConfigurationV12*)source;	  ConfigurationV12* s = (ConfigurationV12*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v13	ls_extstorage.ino	  ConfigurationV13* s = (ConfigurationV13*)source;	  ConfigurationV13* s = (ConfigurationV13*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v14	ls_extstorage.ino	  ConfigurationV14* s = (ConfigurationV14*)source;	  ConfigurationV14* s = (ConfigurationV14*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v15	ls_extstorage.ino	  ConfigurationV15* s = (ConfigurationV15*)source;	  ConfigurationV15* s = (ConfigurationV15*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v16	ls_extstorage.ino	  ConfigurationV16* s = (ConfigurationV16*)source;	  ConfigurationV16* s = (ConfigurationV16*)source; s->settings.global.rowOffset = 0;
+upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	      case 9:\n        if (confSize == sizeof(ConfigurationV9)) {	      case 9:\n        if (true) {

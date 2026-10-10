@@ -331,6 +331,9 @@ Changing any field of `DeviceSettings`, `GlobalSettings`, `SplitSettings` or
 6. Set `Device.version = 18` in `initializeDeviceSettings()`.
 7. If the setting should be reachable over MIDI, add the NRPN in `ls_midi.ino`
    and document it in `midi.md`.
+8. Add `upgrade_from_v17` to `tests/test_upgrade.cpp`, which already upgrades
+   a blob of every earlier layout and checks that planted values arrive, and
+   give it a mutation line.
 
 Commit 1f8858f (low row transpose) is a complete example of such a bump.
 

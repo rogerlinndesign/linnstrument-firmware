@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// Settings defaults, flash storage and migration from an older layout.
+// Settings defaults and flash storage; the migrations are in test_upgrade.cpp.
 
 TEST(settings_defaults) {
   linn::reset();
@@ -40,45 +40,4 @@ TEST(settings_second_store_keeps_the_newest_copy) {
   Global.rowOffset = 0;
   loadSettings();
   CHECK_EQ(Global.rowOffset, 9);
-}
-
-static ConfigurationV16 previousLayoutFromCurrent() {
-  ConfigurationV16 old;
-  memset(&old, 0, sizeof(old));
-  memcpy(&old.device, &config.device, sizeof(DeviceSettings));
-  old.device.version = 16;
-  old.settings.global = Global;
-  return old;
-}
-
-TEST(settings_upgrade_from_version_16) {
-  linn::reset();
-  ConfigurationV16 old = previousLayoutFromCurrent();
-  old.settings.global.rowOffset = 7;
-  CHECK(upgradeConfigurationSettings(sizeof(ConfigurationV16), (byte*)&old));
-  CHECK_EQ(Global.rowOffset, 7);
-  CHECK_EQ(Device.version, 17);
-}
-
-TEST(settings_upgrade_rejects_wrong_size) {
-  linn::reset();
-  ConfigurationV16 old = previousLayoutFromCurrent();
-  old.settings.global.rowOffset = 7;
-  CHECK(!upgradeConfigurationSettings(sizeof(ConfigurationV16) - 1, (byte*)&old));
-  CHECK_EQ(Global.rowOffset, 5);
-}
-
-TEST(settings_upgrade_rejects_newer_version) {
-  linn::reset();
-  Configuration newer = config;
-  newer.device.version = 18;
-  CHECK(!upgradeConfigurationSettings(sizeof(Configuration), (byte*)&newer));
-}
-
-TEST(settings_current_version_is_copied_as_is) {
-  linn::reset();
-  Configuration same = config;
-  same.settings.global.rowOffset = 11;
-  CHECK(upgradeConfigurationSettings(sizeof(Configuration), (byte*)&same));
-  CHECK_EQ(Global.rowOffset, 11);
 }
