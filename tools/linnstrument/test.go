@@ -133,6 +133,17 @@ func mergeSketch(repo string) (string, error) {
 	return sb.String(), nil
 }
 
+func writeMergedSketch(repo string, out string) error {
+	merged, err := mergeSketch(repo)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(out, []byte(merged), 0o644)
+}
+
 func findCompiler() (string, error) {
 	if env := os.Getenv("CXX"); env != "" {
 		return env, nil

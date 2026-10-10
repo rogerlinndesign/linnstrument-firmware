@@ -27,9 +27,12 @@ limitations under the License.
 
 // the C++ library headers the fakes use come first, because the macros below break them
 #include <algorithm>
+#include <chrono>
 #include <deque>
 #include <initializer_list>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 typedef uint8_t byte;

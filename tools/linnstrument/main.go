@@ -39,6 +39,8 @@ Commands:
                          NAME restricts the run to tests whose name contains it
   mutate [NAME]          prove the tests can fail: apply each change in tests/mutations.tsv to the
                          firmware and check the named test fails, restoring the file afterwards
+  merge [FILE]           write the sketch as the one C++ file the desktop builds compile
+                         (default: build/sketch/linnstrument-firmware.cpp)
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -93,6 +95,16 @@ func dispatch(port, command string, args []string) error {
 			filter = args[0]
 		}
 		return runTests(repo, filter)
+	case "merge":
+		repo, err := repoRoot()
+		if err != nil {
+			return err
+		}
+		out := filepath.Join(repo, "build", "sketch", sketchName+".cpp")
+		if len(args) > 0 {
+			out = args[0]
+		}
+		return writeMergedSketch(repo, out)
 	case "mutate":
 		repo, err := repoRoot()
 		if err != nil {

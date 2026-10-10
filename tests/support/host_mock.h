@@ -33,6 +33,10 @@ void advanceMicros(unsigned long us);
 // The clock moves this much on every millis() or micros() call (default 1 us), so the sketch's
 // busy-wait delays terminate; raise it to make long waits cheap.
 void setMicrosPerRead(unsigned long us);
+// Read the computer's clock instead of the fake one, for a host that runs the sketch live.
+void useRealClock(bool real);
+
+void setPin(uint8_t pin, int value);
 
 int pinState(uint8_t pin);
 
@@ -41,12 +45,17 @@ std::vector<uint8_t> serialOutput();
 std::string serialOutputText();
 void clearSerialOutput();
 
-// Bytes the sketch will see on Serial.read().
+// Bytes the sketch will see on Serial.read(). Safe to call from another thread.
 void feedSerial(const uint8_t* data, size_t length);
 void feedSerial(const char* text);
 
+// When set, Serial output goes to this function instead of the capture buffer.
+typedef void (*SerialSink)(const uint8_t* data, size_t length);
+void setSerialSink(SerialSink sink);
+
 // Raw sensor readings (12 bit) the sketch gets back when it scans a cell. Z is the pressure
-// before the sketch's own inversion, so 0 is untouched and larger is firmer.
+// before the sketch's own inversion, so 0 is untouched and larger is firmer. Safe to call from
+// another thread.
 void setSensor(uint8_t col, uint8_t row, uint16_t x, uint16_t y, uint16_t z);
 
 }

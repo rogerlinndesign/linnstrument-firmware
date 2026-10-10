@@ -17,12 +17,16 @@ limitations under the License.
 #include "DueFlashStorage.h"
 #include "host_mock.h"
 
-#include <deque>
 #include <cstdio>
 #include <cstdarg>
 
 static unsigned long fakeMicros = 0;
 static unsigned long microsPerRead = 1;
+static bool realClock = false;
+static std::chrono::steady_clock::time_point clockStart;
+static std::mutex serialInLock;
+static std::mutex sensorLock;
+static host::SerialSink serialSink = NULL;
 static int pins[128];
 static std::vector<uint8_t> serialOut;
 static std::deque<uint8_t> serialIn;
@@ -54,6 +58,7 @@ void reset() {
 }
 
 void setSensor(uint8_t col, uint8_t row, uint16_t x, uint16_t y, uint16_t z) {
+  std::lock_guard<std::mutex> guard(sensorLock);
   sensorX[col & 31][row & 7] = x;
   sensorY[col & 31][row & 7] = y;
   sensorZ[col & 31][row & 7] = z;
@@ -62,22 +67,43 @@ void setSensor(uint8_t col, uint8_t row, uint16_t x, uint16_t y, uint16_t z) {
 void setMicros(unsigned long us) { fakeMicros = us; }
 void setMicrosPerRead(unsigned long us) { microsPerRead = us; }
 void advanceMicros(unsigned long us) { fakeMicros += us; }
+void useRealClock(bool real) {
+  realClock = real;
+  clockStart = std::chrono::steady_clock::now();
+}
 int pinState(uint8_t pin) { return pins[pin]; }
+void setPin(uint8_t pin, int value) { pins[pin] = value; }
+void setSerialSink(SerialSink sink) { serialSink = sink; }
 
 std::vector<uint8_t> serialOutput() { return serialOut; }
 std::string serialOutputText() { return std::string(serialOut.begin(), serialOut.end()); }
 void clearSerialOutput() { serialOut.clear(); }
 
 void feedSerial(const uint8_t* data, size_t length) {
+  std::lock_guard<std::mutex> guard(serialInLock);
   serialIn.insert(serialIn.end(), data, data + length);
 }
 void feedSerial(const char* text) { feedSerial((const uint8_t*)text, strlen(text)); }
 
 }
 
-unsigned long millis() { fakeMicros += microsPerRead; return fakeMicros / 1000; }
-unsigned long micros() { fakeMicros += microsPerRead; return fakeMicros; }
-void delayMicroseconds(unsigned int us) { fakeMicros += us; }
+static unsigned long realMicros() {
+  return (unsigned long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - clockStart).count();
+}
+unsigned long millis() {
+  if (realClock) return realMicros() / 1000;
+  fakeMicros += microsPerRead;
+  return fakeMicros / 1000;
+}
+unsigned long micros() {
+  if (realClock) return realMicros();
+  fakeMicros += microsPerRead;
+  return fakeMicros;
+}
+void delayMicroseconds(unsigned int us) {
+  if (realClock) std::this_thread::sleep_for(std::chrono::microseconds(us));
+  else fakeMicros += us;
+}
 void pinMode(uint8_t, uint8_t) {}
 void digitalWrite(uint8_t pin, uint8_t value) { pins[pin] = value; }
 int digitalRead(uint8_t pin) { return pins[pin]; }
@@ -88,17 +114,22 @@ void randomSeed(unsigned long seed) { srand((unsigned)seed); }
 
 void HardwareSerial::begin(unsigned long) {}
 void HardwareSerial::flush() {}
-int HardwareSerial::available() { return (int)serialIn.size(); }
+int HardwareSerial::available() {
+  std::lock_guard<std::mutex> guard(serialInLock);
+  return (int)serialIn.size();
+}
 int HardwareSerial::availableForWrite() { return 64; }
 int HardwareSerial::read() {
+  std::lock_guard<std::mutex> guard(serialInLock);
   if (serialIn.empty()) return -1;
   uint8_t b = serialIn.front();
   serialIn.pop_front();
   return b;
 }
-size_t HardwareSerial::write(uint8_t b) { serialOut.push_back(b); return 1; }
+size_t HardwareSerial::write(uint8_t b) { return write(&b, 1); }
 size_t HardwareSerial::write(const uint8_t* buffer, size_t size) {
-  serialOut.insert(serialOut.end(), buffer, buffer + size);
+  if (serialSink) serialSink(buffer, size);
+  else serialOut.insert(serialOut.end(), buffer, buffer + size);
   return size;
 }
 size_t HardwareSerial::write(const char* text) { return write((const uint8_t*)text, strlen(text)); }
@@ -138,6 +169,7 @@ uint8_t SPIClass::transfer(uint8_t pin, uint8_t data, uint8_t mode) {
     uint8_t col = data & 0x1F;
     uint8_t row = sensorLsb & 0x07;
     uint16_t value;
+    std::lock_guard<std::mutex> guard(sensorLock);
     if ((sensorLsb & 0x50) == 0x50) {
       value = sensorX[col][row];
     } else if ((sensorLsb & 0x18) == 0x18) {

@@ -106,3 +106,34 @@ jobs:
         with:
           name: linnstrument-tool-${{ matrix.name }}
           path: out/*
+
+  virtual:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Virtual LinnStrument
+        run: |
+          cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/virtual --config Release -j3
+
+      - name: Screenshot it
+        run: |
+          "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot build/virtual-linnstrument.png
+
+      - name: Zip the app
+        run: |
+          cd build/virtual/VirtualLinnStrument_artefacts/Release
+          ditto -c -k --keepParent "Virtual LinnStrument.app" "$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: virtual-linnstrument-macos
+          path: |
+            build/virtual-linnstrument-macos.zip
+            build/virtual-linnstrument.png
