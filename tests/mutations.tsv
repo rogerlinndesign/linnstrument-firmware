@@ -22,7 +22,7 @@ ufm_cell_press_is_note_on_with_column_and_row	ls_handleTouches.ino	  midiSendNot
 ufm_x_data_is_14_bit_lsb_then_msb	ls_handleTouches.ino	          positionX = positionX + 85;	          positionX = positionX + 285;
 ufm_y_data_is_cc_64_plus_column	ls_handleTouches.ino	          midiSendControlChange(sensorCol+64, valueY, sensorCell->channel);	          midiSendControlChange(sensorCol+65, valueY, sensorCell->channel);
 ufm_decimation_is_set_in_milliseconds	ls_midi.ino	              unsigned long rate = midiData2 * 1000;	              unsigned long rate = midiData2 * 100;
-ufm_leds_are_set_with_cc_20_21_22	ls_midi.ino	              if (midiData2 <= COLOR_PINK && midiData2 != COLOR_OFF) {	              if (midiData2 < COLOR_PINK && midiData2 != COLOR_OFF) {
+ufm_leds_are_set_with_cc_20_21_22	ls_midiLights.ino	  if (color <= COLOR_PINK && color != COLOR_OFF) {	  if (color < COLOR_PINK && color != COLOR_OFF) {
 ufm_slide_transition_sends_cc_119_then_note_on_then_note_off	ls_handleTouches.ino	      midiSendControlChange(119, siblingCol, sensorCell->channel, true);	      midiSendControlChange(118, siblingCol, sensorCell->channel, true);
 ufm_foot_switches_keep_their_assignment	ls_switches.ino	  bool state_left = digitalRead(FOOT_SW_LEFT);	  if (userFirmwareActive) return;\n  bool state_left = digitalRead(FOOT_SW_LEFT);
 ufm_control_column_is_note_0_except_the_global_settings_row	ls_handleTouches.ino	    if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW) {	    if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW || sensorRow == 3) {
@@ -85,7 +85,7 @@ ufm_decimation_limits_the_update_rate	ls_midi.ino	  if (value != 0 && calcTimeDe
 ufm_entering_turns_the_note_lights_off_and_lights_global_settings_yellow	ls_displayModes.ino	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
 ufm_expression_switches_are_per_row	ls_handleTouches.ino	        if (userFirmwareZActive[sensorRow]) {	        if (true) {
 ufm_global_settings_panel_still_opens	ls_settings.ino	      setDisplayMode(displayGlobal);                   // change to global settings display mode	      setDisplayMode(displayNormal);
-ufm_leds_use_their_own_layer	ls_midi.ino	                layer = LED_LAYER_CUSTOM2;	                layer = LED_LAYER_CUSTOM1;
+ufm_leds_use_their_own_layer	ls_midiLights.ino	  return userFirmwareActive ? LED_LAYER_CUSTOM2 : LED_LAYER_CUSTOM1;	  return LED_LAYER_CUSTOM1;
 ufm_no_expression_until_enabled	ls_handleTouches.ino	        if (userFirmwareXActive[sensorRow] && valueX != INVALID_DATA) {	        if (valueX != INVALID_DATA) {
 ufm_note_velocity_follows_the_global_velocity_setting	ls_handleTouches.ino	  midiSendNoteOn(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);	  midiSendNoteOn(LEFT, sensorCell->note, 127, sensorCell->channel);
 ufm_query_reports_the_state	ls_midi.ino	    case 245:\n      value = userFirmwareActive;	    case 245:\n      value = 0;
@@ -115,3 +115,21 @@ upgrade_from_v14	ls_extstorage.ino	  ConfigurationV14* s = (ConfigurationV14*)so
 upgrade_from_v15	ls_extstorage.ino	  ConfigurationV15* s = (ConfigurationV15*)source;	  ConfigurationV15* s = (ConfigurationV15*)source; s->settings.global.rowOffset = 0;
 upgrade_from_v16	ls_extstorage.ino	  ConfigurationV16* s = (ConfigurationV16*)source;	  ConfigurationV16* s = (ConfigurationV16*)source; s->settings.global.rowOffset = 0;
 upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	      case 9:\n        if (confSize == sizeof(ConfigurationV9)) {	      case 9:\n        if (true) {
+ufm_query_272_to_274_report_the_model_the_version_and_the_build	ls_midi.ino	      value = LINNMODEL;	      value = NUMCOLS;
+ufm_query_272_to_274_are_read_only	ls_midi.ino	    case 299:\n      sendNrpnParameter(value, channel);	    case 272:\n      LINNMODEL = value;\n      break;\n    case 299:\n      sendNrpnParameter(value, channel);
+ufm_cc_25_colors_the_cursor_cell_and_moves_right_then_up_from_column_0	ls_midiLights.ino	    midiCellColCC = 0;\n    midiCellRowCC += 1;	    midiCellColCC = 0;
+ufm_cc_25_stops_above_the_top_row_and_switches_off_with_0_or_12_and_up	ls_midiLights.ino	  if (color <= COLOR_PINK && color != COLOR_OFF) {	  if (color != COLOR_OFF) {
+ufm_cc_25_fills_a_128_in_136_messages	ls_midiLights.ino	  if (midiCellColCC >= NUMCOLS) {	  if (midiCellColCC >= MAXCOLS) {
+ufm_lights_outside_the_mode_use_the_normal_custom_layer	ls_midiLights.ino	  return userFirmwareActive ? LED_LAYER_CUSTOM2 : LED_LAYER_CUSTOM1;	  return LED_LAYER_CUSTOM2;
+ufm_scroll_keeps_moving_but_draws_nothing_while_global_settings_is_open	ls_midiLights.ino	  if (!midiLightsAllowed()) return;\n  drawMidiText(midiScrollCol	  drawMidiText(midiScrollCol
+ufm_cc_25_cursor_keeps_moving_while_global_settings_is_open	ls_midiLights.ino	  if (midiCellRowCC >= NUMROWS) return;\n  if (midiLightsAllowed()) {	  if (midiCellRowCC >= NUMROWS || !midiLightsAllowed()) return;\n  if (midiLightsAllowed()) {
+ufm_cc_28_while_global_settings_is_open_draws_nothing_and_discards_the_text	ls_midi.ino	              midiTextDraw(midiData2);\n              checkRefreshLedColumn(micros());\n            }\n            else {\n              midiTextAppend(0);\n            }	              midiTextDraw(midiData2);\n              checkRefreshLedColumn(micros());\n            }
+ufm_cc_29_while_global_settings_is_open_starts_nothing_and_discards_the_text	ls_midi.ino	              midiTextScroll(midiData2);\n            }\n            else {\n              midiTextAppend(0);\n            }	              midiTextScroll(midiData2);\n            }
+ufm_cc_28_draws_the_text_at_the_cursor_in_the_font_of_cc_26	ls_midiLights.ino	    col += ch->width;\n    if (col >= 1 && col < NUMCOLS) {	    col += ch->width + 1;\n    if (col >= 1 && col < NUMCOLS) {
+ufm_cc_26_selects_tiny_small_big_or_condensed	ls_midiLights.ino	    case 3: return &condFont;	    case 3: return &bigFont;
+ufm_cc_28_erases_blank_pixels_inside_the_text_box_only_and_clears_the_text	ls_midiLights.ino	font->height, true, false, layer);	font->height, false, false, layer);
+ufm_cc_27_holds_32_characters_and_0_clears_it	ls_midiLights.ino	  if (character == 0) {\n    midiTextLength = 0;	  if (character == 0) {\n    midiTextLength = 1;
+ufm_cc_29_scrolls_one_column_every_40_ms_and_ends_clear	ls_midiLights.ino	  midiScrollCol -= 1;	  midiScrollCol -= 2;
+ufm_cc_29_is_replaced_by_a_new_scroll_and_stops_when_the_mode_is_left	ls_settings.ino	  stopMidiTextScroll();\n  initializeLedsLayer(LED_LAYER_CUSTOM2);	  initializeLedsLayer(LED_LAYER_CUSTOM2);
+ufm_query_reply_is_on_channel_1_for_a_channel_1_query_and_one_below_otherwise	ls_midi.ino	  value = constrain(value, 0, 0x3fff);\n  channel = constrain(channel-1, 0, 15);\n\n  if (Device.serialMode) {\n#ifdef DEBUG_ENABLED\n    if (SWITCH_DEBUGMIDI) {\n      Serial.print("midiSendNRPN number=");	  value = constrain(value, 0, 0x3fff);\n  channel = constrain(channel, 0, 15);\n\n  if (Device.serialMode) {\n#ifdef DEBUG_ENABLED\n    if (SWITCH_DEBUGMIDI) {\n      Serial.print("midiSendNRPN number=");
+ufm_query_275_reports_whether_the_instrument_is_calibrated	ls_midi.ino	      value = Device.calibrated;	      value = 1;

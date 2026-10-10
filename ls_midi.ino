@@ -486,20 +486,38 @@ void handleMidiInput(unsigned long nowMicros) {
             }
             break;
           case 22:
-            if (displayMode == displayNormal || displayMode == displayCustomLedsEditor) {
-              byte layer = LED_LAYER_CUSTOM1;
-              // we light the LEDs of user firmware mode in a dedicated custom layer
-              // this will be cleared when switching back to regular firmware mode
-              if (userFirmwareActive) {
-                layer = LED_LAYER_CUSTOM2;
-              }
-              if (midiData2 <= COLOR_PINK && midiData2 != COLOR_OFF) {
-                setLed(midiCellColCC, midiCellRowCC, midiData2, cellOn, layer);
-              }
-              else {
-                setLed(midiCellColCC, midiCellRowCC, COLOR_OFF, cellOff, layer);
-              }
+            if (midiLightsAllowed()) {
+              setMidiLed(midiCellColCC, midiCellRowCC, midiData2, midiLightsLayer());
               checkRefreshLedColumn(micros());
+            }
+            break;
+          case 25:
+            midiPaintAndAdvance(midiData2);
+            if (midiLightsAllowed()) {
+              checkRefreshLedColumn(micros());
+            }
+            break;
+          case 26:
+            midiTextSetFont(midiData2);
+            break;
+          case 27:
+            midiTextAppend(midiData2);
+            break;
+          case 28:
+            if (midiLightsAllowed()) {
+              midiTextDraw(midiData2);
+              checkRefreshLedColumn(micros());
+            }
+            else {
+              midiTextAppend(0);
+            }
+            break;
+          case 29:
+            if (midiLightsAllowed()) {
+              midiTextScroll(midiData2);
+            }
+            else {
+              midiTextAppend(0);
             }
             break;
           case 23:
@@ -1703,6 +1721,19 @@ void sendNrpnParameter(int parameter, int channel) {
       break;
     case 270:
       value = Global.guitarTuning[7];
+      break;
+    // read-only: the model, the firmware version and its build
+    case 272:
+      value = LINNMODEL;
+      break;
+    case 273:
+      value = versionNumber(OSVersion);
+      break;
+    case 274:
+      value = versionNumber(OSVersionBuild);
+      break;
+    case 275:
+      value = Device.calibrated;
       break;
   }
 

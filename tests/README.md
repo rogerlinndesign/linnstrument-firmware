@@ -73,7 +73,8 @@ Things the fixture decides for you
   and in-loop MIDI input never run on their own. Call the function a test needs
   directly (`checkFootSwitches()`, `advanceArpeggiatorForSplit()`), or set
   `setupDone` around one `performContinuousTasks()` call and clear it again, as
-  the scroll tests do.
+  the scroll tests do. The fixture gives the project a tempo of 120 for that
+  case, because the clock divides by it and x86 traps on a zero.
 * `linn::drainMidi()` empties the whole output queue, however long, so what a
   test reads is everything the firmware sent since the previous drain.
 * Sensor reads return zero; `host::setSensor()` is the only way a cell reads

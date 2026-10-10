@@ -2322,8 +2322,11 @@ void adaptfont_draw_string(int col, int row, const char* str, byte color, boolea
 }
 
 // Draw a single character at col,row
-void font_draw_char(int col, int row, const char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed)
-{
+void font_draw_char(int col, int row, const char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed) {
+  font_draw_char(col, row, fontdata, color, width, height, erase, reversed, LED_LAYER_MAIN);
+}
+
+void font_draw_char(int col, int row, const char* fontdata, byte color, byte width, byte height, boolean erase, boolean reversed, byte layer) {
   for (byte r = 0; r < height; ++r) {
     for (byte c = 0; c < width; ++c) {
       char thechar = *fontdata++;
@@ -2344,7 +2347,7 @@ void font_draw_char(int col, int row, const char* fontdata, byte color, byte wid
         continue;
       }
       if (erase || thechar != ' ') {
-        setLed(destcol, destrow, (thechar != ' ' ? color : 0), cellOn);
+        setLed(destcol, destrow, (thechar != ' ' ? color : 0), cellOn, layer);
       }
     }
   }

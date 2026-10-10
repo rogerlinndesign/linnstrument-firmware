@@ -473,3 +473,330 @@ TEST(ufm_foot_switches_keep_their_assignment) {
   }
   CHECK(sustain);
 }
+
+// Lights, text and the queries, see the Lights and the Asking the instrument sections of the document
+
+// the fixture leaves setup unfinished because the serial tests pump the port themselves,
+// and the continuous tasks only run once setup is done
+static void scrollStep() {
+  host::advanceMicros(41000);
+  setupDone = true;
+  performContinuousTasks();
+  setupDone = false;
+}
+
+static void paintColumn(byte col, byte color) {
+  for (byte row = 0; row < NUMROWS; ++row) {
+    linn::midiIn({0xB0, 20, col, 0xB0, 21, row, 0xB0, 22, color});
+  }
+}
+
+static int litOnLayer(byte layer) {
+  int lit = 0;
+  for (byte col = 0; col < NUMCOLS; ++col) {
+    for (byte row = 0; row < NUMROWS; ++row) {
+      if (getLedColor(col, row, layer) != COLOR_OFF) ++lit;
+    }
+  }
+  return lit;
+}
+
+// the value of the one NRPN reply in the drained output, -1 when there is none
+static int nrpnReplyValue(int parameter) {
+  std::vector<uint8_t> out = drained();
+  if (out.size() != 18 || out[2] * 128 + out[5] != parameter) return -1;
+  return out[8] * 128 + out[11];
+}
+
+static void midiInText(const char* text) {
+  for (const char* p = text; *p; ++p) {
+    linn::midiIn({0xB0, 27, (uint8_t)*p});
+  }
+}
+
+TEST(ufm_query_272_to_274_report_the_model_the_version_and_the_build) {
+  linn::reset();
+  linn::midiInNrpn(299, 272, 0);
+  CHECK_EQ(nrpnReplyValue(272), 200);
+  linn::midiInNrpn(299, 273, 0);
+  CHECK_EQ(nrpnReplyValue(273), atoi(OSVersion));
+  linn::midiInNrpn(299, 274, 0);
+  CHECK_EQ(nrpnReplyValue(274), atoi(OSVersionBuild + 1));
+  linn::reset(128);
+  linn::midiInNrpn(299, 272, 0);
+  CHECK_EQ(nrpnReplyValue(272), 128);
+}
+
+// an uncalibrated instrument reports positions from the default calibration
+TEST(ufm_query_275_reports_whether_the_instrument_is_calibrated) {
+  linn::reset();
+  linn::midiInNrpn(299, 275, 0);
+  CHECK_EQ(nrpnReplyValue(275), 0);
+  Device.calibrated = true;
+  linn::midiInNrpn(299, 275, 0);
+  CHECK_EQ(nrpnReplyValue(275), 1);
+}
+
+TEST(ufm_query_272_to_274_are_read_only) {
+  linn::reset();
+  linn::midiInNrpn(272, 128, 0);
+  linn::midiInNrpn(299, 272, 0);
+  CHECK_EQ(nrpnReplyValue(272), 200);
+}
+
+TEST(ufm_cc_25_colors_the_cursor_cell_and_moves_right_then_up_from_column_0) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 20, 24, 0xB0, 21, 3});
+  linn::midiIn({0xB0, 25, 1, 0xB0, 25, 2, 0xB0, 25, 3, 0xB0, 25, 4});
+  CHECK_EQ(getLedColor(24, 3, LED_LAYER_CUSTOM2), 1);
+  CHECK_EQ(getLedColor(25, 3, LED_LAYER_CUSTOM2), 2);
+  CHECK_EQ(getLedColor(0, 4, LED_LAYER_CUSTOM2), 3);
+  CHECK_EQ(getLedColor(1, 4, LED_LAYER_CUSTOM2), 4);
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 4);
+  linn::midiIn({0xB0, 22, 5});
+  CHECK_EQ(getLedColor(2, 4, LED_LAYER_CUSTOM2), 5);
+}
+
+TEST(ufm_cc_25_stops_above_the_top_row_and_switches_off_with_0_or_12_and_up) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 20, 24, 0xB0, 21, 7});
+  linn::midiIn({0xB0, 25, 11, 0xB0, 25, 6, 0xB0, 25, 7});
+  CHECK_EQ(getLedColor(24, 7, LED_LAYER_CUSTOM2), COLOR_PINK);
+  CHECK_EQ(getLedColor(25, 7, LED_LAYER_CUSTOM2), 6);
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 2);
+  linn::midiIn({0xB0, 20, 24, 0xB0, 21, 7});
+  linn::midiIn({0xB0, 25, 0, 0xB0, 25, 12});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+}
+
+TEST(ufm_cc_25_fills_a_128_in_136_messages) {
+  linn::reset(128);
+  linn::midiInNrpn(245, 1, 0);
+  linn::settle();
+  linn::midiIn({0xB0, 20, 0, 0xB0, 21, 0});
+  for (int i = 0; i < 136; ++i) {
+    linn::midiIn({0xB0, 25, COLOR_BLUE});
+  }
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 136);
+  CHECK_EQ(getLedColor(16, 7, LED_LAYER_CUSTOM2), COLOR_BLUE);
+}
+
+// outside the mode a painted light shows in the normal firmware and is hidden once the mode is on
+TEST(ufm_lights_outside_the_mode_use_the_normal_custom_layer) {
+  linn::reset();
+  linn::midiIn({0xB0, 20, 5, 0xB0, 21, 3, 0xB0, 25, COLOR_RED});
+  CHECK_EQ(getLedColor(5, 3, LED_LAYER_COMBINED), COLOR_RED);
+  linn::midiInNrpn(245, 1, 0);
+  linn::settle();
+  CHECK_EQ(getLedColor(5, 3, LED_LAYER_COMBINED), COLOR_OFF);
+}
+
+TEST(ufm_scroll_keeps_moving_but_draws_nothing_while_global_settings_is_open) {
+  enterUserFirmwareMode();
+  midiInText("1");
+  linn::midiIn({0xB0, 21, 0, 0xB0, 29, COLOR_GREEN});
+  setDisplayMode(displayGlobal);
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  setDisplayMode(displayNormal);
+  scrollStep();
+  CHECK_EQ(getLedColor(23, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+}
+
+TEST(ufm_cc_25_cursor_keeps_moving_while_global_settings_is_open) {
+  enterUserFirmwareMode();
+  setDisplayMode(displayGlobal);
+  linn::midiIn({0xB0, 20, 5, 0xB0, 21, 3, 0xB0, 25, COLOR_RED});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  setDisplayMode(displayNormal);
+  linn::midiIn({0xB0, 25, COLOR_GREEN});
+  CHECK_EQ(getLedColor(5, 3, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(6, 3, LED_LAYER_CUSTOM2), COLOR_GREEN);
+}
+
+TEST(ufm_cc_28_while_global_settings_is_open_draws_nothing_and_discards_the_text) {
+  enterUserFirmwareMode();
+  setDisplayMode(displayGlobal);
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 0});
+  midiInText("1");
+  linn::midiIn({0xB0, 28, COLOR_RED});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  setDisplayMode(displayNormal);
+  linn::midiIn({0xB0, 28, COLOR_RED});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+}
+
+TEST(ufm_cc_29_while_global_settings_is_open_starts_nothing_and_discards_the_text) {
+  enterUserFirmwareMode();
+  setDisplayMode(displayGlobal);
+  linn::midiIn({0xB0, 21, 0});
+  midiInText("1");
+  linn::midiIn({0xB0, 29, COLOR_RED});
+  setDisplayMode(displayNormal);
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  linn::midiIn({0xB0, 29, COLOR_RED});
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+}
+
+// a query on channel 1 is answered on channel 1; on any other channel the reply arrives one
+// channel below the query's
+TEST(ufm_query_reply_is_on_channel_1_for_a_channel_1_query_and_one_below_otherwise) {
+  linn::reset();
+  linn::midiInNrpn(299, 272, 0);
+  std::vector<uint8_t> out = drained();
+  CHECK_EQ(out.size(), 18);
+  if (out.size() == 18) CHECK_EQ(out[0], 0xB0);
+  linn::midiInNrpn(299, 272, 3);
+  out = drained();
+  CHECK_EQ(out.size(), 18);
+  if (out.size() == 18) CHECK_EQ(out[0], 0xB2);
+}
+
+// big "1": the bottom pixel row is blank, the row above it is five wide, the stem sits two in
+TEST(ufm_cc_28_draws_the_text_at_the_cursor_in_the_font_of_cc_26) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 20, 8, 0xB0, 21, 3, 0xB0, 22, COLOR_RED});
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 0, 0xB0, 26, 2});
+  midiInText("1");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  CHECK_EQ(getLedColor(3, 0, LED_LAYER_CUSTOM2), COLOR_OFF);
+  for (byte col = 3; col <= 7; ++col) {
+    CHECK_EQ(getLedColor(col, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  }
+  CHECK_EQ(getLedColor(5, 6, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  CHECK_EQ(getLedColor(3, 6, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(5, 7, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(8, 3, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 12);
+
+  // past the right edge the text is cut off, nothing wraps around
+  linn::midiIn({0xB0, 20, 24, 0xB0, 21, 0});
+  midiInText("1");
+  linn::midiIn({0xB0, 28, COLOR_RED});
+  CHECK_EQ(getLedColor(24, 1, LED_LAYER_CUSTOM2), COLOR_RED);
+  CHECK_EQ(getLedColor(25, 1, LED_LAYER_CUSTOM2), COLOR_RED);
+  CHECK_EQ(getLedColor(0, 1, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(1, 1, LED_LAYER_CUSTOM2), COLOR_OFF);
+
+  // the switch column never holds text, a cursor there starts it at column 1
+  linn::midiIn({0xB0, 20, 0, 0xB0, 21, 3});
+  midiInText("1");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  CHECK_EQ(getLedColor(0, 4, LED_LAYER_CUSTOM2), COLOR_OFF);
+  for (byte col = 1; col <= 5; ++col) {
+    CHECK_EQ(getLedColor(col, 4, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  }
+}
+
+TEST(ufm_cc_26_selects_tiny_small_big_or_condensed) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 0, 0xB0, 26, 0});
+  midiInText("A1");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  int lit = 0;
+  for (byte col = 3; col < 6; ++col) {
+    for (byte row = 0; row < 4; ++row) {
+      if (getLedColor(col, row, LED_LAYER_CUSTOM2) != COLOR_OFF) ++lit;
+    }
+  }
+  CHECK(lit > 0);
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), lit);
+  for (byte row = 4; row < 8; ++row) {
+    CHECK_EQ(getLedColor(3, row, LED_LAYER_CUSTOM2), COLOR_OFF);
+  }
+
+  // a condensed "A" is three columns wide, so drawn at column 7 its blank separator is column 10
+  paintColumn(10, COLOR_RED);
+  linn::midiIn({0xB0, 20, 7, 0xB0, 21, 0, 0xB0, 26, 3});
+  midiInText("A");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  CHECK_EQ(getLedColor(10, 0, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(10, 7, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(11, 0, LED_LAYER_CUSTOM2), COLOR_OFF);
+  paintColumn(10, COLOR_RED);
+  linn::midiIn({0xB0, 20, 6, 0xB0, 21, 0});
+  midiInText("A");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  CHECK_EQ(getLedColor(10, 0, LED_LAYER_CUSTOM2), COLOR_RED);
+
+  // a value above 3 is ignored and the condensed font stays, so the "A" is still three wide
+  paintColumn(10, COLOR_RED);
+  linn::midiIn({0xB0, 26, 4, 0xB0, 20, 6, 0xB0, 21, 0});
+  midiInText("A");
+  linn::midiIn({0xB0, 28, COLOR_GREEN});
+  CHECK_EQ(getLedColor(10, 0, LED_LAYER_CUSTOM2), COLOR_RED);
+}
+
+TEST(ufm_cc_28_erases_blank_pixels_inside_the_text_box_only_and_clears_the_text) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 0});
+  for (int i = 0; i < 7; ++i) linn::midiIn({0xB0, 25, COLOR_GREEN});
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 0, 0xB0, 26, 2});
+  midiInText("1");
+  linn::midiIn({0xB0, 28, COLOR_RED});
+  CHECK_EQ(getLedColor(3, 0, LED_LAYER_CUSTOM2), COLOR_OFF);
+  CHECK_EQ(getLedColor(9, 0, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  linn::midiIn({0xB0, 20, 12, 0xB0, 21, 0, 0xB0, 28, COLOR_RED});
+  CHECK_EQ(getLedColor(12, 1, LED_LAYER_CUSTOM2), COLOR_OFF);
+}
+
+TEST(ufm_cc_27_holds_32_characters_and_0_clears_it) {
+  linn::reset();
+  for (int i = 0; i < 40; ++i) linn::midiIn({0xB0, 27, 'A'});
+  CHECK_EQ(midiTextLength, 32);
+  linn::midiIn({0xB0, 27, 0});
+  CHECK_EQ(midiTextLength, 0);
+}
+
+TEST(ufm_cc_29_scrolls_one_column_every_40_ms_and_ends_clear) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 21, 0, 0xB0, 26, 2});
+  midiInText("1");
+  linn::midiIn({0xB0, 29, COLOR_GREEN});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  // the text went with the scroll, a draw now has nothing to draw
+  linn::midiIn({0xB0, 20, 3, 0xB0, 21, 4, 0xB0, 28, COLOR_RED});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  scrollStep();
+  CHECK_EQ(getLedColor(25, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  CHECK_EQ(getLedColor(24, 1, LED_LAYER_CUSTOM2), COLOR_OFF);
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(getLedColor(23, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  CHECK_EQ(getLedColor(25, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  for (int i = 0; i < 40; ++i) scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+}
+
+TEST(ufm_cc_29_is_replaced_by_a_new_scroll_and_stops_when_the_mode_is_left) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB0, 21, 0});
+  midiInText("1");
+  linn::midiIn({0xB0, 29, COLOR_GREEN});
+  scrollStep();
+  CHECK_EQ(getLedColor(25, 1, LED_LAYER_CUSTOM2), COLOR_GREEN);
+  midiInText("2");
+  linn::midiIn({0xB0, 29, COLOR_GREEN});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  scrollStep();
+  CHECK(litOnLayer(LED_LAYER_CUSTOM2) > 0);
+  linn::midiIn({0xB0, 29, COLOR_GREEN});
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+  midiInText("3");
+  linn::midiIn({0xB0, 29, COLOR_GREEN});
+  linn::midiInNrpn(245, 0, 0);
+  linn::settle();
+  linn::midiInNrpn(245, 1, 0);
+  linn::settle();
+  scrollStep();
+  scrollStep();
+  CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
+}

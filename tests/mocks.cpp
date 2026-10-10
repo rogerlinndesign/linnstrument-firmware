@@ -43,7 +43,7 @@ void drainMidi() {
 void midiIn(std::initializer_list<uint8_t> bytes) {
   std::vector<uint8_t> data(bytes);
   host::feedSerial(data.data(), data.size());
-  for (int i = 0; i < 64 && Serial.available() > 0; ++i) {
+  for (int i = 0; i < 1024 && Serial.available() > 0; ++i) {
     handleMidiInput(micros());
   }
 }
@@ -146,6 +146,14 @@ void reset(byte model) {
   updateDisplay();
   waitingForCommands = false;
   codePos = 0;
+  stopMidiTextScroll();
+  midiTextAppend(0);
+  midiTextFont = 2;
+  midiCellColCC = 0;
+  midiCellRowCC = 0;
+  // a unit always has a project with a tempo; the clock divides by it on the continuous tasks
+  Project.tempo = 120;
+  fxd4CurrentTempo = FXD4_FROM_INT(120);
   settle();
   drainMidi();
   host::clearSerialOutput();

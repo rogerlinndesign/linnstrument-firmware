@@ -102,6 +102,13 @@ inline void performContinuousTasks(unsigned long nowMicros) {
       continuousAdvanceTouchAnimations = false;
     }
 
+    static boolean continuousMidiTextScroll = false;
+    if (!continuousMidiTextScroll) {
+      continuousMidiTextScroll = true;
+      checkAdvanceMidiTextScroll(nowMillis);
+      continuousMidiTextScroll = false;
+    }
+
     static boolean continuousLegendDisplayTimeout = false;
     if (!continuousLegendDisplayTimeout) {
       continuousLegendDisplayTimeout = true;
