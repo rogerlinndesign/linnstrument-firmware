@@ -177,3 +177,65 @@ test("Web MIDI's typed arrays decode like plain arrays", () => {
   const d = ufm.createDecoder();
   assert.deepEqual(d.decode(new Uint8Array([0x93, 5, 100])), { type: "press", col: 5, row: 3, velocity: 100 });
 });
+
+test("the model query asks NRPN 299 for parameter 272, the version query for 273 and 274", () => {
+  assert.deepEqual(ufm.queryModel(), [
+    [0xB0, 99, 2], [0xB0, 98, 43], [0xB0, 6, 2], [0xB0, 38, 16],
+  ]);
+  const version = ufm.queryVersion();
+  assert.equal(version.length, 8);
+  assert.deepEqual(version[3], [0xB0, 38, 17]);
+  assert.deepEqual(version[7], [0xB0, 38, 18]);
+});
+
+test("a run of lights is CC 20 and 21 for the first cell, then one CC 25 per color", () => {
+  assert.deepEqual(ufm.paintRun(24, 3, [1, 2, 3]), [
+    [0xB0, 20, 24], [0xB0, 21, 3], [0xB0, 25, 1], [0xB0, 25, 2], [0xB0, 25, 3],
+  ]);
+  assert.throws(() => ufm.paintRun(0, 0, [12]));
+  assert.throws(() => ufm.paintRun(26, 0, [1]));
+});
+
+test("text is drawn with the cell, CC 26 for the font, a cleared text, one CC 27 per character and CC 28", () => {
+  assert.deepEqual(ufm.drawText(3, 0, "big", ufm.COLORS.green, "Hi"), [
+    [0xB0, 20, 3], [0xB0, 21, 0], [0xB0, 26, 2],
+    [0xB0, 27, 0], [0xB0, 27, 72], [0xB0, 27, 105],
+    [0xB0, 28, 3],
+  ]);
+  assert.deepEqual(ufm.drawText(1, 4, 3, 1, "A")[2], [0xB0, 26, 3]);
+});
+
+test("scrolling text needs only the row and ends with CC 29", () => {
+  const messages = ufm.scrollText(2, "condensed", ufm.COLORS.blue, "GO");
+  assert.deepEqual(messages[0], [0xB0, 21, 2]);
+  assert.deepEqual(messages[1], [0xB0, 26, 3]);
+  assert.deepEqual(messages[messages.length - 1], [0xB0, 29, 5]);
+  assert.equal(messages.length, 6);
+});
+
+test("text is 1 to 32 ASCII characters in a known font", () => {
+  assert.throws(() => ufm.drawText(1, 0, "big", 1, ""));
+  assert.throws(() => ufm.drawText(1, 0, "big", 1, "a".repeat(33)));
+  assert.throws(() => ufm.drawText(1, 0, "big", 1, "café"));
+  assert.throws(() => ufm.drawText(1, 0, "huge", 1, "a"));
+  assert.throws(() => ufm.drawText(1, 0, 4, 1, "a"));
+  assert.equal(ufm.scrollText(0, "tiny", 1, "a".repeat(32)).length, 36);
+});
+
+test("the model reply decodes with its column count, the version and build replies with their numbers", () => {
+  const decoder = ufm.createDecoder();
+  const reply = (number, value) => {
+    decoder.decode([0xB0, 99, number >> 7]);
+    decoder.decode([0xB0, 98, number & 0x7F]);
+    decoder.decode([0xB0, 6, value >> 7]);
+    return decoder.decode([0xB0, 38, value & 0x7F]);
+  };
+  assert.deepEqual(reply(272, 200), { type: "model", model: 200, columns: 26, channel: 1 });
+  assert.deepEqual(reply(272, 128), { type: "model", model: 128, columns: 17, channel: 1 });
+  assert.deepEqual(reply(273, 234), { type: "version", version: 234, channel: 1 });
+  assert.deepEqual(reply(274, 74), { type: "build", build: 74, channel: 1 });
+  assert.deepEqual(ufm.queryCalibrated()[3], [0xB0, 38, 19]);
+  assert.deepEqual(reply(275, 0), { type: "calibrated", calibrated: false, channel: 1 });
+  assert.deepEqual(reply(275, 1), { type: "calibrated", calibrated: true, channel: 1 });
+  assert.equal(reply(272, 7).type, "nrpn");
+});

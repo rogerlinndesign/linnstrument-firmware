@@ -14,12 +14,14 @@
 # limitations under the License.
 # A walk through User Firmware Mode from the shell with SendMIDI and ReceiveMIDI
 # (https://github.com/gbevin/SendMIDI, https://github.com/gbevin/ReceiveMIDI). The instrument
-# must be in its normal MIDI mode and show up as "LinnStrument MIDI".
+# must be in its normal MIDI mode and show up as "LinnStrument MIDI", or set LINNSTRUMENT_DEVICE
+# to another port, for instance the Virtual LinnStrument app's:
 #
 #   examples/user_firmware_demo.sh [seconds to watch touches, default 5]
+#   LINNSTRUMENT_DEVICE="Virtual LinnStrument" examples/user_firmware_demo.sh
 set -e
 
-DEV="LinnStrument MIDI"
+DEV=${LINNSTRUMENT_DEVICE:-"LinnStrument MIDI"}
 WATCH=${1:-5}
 
 for tool in sendmidi receivemidi; do
@@ -42,13 +44,20 @@ for row in 0 1 2 3 4 5 6 7; do
   sendmidi dev "$DEV" cc 20 $((row + 2)) cc 21 "$row" cc 22 3
 done
 
+echo "Painting the first 17 cells of the bottom row blue, one message per cell"
+sendmidi dev "$DEV" cc 20 0 cc 21 0 $(for i in $(seq 1 17); do printf 'cc 25 5 '; done)
+
+echo "Drawing HI in the condensed font at column 1, row 2, and scrolling Hi along row 5"
+sendmidi dev "$DEV" cc 20 1 cc 21 2 cc 26 3 cc 27 72 cc 27 73 cc 28 3
+sendmidi dev "$DEV" cc 21 5 cc 26 2 cc 27 72 cc 27 105 cc 29 1
+
 # receivemidi prints an NRPN twice, once when the value MSB arrives and once complete,
-# so the reply shows as "245 0" followed by "245 1"
-echo "Asking the instrument whether the mode is on (expect NRPN 245 value 1)"
+# so a reply shows as "245 0" followed by "245 1"
+echo "Asking which model this is and whether the mode is on (expect NRPN 272 then 245 value 1)"
 receivemidi dev "$DEV" nrpn &
 RM=$!
 sleep 0.3
-sendmidi dev "$DEV" nrpn 299 245
+sendmidi dev "$DEV" nrpn 299 272 nrpn 299 245
 sleep 0.7
 kill $RM 2>/dev/null || true
 wait $RM 2>/dev/null || true

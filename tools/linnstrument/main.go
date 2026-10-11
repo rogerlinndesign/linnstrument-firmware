@@ -41,6 +41,8 @@ Commands:
                          firmware and check the named test fails, restoring the file afterwards
   merge [FILE]           write the sketch as the one C++ file the desktop builds compile
                          (default: build/sketch/linnstrument-firmware.cpp)
+  nrpns [FILE]           write the NRPN table of midi.md as the JavaScript the settings editor
+                         reads (default: examples/nrpn_parameters.js)
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -105,6 +107,16 @@ func dispatch(port, command string, args []string) error {
 			out = args[0]
 		}
 		return writeMergedSketch(repo, out)
+	case "nrpns":
+		repo, err := repoRoot()
+		if err != nil {
+			return err
+		}
+		out := filepath.Join(repo, "examples", "nrpn_parameters.js")
+		if len(args) > 0 {
+			out = args[0]
+		}
+		return writeNrpnTable(repo, out)
 	case "mutate":
 		repo, err := repoRoot()
 		if err != nil {

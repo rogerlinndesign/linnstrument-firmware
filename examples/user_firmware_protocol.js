@@ -35,6 +35,16 @@ limitations under the License.
   const CC_LED_COLUMN = 20;
   const CC_LED_ROW = 21;
   const CC_LED_COLOR = 22;
+  const CC_LED_PAINT_NEXT = 25;
+  const CC_TEXT_FONT = 26;
+  const CC_TEXT_CHAR = 27;
+  const CC_TEXT_DRAW = 28;
+  const CC_TEXT_SCROLL = 29;
+  const NRPN_MODEL = 272;
+  const NRPN_VERSION = 273;
+  const NRPN_BUILD = 274;
+  const NRPN_CALIBRATED = 275;
+  const TEXT_MAX_CHARS = 32;
   const CC_SLIDE_LEAVING = 119;
   const ANNOUNCE_CHANNEL = 9;
 
@@ -42,6 +52,8 @@ limitations under the License.
     default: 0, red: 1, yellow: 2, green: 3, cyan: 4, blue: 5, magenta: 6,
     black: 7, white: 8, orange: 9, lime: 10, pink: 11,
   };
+
+  const FONTS = { tiny: 0, small: 1, big: 2, condensed: 3 };
 
   function columnsFor(model) {
     if (model === 128) return 17;
@@ -55,6 +67,17 @@ limitations under the License.
 
   function checkColumn(col) {
     if (!Number.isInteger(col) || col < 0 || col > 25) throw new Error("column must be 0 to 25");
+  }
+
+  function checkColor(color) {
+    if (!Number.isInteger(color) || color < 0 || color > 11) throw new Error("color must be 0 to 11");
+  }
+
+  // a font is its number or its name from FONTS
+  function fontNumber(font) {
+    if (typeof font === "string") font = FONTS[font];
+    if (!Number.isInteger(font) || font < 0 || font > 3) throw new Error("font must be 0 to 3 or tiny, small, big or condensed");
+    return font;
   }
 
   function cc(channel, number, value) {
@@ -75,6 +98,9 @@ limitations under the License.
   function enterUserFirmwareMode() { return nrpn(NRPN_USER_FIRMWARE_MODE, 1); }
   function leaveUserFirmwareMode() { return nrpn(NRPN_USER_FIRMWARE_MODE, 0); }
   function queryUserFirmwareMode() { return nrpn(NRPN_QUERY, NRPN_USER_FIRMWARE_MODE); }
+  function queryModel() { return nrpn(NRPN_QUERY, NRPN_MODEL); }
+  function queryVersion() { return nrpn(NRPN_QUERY, NRPN_VERSION).concat(nrpn(NRPN_QUERY, NRPN_BUILD)); }
+  function queryCalibrated() { return nrpn(NRPN_QUERY, NRPN_CALIBRATED); }
 
   // axis is "x", "y", "z" or "slide"; the row's channel is row + 1.
   function enableAxis(row, axis, on) {
@@ -101,6 +127,44 @@ limitations under the License.
 
   function clearLed(col, row) { return setLed(col, row, 0); }
 
+  // One CC 25 per color, starting at the cell and moving right, then on to column 0 of the next
+  // row up; a whole surface is paintRun(0, 0, colors) with one color per cell.
+  function paintRun(col, row, colors) {
+    checkColumn(col);
+    checkRow(row);
+    colors.forEach(checkColor);
+    return [cc(1, CC_LED_COLUMN, col), cc(1, CC_LED_ROW, row)].concat(colors.map(function (c) { return cc(1, CC_LED_PAINT_NEXT, c); }));
+  }
+
+  function textMessages(text) {
+    if (typeof text !== "string" || text.length < 1 || text.length > TEXT_MAX_CHARS) {
+      throw new Error("text must be 1 to " + TEXT_MAX_CHARS + " characters");
+    }
+    const messages = [cc(1, CC_TEXT_CHAR, 0)];
+    for (let i = 0; i < text.length; ++i) {
+      const code = text.charCodeAt(i);
+      if (code < 1 || code > 127) throw new Error("text must be ASCII");
+      messages.push(cc(1, CC_TEXT_CHAR, code));
+    }
+    return messages;
+  }
+
+  // The cell is the bottom left pixel of the text.
+  function drawText(col, row, font, color, text) {
+    checkColumn(col);
+    checkRow(row);
+    checkColor(color);
+    return [cc(1, CC_LED_COLUMN, col), cc(1, CC_LED_ROW, row), cc(1, CC_TEXT_FONT, fontNumber(font))]
+      .concat(textMessages(text), [cc(1, CC_TEXT_DRAW, color)]);
+  }
+
+  function scrollText(row, font, color, text) {
+    checkRow(row);
+    checkColor(color);
+    return [cc(1, CC_LED_ROW, row), cc(1, CC_TEXT_FONT, fontNumber(font))]
+      .concat(textMessages(text), [cc(1, CC_TEXT_SCROLL, color)]);
+  }
+
   // Decodes the instrument's messages one at a time into events. Keeps the state an X value and
   // an NRPN need across messages. Returns an event object or null for anything else.
   function createDecoder() {
@@ -117,6 +181,18 @@ limitations under the License.
       nrpnState[channel] = {};
       if (number === NRPN_USER_FIRMWARE_MODE) {
         return { type: "mode", active: value === 1, channel: channel };
+      }
+      if (number === NRPN_MODEL && (value === 200 || value === 128)) {
+        return { type: "model", model: value, columns: columnsFor(value), channel: channel };
+      }
+      if (number === NRPN_VERSION) {
+        return { type: "version", version: value, channel: channel };
+      }
+      if (number === NRPN_BUILD) {
+        return { type: "build", build: value, channel: channel };
+      }
+      if (number === NRPN_CALIBRATED) {
+        return { type: "calibrated", calibrated: value === 1, channel: channel };
       }
       return { type: "nrpn", number: number, value: value, channel: channel };
     }
@@ -228,11 +304,18 @@ limitations under the License.
     NRPN_QUERY: NRPN_QUERY,
     ANNOUNCE_CHANNEL: ANNOUNCE_CHANNEL,
     COLORS: COLORS,
+    FONTS: FONTS,
     columnsFor: columnsFor,
     nrpn: nrpn,
     enterUserFirmwareMode: enterUserFirmwareMode,
     leaveUserFirmwareMode: leaveUserFirmwareMode,
     queryUserFirmwareMode: queryUserFirmwareMode,
+    queryModel: queryModel,
+    queryVersion: queryVersion,
+    queryCalibrated: queryCalibrated,
+    paintRun: paintRun,
+    drawText: drawText,
+    scrollText: scrollText,
     enableAxis: enableAxis,
     setDecimation: setDecimation,
     setLed: setLed,

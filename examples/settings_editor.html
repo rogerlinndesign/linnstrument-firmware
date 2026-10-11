@@ -1,0 +1,428 @@
+<!doctype html>
+<!--
+Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinnStrument Settings Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="linnstrument.css">
+<style>
+  main { display: flex; flex: 1; min-height: 0; }
+  aside { width: 290px; flex: none; overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); padding: 0 24px 22px; }
+  aside .connection { padding: 22px 0 18px; margin: 0 0 20px; border-bottom: 1px solid var(--line); }
+  aside nav { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 20px; }
+  aside nav a { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 4px; color: var(--text); text-decoration: none; font-weight: 600; }
+  aside nav a:hover { background: var(--panel-2); }
+  aside nav a span { color: var(--dim); font-weight: 400; font-variant-numeric: tabular-nums; }
+  aside input[type=search] { width: 100%; }
+  .progress { color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 1.5em; font-variant-numeric: tabular-nums; }
+
+  .content { flex: 1; overflow-y: auto; min-width: 0; padding: 8px 36px 48px; }
+  section { padding: 24px 0 8px; }
+  .content section h2 { position: sticky; top: 0; background: var(--bg); padding: 10px 0; margin: 0 0 8px; font-size: 17px; z-index: 1; }
+  .params { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); gap: 2px 20px; align-items: stretch; }
+  .params.splits { grid-template-columns: minmax(180px, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr); }
+  .params .head { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 6px 0; }
+  .params > div { padding: 7px 0; border-bottom: 1px solid var(--line); min-height: 44px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .params .name { color: var(--text); }
+  .params .name small { display: block; color: var(--dim); font-size: 11px; }
+  .numberctl { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 180px; }
+  .numberctl input[type=range] { flex: 1; min-width: 80px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .toggles label { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); min-width: 22px; cursor: pointer; }
+  .toggles .ctl { gap: 3px; }
+  .toggles .state { width: 5px; height: 5px; }
+  .ctl { position: relative; display: inline-flex; align-items: center; gap: 8px; }
+  .state { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); flex: none; }
+  .state.pending { background: var(--warn); }
+  .state.ok { background: var(--ok); }
+  .state.mismatch { background: #ff7a2e; box-shadow: 0 0 6px #ff7a2e; }
+  .state.silent { background: var(--bad); }
+  .readonly { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note { color: var(--dim); font-size: 12px; flex-basis: 100%; }
+  .hidden { display: none !important; }
+  @media (max-width: 960px) {
+    main { flex-direction: column; }
+    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .params, .params.splits { grid-template-columns: 1fr; }
+    .params .head { display: none; }
+    .content { padding: 8px 16px 32px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="brand"><b>LinnStrument</b></h1>
+  <nav class="pages" aria-label="Pages">
+    <a href="settings_editor.html" aria-current="page">Settings</a>
+    <a href="user_firmware_console.html">User firmware</a>
+  </nav>
+</header>
+
+<main>
+  <aside>
+    <section class="connection">
+      <h2>Instrument</h2>
+      <div class="status" id="statusBox" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="status">Waiting for Web MIDI (Chrome or Edge)</span></div>
+      <div class="info" id="firmware"></div>
+      <div class="info" id="calibration" aria-live="polite"></div>
+      <div class="info" id="modeNotice" aria-live="polite"></div>
+      <div class="ports">
+        <label><span class="caps">MIDI in</span><select id="input" aria-label="MIDI input"></select></label>
+        <label><span class="caps">MIDI out</span><select id="output" aria-label="MIDI output"></select></label>
+      </div>
+    </section>
+    <input type="search" id="search" placeholder="Find a setting" aria-label="Find a setting">
+    <nav id="nav" aria-label="Sections"></nav>
+    <div class="row">
+      <button class="primary" id="readAll">Read all</button>
+    </div>
+    <div class="progress" id="progress" aria-live="polite"></div>
+    <div class="hint">Every setting LinnStrument exposes over MIDI. A change is sent at once and read back: green when confirmed, orange when the instrument kept another value, red when it did not answer</div>
+  </aside>
+  <div class="content" id="content"></div>
+</main>
+
+<script src="user_firmware_protocol.js"></script>
+<script src="nrpn_parameters.js"></script>
+<script src="settings_editor.js"></script>
+<script>
+(function () {
+  "use strict";
+  const editor = window.LinnSettingsEditor;
+  const $ = function (id) { return document.getElementById(id); };
+
+  let access = null, input = null, output = null;
+  let decoder = editor.createDecoder();
+  const controls = {};   // number -> { parameter, elements: [], state: span }
+  const values = {};     // number -> last value the instrument reported
+  const waiting = {};    // number -> timer for a reply that has not come
+  let model = null, version = null, calibrationKnown = false;
+
+  function say(text, state) {
+    $("status").textContent = text;
+    $("statusBox").className = "status" + (state ? " " + state : "");
+  }
+
+  function send(messages) {
+    if (!output) { say("Choose the MIDI out first", ""); return false; }
+    messages.forEach(function (m) { output.send(m); });
+    return true;
+  }
+
+  function setState(number, state) {
+    const c = controls[number];
+    if (c && c.state) c.state.className = "state" + (state ? " " + state : "");
+  }
+
+  function expectReply(number) {
+    clearTimeout(waiting[number]);
+    setState(number, "pending");
+    waiting[number] = setTimeout(function () { setState(number, "silent"); }, 1500);
+  }
+
+  function query(numbers) {
+    numbers.forEach(expectReply);
+    send(editor.queryMessages(numbers));
+  }
+
+  // a change goes out, then the parameter is read back to show what the instrument kept
+  function write(parameter, value) {
+    const v = editor.clampValue(parameter, value);
+    if (!send(editor.setMessages(parameter.number, v))) return;
+    controls[parameter.number].sent = v;
+    setTimeout(function () { query([parameter.number]); }, 80);
+  }
+
+  function showValue(number, value) {
+    const c = controls[number];
+    if (!c) return;
+    c.elements.forEach(function (el) {
+      if (el.type === "checkbox") el.checked = value === 1;
+      else if (el.tagName === "SELECT" || el.type === "range" || el.type === "number") el.value = String(value);
+      else el.textContent = editor.formatValue(c.parameter, value);
+    });
+    if (c.out) c.out.textContent = editor.formatValue(c.parameter, value);
+  }
+
+  function onReply(reply) {
+    clearTimeout(waiting[reply.number]);
+    const c = controls[reply.number];
+    values[reply.number] = reply.value;
+    if (reply.number === 272) { model = reply.value; describe(); }
+    if (reply.number === 273) { version = String(reply.value); describe(); }
+    if (reply.number === 274 && version) { version = version.split(".")[0] + "." + String(reply.value).padStart(3, "0"); describe(); }
+    if (reply.number === 245) {
+      const on = reply.value === 1;
+      $("modeNotice").textContent = on ? "User firmware mode is on, the instrument plays nothing until it is switched off under Device or on the User firmware page" : "";
+      $("modeNotice").className = "info" + (on ? " warn" : "");
+    }
+    if (reply.number === 275) {
+      calibrationKnown = true;
+      $("calibration").textContent = reply.value === 1 ? "Calibrated" : "Not calibrated, positions are approximate";
+      $("calibration").className = "info " + (reply.value === 1 ? "ok" : "warn");
+    }
+    if (!c) return;
+    showValue(reply.number, reply.value);
+    const mismatch = c.sent !== undefined && c.sent !== reply.value;
+    setState(reply.number, mismatch ? "mismatch" : "ok");
+    if (c.state) c.state.title = mismatch ? "The instrument kept " + editor.formatValue(c.parameter, reply.value) : "Confirmed";
+    c.sent = undefined;
+  }
+
+  function describe() {
+    if (model) say("Connected to LinnStrument " + model, "on");
+    $("firmware").textContent = version ? "Firmware " + version : "";
+  }
+
+  // the form, one control per parameter, the two splits side by side
+  function control(parameter, ariaName) {
+    const wrap = document.createElement("div");
+    wrap.className = "ctl";
+    const c = controls[parameter.number] = { parameter: parameter, elements: [] };
+    const label = ariaName || parameter.group + " " + parameter.name;
+    if (parameter.kind === "toggle") {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.setAttribute("aria-label", label);
+      box.addEventListener("change", function () { write(parameter, box.checked ? 1 : 0); });
+      wrap.appendChild(box);
+      c.elements.push(box);
+    } else if (parameter.kind === "enum" || parameter.kind === "choice-action") {
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", label);
+      parameter.options.forEach(function (o) { select.appendChild(new Option(o.label, o.value)); });
+      wrap.appendChild(select);
+      c.elements.push(select);
+      if (parameter.kind === "enum") {
+        select.addEventListener("change", function () { write(parameter, parseInt(select.value, 10)); });
+      } else {
+        const go = document.createElement("button");
+        go.className = "small";
+        go.textContent = "Load";
+        go.addEventListener("click", function () {
+          write(parameter, parseInt(select.value, 10));
+          setTimeout(readAll, 300);
+        });
+        wrap.appendChild(go);
+      }
+    } else if (parameter.kind === "number") {
+      const holder = document.createElement("div");
+      holder.className = "numberctl";
+      const range = document.createElement("input");
+      range.type = "range"; range.min = parameter.min; range.max = parameter.max; range.value = parameter.min;
+      range.setAttribute("aria-label", label);
+      const num = document.createElement("input");
+      num.type = "number"; num.min = parameter.min; num.max = parameter.max; num.value = parameter.min;
+      num.setAttribute("aria-label", label + ", value");
+      let timer = null;
+      range.addEventListener("input", function () { num.value = range.value; clearTimeout(timer); timer = setTimeout(function () { write(parameter, parseInt(range.value, 10)); }, 120); });
+      num.addEventListener("change", function () { range.value = num.value; write(parameter, parseInt(num.value, 10)); });
+      holder.appendChild(range); holder.appendChild(num);
+      wrap.appendChild(holder);
+      c.elements.push(range, num);
+    } else if (parameter.kind === "action") {
+      const go = document.createElement("button");
+      go.className = "small";
+      go.textContent = parameter.number === 271 ? "Switch to serial mode" : parameter.name;
+      go.setAttribute("aria-label", label);
+      let armed = false;
+      go.addEventListener("click", function () {
+        if (parameter.number === 271 && !armed) {
+          armed = true;
+          go.textContent = "Click again to confirm";
+          setTimeout(function () { armed = false; go.textContent = "Switch to serial mode"; }, 3000);
+          return;
+        }
+        send(editor.setMessages(parameter.number, 1));
+        setState(parameter.number, "ok");
+      });
+      wrap.appendChild(go);
+    } else {
+      const text = document.createElement("span");
+      text.className = "readonly";
+      text.textContent = "?";
+      wrap.appendChild(text);
+      c.elements.push(text);
+    }
+    const state = document.createElement("span");
+    state.className = "state";
+    state.setAttribute("aria-hidden", "true");
+    wrap.appendChild(state);
+    c.state = state;
+    return wrap;
+  }
+
+  function rowControl(row, side) {
+    if (row.kind === "toggles") {
+      const holder = document.createElement("div");
+      holder.className = "toggles";
+      row.items.forEach(function (item) {
+        const label = document.createElement("label");
+        const text = document.createElement("span");
+        text.textContent = item.label;
+        label.appendChild(text);
+        label.appendChild(control(item.parameter, (side ? side + " split " : "") + item.parameter.name));
+        holder.appendChild(label);
+      });
+      return holder;
+    }
+    return control(row.parameter, side ? side + " split " + row.parameter.name : undefined);
+  }
+
+  function nameCell(row) {
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = row.name;
+    const p = row.parameter || (row.left && row.left.parameter) || (row.items && row.items[0].parameter);
+    if (p) {
+      const small = document.createElement("small");
+      small.textContent = "NRPN " + (row.left && row.right ? p.number + " and " + row.right.parameter.number : row.items ? row.items[0].parameter.number + " to " + row.items[row.items.length - 1].parameter.number : p.number) + (p.note ? ". " + p.note : "");
+      name.appendChild(small);
+    }
+    return name;
+  }
+
+  function build() {
+    const content = $("content");
+    const nav = $("nav");
+    editor.sections().forEach(function (section) {
+      const el = document.createElement("section");
+      el.id = section.id;
+      el.innerHTML = "<h2>" + section.title + "</h2>";
+      const grid = document.createElement("div");
+      grid.className = "params" + (section.id === "splits" ? " splits" : "");
+      if (section.id === "splits") grid.innerHTML = '<div class="head"></div><div class="head">Left split</div><div class="head">Right split</div>';
+      section.rows.forEach(function (row) {
+        const cells = [nameCell(row)];
+        if (section.id === "splits") {
+          const l = document.createElement("div"); l.appendChild(rowControl(row.left, "left"));
+          const r = document.createElement("div"); r.appendChild(rowControl(row.right, "right"));
+          cells.push(l, r);
+        } else {
+          const d = document.createElement("div"); d.appendChild(rowControl(row));
+          cells.push(d);
+        }
+        cells.forEach(function (c) { c.dataset.row = section.rows.indexOf(row); c.dataset.section = section.id; grid.appendChild(c); });
+        row.cells = cells;
+      });
+      el.appendChild(grid);
+      content.appendChild(el);
+      const link = document.createElement("a");
+      link.href = "#" + section.id;
+      link.innerHTML = section.title + "<span>" + section.rows.length + "</span>";
+      nav.appendChild(link);
+      section.element = el;
+    });
+    window.linnSections = editor.sections;
+  }
+
+  function filter() {
+    const text = $("search").value;
+    editor.sections().forEach(function (section) {
+      const el = $(section.id);
+      let shown = 0;
+      el.querySelectorAll(".params > div[data-row]").forEach(function (cell) {
+        const row = section.rows[parseInt(cell.dataset.row, 10)];
+        const hit = editor.matches(row, text);
+        cell.classList.toggle("hidden", !hit);
+        if (hit) shown++;
+      });
+      el.classList.toggle("hidden", shown === 0);
+    });
+  }
+
+  // the instrument answers each query with six control changes from a queue that drains at
+  // about four kilobytes a second, so the reads are paced to stay below that
+  let reading = false;
+  function readAll() {
+    if (reading) return;
+    const numbers = editor.queryable().map(function (p) { return p.number; });
+    let at = 0;
+    reading = true;
+    const step = function () {
+      if (!output || at >= numbers.length) {
+        reading = false;
+        $("progress").textContent = output ? "Read " + numbers.length + " settings" : "";
+        return;
+      }
+      query(numbers.slice(at, at + 6));
+      at += 6;
+      $("progress").textContent = "Reading " + Math.min(at, numbers.length) + " of " + numbers.length;
+      setTimeout(step, 40);
+    };
+    step();
+  }
+
+  function onMessage(e) {
+    const reply = editor.replyValue(decoder.decode(Array.from(e.data)));
+    if (reply) onReply(reply);
+  }
+
+  function fillPorts() {
+    [$("input"), $("output")].forEach(function (s) { s.innerHTML = ""; });
+    access.inputs.forEach(function (p) { $("input").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
+    access.outputs.forEach(function (p) { $("output").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
+    choosePorts();
+  }
+
+  function choosePorts() {
+    if (input) input.onmidimessage = null;
+    input = access.inputs.get($("input").value) || null;
+    output = access.outputs.get($("output").value) || null;
+    if (input) input.onmidimessage = onMessage;
+    if (input && output) {
+      say("Connected to " + input.name, "ready");
+      calibrationKnown = false;
+      $("calibration").textContent = "";
+      $("modeNotice").textContent = "";
+      $("firmware").textContent = "";
+      send(editor.queryModel().concat(editor.queryVersion(), editor.queryCalibrated()));
+      setTimeout(function () {
+        if (!calibrationKnown) { $("calibration").textContent = "Calibration not reported"; $("calibration").className = "info"; }
+      }, 1500);
+      readAll();
+    } else {
+      say("Choose the MIDI in and out", "");
+    }
+  }
+
+  build();
+  $("search").addEventListener("input", filter);
+  $("readAll").addEventListener("click", readAll);
+  $("input").addEventListener("change", choosePorts);
+  $("output").addEventListener("change", choosePorts);
+
+  if (!navigator.requestMIDIAccess) {
+    say("No Web MIDI here, use Chrome or Edge", "");
+    return;
+  }
+  navigator.requestMIDIAccess().then(function (a) {
+    access = a;
+    access.onstatechange = fillPorts;
+    fillPorts();
+  }, function (err) {
+    say("MIDI access refused, allow it for this page", "");
+  });
+})();
+</script>
+</body>
+</html>

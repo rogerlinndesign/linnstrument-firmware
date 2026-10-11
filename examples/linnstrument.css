@@ -1,0 +1,95 @@
+/*
+Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+/* The look the LinnStrument pages share, after rogerlinndesign.com: Mulish, near-black panels,
+   white over grey, one blue accent. Each page adds its own rules in a style block. */
+:root {
+  color-scheme: dark;
+  --bg: #000; --bar: #1a1a1a; --panel: #202020; --panel-2: #2a2a2a; --line: #333; --line-2: #444;
+  --fg: #fff; --text: #d9d9d9; --muted: #b9b9b9; --dim: #8e8e8e;
+  --accent: #0082f3; --accent-2: #3898ec; --cherry: #c2641f; --cherry-2: #7a3d17;
+  --ok: #4fd36f; --warn: #ffb020; --bad: #ff3b30;
+  --steel: #121212; --pad: #dadad6; --plate: #b6b6b1; --touch: #111;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; font: 14px/1.5 "Mulish", "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: .2px;
+       background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+button, select, input { font: inherit; letter-spacing: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.caps { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600; color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+header { display: flex; align-items: center; gap: 24px; padding: 0 28px; height: 64px; background: var(--bar); position: sticky; top: 0; z-index: 2; }
+.brand { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; margin: 0; font-weight: 400; }
+.brand b { font-size: 21px; font-weight: 800; color: var(--fg); letter-spacing: .01em; }
+/* the pages, as tabs the way the site's navigation bar does it: the current one white and underlined */
+.pages { display: flex; align-self: stretch; margin-left: 8px; }
+.pages a { display: flex; align-items: center; padding: 0 14px; color: var(--muted); text-decoration: none; white-space: nowrap;
+           text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600; border-bottom: 2px solid transparent; }
+.pages a:hover { color: var(--fg); }
+.pages a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
+header .spacer { flex: 1; }
+/* the connection: the status line and the two ports, at the top of a page's sidebar */
+.status { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 8px var(--bad); flex: none; margin-top: 5px; }
+.status.ready .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.status.on .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.info { font-size: 13px; margin-top: 8px; margin-left: 17px; color: var(--muted); }
+.info:empty { display: none; }
+.info.ok { color: var(--ok); }
+.info.warn { color: var(--warn); }
+.ports { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.ports label { display: flex; flex-direction: column; gap: 3px; }
+.ports select { max-width: none; width: 100%; }
+select { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 7px 30px 7px 10px; max-width: 230px; color: var(--fg);
+         appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b9b9b9' stroke-width='1.5'/%3E%3C/svg%3E");
+         background-repeat: no-repeat; background-position: right 10px center; }
+select:hover, input:hover { border-color: var(--dim); }
+input[type=text], input[type=number], input[type=search] { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 7px 10px; color: var(--fg); }
+input[type=number] { width: 4.4em; }
+input[type=range] { accent-color: var(--accent); }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; cursor: pointer; }
+button { background: transparent; border: 1px solid var(--line-2); border-radius: 4px; padding: 8px 14px; cursor: pointer; color: var(--fg); font-weight: 600; }
+button:hover { border-color: var(--muted); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: .5; cursor: default; transform: none; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+button.small { padding: 5px 10px; font-size: 12px; }
+/* a two-way choice whose filled half is the state the instrument reported */
+.segmented { display: inline-flex; border: 1px solid var(--line-2); border-radius: 4px; overflow: hidden; }
+.segmented button { border: 0; border-radius: 0; padding: 8px 18px; color: var(--muted); background: transparent; }
+.segmented button + button { border-left: 1px solid var(--line-2); }
+.segmented button:hover { color: var(--fg); }
+.segmented button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.segmented button:focus-visible { outline-offset: -2px; }
+
+h2 { font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 12px; letter-spacing: .01em; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row + .row { margin-top: 10px; }
+.row label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+.hint { color: var(--dim); font-size: 12px; line-height: 1.5; margin-top: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}
+@media (max-width: 960px) {
+  header { height: 56px; padding: 0 16px; gap: 12px; }
+  .brand b { font-size: 18px; }
+  .pages { margin-left: 0; }
+  .pages a { padding: 0 10px; }
+}
