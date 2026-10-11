@@ -42,8 +42,13 @@ arduino-cli compile --fqbn arduino:sam:arduino_due_x --libraries linnstrument-fi
 cd /work/linnstrument-firmware
 echo "== tool job"
 go vet ./...
-go run ./tools/linnstrument test 2>&1 | tail -1
-node --test examples/user_firmware_protocol.test.js 2>&1 | grep -E "^# (pass|fail)"
+go test ./...
+# a pipe would hide a failing step from set -e, so each one reports through a file
+go run ./tools/linnstrument test > /tmp/tests.log 2>&1 || { cat /tmp/tests.log; exit 1; }
+tail -1 /tmp/tests.log
+node --test examples/ > /tmp/node.log 2>&1 || { cat /tmp/node.log; exit 1; }
+go run ./tools/linnstrument nrpns /tmp/nrpn_parameters.js >/dev/null && cmp /tmp/nrpn_parameters.js examples/nrpn_parameters.js
+grep -E "^# (pass|fail)" /tmp/node.log
 GOOS=linux GOARCH=amd64 go build -o /tmp/linnstrument-linux-amd64 ./tools/linnstrument
 GOOS=linux GOARCH=arm64 go build -o /tmp/linnstrument-linux-arm64 ./tools/linnstrument
 GOOS=windows GOARCH=amd64 go build -o /tmp/linnstrument-windows.exe ./tools/linnstrument

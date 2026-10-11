@@ -79,11 +79,15 @@ explains the mechanism and the helpers; the short version:
   `linn::drainMidi()` before reading MIDI output from `host::serialOutput()`,
   `host::feedSerial()` plus `linn::pumpSerial()` for the serial protocol.
 * The clock is fake: `host::advanceMicros()` moves it, and every `millis()` or
-  `micros()` read adds a microsecond so busy waits end.
+  `micros()` read adds a microsecond so busy waits end. `setupDone` stays
+  false, so `performContinuousTasks()` is a no-op unless a test sets it around
+  one call; call the function under test directly instead. `linn::reset()`
+  wipes the whole settings struct, nothing survives from the previous test.
 * A fix to host-reachable logic ships with a test that fails without it, and
   every test gets a line in `tests/mutations.tsv`: a one-line change to the
-  firmware that must make exactly that test fail. `go run ./tools/linnstrument mutate`
-  applies each line, checks the test fails, and restores the file. A test that
+  firmware that must make exactly that test fail. `go run ./tools/linnstrument
+  mutate` applies each line, checks the test fails, and restores the file. A
+  test that
   survives its mutation is not a test.
 * Keep the suite fast. A test that needs more than a fraction of a second is
   doing too much.
@@ -98,11 +102,41 @@ touch surface with MIDI-controlled lights: the way to customise what it does
 without touching the firmware. Every claim in that document is checked by
 `tests/test_userfirmware.cpp`; change both together. `examples/` holds a browser
 console for the mode and a shell walkthrough, with the protocol code in
-`examples/user_firmware_protocol.js` tested by `node --test
-examples/user_firmware_protocol.test.js`. A session can drive a connected unit
-in that mode over MIDI through RouteMIDI's MCP server, which `.mcp.json`
-registers when `routemidi` is installed, or through `sendmidi` and `receivemidi`
-from the shell.
+`examples/user_firmware_protocol.js`, and a settings editor page whose form is
+generated from the NRPN table in `midi.md` by `go run ./tools/linnstrument
+nrpns`. That command also checks the table against `receivedNrpn()` and
+`sendNrpnParameter()` in `ls_midi.ino`: every number, its `inRange()` bounds,
+and that a query answers it. Run it after changing either side; CI fails on a
+mismatch or a stale generated file. `node --test examples/` runs every page's
+tests. A session can drive
+a connected unit in that mode over MIDI through RouteMIDI's MCP server, which
+`.mcp.json` registers when `routemidi` is installed, or through `sendmidi` and
+`receivemidi` from the shell.
+
+## Virtual LinnStrument
+
+`tools/virtual/` is a JUCE app that runs this same firmware on the desktop:
+the sketch merged into one file (`go run ./tools/linnstrument merge`), compiled
+against `tests/support/` with the computer's clock, behind a window that
+draws the LEDs, turns the mouse into touches and exposes a virtual MIDI port
+named "Virtual LinnStrument". It is the fastest way to see a firmware or user
+firmware mode change behave, without an instrument:
+
+```
+cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
+cmake --build build/virtual --config Release
+app=build/virtual/VirtualLinnStrument_artefacts/Release
+"$app/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" \
+  --model 128 --screenshot shot.png --after 6
+```
+
+`--screenshot` writes the window to a PNG after `--after` seconds and quits,
+so a session that cannot see the screen still can: start it in the background
+with a long delay, drive it with `sendmidi dev "Virtual LinnStrument" ...`
+and `receivemidi dev "Virtual LinnStrument"`, then look at the PNG. The first
+build fetches JUCE 9.0.4 and takes a few minutes; later builds re-merge the
+sketch only when a firmware file changed. `tools/virtual/README.md` has the
+details and the limits (no multi-touch, no calibration, no serial mode).
 
 ## Flashing and talking to a connected instrument
 
@@ -116,17 +150,16 @@ showing up as a serial port (`/dev/cu.usbmodem*` on macOS, `/dev/ttyACM*` on
 Linux, `COMn` on Windows):
 
 ```
-go run ./tools/linnstrument ports             # list serial ports, mark the LinnStrument
-go run ./tools/linnstrument probe             # handshake, report the settings version
-go run ./tools/linnstrument led 5 3 3         # light one LED, a visible sign of life
-go run ./tools/linnstrument backup [FILE]     # settings and projects to JSON, ~35 s
-go run ./tools/linnstrument flash [FILE.bin]  # flash the .bin from build/
-                                      # (about a minute with verify)
-go run ./tools/linnstrument restore FILE      # send a backup back, leaves serial mode
-go run ./tools/linnstrument update [FILE.bin] # backup, flash, restore, like the Updater
-go run ./tools/linnstrument midimode          # leave serial mode without restoring
-go run ./tools/linnstrument serialmode        # enter serial mode over MIDI (NRPN 271),
-                                      # needs sendmidi
+go run ./tools/linnstrument <command>, with one of:
+  ports              # list serial ports, mark the LinnStrument
+  probe              # handshake, report the settings version
+  led 5 3 3          # light one LED, a visible sign of life
+  backup [FILE]      # settings and projects to JSON, ~35 s
+  flash [FILE.bin]   # flash the .bin from build/ (about a minute with verify)
+  restore FILE       # send a backup back, leaves serial mode
+  update [FILE.bin]  # backup, flash, restore, like the Updater
+  midimode           # leave serial mode without restoring
+  serialmode         # enter serial mode over MIDI (NRPN 271), needs sendmidi
 ```
 
 `flash` mirrors the Updater: a 1200 baud touch puts the SAM3X in its
@@ -152,7 +185,8 @@ Facts about the serial link, measured on a LinnStrument 128:
   `LinnStruments are go!\n`, then one-letter commands (`s` settings, `l` LED,
   `r` restore, `p`/`j`/`q` projects, `m` back to MIDI mode) with 96 byte
   batches and CRC32 per batch.
-  `ls_serial.ino` is the firmware side, `tools/linnstrument/device.go` the host side.
+  `ls_serial.ino` is the firmware side, `tools/linnstrument/device.go` the host
+  side.
 * In serial mode the unit sends no MIDI, and in MIDI mode it has no serial port.
 * A mode switch is stored with `storeSettings()`, which does nothing while the
   sequencer is running. Then the next DTR reset on a port open can undo the
@@ -193,6 +227,8 @@ File map:
   style).
 * `ls_midi.ino`, `ls_midi.h`: all MIDI in and out, the output queue
   (`midiOutQueue`), the NRPN settings API, clock, program change.
+* `ls_midiLights.ino`: lights and text over MIDI (CC 25 to 29) and the
+  read-only model and version NRPNs, for scripts and user firmware mode.
 * `ls_lowRow.ino`: low row modes (sustain, restrike, strum, arpeggiator, bend,
   CC).
 * `ls_arpeggiator.ino`, `ls_clock.ino`: the internal arpeggiator and the
@@ -207,6 +243,7 @@ File map:
   migration from every older settings layout.
 * `ls_serial.ino`: the serial protocol with the updater: handshake, send and
   restore settings and projects, switch to MIDI mode.
+* `tools/virtual/`: the Virtual LinnStrument app, see below.
 * `ls_leds.ino`, `ls_font.ino`, `ls_touchanim.ino`, `ls_playbook.ino`,
   `ls_promo.ino`: LED driving, text rendering, animations.
 * `ls_switches.ino`: the two panel switches and two foot switches, and the

@@ -46,11 +46,11 @@ jobs:
 
       - name: Name the firmware file after the version and commit
         run: |
-          version=$(sed -n 's/^const char\* OSVersion = "\([0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
-          build=$(sed -n 's/^const char\* OSVersionBuild = "\.\([0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
+          version=$(sed -n 's/^const char\* OSVersion = "\([0-9.]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
+          build=$(sed -n 's/^const char\* OSVersionBuild = "\(\.[0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
           sha=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "FIRMWARE_NAME=linnstrument-firmware-${version}.${build}-${sha}" >> "$GITHUB_ENV"
-          cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}.${build}-${sha}.bin"
+          echo "FIRMWARE_NAME=linnstrument-firmware-${version}${build}-${sha}" >> "$GITHUB_ENV"
+          cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}${build}-${sha}.bin"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -82,7 +82,10 @@ jobs:
         run: go run ./tools/linnstrument test
 
       - name: Example tests
-        run: node --test examples/user_firmware_protocol.test.js
+        run: node --test examples/
+
+      - name: Check midi.md against the firmware and the generated NRPN table
+        run: go test ./... && go run ./tools/linnstrument nrpns && git diff --exit-code examples/nrpn_parameters.js
 
       # the serial port enumerator needs cgo on macOS, so the macOS binaries are built there
       - name: Build tools/linnstrument for Linux and Windows
