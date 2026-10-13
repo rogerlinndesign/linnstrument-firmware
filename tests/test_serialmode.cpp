@@ -99,3 +99,102 @@ TEST(serial_s_command_streams_the_settings_in_crc_batches) {
   }
   CHECK_EQ(crcMismatches, 0);
 }
+
+// The r command, the way the Updater restores settings after a flash: a 32-bit size, then the
+// settings in batches of 96 bytes, each answered with c and followed by its CRC-32, which the
+// instrument accepts with o or refuses with w and waits for again.
+static void addBatches(std::vector<uint8_t>& stream, const std::vector<uint8_t>& blob, int corruptBatch) {
+  for (size_t at = 0, batch = 0; at < blob.size(); at += 96, ++batch) {
+    size_t n = min((size_t)96, blob.size() - at);
+    uint32_t crc = crc_byte_array((uint8_t*)&blob[at], (uint8_t)n);
+    if ((int)batch == corruptBatch) {
+      stream.insert(stream.end(), blob.begin() + at, blob.begin() + at + n);
+      uint32_t wrong = crc ^ 1;
+      stream.insert(stream.end(), (uint8_t*)&wrong, (uint8_t*)&wrong + 4);
+    }
+    stream.insert(stream.end(), blob.begin() + at, blob.begin() + at + n);
+    stream.insert(stream.end(), (uint8_t*)&crc, (uint8_t*)&crc + 4);
+  }
+}
+
+static std::vector<uint8_t> restoreStream(const std::vector<uint8_t>& blob, int32_t announcedSize, int corruptBatch = -1) {
+  std::vector<uint8_t> stream;
+  stream.push_back('r');
+  stream.insert(stream.end(), (uint8_t*)&announcedSize, (uint8_t*)&announcedSize + 4);
+  addBatches(stream, blob, corruptBatch);
+  return stream;
+}
+
+static std::vector<uint8_t> blobWithRowOffset(byte rowOffset, boolean calibrated) {
+  Configuration blob = config;
+  blob.settings.global.rowOffset = rowOffset;
+  blob.device.calibrated = calibrated;
+  return std::vector<uint8_t>((uint8_t*)&blob, (uint8_t*)&blob + sizeof(Configuration));
+}
+
+// counts a CRC answer after the handshake reply, whose "go" has an o of its own
+static int countByte(const std::vector<uint8_t>& out, uint8_t value) {
+  int n = 0;
+  for (size_t i = strlen("LinnStruments are go!\n"); i < out.size(); ++i) if (out[i] == value) ++n;
+  return n;
+}
+
+TEST(serial_r_command_restores_the_settings_and_leaves_serial_mode) {
+  linn::reset();
+  switchSerialMode(true);
+  std::vector<uint8_t> blob = blobWithRowOffset(7, true);
+  host::feedSerial("5, 4, 3, 2, 1 ...\n");
+  std::vector<uint8_t> stream = restoreStream(blob, (int32_t)blob.size());
+  host::feedSerial(stream.data(), stream.size());
+  linn::pumpSerial();
+  std::vector<uint8_t> out = host::serialOutput();
+  CHECK_EQ(Global.rowOffset, 7);
+  CHECK(Device.calibrated);
+  CHECK(!Device.serialMode);
+  CHECK_EQ(host::pinState(35), LOW);
+  CHECK_EQ(displayMode, displayNormal);
+  CHECK_EQ(countByte(out, 'o'), (int)((blob.size() + 95) / 96));
+  CHECK_EQ(countByte(out, 'w'), 0);
+  CHECK(std::string(out.end() - 4, out.end()) == "ACK\n");
+}
+
+TEST(serial_restore_asks_again_for_a_batch_whose_crc_is_wrong) {
+  linn::reset();
+  switchSerialMode(true);
+  std::vector<uint8_t> blob = blobWithRowOffset(9, true);
+  host::feedSerial("5, 4, 3, 2, 1 ...\n");
+  std::vector<uint8_t> stream = restoreStream(blob, (int32_t)blob.size(), 2);
+  host::feedSerial(stream.data(), stream.size());
+  linn::pumpSerial();
+  std::vector<uint8_t> out = host::serialOutput();
+  CHECK_EQ(countByte(out, 'w'), 1);
+  CHECK_EQ(countByte(out, 'o'), (int)((blob.size() + 95) / 96));
+  CHECK_EQ(Global.rowOffset, 9);
+}
+
+// a blob whose size matches no layout is refused: the defaults stay and the instrument asks
+// for a calibration, as it does after a bare flash
+TEST(serial_restore_refuses_a_blob_of_the_wrong_size_and_asks_for_calibration) {
+  linn::reset();
+  switchSerialMode(true);
+  std::vector<uint8_t> blob = blobWithRowOffset(7, true);
+  blob.pop_back();
+  host::feedSerial("5, 4, 3, 2, 1 ...\n");
+  std::vector<uint8_t> stream = restoreStream(blob, (int32_t)blob.size());
+  host::feedSerial(stream.data(), stream.size());
+  linn::pumpSerial();
+  CHECK_EQ(Global.rowOffset, 5);
+  CHECK(!Device.serialMode);
+  CHECK_EQ(displayMode, displayCalibration);
+}
+
+TEST(serial_restore_gives_up_after_two_seconds_without_data) {
+  linn::reset();
+  switchSerialMode(true);
+  host::feedSerial("5, 4, 3, 2, 1 ...\n");
+  host::feedSerial("r\x10\x00");
+  linn::pumpSerial();
+  CHECK(!waitingForCommands);
+  CHECK(Device.serialMode);
+}
+
