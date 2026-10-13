@@ -51,6 +51,12 @@ public:
     return write_ == read_;
   }
 
+  // one byte always stays unused, so a full buffer never looks empty
+  boolean hasRoom(unsigned int count) const {
+    unsigned int used = write_ >= read_ ? (unsigned int)(write_ - read_) : Size - (unsigned int)(read_ - write_);
+    return Size - used - 1 >= count;
+  }
+
 private:
   byte buffer_[Size];
   byte* write_;

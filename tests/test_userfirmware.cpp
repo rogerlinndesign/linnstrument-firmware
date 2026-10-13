@@ -338,16 +338,16 @@ TEST(ufm_decimation_is_set_in_milliseconds) {
   CHECK_EQ(midiDecimateRate, 50000);
 }
 
-TEST(ufm_decimation_in_low_power_mode_only_accepts_more_than_12_ms) {
+TEST(ufm_decimation_cannot_go_below_12_ms_in_low_power_mode) {
   enterUserFirmwareMode();
   Device.operatingLowPower = true;
   applyMidiDecimationRate();
+  linn::midiIn({0xB0, 13, 20});
+  CHECK_EQ(midiDecimateRate, 20000);
   linn::midiIn({0xB0, 13, 12});
   CHECK_EQ(midiDecimateRate, 12000);
-  linn::midiIn({0xB0, 13, 5});
+  linn::midiIn({0xB0, 13, 11});
   CHECK_EQ(midiDecimateRate, 12000);
-  linn::midiIn({0xB0, 13, 13});
-  CHECK_EQ(midiDecimateRate, 13000);
 }
 
 TEST(ufm_decimation_limits_the_update_rate) {
@@ -643,9 +643,7 @@ TEST(ufm_cc_29_while_global_settings_is_open_starts_nothing_and_discards_the_tex
   CHECK_EQ(litOnLayer(LED_LAYER_CUSTOM2), 0);
 }
 
-// a query on channel 1 is answered on channel 1; on any other channel the reply arrives one
-// channel below the query's
-TEST(ufm_query_reply_is_on_channel_1_for_a_channel_1_query_and_one_below_otherwise) {
+TEST(ufm_query_reply_arrives_on_the_channel_of_the_query) {
   linn::reset();
   linn::midiInNrpn(299, 272, 0);
   std::vector<uint8_t> out = drained();
@@ -654,7 +652,26 @@ TEST(ufm_query_reply_is_on_channel_1_for_a_channel_1_query_and_one_below_otherwi
   linn::midiInNrpn(299, 272, 3);
   out = drained();
   CHECK_EQ(out.size(), 18);
-  if (out.size() == 18) CHECK_EQ(out[0], 0xB2);
+  if (out.size() == 18) CHECK_EQ(out[0], 0xB3);
+}
+
+// the "only when changed" memory is per cell and reset by every new touch, so a second press at
+// the same spot with the same pressure still reports its X, Y and Z
+TEST(ufm_repeat_press_at_the_same_spot_sends_its_values_again) {
+  enterUserFirmwareMode();
+  linn::midiIn({0xB3, 10, 1, 0xB3, 11, 1, 0xB3, 12, 1});
+  linn::press(5, 3, 2000, 1930, 400);
+  linn::hold(5, 3, 2000, 1930, 400, 10);
+  drained();
+  linn::release(5, 3);
+  drained();
+  linn::press(5, 3, 2000, 1930, 400);
+  linn::hold(5, 3, 2000, 1930, 400, 10);
+  std::vector<uint8_t> out = drained();
+  CHECK(countStatus(out, 0xA0) >= 1);
+  CHECK(lastValueOf(out, 0xB3, 5) >= 0);
+  CHECK(lastValueOf(out, 0xB3, 37) >= 0);
+  CHECK(lastValueOf(out, 0xB3, 69) >= 0);
 }
 
 // big "1": the bottom pixel row is blank, the row above it is five wide, the stem sits two in

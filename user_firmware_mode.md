@@ -144,14 +144,13 @@ row's channel, the LSB first on CC 32 plus the column, then the MSB on CC 0 plus
 Y, the up-down position within the cell, is sent as CC 64 plus the column on the row's channel,
 0 at the bottom edge to 127 at the top edge. Like pressure it is smoothed over scans.
 
-A value is only sent when it changed since the last value sent on that note or controller, not
-since the touch began, and never faster than the decimation interval below. A second press at
-the same spot with the same pressure therefore sends no Z, X or Y until something moves, so
-take a touch's existence from its Note On and treat the three values as updates.
+A value is only sent when it changed, and never faster than the decimation interval below. A
+new touch always sends its first X, Y and Z, even at the spot and pressure the previous one
+left.
 
 One thing to watch when decoding: column 6 sends its X on CC 6 and CC 38, which are also the
 NRPN data entry controllers. LinnStrument only sends NRPNs for the mode announcement on channel 9
-and as the reply to a query, on the channel described below, so treat CC 6 and 38 as data
+and as the reply to a query, on the channel the query came from, so treat CC 6 and 38 as data
 entry only right after CC 99 and 98 arrived on that channel, and as X otherwise. In the same
 way, column 1's X arrives on CC 1 and column 7's on CC 7, the mod wheel and volume controllers,
 so filter before forwarding a row's channel to a synth.
@@ -163,8 +162,7 @@ Data decimation
 Every touch produces a stream of values, which can overwhelm a slow receiver. The firmware
 therefore sends each value at most once per decimation interval. The default is about 8
 milliseconds. CC 13 sets it in milliseconds, and 0 switches the interval off so every change is
-sent. In low power mode only values above 12 are accepted: 13 is the shortest interval there,
-and 12 or less leaves it at 12.
+sent. In low power mode nothing below 12 is accepted and the interval stays where it was.
 
 
 Slide mode
@@ -250,9 +248,8 @@ Asking which instrument this is
 ===============================
 
 NRPN 299 is a query: send it with the number of another parameter as its value, and the
-instrument replies with that parameter and its current value. Send queries on channel 1, where
-the reply also arrives; a query on any other channel is currently answered one channel below
-it. Three read-only parameters exist for scripts: 272 answers with the model, 200 or 128,
+instrument replies with that parameter and its current value, on the channel the query came
+from. Read-only parameters exist for scripts: 272 answers with the model, 200 or 128,
 273 with the firmware version, 234 for firmware 234.074, 274 with its build, 74 for that same
 firmware, and 275 with 1 when the instrument has been calibrated and 0 when it has not, in which
 case X and Y come from the default calibration and are less exact. Together with 245, which
@@ -275,7 +272,7 @@ Outgoing:
 | CC 64 to 89         | Y                  | Row         | 64 + column | 0 to 127          |
 | CC 119              | Slide leaving cell | Row         | 119         | Column being left |
 | NRPN 245            | Mode changed       | 9           | 245         | 0 off, 1 on       |
-| NRPN 245, 272-275   | Reply to a query   | 1, see text | Parameter   | Its value         |
+| NRPN 245, 272-275   | Reply to a query   | query's     | Parameter   | Its value         |
 
 Incoming:
 
@@ -288,7 +285,7 @@ Incoming:
 | CC 10    | row     | 0 or 1       | X data for that row                                       |
 | CC 11    | row     | 0 or 1       | Y data for that row                                       |
 | CC 12    | row     | 0 or 1       | Z data for that row                                       |
-| CC 13    | any     | milliseconds | Decimation interval, 0 is off, above 12 in low power      |
+| CC 13    | any     | milliseconds | Decimation interval, 0 is off, at least 12 in low power   |
 | CC 20    | any     | column       | Column for the next CC 22                                 |
 | CC 21    | any     | row          | Row for the next CC 22                                    |
 | CC 22    | any     | color        | Light the selected cell, 0 or 12 and up switch it off     |

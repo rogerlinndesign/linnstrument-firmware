@@ -53,6 +53,41 @@ TEST(midi_messages_keep_their_order) {
   }
 }
 
+// the queue holds 4095 bytes, 1023 messages of four; what does not fit is dropped whole and
+// counted, and what fits leaves intact and in order
+TEST(midi_queue_drops_whole_messages_when_full_instead_of_lapping_itself) {
+  linn::reset();
+  midiMessagesDropped = 0;
+  for (int i = 0; i < 1100; ++i) {
+    queueMidiMessage(MIDINoteOn, (byte)(i % 128), 100, 0);
+  }
+  linn::drainMidi();
+  std::vector<uint8_t> out = host::serialOutput();
+  CHECK_EQ(out.size(), 1023 * 3);
+  int outOfOrder = 0;
+  for (size_t i = 0; i + 2 < out.size(); i += 3) {
+    if (out[i] != 0x90 || out[i + 1] != (i / 3) % 128 || out[i + 2] != 100) ++outOfOrder;
+  }
+  CHECK_EQ(outOfOrder, 0);
+  CHECK_EQ(midiMessagesDropped, 77);
+}
+
+// with MIDI Through on a SysEx is forwarded whole and nothing stale follows it
+TEST(midi_through_forwards_a_sysex_and_nothing_after_it) {
+  linn::reset();
+  Device.midiThrough = true;
+  linn::midiIn({0xF0, 0x7D, 0x01, 0x02, 0xF7});
+  linn::drainMidi();
+  std::vector<uint8_t> out = host::serialOutput();
+  CHECK_EQ(out.size(), 5);
+  CHECK(out == std::vector<uint8_t>({0xF0, 0x7D, 0x01, 0x02, 0xF7}));
+  linn::midiIn({0x90, 60, 100});
+  linn::drainMidi();
+  out = host::serialOutput();
+  CHECK_EQ(out.size(), 8);
+  if (out.size() == 8) CHECK_EQ(out[5], 0x90);
+}
+
 TEST(nrpn_sets_left_handed_operation) {
   linn::reset();
   receivedNrpn(246, 1, 0);

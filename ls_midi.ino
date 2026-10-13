@@ -470,7 +470,7 @@ void handleMidiInput(unsigned long nowMicros) {
           case 13:
             if (userFirmwareActive) {
               unsigned long rate = midiData2 * 1000;
-              if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
+              if (!Device.operatingLowPower || rate >= LOWPOWER_MIDI_DECIMATION) {
                 midiDecimateRate = rate;
               }
             }
@@ -1738,7 +1738,7 @@ void sendNrpnParameter(int parameter, int channel) {
   }
 
   if (value != INT_MIN) {
-    midiSendNRPN(parameter, value, channel);
+    midiSendNRPN(parameter, value, channel + 1);
   }
 }
 
@@ -2324,7 +2324,14 @@ void initializeLastMidiTracking() {
   }
 }
 
+unsigned int midiMessagesDropped = 0;
+
 void queueMidiMessage(MIDIStatus type, byte param1, byte param2, byte channel) {
+  // a message that does not fit is dropped whole, the queue would otherwise lap itself
+  if (!midiOutQueue.hasRoom(4)) {
+    midiMessagesDropped++;
+    return;
+  }
   // we always queue four bytes and will process them as MIDI messages in the handlePendingMidi
   midiOutQueue.push(channel & 0x0F);
   midiOutQueue.push((byte)type);
@@ -2342,7 +2349,7 @@ void handlePendingMidi(unsigned long now) {
 
   // if there's a sysex message ready to be sent out, do that first
   if (!sysexOutQueue.empty()) {
-    while (Serial.availableForWrite()) {
+    while (!sysexOutQueue.empty() && Serial.availableForWrite()) {
       Serial.write(sysexOutQueue.pop());
     }
     return;

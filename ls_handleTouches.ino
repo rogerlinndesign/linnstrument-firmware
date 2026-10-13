@@ -1306,6 +1306,10 @@ void sendReleasedNote() {
 void handleNewUserFirmwareTouch() {
   sensorCell->note = sensorCol;
   sensorCell->channel = sensorRow+1;
+  resetLastMidiPolyPressure(sensorCell->note, sensorCell->channel);
+  resetLastMidiCC(sensorCol, sensorCell->channel);
+  resetLastMidiCC(sensorCol+32, sensorCell->channel);
+  resetLastMidiCC(sensorCol+64, sensorCell->channel);
   midiSendNoteOn(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);
 }
 

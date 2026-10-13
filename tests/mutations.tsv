@@ -78,9 +78,9 @@ settings_second_store_keeps_the_newest_copy	ls_settings.ino	  dueFlashStorage.wr
 switch_cc65_sends_the_configured_controller	ls_switches.ino	      preSendSwitchCC65(whichSwitch, split, 127);	      preSendSwitchCC65(whichSwitch, split, 126);
 switch_foot_pedal_follows_the_pedal_and_its_polarity	ls_switches.ino	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = !state_right;	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = state_right;
 ufm_any_channel_enters	ls_midi.ino	        changeUserFirmwareMode(value);	        if (channel == 0) changeUserFirmwareMode(value);
-ufm_bottom_row_is_channel_1_top_row_channel_8	ls_handleTouches.ino	  sensorCell->channel = sensorRow+1;\n  midiSendNoteOn(LEFT,	  sensorCell->channel = sensorRow+2;\n  midiSendNoteOn(LEFT,
+ufm_bottom_row_is_channel_1_top_row_channel_8	ls_handleTouches.ino	  sensorCell->channel = sensorRow+1;\n  resetLastMidiPolyPressure(	  sensorCell->channel = sensorRow+2;\n  resetLastMidiPolyPressure(
 ufm_cell_release_is_note_off_with_release_velocity	ls_handleTouches.ino	    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, sensorCell->velocity, sensorCell->channel);	    midiSendNoteOffWithVelocity(LEFT, sensorCell->note, 0, sensorCell->channel);
-ufm_decimation_in_low_power_mode_only_accepts_more_than_12_ms	ls_midi.ino	              if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {	              if (true) {
+ufm_decimation_cannot_go_below_12_ms_in_low_power_mode	ls_midi.ino	              if (!Device.operatingLowPower || rate >= LOWPOWER_MIDI_DECIMATION) {	              if (!Device.operatingLowPower || rate > LOWPOWER_MIDI_DECIMATION) {
 ufm_decimation_limits_the_update_rate	ls_midi.ino	  if (value != 0 && calcTimeDelta(now, lastMomentMidiPP[channel][notenum]) <= midiDecimateRate) return;	  if (false) return;
 ufm_entering_turns_the_note_lights_off_and_lights_global_settings_yellow	ls_displayModes.ino	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_YELLOW, cellOn);	    setLed(0, GLOBAL_SETTINGS_ROW, COLOR_GREEN, cellOn);
 ufm_expression_switches_are_per_row	ls_handleTouches.ino	        if (userFirmwareZActive[sensorRow]) {	        if (true) {
@@ -131,9 +131,12 @@ ufm_cc_28_erases_blank_pixels_inside_the_text_box_only_and_clears_the_text	ls_mi
 ufm_cc_27_holds_32_characters_and_0_clears_it	ls_midiLights.ino	  if (character == 0) {\n    midiTextLength = 0;	  if (character == 0) {\n    midiTextLength = 1;
 ufm_cc_29_scrolls_one_column_every_40_ms_and_ends_clear	ls_midiLights.ino	  midiScrollCol -= 1;	  midiScrollCol -= 2;
 ufm_cc_29_is_replaced_by_a_new_scroll_and_stops_when_the_mode_is_left	ls_settings.ino	  stopMidiTextScroll();\n  initializeLedsLayer(LED_LAYER_CUSTOM2);	  initializeLedsLayer(LED_LAYER_CUSTOM2);
-ufm_query_reply_is_on_channel_1_for_a_channel_1_query_and_one_below_otherwise	ls_midi.ino	  value = constrain(value, 0, 0x3fff);\n  channel = constrain(channel-1, 0, 15);\n\n  if (Device.serialMode) {\n#ifdef DEBUG_ENABLED\n    if (SWITCH_DEBUGMIDI) {\n      Serial.print("midiSendNRPN number=");	  value = constrain(value, 0, 0x3fff);\n  channel = constrain(channel, 0, 15);\n\n  if (Device.serialMode) {\n#ifdef DEBUG_ENABLED\n    if (SWITCH_DEBUGMIDI) {\n      Serial.print("midiSendNRPN number=");
+ufm_query_reply_arrives_on_the_channel_of_the_query	ls_midi.ino	    midiSendNRPN(parameter, value, channel + 1);	    midiSendNRPN(parameter, value, channel);
 ufm_query_275_reports_whether_the_instrument_is_calibrated	ls_midi.ino	      value = Device.calibrated;	      value = 1;
 serial_r_command_restores_the_settings_and_leaves_serial_mode	ls_serial.ino	  boolean settingsApplied = upgradeConfigurationSettings(settingsSize, dueFlashStorage.readAddress(SETTINGS_OFFSET));	  boolean settingsApplied = false;
 serial_restore_asks_again_for_a_batch_whose_crc_is_wrong	ls_serial.ino	  if (local_crc != remote_crc) {	  if (false) {
 serial_restore_refuses_a_blob_of_the_wrong_size_and_asks_for_calibration	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (true) {
 serial_restore_gives_up_after_two_seconds_without_data	ls_serial.ino	    if (calcTimeDelta(millis(), lastSerialMoment) > 2000) {\n      waitingForCommands = false;	    if (calcTimeDelta(millis(), lastSerialMoment) > 2000) {
+ufm_repeat_press_at_the_same_spot_sends_its_values_again	ls_handleTouches.ino	  resetLastMidiPolyPressure(sensorCell->note, sensorCell->channel);\n  resetLastMidiCC(sensorCol, sensorCell->channel);\n  resetLastMidiCC(sensorCol+32, sensorCell->channel);\n  resetLastMidiCC(sensorCol+64, sensorCell->channel);\n  midiSendNoteOn(LEFT,	  midiSendNoteOn(LEFT,
+midi_queue_drops_whole_messages_when_full_instead_of_lapping_itself	ls_midi.ino	  if (!midiOutQueue.hasRoom(4)) {	  if (false) {
+midi_through_forwards_a_sysex_and_nothing_after_it	ls_midi.ino	    while (!sysexOutQueue.empty() && Serial.availableForWrite()) {	    while (Serial.availableForWrite()) {

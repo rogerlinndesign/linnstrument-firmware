@@ -38,7 +38,7 @@ features, than the CC faders will take precedence.
 | 10            | User Firmware X-axis data for the row given by the channel (0: disable, 1: enable), default off
 | 11            | User Firmware Y-axis data for the row given by the channel (0: disable, 1: enable), default off
 | 12            | User Firmware Z-axis data for the row given by the channel (0: disable, 1: enable), default off
-| 13            | User Firmware decimation interval in milliseconds, default about 8, 0 is off, above 12 in low power mode
+| 13            | User Firmware decimation interval in milliseconds, default about 8, 0 is off, at least 12 in low power mode
 | 20            | Column coordinate for cell color change with CC 22 (starts from 0)
 | 21            | Row coordinate for cell color change with CC 22 (starts from 0)
 | 22            | Color the cell set with CC 20 and 21, see the color values below; 0 or 12 and up switch it off
