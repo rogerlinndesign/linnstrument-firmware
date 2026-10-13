@@ -76,7 +76,9 @@ Things the fixture decides for you
   the scroll tests do. The fixture gives the project a tempo of 120 for that
   case, because the clock divides by it and x86 traps on a zero.
 * `linn::drainMidi()` empties the whole output queue, however long, so what a
-  test reads is everything the firmware sent since the previous drain.
+  test reads is everything the firmware sent since the previous drain. If the
+  firmware stops sending, the drain gives up after 5000 passes and fails the
+  test rather than hanging it.
 * Sensor reads return zero; `host::setSensor()` is the only way a cell reads
   anything.
 

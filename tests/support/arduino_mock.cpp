@@ -29,6 +29,8 @@ static std::mutex sensorLock;
 static host::SerialSink serialSink = NULL;
 static int pins[128];
 static std::vector<uint8_t> serialOut;
+static unsigned long pendingOut = 0;
+static unsigned long lastOutDrain = 0;
 static std::deque<uint8_t> serialIn;
 
 // The sketch addresses a cell and an axis through two bytes to the sensor's shift registers
@@ -49,6 +51,8 @@ void reset() {
   microsPerRead = 1;
   memset(pins, 0, sizeof(pins));
   serialOut.clear();
+  pendingOut = 0;
+  lastOutDrain = 0;
   serialIn.clear();
   memset(sensorX, 0, sizeof(sensorX));
   memset(sensorY, 0, sizeof(sensorY));
@@ -118,7 +122,15 @@ int HardwareSerial::available() {
   std::lock_guard<std::mutex> guard(serialInLock);
   return (int)serialIn.size();
 }
-int HardwareSerial::availableForWrite() { return 64; }
+// the USB buffer of the Due, as the firmware sees it: room for 64 bytes, emptied over time
+int HardwareSerial::availableForWrite() {
+  // on the clock itself, not through micros(), whose reads tick the fake clock on their own
+  unsigned long now = realClock ? realMicros() : fakeMicros;
+  unsigned long drained = (now - lastOutDrain) / 10;
+  pendingOut = drained >= pendingOut ? 0 : pendingOut - drained;
+  lastOutDrain = now;
+  return pendingOut >= 64 ? 0 : (int)(64 - pendingOut);
+}
 int HardwareSerial::read() {
   std::lock_guard<std::mutex> guard(serialInLock);
   if (serialIn.empty()) return -1;
@@ -128,6 +140,7 @@ int HardwareSerial::read() {
 }
 size_t HardwareSerial::write(uint8_t b) { return write(&b, 1); }
 size_t HardwareSerial::write(const uint8_t* buffer, size_t size) {
+  pendingOut += size;
   if (serialSink) serialSink(buffer, size);
   else serialOut.insert(serialOut.end(), buffer, buffer + size);
   return size;
