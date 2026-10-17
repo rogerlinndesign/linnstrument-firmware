@@ -163,9 +163,10 @@ go run ./tools/linnstrument <command>, with one of:
 ```
 
 `flash` mirrors the Updater: a 1200 baud touch puts the SAM3X in its
-bootloader, then bossac writes and verifies. It uses the Updater's universal
-bossac when `../linnstrument-updater` exists, since the one in the Arduino
-package is Intel only, and arduino-cli's otherwise. After a flash the firmware
+bootloader, then bossac writes and verifies, with the signed universal
+`tools/bossac/macos/bossac` on macOS and `tools/bossac/windows/bossac.exe` on
+Windows (the one in the Arduino package is Intel only), arduino-cli's on
+Linux, or whatever `LINN_BOSSAC` names. After a flash the firmware
 boots in serial mode with calibration pending, so the unit stays reachable.
 After `restore` or `update` the unit is back in MIDI mode, as for a customer.
 `serialmode` brings it back into serial mode over MIDI through `sendmidi`

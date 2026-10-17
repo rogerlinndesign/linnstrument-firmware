@@ -42,16 +42,17 @@ func exeSuffix() string {
 	return ""
 }
 
-// findBossac prefers LINN_BOSSAC, then the Updater's universal binary on macOS (the one in the
-// Arduino package is Intel only), then arduino-cli's installed bossac.
+// findBossac prefers LINN_BOSSAC, then the copy in tools/bossac (universal on macOS, where the
+// one in the Arduino package is Intel only), then arduino-cli's installed bossac.
 func findBossac(repo string) (string, error) {
 	if env := os.Getenv("LINN_BOSSAC"); env != "" {
 		return env, nil
 	}
-	if runtime.GOOS == "darwin" {
-		updater := filepath.Join(repo, "..", "linnstrument-updater", "Binaries", "macosx", "bossac")
-		if _, err := os.Stat(updater); err == nil {
-			return updater, nil
+	bundled := map[string]string{"darwin": filepath.Join("macos", "bossac"), "windows": filepath.Join("windows", "bossac.exe")}
+	if rel, ok := bundled[runtime.GOOS]; ok {
+		candidate := filepath.Join(repo, "tools", "bossac", rel)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
 		}
 	}
 	data, err := arduinoDataDir()
