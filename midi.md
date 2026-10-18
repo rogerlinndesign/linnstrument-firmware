@@ -288,7 +288,7 @@ as `n: label` pairs in parentheses.
 | 273  | -     | Device Firmware Version (234 for firmware 234.074), read-only
 | 274  | -     | Device Firmware Build (74 for firmware 234.074), read-only
 | 275  | -     | Device Calibrated (0: No, 1: Yes), read-only
-| 299  | any   | Send the current value of a particular NRPN configuration parameter, when possible
+| 299  | any   | Send the current value of a particular NRPN configuration parameter, when possible, on the channel of the query
 
 Color Values
 ============
