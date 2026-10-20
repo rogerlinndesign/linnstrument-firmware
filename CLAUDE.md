@@ -142,12 +142,25 @@ app=build/virtual/VirtualLinnStrument_artefacts/Release
 ```
 
 `--screenshot` writes the window to a PNG after `--after` seconds and quits,
-so a session that cannot see the screen still can: start it in the background
-with a long delay, drive it with `sendmidi dev "Virtual LinnStrument" ...`
-and `receivemidi dev "Virtual LinnStrument"`, then look at the PNG. The first
-build fetches JUCE 9.0.4 and takes a few minutes; later builds re-merge the
-sketch only when a firmware file changed. `tools/virtual/README.md` has the
-details and the limits (no multi-touch, no calibration, no serial mode).
+so a session that cannot see the screen still can. `--script FILE` (or `-`
+for stdin) reads text commands instead, the way to drive it from a terminal:
+`press COL ROW [X Y [Z]]`, `move`, `release`, `tap`, `foot`, `leds` (the
+lights as `ROW: c c c ...` lines from the top row down, 0 off, 7 black),
+`status`, `send BYTES` (MIDI into the firmware, in hex), `received [SECONDS]`
+(the MIDI it sent since the last call), `screenshot FILE [SCALE]`, `model`,
+`sleep SECONDS`, `quit`; each answers with its output and `ok`. Touches made
+this way go through the real firmware, so they produce the same MIDI an
+instrument would. Keep it running on a pipe from the binary inside the
+bundle (`: > cmds.txt; tail -f cmds.txt | "$app/Virtual
+LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --script - &`), append
+commands, and read the lights with `leds` or look at a screenshot; `sendmidi
+dev "Virtual LinnStrument" ...` and `receivemidi dev "Virtual LinnStrument"`
+reach its MIDI port too. A script file without `quit` leaves the app running
+(stdin ending quits it), and only one instance runs at a time (a second
+launch exits and the first ignores its arguments). The first build fetches JUCE
+9.0.4 and takes a few minutes; later builds re-merge the sketch only when a
+firmware file changed. `tools/virtual/README.md` has the details
+and the limits (no multi-touch with the mouse, no calibration, no serial mode).
 
 ## Flashing and talking to a connected instrument
 

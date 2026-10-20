@@ -45,6 +45,7 @@ void Engine::start(int wantedModel) {
     image.assign((const uint8_t*) block.getData(), (const uint8_t*) block.getData() + block.getSize());
   }
   firmware::boot(model, image, serialSink);
+  columns = firmware::columns();
   lastSavedFlash = firmware::flashImage();
   startThread(juce::Thread::Priority::high);
 }
@@ -57,7 +58,10 @@ void Engine::stop() {
   if (input != nullptr) input->stop();
   input.reset();
   output.reset();
+  const juce::ScopedLock lock(touchLock);
   touches.clear();
+  const juce::ScopedLock outGuard(outLock);
+  midiOut.clear();
 }
 
 void Engine::run() {
@@ -84,6 +88,13 @@ void Engine::advanceTouches() {
       it = touches.erase(it);
       continue;
     }
+    // a press that replaced a lifting touch within one scan: the lift goes out first
+    if (t.liftFirst) {
+      firmware::setSensor(t.col, t.row, 0, 0, 0);
+      t.liftFirst = false;
+      ++it;
+      continue;
+    }
     if (t.z < t.targetZ) {
       t.z = juce::jmin(t.targetZ, t.z + juce::jmax(1, t.targetZ / velocityScans));
     }
@@ -97,27 +108,37 @@ void Engine::advanceTouches() {
 
 static int touchKey(int col, int row) { return col * 8 + row; }
 
-void Engine::press(int col, int row, float xFraction, float yFraction) {
+// a press on a cell already down keeps its pressure, so the firmware sees no dip
+void Engine::press(int col, int row, float xFraction, float yFraction, int rawZ) {
   const juce::ScopedLock lock(touchLock);
-  Touch t { col, row, firmware::rawX(col, xFraction), firmware::rawY(row, yFraction), pressure, 0, xFraction, yFraction };
+  Touch t { col, row, firmware::rawX(col, xFraction), firmware::rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false };
+  auto it = touches.find(touchKey(col, row));
+  if (it != touches.end()) {
+    if (it->second.targetZ > 0) t.z = it->second.z;
+    else t.liftFirst = true;
+  }
   touches[touchKey(col, row)] = t;
 }
 
-void Engine::move(int col, int row, float xFraction, float yFraction) {
+bool Engine::move(int col, int row, float xFraction, float yFraction, int rawZ) {
   const juce::ScopedLock lock(touchLock);
   auto it = touches.find(touchKey(col, row));
-  if (it == touches.end()) return;
+  if (it == touches.end() || it->second.targetZ == 0) return false;
   it->second.x = firmware::rawX(col, xFraction);
   it->second.y = firmware::rawY(row, yFraction);
   it->second.xFraction = xFraction;
   it->second.yFraction = yFraction;
-  it->second.targetZ = pressure;
+  if (rawZ > 0) { it->second.targetZ = rawZ; it->second.ownPressure = true; }
+  else if (!it->second.ownPressure) it->second.targetZ = pressure;
+  return true;
 }
 
-void Engine::release(int col, int row) {
+bool Engine::release(int col, int row) {
   const juce::ScopedLock lock(touchLock);
   auto it = touches.find(touchKey(col, row));
-  if (it != touches.end()) it->second.targetZ = 0;
+  if (it == touches.end() || it->second.targetZ == 0) return false;
+  it->second.targetZ = 0;
+  return true;
 }
 
 bool Engine::isTouched(int col, int row) const {
@@ -158,10 +179,24 @@ void Engine::serialSink(const uint8_t* data, size_t length) {
 
 void Engine::OutputParser::handleIncomingMidiMessage(void*, const juce::MidiMessage& message) {
   if (engine.output != nullptr) engine.output->sendMessageNow(message);
+  const juce::ScopedLock lock(engine.outLock);
+  if (engine.midiOut.size() >= keptMessages) engine.midiOut.pop_front();
+  engine.midiOut.emplace_back(message.getRawData(), message.getRawData() + message.getRawDataSize());
 }
 
 void Engine::handleIncomingMidiMessage(juce::MidiInput*, const juce::MidiMessage& message) {
   firmware::feedMidi(message.getRawData(), (size_t) message.getRawDataSize());
+}
+
+void Engine::sendMidi(const uint8_t* data, size_t length) {
+  firmware::feedMidi(data, length);
+}
+
+std::vector<std::vector<uint8_t>> Engine::takeMidiOut() {
+  const juce::ScopedLock lock(outLock);
+  std::vector<std::vector<uint8_t>> taken(midiOut.begin(), midiOut.end());
+  midiOut.clear();
+  return taken;
 }
 
 juce::File Engine::flashFile(int forModel) const {

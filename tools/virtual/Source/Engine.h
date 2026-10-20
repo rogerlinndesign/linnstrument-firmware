@@ -20,7 +20,10 @@ limitations under the License.
 
 #include <JuceHeader.h>
 
+#include <atomic>
+#include <deque>
 #include <map>
+#include <vector>
 
 class Engine : private juce::Thread,
                private juce::MidiInputCallback {
@@ -32,10 +35,11 @@ public:
   void stop();
   bool isRunning() const { return isThreadRunning(); }
 
-  // fractions are 0 to 1 inside the cell, left to right and bottom to top
-  void press(int col, int row, float xFraction, float yFraction);
-  void move(int col, int row, float xFraction, float yFraction);
-  void release(int col, int row);
+  // fractions are 0 to 1 inside the cell, left to right and bottom to top; rawZ 0 takes the
+  // pressure the slider sets
+  void press(int col, int row, float xFraction, float yFraction, int rawZ = 0);
+  bool move(int col, int row, float xFraction, float yFraction, int rawZ = 0);
+  bool release(int col, int row);
   bool isTouched(int col, int row) const;
 
   // where a touch sits in its cell and how hard it presses, 0 to 1, for drawing it
@@ -47,6 +51,15 @@ public:
   void setPressure(int rawZ) { pressure = rawZ; }
   void setVelocityScans(int scans) { velocityScans = juce::jmax(1, scans); }
   void setFootSwitch(int which, bool down);
+
+  // the running model's column count, readable from any thread
+  int columnCount() const { return columns; }
+
+  // MIDI into the firmware as if it came in on the virtual port, and the MIDI it sent since the
+  // last call (the newest keptMessages are kept), for a driver without a MIDI port of its own
+  void sendMidi(const uint8_t* data, size_t length);
+  std::vector<std::vector<uint8_t>> takeMidiOut();
+  static constexpr size_t keptMessages = 4096;
 
   juce::String portName() const { return "Virtual LinnStrument"; }
   juce::String status() const;
@@ -62,6 +75,8 @@ private:
     int targetZ;
     int z;
     float xFraction, yFraction;
+    bool ownPressure;   // pressed with an explicit Z, which a move without Z keeps
+    bool liftFirst;     // replaced a touch the firmware has not yet seen lifted
   };
 
   void run() override;
@@ -79,6 +94,7 @@ private:
   static Engine* current;
 
   int model = 200;
+  std::atomic<int> columns { 26 };
   int pressure = 600;
   int velocityScans = 3;
   juce::CriticalSection touchLock;
@@ -87,6 +103,8 @@ private:
   OutputParser parser { *this };
   std::unique_ptr<juce::MidiOutput> output;
   std::unique_ptr<juce::MidiInput> input;
+  juce::CriticalSection outLock;
+  std::deque<std::vector<uint8_t>> midiOut;
   std::vector<uint8_t> lastSavedFlash;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Engine)

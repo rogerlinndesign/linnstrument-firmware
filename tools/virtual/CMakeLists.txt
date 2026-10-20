@@ -58,6 +58,7 @@ target_sources(VirtualLinnStrument PRIVATE
   Source/MainComponent.cpp
   Source/Surface.cpp
   Source/Engine.cpp
+  Source/Commands.cpp
   Source/LinnLookAndFeel.cpp
   ${FIRMWARE_SOURCES})
 

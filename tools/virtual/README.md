@@ -43,11 +43,63 @@ Using it
 * From a shell, `--model 128` starts as a 128, and `--screenshot shot.png --after 6` writes the
   window to a PNG after six seconds (2.5 by default) and quits, for a session that cannot see
   the screen. The path is relative to the current directory.
+* `--script FILE` reads text commands from a file, or from stdin with `-`, so a script or an AI
+  session can touch the instrument and read it back without a mouse or a screen:
+
+  ```
+  press COL ROW [X Y [Z]]   touch a cell, X and Y 0 to 1 inside it (default 0.5), Z 1 to 4095
+                            (0 or none: the pressure slider)
+  move COL ROW X Y [Z]      move a touch inside its cell, keeping its pressure unless Z is given
+  release COL ROW           lift a touch
+  tap COL ROW [MS]          press and release after MS milliseconds (default 120, at least 20)
+  foot left|right down|up   a foot switch
+  leds                      the lights as "ROW: c c c ..." per row from the top, a color number
+                            per column, 0 off, 7 black (dark)
+  status                    the instrument's status line
+  send BYTE [BYTE ...]      MIDI into the firmware, bytes in hex, like B0 14 05
+  received [SECONDS]        the MIDI the firmware sent since the last received, one message per
+                            line in hex, after waiting up to SECONDS for a first one (default 0)
+  screenshot FILE.png [S]   write the window to a file (quote a path with spaces), at S times
+                            its size (default 2, as on a retina screen)
+  model 200|128             restart as the other model; the MIDI port is recreated, so a
+                            listener such as receivemidi has to reconnect
+  sleep SECONDS             wait
+  help                      this text
+  quit                      leave
+  ```
+
+  Commands run one after the other, so a `sleep` or a long `tap` holds everything written after
+  it, `quit` included; `--after` or killing the process is the way out of a long one. A command
+  cut short by the app leaving answers `error: stopped`, and one the app did not get to within
+  five seconds answers `error: timed out waiting for the app`.
+
+  Every command answers on stdout with its output and then `ok`, or with `error: ...`. Lines
+  starting with `#` are comments. The touches go through the firmware's own sensor path, so a
+  `press` produces the note, velocity, pressure and position an instrument would send, and
+  `leds` shows what the firmware lit, including the lights a user firmware mode script painted.
+  A script file that ends without `quit` leaves the app running; commands on stdin that end
+  (the driver closed its pipe) quit it, so nothing stays behind. To keep it running and send
+  commands over time, feed it a pipe from the binary inside the bundle (the `.app` opened with
+  `open` has no stdin):
+
+  ```
+  app=build/virtual/VirtualLinnStrument_artefacts/Release
+  : > cmds.txt
+  bin="$app/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument"
+  tail -f cmds.txt | "$bin" --script - &
+  echo "press 5 3" >> cmds.txt
+  ```
+
+  Only one instance runs at a time; a second launch exits at once and the running one ignores
+  its arguments, so quit the first before starting a scripted one. `send` and `received` carry
+  MIDI over the same pipe, so a script needs no MIDI tool: `send B0 63 02 B0 62 2B B0 06 02 B0
+  26 10` asks for the model and `received 1` prints the NRPN 272 answer.
 * Pressure sets how hard every touch presses, Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so
-  `examples/user_firmware_console.html`, `examples/settings_editor.html`, `sendmidi`,
-  `receivemidi` and RouteMIDI talk to it as they would to the instrument. The quickest tour of
+  `examples/surface_designer.html`, `examples/user_firmware_console.html`,
+  `examples/settings_editor.html`, `sendmidi`, `receivemidi` and RouteMIDI talk to it as they
+  would to the instrument. The quickest tour of
   User Firmware Mode on it is `LINNSTRUMENT_DEVICE="Virtual LinnStrument"
   examples/user_firmware_demo.sh`: lights, text and a scroll appear in the window. Windows has
   no virtual ports; a loopMIDI pair is the workaround, not wired up yet.

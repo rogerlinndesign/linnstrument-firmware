@@ -119,6 +119,25 @@ void MainComponent::footSwitchChanged(int which) {
   engine.setFootSwitch(which, which == 0 ? footLeft.getToggleState() : footRight.getToggleState());
 }
 
+void MainComponent::setFootSwitch(int which, bool down) {
+  (which == 0 ? footLeft : footRight).setToggleState(down, juce::dontSendNotification);
+  footSwitchChanged(which);
+}
+
+void MainComponent::setModel(int model) {
+  if (modelBox.getSelectedId() == model) return;
+  modelBox.setSelectedId(model, juce::sendNotificationSync);
+}
+
+bool MainComponent::saveScreenshot(const juce::File& file, float scale) {
+  juce::Image image = createComponentSnapshot(getLocalBounds(), false, scale);
+  juce::FileOutputStream out(file);
+  if (!out.openedOk()) return false;
+  out.setPosition(0);
+  out.truncate();
+  return juce::PNGImageFormat().writeImageToStream(image, out);
+}
+
 void MainComponent::timerCallback() {
   statusLabel.setText(engine.status(), juce::dontSendNotification);
 }

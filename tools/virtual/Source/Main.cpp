@@ -15,6 +15,9 @@ limitations under the License.
 */
 #include <JuceHeader.h>
 
+#include <iostream>
+
+#include "Commands.h"
 #include "LinnLookAndFeel.h"
 #include "MainComponent.h"
 
@@ -25,31 +28,36 @@ public:
   bool moreThanOneInstanceAllowed() override { return false; }
 
   // --model 128 starts as a 128; --screenshot FILE.png writes the window to a file and quits,
-  // after --after SECONDS (default 2.5), for a session that cannot see the screen
+  // after --after SECONDS (default 2.5), for a session that cannot see the screen;
+  // --script FILE (or - for stdin) reads the commands Commands.cpp lists
   void initialise(const juce::String& commandLine) override {
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     juce::StringArray args = juce::StringArray::fromTokens(commandLine, true);
     int model = args.contains("--model") && args[args.indexOf("--model") + 1] == "128" ? 128 : 200;
     window = std::make_unique<MainWindow>(getApplicationName(), model);
+    auto* main = dynamic_cast<MainComponent*>(window->getContentComponent());
     int at = args.indexOf("--screenshot");
     if (at >= 0 && at + 1 < args.size()) {
       juce::File file(juce::File::getCurrentWorkingDirectory().getChildFile(args[at + 1].unquoted()));
       int afterAt = args.indexOf("--after");
       double seconds = afterAt >= 0 && afterAt + 1 < args.size() ? args[afterAt + 1].getDoubleValue() : 2.5;
-      juce::Timer::callAfterDelay((int) (seconds * 1000), [this, file] {
-        juce::Image image = window->getContentComponent()->createComponentSnapshot(window->getContentComponent()->getLocalBounds(), false, 2.0f);
-        juce::FileOutputStream out(file);
-        if (out.openedOk()) {
-          out.setPosition(0);
-          out.truncate();
-          juce::PNGImageFormat().writeImageToStream(image, out);
-        }
+      juce::Timer::callAfterDelay((int) (seconds * 1000), [main, file] {
+        main->saveScreenshot(file);
         quit();
       });
     }
+    at = args.indexOf("--script");
+    if (at >= 0 && (at + 1 >= args.size() || args[at + 1].startsWith("--"))) {
+      std::cout << "error: --script needs a file or - for stdin" << std::endl;
+      setApplicationReturnValue(1);
+      quit();
+      return;
+    }
+    if (at >= 0) commands = std::make_unique<Commands>(*main, args[at + 1].unquoted());
   }
 
   void shutdown() override {
+    commands.reset();
     window.reset();
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
   }
@@ -79,6 +87,7 @@ private:
 
   LinnLookAndFeel lookAndFeel;
   std::unique_ptr<MainWindow> window;
+  std::unique_ptr<Commands> commands;
 };
 
 START_JUCE_APPLICATION (VirtualLinnStrumentApplication)

@@ -29,6 +29,12 @@ public:
   void paint(juce::Graphics& g) override;
   void resized() override;
 
+  // for the command interface in Commands.cpp
+  Engine& getEngine() { return engine; }
+  bool saveScreenshot(const juce::File& file, float scale = 2.0f);
+  void setModel(int model);
+  void setFootSwitch(int which, bool down);
+
 private:
   void timerCallback() override;
   void startModel();
