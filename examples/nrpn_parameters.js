@@ -4309,8 +4309,8 @@ limitations under the License.
         "kind": "readonly",
         "min": 0,
         "max": 0,
-        "note": "(234 for firmware 234.074), read-only",
-        "description": "Device Firmware Version (234 for firmware 234.074), read-only"
+        "note": "(for example 234 for firmware 234.074), read-only",
+        "description": "Device Firmware Version (for example 234 for firmware 234.074), read-only"
       },
       {
         "number": 274,
@@ -4319,8 +4319,8 @@ limitations under the License.
         "kind": "readonly",
         "min": 0,
         "max": 0,
-        "note": "(74 for firmware 234.074), read-only",
-        "description": "Device Firmware Build (74 for firmware 234.074), read-only"
+        "note": "(for example 74 for firmware 234.074), read-only",
+        "description": "Device Firmware Build (for example 74 for firmware 234.074), read-only"
       },
       {
         "number": 275,

@@ -31,7 +31,8 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null
 apt-get install -y -qq curl ca-certificates git build-essential nodejs >/dev/null 2>&1
-curl -sSL https://go.dev/dl/go1.25.0.linux-amd64.tar.gz | tar -C /usr/local -xz
+GO_VERSION=$(sed -n 's/^go //p' /work/linnstrument-firmware/go.mod)
+curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
 export PATH=/usr/local/go/bin:$PATH
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh >/dev/null 2>&1
 cd /work

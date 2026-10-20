@@ -10,6 +10,9 @@ repository root:
 go run ./tools/linnstrument test
 ```
 
+`test NAME` runs only the tests whose name contains NAME, the way to run a
+new test on its own first.
+
 They need Go and a C++ compiler (the Xcode Command Line Tools on macOS, g++ on
 Linux, MinGW on Windows). Compiling and running everything takes a few seconds.
 
@@ -20,11 +23,12 @@ The tool merges the `.ino` files into one translation unit exactly as the
 Arduino build does (main sketch first, then the others in name order, with a
 prototype for every function inserted before the first definition) and compiles
 it against the stand-ins in `support/` instead of the Arduino core: a serial
-port that records what the sketch writes and feeds it what a test chose, a flash
-fake, a clock that only moves when a test says so (and one microsecond per read,
-so the sketch's busy waits terminate). Every `test_*.cpp` is included into that
-same unit after the sketch, so a test can call any firmware function and read or
-set any global directly.
+port that records what the sketch writes and feeds it what a test chose, behind
+a 64 byte write buffer that drains one byte per 10 microseconds of fake clock
+like the Due's USB port, a flash fake, a clock that only moves when a test says
+so (and one microsecond per read, so the sketch's busy waits terminate). Every
+`test_*.cpp` is included into that same unit after the sketch, so a test can
+call any firmware function and read or set any global directly.
 
 `mocks.cpp` has the helpers tests start from: `linn::reset()` for a
 factory-fresh instrument, `linn::select()` to point the sketch's current-cell
@@ -50,12 +54,14 @@ TEST(notes_row_offset_changes_the_layout) {
 ```
 
 Every test also gets a line in `mutations.tsv`: the test's name, a firmware
-file, a line of it, and a broken version of that line. `go run ./tools/linnstrument
+file, a snippet of it that occurs exactly once (`\n` in the field is a line
+break) and a broken version of that snippet. `go run ./tools/linnstrument
 mutate` first runs the whole suite on the real firmware, then applies each
 line in turn, confirms the named test fails on the broken firmware, and
 restores the file, also on an interrupt. A test with no line in the table is
 reported as NO MUTATION and fails the run, as does a mutation that survives.
-`go run ./tools/linnstrument mutate NAME` limits the run to one test.
+`go run ./tools/linnstrument mutate NAME` runs only the lines whose test name
+contains NAME and skips the check for tests without a line.
 
 `TEST(name)` registers itself; `CHECK(condition)`, `CHECK_EQ(actual, expected)`
 and `CHECK_NEAR(actual, expected, tolerance)` report with file and line and keep
@@ -76,9 +82,11 @@ Things the fixture decides for you
   the scroll tests do. The fixture gives the project a tempo of 120 for that
   case, because the clock divides by it and x86 traps on a zero.
 * `linn::drainMidi()` empties the whole output queue, however long, so what a
-  test reads is everything the firmware sent since the previous drain. If the
-  firmware stops sending, the drain gives up after 5000 passes and fails the
-  test rather than hanging it.
+  test reads is everything the firmware sent since the previous drain. It
+  advances the clock 20 ms per pass, because the serial write buffer only
+  drains with the clock: a loop over `handlePendingMidi()` that never advances
+  it stalls after 64 bytes. If the firmware stops sending, the drain gives up
+  after 5000 passes and fails the test rather than hanging it.
 * Sensor reads return zero; `host::setSensor()` is the only way a cell reads
   anything.
 

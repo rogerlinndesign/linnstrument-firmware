@@ -11,10 +11,11 @@ arduino-cli, using the Arduino SAM Boards core version 1.6.12 (select board
 "Arduino Due (Native USB Port)"). Other versions of the SAM core are untested
 and may create unknown build or execution problems.
 
-From the command line, `go run ./tools/linnstrument build` compiles the firmware into
-`build/`, which needs Go and arduino-cli, plus the Xcode Command Line Tools on
-macOS, and `go run ./tools/linnstrument test` runs the desktop tests in `tests/`. The
-same tool flashes a unit and backs up and restores its settings.
+From the command line, `go run ./tools/linnstrument build` compiles the
+firmware into `build/`, which needs Go and arduino-cli, plus the Xcode Command
+Line Tools on macOS, and `go run ./tools/linnstrument test` runs the desktop
+tests in `tests/`. The same tool flashes a unit and backs up and restores its
+settings.
 `tools/virtual/` builds Virtual LinnStrument, the firmware running on the
 desktop behind a window with a virtual MIDI port, for working without an
 instrument. Every push to

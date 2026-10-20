@@ -515,7 +515,7 @@ limitations under the License.
     el.classList.toggle("pressed", c.pressed);
     el.style.setProperty("--z", Math.round(c.pressure / 127 * 100) + "%");
     if (c.x !== null) {
-      const cellWidth = columns === 17 ? 2660 / 16 : 4265 / 25;
+      const cellWidth = 170.625;
       const inCell = (c.x / cellWidth) - (c.col - 1);
       el.style.setProperty("--x", Math.round(Math.max(0, Math.min(1, inCell)) * 100) + "%");
     }
@@ -617,7 +617,7 @@ limitations under the License.
     } catch (err) { say(String(err.message || err), ""); }
   });
 
-  const FONT_LABELS = { tiny: "tiny, digits only", small: "small, capitals", big: "big", condensed: "condensed, capitals" };
+  const FONT_LABELS = { tiny: "tiny, digits only", small: "small, capitals and digits", big: "big", condensed: "condensed, capitals and digits" };
   fillSelect($("font"), ufm.FONTS, "big", null, FONT_LABELS);
   fillSelect($("textColor"), ufm.COLORS, "green", function (c) { return c === 0 || c === ufm.COLORS.black; });
   buildAxes();

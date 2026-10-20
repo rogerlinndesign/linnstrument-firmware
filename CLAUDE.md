@@ -39,15 +39,19 @@ arduino-cli compile --fqbn arduino:sam:arduino_due_x \
 Rules and facts:
 
 * The folder holding `linnstrument-firmware.ino` must itself be named
-  `linnstrument-firmware`, or arduino-cli refuses with "main file missing".
-  Any copy, snapshot or git worktree you build must keep that folder name.
+  `linnstrument-firmware`, or the tool refuses (and arduino-cli underneath
+  with "main file missing"). Any copy, snapshot or git worktree you build
+  must keep that folder name.
 * Requires the `arduino:sam` core, version 1.6.12. Install with
   `arduino-cli core install arduino:sam@1.6.12`.
 * On Apple silicon the SAM toolchain is x86_64 only and needs Rosetta. If the
   compiler fails with "bad CPU type in executable", Rosetta is missing; tell the
   person rather than working around it. GitHub Actions
   (`.github/workflows/build.yml`) compiles every push on x86 runners and
-  attaches the `.bin`.
+  attaches the `.bin`, prebuilt `linnstrument` tool binaries for Linux,
+  Windows and macOS, and a zip of the Virtual LinnStrument with a screenshot
+  of it running, the one way to see the firmware run from a session that
+  cannot build.
 * The end of the output reports flash use ("Sketch uses N bytes") and, added
   by the tool, static RAM ("Global variables use N bytes", data plus bss of
   the 96 KB SRAM). Quote both in any change that adds arrays, buffers or
@@ -64,8 +68,9 @@ go run ./tools/linnstrument test
 ```
 
 This compiles the whole sketch for the desktop against the stand-ins in
-`tests/support/` and runs every `tests/test_*.cpp` in a few seconds. Run it
-after every change, before the firmware build. `tools/ci-linux.sh` runs the
+`tests/support/` and runs every `tests/test_*.cpp` in a few seconds; `test
+NAME` runs only the tests whose name contains NAME. Run it after every change,
+before the firmware build. `tools/ci-linux.sh` runs the build and tool
 GitHub jobs in an x86_64 Ubuntu container with Docker; x86 traps on integer
 division by zero where the Due and Apple silicon return 0, so a change that
 touches arithmetic is worth one Linux run before pushing. `tests/README.md`
@@ -84,27 +89,33 @@ explains the mechanism and the helpers; the short version:
   one call; call the function under test directly instead. `linn::reset()`
   wipes the whole settings struct, nothing survives from the previous test.
 * A fix to host-reachable logic ships with a test that fails without it, and
-  every test gets a line in `tests/mutations.tsv`: a one-line change to the
-  firmware that must make exactly that test fail. `go run ./tools/linnstrument
-  mutate` applies each line, checks the test fails, and restores the file. A
-  test that
-  survives its mutation is not a test.
+  every test gets a line in `tests/mutations.tsv`: a snippet of firmware text
+  that occurs exactly once (`\n` in the field is a line break) and its broken
+  replacement, which must make exactly that test fail. `go run
+  ./tools/linnstrument mutate` applies each line, checks the test fails, and
+  restores the file; `mutate NAME` runs only the lines whose test name
+  contains NAME. A test that survives its mutation is not a test.
 * Keep the suite fast. A test that needs more than a fraction of a second is
   doing too much.
-* Sensor reads return zero on the desktop. Set `currentRawZ` and the other
-  raw fields on a cell and clear its `shouldRefresh*` flags instead, which is
-  what `linn::touch()` does.
+* Sensor reads return zero on the desktop. Set `currentRawZ` on a cell and
+  clear its `shouldRefreshZ` flag instead, which is what `linn::touch()` does.
+* Serial output goes through a 64 byte write buffer that drains one byte per
+  10 us of fake clock, like the Due's USB port. Advance the clock between
+  passes, or use `linn::drainMidi()`, or output stalls.
 
 ## User Firmware Mode
 
 `user_firmware_mode.md` describes the mode in which the instrument is a raw MIDI
 touch surface with MIDI-controlled lights: the way to customise what it does
-without touching the firmware. Every claim in that document is checked by
-`tests/test_userfirmware.cpp`; change both together. `examples/` holds a browser
+without touching the firmware. The claims in that document that the desktop
+can reach are checked by `tests/test_userfirmware.cpp`; change both together,
+and give a new claim a test. `examples/` holds a browser
 console for the mode and a shell walkthrough, with the protocol code in
-`examples/user_firmware_protocol.js`, and a settings editor page whose form is
-generated from the NRPN table in `midi.md` by `go run ./tools/linnstrument
-nrpns`. That command also checks the table against `receivedNrpn()` and
+`examples/user_firmware_protocol.js`, and a settings editor page
+(`examples/settings_editor.html`, logic in `examples/settings_editor.js`) whose
+form is generated from the NRPN table in `midi.md` by `go run
+./tools/linnstrument nrpns` into `examples/nrpn_parameters.js`, never edited
+by hand. That command also checks the table against `receivedNrpn()` and
 `sendNrpnParameter()` in `ls_midi.ino`: every number, its `inRange()` bounds,
 and that a query answers it. Run it after changing either side; CI fails on a
 mismatch or a stale generated file. `node --test examples/` runs every page's
@@ -163,10 +174,11 @@ go run ./tools/linnstrument <command>, with one of:
 ```
 
 `flash` mirrors the Updater: a 1200 baud touch puts the SAM3X in its
-bootloader, then bossac writes and verifies, with the signed universal
-`tools/bossac/macos/bossac` on macOS and `tools/bossac/windows/bossac.exe` on
-Windows (the one in the Arduino package is Intel only), arduino-cli's on
-Linux, or whatever `LINN_BOSSAC` names. After a flash the firmware
+bootloader, then bossac writes and verifies: whatever `LINN_BOSSAC` names
+when set, otherwise the signed universal `tools/bossac/macos/bossac` on macOS
+and `tools/bossac/windows/bossac.exe` on Windows (the one in the Arduino
+package is Intel only), and arduino-cli's copy on Linux or when the bundled
+one is missing. After a flash the firmware
 boots in serial mode with calibration pending, so the unit stays reachable.
 After `restore` or `update` the unit is back in MIDI mode, as for a customer.
 `serialmode` brings it back into serial mode over MIDI through `sendmidi`
@@ -228,8 +240,9 @@ File map:
   style).
 * `ls_midi.ino`, `ls_midi.h`: all MIDI in and out, the output queue
   (`midiOutQueue`), the NRPN settings API, clock, program change.
-* `ls_midiLights.ino`: lights and text over MIDI (CC 25 to 29) and the
-  read-only model and version NRPNs, for scripts and user firmware mode.
+* `ls_midiLights.ino`: the helpers behind lights and text over MIDI (CC 25
+  to 29) and the read-only model and version NRPNs, for scripts and user
+  firmware mode; the CC and NRPN dispatch itself is in `ls_midi.ino`.
 * `ls_lowRow.ino`: low row modes (sustain, restrike, strum, arpeggiator, bend,
   CC).
 * `ls_arpeggiator.ino`, `ls_clock.ino`: the internal arpeggiator and the
@@ -413,8 +426,9 @@ Global Settings toggles it) and `DEBUG_ENABLED` defined in `ls_debug.h`.
 `DEBUGPRINT((level, "text"))` prints when `debugLevel` is at least `level`.
 `debugLevel` starts at -1, so only level -1 prints until the player sets it:
 with `DEBUG_ENABLED`, column 17 rows 0 to 4 of Global Settings set levels -1
-to 3, and the secret switches in column 18 show X, Y, Z frames, scan time and
-free RAM. The `DISPLAY_*_AT_LAUNCH` defines at the top of
+to 3, and the secret switches in column 18 rows 0 to 5 print MIDI debug
+output and show X, Y and Z frames, scan time and free RAM. The
+`DISPLAY_*_AT_LAUNCH` defines at the top of
 `linnstrument-firmware.ino` force serial mode and one of those switches at
 boot, for when the settings panel cannot be reached.
 

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// linn is the command line companion for LinnStrument firmware development: it builds the
-// firmware, flashes a connected instrument, and speaks the Updater's serial protocol to back
-// up and restore settings. Run it from the repository root:
+// linnstrument is the command line companion for LinnStrument firmware development: it builds
+// the firmware and runs the desktop tests, flashes a connected instrument, and speaks the
+// Updater's serial protocol to back up and restore settings. Run it from the repository root:
 //
 //	go run ./tools/linnstrument <command>
 package main

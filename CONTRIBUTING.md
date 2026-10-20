@@ -33,17 +33,21 @@ Three ways, all producing the same firmware:
    core, version 1.6.12, select the board "Arduino Due (Native USB Port)", open
    `linnstrument-firmware.ino` and press Verify. "Sketch > Export Compiled
    Binary" writes the `.bin` into `build/arduino.sam.arduino_due_x/`.
-2. **Command line.** `go run ./tools/linnstrument build` runs arduino-cli and writes
-   the `.bin` into `build/`. This needs Go (1.25 or later) and arduino-cli
-   installed, both single installers on macOS, Windows and Linux. On macOS
+2. **Command line.** `go run ./tools/linnstrument build` runs arduino-cli and
+   writes the `.bin` into `build/`. This needs Go (1.25 or later) and
+   arduino-cli installed, both single installers on macOS, Windows and Linux.
+   On macOS
    the tool also needs the Xcode Command Line Tools (`xcode-select --install`),
    which Homebrew requires anyway.
 3. **GitHub Actions.** Every push to any branch, and every pull request, is
    compiled automatically. Open the "Actions" tab on GitHub, click the run for
    your commit, and download the firmware from "Artifacts" at the bottom. The
-   download is a zip; unzip it to get the `.bin`. Artifacts are kept for 90
-   days. On a fork, Actions must be enabled once from the fork's Actions tab.
-   This needs no software on your computer at all.
+   download is a zip; unzip it to get the `.bin`. The same run attaches
+   prebuilt `linnstrument` tool binaries for Linux, Windows and macOS, and a
+   zip of the Virtual LinnStrument for macOS with a screenshot of it running.
+   Artifacts are kept for 90 days. On a fork, Actions must be enabled once
+   from the fork's Actions tab. This needs no software on your computer at
+   all.
 
 On an Apple silicon Mac the Arduino SAM toolchain is an Intel binary and needs
 Rosetta (`softwareupdate --install-rosetta`). Apple is ending Rosetta after
@@ -57,20 +61,24 @@ a few seconds after the LinnStrument enters serial mode.
 Desktop tests
 -------------
 
-`go run ./tools/linnstrument test` compiles the firmware for your computer and runs the
-tests in `tests/` in a few seconds, with no instrument attached. They cover the
+`go run ./tools/linnstrument test` compiles the firmware for your computer and
+runs the tests in `tests/` in a few seconds, with no instrument attached;
+`test NAME` runs only the tests whose name contains NAME. They cover the
 logic that can be checked without hardware: note layout, velocity, phantom touch
 rejection, settings migration, MIDI and serial framing. Run them before every
 push, and add one when you fix a bug in logic they can reach. See
 `tests/README.md` for how to write one. GitHub Actions runs them on every push
-as well, together with `go test ./...`, `go run ./tools/linnstrument nrpns`
-(which checks the NRPN table in midi.md against the firmware) and `node --test examples/` for
-the example code. `tools/ci-linux.sh` runs those same jobs in an x86_64 Ubuntu
-container with Docker, for checking a change on Linux before pushing it.
+as well, together with `go vet ./...`, `go test ./...`, `go run
+./tools/linnstrument nrpns` (which checks the NRPN table in midi.md against
+the firmware) and `node --test examples/` for the example code, and builds
+the Virtual LinnStrument on macOS. `tools/ci-linux.sh` runs the build and
+test jobs in an x86_64 Ubuntu container with Docker, for checking a change on
+Linux before pushing it.
 
-`tools/virtual/` builds Virtual LinnStrument: the same firmware running on your computer behind
-a window that shows its lights, takes the mouse as a finger and has a virtual MIDI port, for
-trying a change without an instrument on the desk. Its README explains the CMake build.
+`tools/virtual/` builds Virtual LinnStrument: the same firmware running on
+your computer behind a window that shows its lights, takes the mouse as a
+finger and has a virtual MIDI port, for trying a change without an instrument
+on the desk. Its README explains the CMake build.
 
 
 Flashing and testing on the instrument
@@ -85,9 +93,12 @@ calibration.
 Keep the official firmware `.bin` of the release you were running so you can
 always go back.
 
-For developers, `tools/linnstrument` does from the command line what the Updater does.
-`go run ./tools/linnstrument update` backs up the settings and sequencer projects,
-flashes `build/linnstrument-firmware.ino.bin` and restores them. `flash` alone
+For developers, `tools/linnstrument` does from the command line what the
+Updater does, with the Updater's signed bossac for macOS and Windows bundled
+in `tools/bossac/` (see its README) so no Arduino installation is needed.
+`go run ./tools/linnstrument update` backs up the settings and sequencer
+projects, flashes `build/linnstrument-firmware.ino.bin` and restores them.
+`flash` alone
 erases the settings, `backup` and `restore` move them separately, and `probe`
 confirms that a unit in serial mode is talking. `midimode` and `serialmode`
 switch the unit between its two USB personalities from the command line; the

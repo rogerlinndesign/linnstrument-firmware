@@ -32,6 +32,7 @@ MainComponent::MainComponent(int model) {
   modelBox.setSelectedId(model, juce::dontSendNotification);
   modelBox.setTitle("Model");
   modelBox.setTooltip("Which instrument the firmware runs as");
+  modelBox.setHelpText(modelBox.getTooltip());
   modelBox.onChange = [this] { startModel(); fitWindowToInstrument(); };
   addAndMakeVisible(modelBox);
 

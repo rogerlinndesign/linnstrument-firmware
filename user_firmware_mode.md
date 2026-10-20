@@ -41,7 +41,7 @@ It can:
 * report each cell press and release as a MIDI note, with the velocity the firmware measured
 * stream the pressure, the left-right position and the up-down position of every touch
 * track a finger sliding from cell to cell along a row
-* light any cell in any of the eleven colors, one message per cell for a whole surface
+* light any cell in any of ten colors, one message per cell for a whole surface
 * draw text in the firmware's own fonts, still or scrolling
 * tell you which model and firmware it is
 * be switched on and off remotely, and tell you when the player switches it by hand
@@ -83,7 +83,7 @@ sleep by itself after the sleep delay without a touch, lights included. The touc
 the firmware's own: at most three touches in one column are tracked, and the fourth corner of a
 rectangle of three held cells is rejected as a phantom touch. NRPN 271 still switches the
 instrument to serial mode, after which it is gone from MIDI. With MIDI Through on (NRPN 254)
-everything you send is echoed back to you.
+everything you send is echoed back to you, SysEx included.
 
 If your script dies, the instrument stays in the mode with the last lights until something
 sends NRPN 245 with value 0 or the player holds OS Update, so make leaving the mode part of
@@ -151,7 +151,9 @@ left.
 One thing to watch when decoding: column 6 sends its X on CC 6 and CC 38, which are also the
 NRPN data entry controllers. LinnStrument only sends NRPNs for the mode announcement on channel 9
 and as the reply to a query, on the channel the query came from, so treat CC 6 and 38 as data
-entry only right after CC 99 and 98 arrived on that channel, and as X otherwise. In the same
+entry only right after CC 99 and 98 arrived on that channel, and as X otherwise. The one other
+case is a change of a split's pitch bend range or MPE settings over NRPN while the mode is on,
+which sends RPN 0 or 6 (CC 101, 100, 6, 38) on that split's channels. In the same
 way, column 1's X arrives on CC 1 and column 7's on CC 7, the mod wheel and volume controllers,
 so filter before forwarding a row's channel to a synth.
 
@@ -161,8 +163,11 @@ Data decimation
 
 Every touch produces a stream of values, which can overwhelm a slow receiver. The firmware
 therefore sends each value at most once per decimation interval. The default is about 8
-milliseconds. CC 13 sets it in milliseconds, and 0 switches the interval off so every change is
-sent. In low power mode nothing below 12 is accepted and the interval stays where it was.
+milliseconds over USB, 34 times the MIDI byte interval that NRPN 252 sets. CC 13 sets it in
+milliseconds, and 0 switches the interval off so every change is sent. In low power mode nothing
+below 12 is accepted and the interval stays where it was. The output queue holds 4096 bytes;
+when a burst fills it, whole messages are dropped rather than cut, so a receiver that falls
+behind loses values but never sees a torn message.
 
 
 Slide mode
@@ -218,11 +223,13 @@ character takes its width plus one blank column:
 | 2 big       | 8    | space, punctuation, digits, capitals, lowercase | always 5         |
 | 3 condensed | 8    | space, + - . /, digits, capitals, b             | 1 to 5, mostly 3 |
 
-In the small font the digits and most capitals are 4 wide, E F I J L T 3, M V W X Y 5. In the
+In the small font the digits (except the 1, which is 2) and most capitals are 4 wide, E F I J L
+T 3, M V W X Y 5. In the
 condensed font the digits and capitals are 3 wide except G K N Q at 4 and M W at 5, the 1 is 2
 and the dot 1. The small and condensed fonts leave their top pixel row empty, the condensed font
-its bottom row too. So on a 128, "HELLO" in the condensed font is 20 columns and fits, in the
-big font it is 30 and does not; the cursor and the width tell you where the text ends.
+its bottom row too. So "HELLO" in the condensed font is 20 columns, which fits the 25 playing
+columns of a 200 but not the 16 of a 128, and in the big font it is 30 and fits neither; the
+cursor and the width tell you where the text ends.
 
 CC 28 draws the text in the color of its value, with the cursor cell as the bottom left pixel,
 and then clears the text so the next one starts fresh. Blank pixels inside the text's box are
@@ -232,8 +239,8 @@ column 1.
 
 CC 29 scrolls the text instead of drawing it: it enters from the right edge, moves along the
 cursor's row one column every 40 milliseconds and leaves at the left edge, so it takes about
-the column count plus the text's width times 40 milliseconds, 2 seconds for "HELLO" in the
-condensed font on a 128. Nothing announces the end; count it from the width. The scroll owns
+the column count plus the text's width times 40 milliseconds, about 1.5 seconds for "HELLO" in
+the condensed font on a 128. Nothing announces the end; count it from the width. The scroll owns
 the band of rows it moves through, the font's height from the cursor's row up: lights you
 painted there are erased as the text passes and are not put back. A new CC 29 replaces a scroll
 that is still running and clears that whole band, a CC 29 with no text just stops and clears it,
@@ -250,11 +257,11 @@ Asking which instrument this is
 NRPN 299 is a query: send it with the number of another parameter as its value, and the
 instrument replies with that parameter and its current value, on the channel the query came
 from. Read-only parameters exist for scripts: 272 answers with the model, 200 or 128,
-273 with the firmware version, 234 for firmware 234.074, 274 with its build, 74 for that same
-firmware, and 275 with 1 when the instrument has been calibrated and 0 when it has not, in which
-case X and Y come from the default calibration and are less exact. Together with 245, which
-answers whether the mode is on, a script can find out what it is talking to before it sends
-anything else. The model gives you the column count and the X range above.
+273 with the firmware version, for example 234 for firmware 234.074, 274 with its build, 74 for
+that same firmware, and 275 with 1 when the instrument has been calibrated and 0 when it has not,
+in which case X and Y come from the default calibration and are less exact. Together with 245,
+which answers whether the mode is on, a script can find out what it is talking to before it
+sends anything else. The model gives you the column count and the X range above.
 
 
 MIDI message summary
@@ -267,9 +274,9 @@ Outgoing:
 | Note On             | Cell pressed       | Row         | Column      | Strike velocity   |
 | Note Off            | Cell released      | Row         | Column      | Release velocity  |
 | Polyphonic Pressure | Z                  | Row         | Column      | 0 to 127          |
-| CC 32 to 57         | X, low 7 bits      | Row         | 32 + column | LSB, sent first   |
-| CC 0 to 25          | X, high 7 bits     | Row         | Column      | MSB               |
-| CC 64 to 89         | Y                  | Row         | 64 + column | 0 to 127          |
+| CC 33 to 57         | X, low 7 bits      | Row         | 32 + column | LSB, sent first   |
+| CC 1 to 25          | X, high 7 bits     | Row         | Column      | MSB               |
+| CC 65 to 89         | Y                  | Row         | 64 + column | 0 to 127          |
 | CC 119              | Slide leaving cell | Row         | 119         | Column being left |
 | NRPN 245            | Mode changed       | 9           | 245         | 0 off, 1 on       |
 | NRPN 245, 272-275   | Reply to a query   | query's     | Parameter   | Its value         |
@@ -288,7 +295,7 @@ Incoming:
 | CC 13    | any     | milliseconds | Decimation interval, 0 is off, at least 12 in low power   |
 | CC 20    | any     | column       | Column for the next CC 22                                 |
 | CC 21    | any     | row          | Row for the next CC 22                                    |
-| CC 22    | any     | color        | Light the selected cell, 0 or 12 and up switch it off     |
+| CC 22    | any     | color        | Light the selected cell, 0, 7 or 12 and up switch it off  |
 | CC 25    | any     | color        | Light the selected cell and select the next one           |
 | CC 26    | any     | 0 to 3       | Font: tiny, small, big, condensed                         |
 | CC 27    | any     | ASCII        | Append a character to the text, 0 clears the text         |
@@ -348,7 +355,7 @@ From a shell:
 
 ```
 sendmidi dev "LinnStrument MIDI" nrpn 245 1                 # enter User Firmware Mode
-sendmidi dev "LinnStrument MIDI" ch 4 cc 12 1 cc 10 1       # Z and X data for row 4
+sendmidi dev "LinnStrument MIDI" ch 4 cc 12 1 cc 10 1       # Z and X data for row 3
 sendmidi dev "LinnStrument MIDI" cc 20 5 cc 21 3 cc 22 3    # light column 5, row 3 green
 sendmidi dev "LinnStrument MIDI" cc 20 1 cc 21 0 cc 25 5 cc 25 5 cc 25 5   # three blue cells
 sendmidi dev "LinnStrument MIDI" cc 21 0 cc 26 2 cc 27 72 cc 27 105 cc 29 3   # scroll "Hi"
@@ -366,7 +373,7 @@ it to Claude Code with `routemidi --install-mcp claude-code` (other clients: see
   that both sends to the instrument and captures what it sends.
 * `inject_midi` sends text messages into that route. An NRPN is its four control changes:
   `channel 1 control-change 99 1`, `98 117`, `6 0`, `38 1` enters the mode (245 is 1 times 128
-  plus 117). `channel 4 control-change 12 1` enables Z on row 4, `channel 1 control-change 20 5`
+  plus 117). `channel 4 control-change 12 1` enables Z on row 3, `channel 1 control-change 20 5`
   then `21 3` and `22 3` lights a cell, `27 72`, `27 105` and `28 3` draw "Hi" in green at the
   selected cell, and `99 2`, `98 43`, `6 2`, `38 16` asks for the model (NRPN 299 with value
   272: 299 is 2 times 128 plus 43, 272 is 2 times 128 plus 16).

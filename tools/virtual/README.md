@@ -12,11 +12,11 @@ hardware, which makes it the quick way to develop against the instrument without
 Building
 --------
 
-Needs CMake 3.22 or later, a C++17 compiler (Xcode's on macOS), Go for the sketch merge, and an
-internet connection the first time, to fetch JUCE 9.0.4:
+Needs CMake 3.22 or later, a C++17 compiler (Xcode's on macOS), Go for the sketch merge, and git
+and an internet connection the first time, to fetch JUCE 9.0.4:
 
 ```
-cmake -S tools/virtual -B build/virtual
+cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
 cmake --build build/virtual --config Release
 ```
 
@@ -40,21 +40,26 @@ Using it
   jump along the row, Space or Return holds the pad down until pressed again. A screen reader
   reads the focused pad as its column, row, light and touch state, and every control has a
   name and a help text.
+* From a shell, `--model 128` starts as a 128, and `--screenshot shot.png --after 6` writes the
+  window to a PNG after six seconds (2.5 by default) and quits, for a session that cannot see
+  the screen. The path is relative to the current directory.
 * Pressure sets how hard every touch presses, Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so
   `examples/user_firmware_console.html`, `examples/settings_editor.html`, `sendmidi`,
   `receivemidi` and RouteMIDI talk to it as they would to the instrument. The quickest tour of
   User Firmware Mode on it is `LINNSTRUMENT_DEVICE="Virtual LinnStrument"
-  examples/user_firmware_demo.sh`: lights, text and a scroll appear in the window. Windows has no virtual ports; a loopMIDI pair is the workaround,
-  not wired up yet.
+  examples/user_firmware_demo.sh`: lights, text and a scroll appear in the window. Windows has
+  no virtual ports; a loopMIDI pair is the workaround, not wired up yet.
 * Settings persist the way the instrument's do, in `Virtual LinnStrument/flash-200.bin` and
-  `flash-128.bin` in the user's application data folder. Delete a file for a factory-fresh unit.
+  `flash-128.bin` in the user's application data folder (`~/Library/Application Support` on
+  macOS), written on quit, on a model switch and periodically while they change. Delete a
+  file for a factory-fresh unit.
 
 What it cannot do
 -----------------
 
-Multi-touch with a mouse, beyond holding touches with shift. Calibration, which needs real
-sensor readings; the firmware runs on its default calibration. Serial mode: tapping OS Update
-switches the firmware to it, and with no serial port behind the window the instrument goes
-quiet until OS Update is tapped again.
+Multi-touch with a mouse, beyond holding touches with shift-click, right-click or Space.
+Calibration, which needs real sensor readings; the firmware runs on its default calibration.
+Serial mode: tapping OS Update switches the firmware to it, and with no serial port behind the
+window the instrument goes quiet until OS Update is tapped again.

@@ -8,7 +8,8 @@ repository can flash a LinnStrument without the LinnStrument Updater or an Ardui
   the Developer ID of Uwyn and the hardened runtime. The copy in the Arduino SAM package is
   Intel only.
 * `windows/bossac.exe`: the same version for Windows.
-* On Linux the tool uses the copy arduino-cli installs with the SAM core.
+* On Linux, or when a bundled copy is missing, the tool uses the copy arduino-cli installs with
+  the SAM core. `LINN_BOSSAC` names another binary to use instead, on every platform.
 
 Both binaries come from the LinnStrument Updater, which builds them from the BOSSA 1.6.1-arduino
 sources it carries; keep them byte-identical to the Updater's, since a modified macOS binary
