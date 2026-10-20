@@ -13,8 +13,9 @@
 // limitations under the License.
 
 // linnstrument is the command line companion for LinnStrument firmware development: it builds
-// the firmware and runs the desktop tests, flashes a connected instrument, and speaks the
-// Updater's serial protocol to back up and restore settings. Run it from the repository root:
+// the firmware and runs the desktop tests, flashes a connected instrument, speaks the Updater's
+// serial protocol to back up and restore settings, and serves the browser pages in examples/.
+// Run it from the repository root:
 //
 //	go run ./tools/linnstrument <command>
 package main
@@ -43,6 +44,9 @@ Commands:
                          (default: build/sketch/linnstrument-firmware.cpp)
   nrpns [FILE]           write the NRPN table of midi.md as the JavaScript the settings editor
                          reads (default: examples/nrpn_parameters.js)
+  serve [PORT]           serve the browser pages in examples/ over http (default port 8765, 0 picks
+                         a free one) and open them, unless LINN_NO_BROWSER is set; served from one
+                         origin, the browser remembers the MIDI permission
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -117,6 +121,16 @@ func dispatch(port, command string, args []string) error {
 			out = args[0]
 		}
 		return writeNrpnTable(repo, out)
+	case "serve":
+		repo, err := repoRoot()
+		if err != nil {
+			return err
+		}
+		listen := "8765"
+		if len(args) > 0 {
+			listen = args[0]
+		}
+		return serveExamples(repo, listen, os.Getenv("LINN_NO_BROWSER") == "")
 	case "mutate":
 		repo, err := repoRoot()
 		if err != nil {

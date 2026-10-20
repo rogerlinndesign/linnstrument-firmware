@@ -118,11 +118,13 @@ form is generated from the NRPN table in `midi.md` by `go run
 by hand. That command also checks the table against `receivedNrpn()` and
 `sendNrpnParameter()` in `ls_midi.ino`: every number, its `inRange()` bounds,
 and that a query answers it. Run it after changing either side; CI fails on a
-mismatch or a stale generated file. `node --test examples/` runs every page's
-tests. A session can drive
-a connected unit in that mode over MIDI through RouteMIDI's MCP server, which
-`.mcp.json` registers when `routemidi` is installed, or through `sendmidi` and
-`receivemidi` from the shell.
+mismatch or a stale generated file. `go run ./tools/linnstrument serve` serves
+the pages on a local port (the browser then remembers the MIDI permission,
+which it cannot for a page opened from a file). `node --test examples/` runs
+every page's tests. A session can drive a connected unit in that mode over
+MIDI through RouteMIDI's MCP server, which `.mcp.json` registers when
+`routemidi` is installed, or through `sendmidi` and `receivemidi` from the
+shell.
 
 ## Virtual LinnStrument
 

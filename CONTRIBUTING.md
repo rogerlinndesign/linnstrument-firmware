@@ -75,6 +75,9 @@ the Virtual LinnStrument on macOS. `tools/ci-linux.sh` runs the build and
 test jobs in an x86_64 Ubuntu container with Docker, for checking a change on
 Linux before pushing it.
 
+`go run ./tools/linnstrument serve` serves the browser pages in `examples/` on
+a local port and opens them; see `examples/README.md` for the pages.
+
 `tools/virtual/` builds Virtual LinnStrument: the same firmware running on
 your computer behind a window that shows its lights, takes the mouse as a
 finger and has a virtual MIDI port, for trying a change without an instrument
