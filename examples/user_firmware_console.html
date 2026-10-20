@@ -18,6 +18,9 @@ limitations under the License.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A live view of LinnStrument's User Firmware Mode: every touch with pressure and position, lights to paint, text to draw or scroll.">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23121212'/%3E%3Crect x='3' y='3' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Crect x='3' y='26' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Cg fill='%23dadad6'%3E%3Crect x='5' y='9' width='5' height='5' rx='1'/%3E%3Crect x='12' y='9' width='5' height='5' rx='1'/%3E%3Crect x='19' y='9' width='5' height='5' rx='1'/%3E%3Crect x='5' y='16' width='5' height='5' rx='1'/%3E%3Crect x='12' y='16' width='5' height='5' rx='1' fill='%2358e07a'/%3E%3Crect x='19' y='16' width='5' height='5' rx='1'/%3E%3C/g%3E%3C/svg%3E">
 <title>LinnStrument User Firmware Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +41,10 @@ limitations under the License.
   table.axes label { display: inline-flex; padding: 5px; cursor: pointer; }
   table.axes input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
 
-  .hidden { display: none; }
+  .hidden { display: none !important; }
+  /* while the mode is off the panel stays in place, its sections dimmed and out of reach */
+  .side-note { padding: 16px 24px 0; color: var(--dim); }
+  section.off { opacity: .4; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field input[type=text], .field select { width: 100%; max-width: none; }
   .field .count { color: var(--dim); font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
@@ -95,8 +101,12 @@ limitations under the License.
 
   .activity { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
   .activity .bar { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-bottom: 1px solid var(--line); }
-  .activity .bar .spacer { flex: 1; }
-  .readout { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .activity .bar .spacer { flex: 0 0 4px; }
+  /* the latest touch, as a readout set into the bar, the way the designer shows its last message */
+  .lastSent { display: inline-flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 5px 12px; border-radius: 4px;
+              background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+  .lastSent .caps { color: var(--dim); white-space: nowrap; }
+  .readout { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
   .activity pre { margin: 0; padding: 10px 14px; height: 150px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -118,35 +128,17 @@ limitations under the License.
 <body>
 
 <header>
-  <h1 class="brand"><b>LinnStrument</b></h1>
+  <h1 class="brand"><a href="index.html"><b>LinnStrument</b></a></h1>
   <nav class="pages" aria-label="Pages">
+    <a href="surface_designer.html">Designer</a>
     <a href="settings_editor.html">Settings</a>
     <a href="user_firmware_console.html" aria-current="page">User firmware</a>
   </nav>
 </header>
 
 <main>
-  <aside>
-    <section>
-      <h2>Instrument</h2>
-      <div class="status" id="statusBox" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="status">Waiting for Web MIDI (Chrome or Edge)</span></div>
-      <div class="info" id="firmware"></div>
-      <div class="info" id="calibration" aria-live="polite"></div>
-      <div class="ports">
-        <label><span class="caps">MIDI in</span><select id="input" aria-label="MIDI input"></select></label>
-        <label><span class="caps">MIDI out</span><select id="output" aria-label="MIDI output"></select></label>
-      </div>
-    </section>
-
-    <section>
-      <h2>User firmware mode</h2>
-      <div class="segmented" role="group" aria-label="User firmware mode">
-        <button id="enter" aria-pressed="false">On</button>
-        <button id="leave" aria-pressed="false">Off</button>
-      </div>
-      <div class="meta" id="modeState" aria-live="polite">Waiting for the instrument</div>
-    </section>
-
+  <aside id="side">
+    <div class="meta side-note" id="sideNote">Switch the mode on at the top right to use these</div>
     <section class="mode-only hidden">
       <h2>Touch data per row</h2>
       <table class="axes">
@@ -206,7 +198,8 @@ limitations under the License.
     <div class="activity">
       <div class="bar">
         <span class="caps">Activity</span>
-        <span class="readout" id="readout" aria-live="off">Touches show here once the mode is on</span>
+        <span class="meta" id="activityNote" style="margin:0" aria-live="polite">Waiting for the instrument</span>
+        <span class="lastSent hidden" id="lastSent"><span class="caps">Last touch</span><span class="readout" id="readout" aria-live="off"></span></span>
         <span class="spacer"></span>
         <button class="small" id="clearLog">Clear</button>
       </div>
@@ -214,8 +207,12 @@ limitations under the License.
     </div>
   </div>
 </main>
+<footer>
+  LinnStrument is made by <a href="https://www.rogerlinndesign.com/linnstrument">Roger Linn</a> and <a href="https://uwyn.com">Geert Bevin</a><span class="sep"></span><a href="https://github.com/rogerlinndesign/linnstrument-firmware">Source on GitHub</a>
+</footer>
 
 <script src="user_firmware_protocol.js"></script>
+<script src="connection.js"></script>
 <script>
 (function () {
   "use strict";
@@ -228,20 +225,14 @@ limitations under the License.
   const COLOR_NAMES = {};
   Object.keys(ufm.COLORS).forEach(function (name) { COLOR_NAMES[ufm.COLORS[name]] = name; });
 
-  let access = null, input = null, output = null;
+  let output = null;   // the instrument, from the connection
   let columns = 26;
   let model = null;
-  let modeOn = false;
   let paintColor = ufm.COLORS.green;
-  let decoder = ufm.createDecoder();
   let surface = ufm.createSurfaceState(columns);
   const cells = {};
   const painted = {};
 
-  function say(text, state) {
-    $("status").textContent = text;
-    $("statusBox").className = "status" + (state ? " " + state : "");
-  }
   $("clearLog").addEventListener("click", function () { $("log").textContent = ""; });
 
   function logLine(text) {
@@ -250,32 +241,27 @@ limitations under the License.
   }
 
   function send(messages) {
-    if (!output) { say("Choose the MIDI out first", ""); return false; }
-    messages.forEach(function (m) { output.send(m); });
-    return true;
+    if (!output) { logLine("choose the MIDI out in the connection at the top right"); return false; }
+    return conn.send(messages);
   }
 
-  let calibrationKnown = false;
-  function showCalibration(calibrated) {
-    calibrationKnown = true;
-    $("calibration").textContent = calibrated ? "Calibrated" : "Not calibrated, positions are approximate";
-    $("calibration").className = "info " + (calibrated ? "ok" : "warn");
-  }
-
-  // the state the instrument reported, on the two halves of the control and in words
+  // the state the instrument reported, on the two halves of the switch in the header; the
+  // side panel only has something to offer while the mode is on
   function showMode(on) {
+    if (!$("enter")) return;
     $("enter").setAttribute("aria-pressed", on === true ? "true" : "false");
     $("leave").setAttribute("aria-pressed", on === false ? "true" : "false");
-    $("modeState").textContent = on === null ? "Waiting for the instrument" :
-      on ? "On: touches arrive here, lights come from this page" : "Off: the instrument plays as usual";
-    document.querySelectorAll(".mode-only").forEach(function (section) { section.classList.toggle("hidden", on !== true); });
+    $("sideNote").classList.toggle("hidden", on === true);
+    document.querySelectorAll(".mode-only").forEach(function (section) {
+      section.classList.remove("hidden");
+      section.classList.toggle("off", on !== true);
+      section.inert = on !== true;
+    });
+    $("activityNote").textContent = on === null ? "Waiting for the instrument" : on ? "Mode on" : "The instrument plays as usual; switch the mode on at the top right to take it over";
+    $("lastSent").classList.toggle("hidden", on !== true);
+    if (on !== true) $("readout").textContent = "";
   }
 
-  function describeInstrument() {
-    if (model) say("Connected to LinnStrument " + model, "on");
-    $("firmware").textContent = version ? "Firmware " + version : "";
-  }
-  let version = null;
 
   // rows: one checkbox per axis per row, and a line that sets every row at once
   function buildAxes() {
@@ -525,32 +511,19 @@ limitations under the License.
       (c.pressure ? ", pressure " + c.pressure : "") + (c.x !== null ? ", x " + c.x : "") + (c.y !== null ? ", y " + c.y : "");
   }
 
-  function onMessage(e) {
-    const event = decoder.decode(Array.from(e.data));
-    if (!event) return;
+  function onEvent(event) {
     switch (event.type) {
       case "mode":
-        modeOn = event.active;
-        showMode(modeOn);
-        logLine("instrument reports mode " + (modeOn ? "on" : "off"));
+        showMode(event.active);
+        logLine("instrument reports mode " + (event.active ? "on" : "off"));
         return;
       case "model":
         model = event.model;
         if (event.columns !== columns) { columns = event.columns; buildGrid(); }
         $("textCol").max = columns - 1;
         logLine("instrument reports model " + model);
-        describeInstrument();
         return;
-      case "version":
-        version = String(event.version);
-        describeInstrument();
-        return;
-      case "build":
-        if (version) version = version.split(".")[0] + "." + String(event.build).padStart(3, "0");
-        describeInstrument();
-        return;
-      case "calibrated":
-        showCalibration(event.calibrated);
+      case "version": case "build": case "calibrated":
         return;
       case "slide":
         logLine("slide leaving column " + event.fromCol + " on row " + event.row);
@@ -563,41 +536,10 @@ limitations under the License.
     }
   }
 
-  function fillPorts() {
-    [$("input"), $("output")].forEach(function (s) { s.innerHTML = ""; });
-    access.inputs.forEach(function (p) { $("input").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
-    access.outputs.forEach(function (p) { $("output").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
-    choosePorts();
-  }
-
-  function choosePorts() {
-    if (input) input.onmidimessage = null;
-    input = access.inputs.get($("input").value) || null;
-    output = access.outputs.get($("output").value) || null;
-    if (input) input.onmidimessage = onMessage;
-    model = null; version = null; calibrationKnown = false;
-    showMode(null);
-    $("calibration").textContent = "";
-    $("firmware").textContent = "";
-    if (input && output) {
-      say("Connected to " + input.name, "ready");
-      send(ufm.queryModel().concat(ufm.queryVersion(), ufm.queryCalibrated(), ufm.queryUserFirmwareMode()));
-      setTimeout(function () {
-        if (!calibrationKnown) { $("calibration").textContent = "Calibration not reported"; $("calibration").className = "info"; }
-      }, 1500);
-    } else {
-      say("Choose the MIDI in and out", "");
-    }
-  }
-
   function textArguments() {
     return [parseInt($("font").value, 10), parseInt($("textColor").value, 10), $("text").value];
   }
 
-  $("input").addEventListener("change", choosePorts);
-  $("output").addEventListener("change", choosePorts);
-  $("enter").addEventListener("click", function () { send(ufm.enterUserFirmwareMode()); });
-  $("leave").addEventListener("click", function () { send(ufm.leaveUserFirmwareMode()); });
   $("decimation").addEventListener("input", function () {
     const ms = parseInt($("decimation").value, 10);
     $("decimationValue").textContent = ms + " ms";
@@ -607,14 +549,14 @@ limitations under the License.
     try {
       send(ufm.drawText.apply(null, [parseInt($("textCol").value, 10), parseInt($("textRow").value, 10)].concat(textArguments())));
       logLine("drew \"" + $("text").value + "\"");
-    } catch (err) { say(String(err.message || err), ""); }
+    } catch (err) { logLine(String(err.message || err)); }
   });
   $("text").addEventListener("input", function () { $("textCount").textContent = $("text").value.length + " of 32"; });
   $("scroll").addEventListener("click", function () {
     try {
       send(ufm.scrollText.apply(null, [parseInt($("scrollRow").value, 10)].concat(textArguments())));
       logLine("scrolled \"" + $("text").value + "\"");
-    } catch (err) { say(String(err.message || err), ""); }
+    } catch (err) { logLine(String(err.message || err)); }
   });
 
   const FONT_LABELS = { tiny: "tiny, digits only", small: "small, capitals and digits", big: "big", condensed: "condensed, capitals and digits" };
@@ -624,18 +566,25 @@ limitations under the License.
   buildPalette();
   buildGrid();
 
-  if (!navigator.requestMIDIAccess) {
-    say("No Web MIDI here, use Chrome or Edge", "");
-    return;
-  }
-  navigator.requestMIDIAccess().then(function (a) {
-    access = a;
-    access.onstatechange = fillPorts;
-    fillPorts();
-  }, function (err) {
-    say("MIDI access refused, allow it for this page", "");
-    logLine("Web MIDI: " + err);
+  const conn = LinnConnection.create({
+    onEvent: onEvent,
+    onPorts: function (ports) {
+      output = ports.output;
+      model = null;
+      showMode(null);
+      // a touch the old port reported is not on the new one
+      surface = ufm.createSurfaceState(columns);
+      Object.keys(cells).forEach(function (k) { cells[k].classList.remove("pressed"); });
+    },
   });
+  const modeSwitch = document.createElement("div");
+  modeSwitch.className = "toolbar-switch";
+  modeSwitch.innerHTML = '<span class="caps">User firmware mode</span>' +
+    '<div class="segmented" role="group" aria-label="User firmware mode"><button id="leave" aria-pressed="false">Off</button><button id="enter" aria-pressed="false">On</button></div>';
+  conn.addControl(modeSwitch);
+  $("enter").addEventListener("click", function () { send(ufm.enterUserFirmwareMode()); });
+  $("leave").addEventListener("click", function () { send(ufm.leaveUserFirmwareMode()); });
+  showMode(null);
 })();
 </script>
 </body>

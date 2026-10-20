@@ -35,13 +35,38 @@ button, select, input { font: inherit; letter-spacing: inherit; color: inherit; 
 header { display: flex; align-items: center; gap: 24px; padding: 0 28px; height: 64px; background: var(--bar); position: sticky; top: 0; z-index: 2; }
 .brand { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; margin: 0; font-weight: 400; }
 .brand b { font-size: 21px; font-weight: 800; color: var(--fg); letter-spacing: .01em; }
-/* the pages, as tabs the way the site's navigation bar does it: the current one white and underlined */
+/* the pages, as tabs the way the site's navigation bar does them: the current one white and
+   underlined */
 .pages { display: flex; align-self: stretch; margin-left: 8px; }
-.pages a { display: flex; align-items: center; padding: 0 14px; color: var(--muted); text-decoration: none; white-space: nowrap;
+/* the tabs sit on the brand's baseline: the top padding moves their text down half its height */
+.pages a { display: flex; align-items: center; padding: 14px 14px 0; color: var(--muted); text-decoration: none; white-space: nowrap;
            text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600; border-bottom: 2px solid transparent; }
 .pages a:hover { color: var(--fg); }
 .pages a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
 header .spacer { flex: 1; }
+/* a page's switch in the header, left of the connection: its name and a two-way choice */
+.toolbar-switch { display: flex; align-items: center; gap: 12px; margin-right: 14px; }
+.toolbar-switch .segmented button { padding: 6px 14px; font-size: 13px; }
+/* the connection, top right: a dot and a label that open the panel with the ports */
+.connection { display: flex; align-items: center; gap: 9px; border: 1px solid transparent; border-radius: 4px; padding: 7px 12px; color: var(--muted);
+              font-size: 13px; font-weight: 600; white-space: nowrap; }
+.connection:hover, .connection[aria-expanded="true"] { border-color: var(--line-2); color: var(--fg); }
+.connection .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 8px var(--bad); flex: none; }
+.connection.ready .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.connection.on .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+/* something in the panel wants a look: not calibrated, or a warning the page put there */
+.connection .flag { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
+.brand a { color: inherit; text-decoration: none; }
+.connection-panel { position: absolute; top: 64px; right: 20px; width: 330px; max-width: calc(100vw - 32px); padding: 20px 24px 22px; z-index: 5;
+                    background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, .6); }
+.connection-panel .ports { margin-top: 14px; }
+.connection-panel .hint { margin-top: 6px; }
+.connection-banner { padding: 12px 28px; background: var(--cherry-2); color: var(--fg); font-size: 13px; line-height: 1.5; }
+.connection-banner b { font-weight: 700; }
+@media (forced-colors: active) {
+  .connection .dot, .connection .flag { forced-color-adjust: none; }
+  .segmented button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+}
 /* the connection: the status line and the two ports, at the top of a page's sidebar */
 .status { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); font-size: 13px; line-height: 1.4; }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 8px var(--bad); flex: none; margin-top: 5px; }
@@ -77,6 +102,12 @@ button.small { padding: 5px 10px; font-size: 12px; }
 .segmented button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .segmented button:focus-visible { outline-offset: -2px; }
 
+/* the line at the foot of every page: who makes the instrument, who made the pages, the source */
+footer { flex: none; padding: 12px 28px; color: var(--dim); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--line); }
+footer a { color: var(--muted); }
+footer a:hover { color: var(--fg); }
+footer .sep::before { content: "\00b7"; margin: 0 10px; }
+
 h2 { font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 12px; letter-spacing: .01em; }
 .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .row + .row { margin-top: 10px; }
@@ -89,7 +120,13 @@ h2 { font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 12px; lett
 }
 @media (max-width: 960px) {
   header { height: 56px; padding: 0 16px; gap: 12px; }
+  header { flex-wrap: wrap; height: auto; min-height: 56px; padding: 6px 16px; row-gap: 0; }
+  .pages { order: 3; flex-basis: 100%; height: 40px; overflow-x: auto; margin-left: -4px; }
+  .connection-panel { top: 100%; right: 8px; }
+  .connection .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .toolbar-switch .caps { display: none; }
   .brand b { font-size: 18px; }
   .pages { margin-left: 0; }
   .pages a { padding: 0 10px; }
+  footer { padding: 10px 16px; }
 }

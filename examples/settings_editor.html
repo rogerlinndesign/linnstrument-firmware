@@ -18,6 +18,9 @@ limitations under the License.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Every LinnStrument setting as a form in the browser, read from and written to the instrument over MIDI.">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23121212'/%3E%3Crect x='3' y='3' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Crect x='3' y='26' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Cg fill='%23dadad6'%3E%3Crect x='5' y='9' width='5' height='5' rx='1'/%3E%3Crect x='12' y='9' width='5' height='5' rx='1'/%3E%3Crect x='19' y='9' width='5' height='5' rx='1'/%3E%3Crect x='5' y='16' width='5' height='5' rx='1'/%3E%3Crect x='12' y='16' width='5' height='5' rx='1' fill='%2358e07a'/%3E%3Crect x='19' y='16' width='5' height='5' rx='1'/%3E%3C/g%3E%3C/svg%3E">
 <title>LinnStrument Settings Editor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +29,6 @@ limitations under the License.
 <style>
   main { display: flex; flex: 1; min-height: 0; }
   aside { width: 290px; flex: none; overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); padding: 0 24px 22px; }
-  aside .connection { padding: 22px 0 18px; margin: 0 0 20px; border-bottom: 1px solid var(--line); }
   aside nav { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 20px; }
   aside nav a { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 4px; color: var(--text); text-decoration: none; font-weight: 600; }
   aside nav a:hover { background: var(--panel-2); }
@@ -70,8 +72,9 @@ limitations under the License.
 <body>
 
 <header>
-  <h1 class="brand"><b>LinnStrument</b></h1>
+  <h1 class="brand"><a href="index.html"><b>LinnStrument</b></a></h1>
   <nav class="pages" aria-label="Pages">
+    <a href="surface_designer.html">Designer</a>
     <a href="settings_editor.html" aria-current="page">Settings</a>
     <a href="user_firmware_console.html">User firmware</a>
   </nav>
@@ -79,17 +82,6 @@ limitations under the License.
 
 <main>
   <aside>
-    <section class="connection">
-      <h2>Instrument</h2>
-      <div class="status" id="statusBox" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="status">Waiting for Web MIDI (Chrome or Edge)</span></div>
-      <div class="info" id="firmware"></div>
-      <div class="info" id="calibration" aria-live="polite"></div>
-      <div class="info" id="modeNotice" aria-live="polite"></div>
-      <div class="ports">
-        <label><span class="caps">MIDI in</span><select id="input" aria-label="MIDI input"></select></label>
-        <label><span class="caps">MIDI out</span><select id="output" aria-label="MIDI output"></select></label>
-      </div>
-    </section>
     <input type="search" id="search" placeholder="Find a setting" aria-label="Find a setting">
     <nav id="nav" aria-label="Sections"></nav>
     <div class="row">
@@ -102,6 +94,7 @@ limitations under the License.
 </main>
 
 <script src="user_firmware_protocol.js"></script>
+<script src="connection.js"></script>
 <script src="nrpn_parameters.js"></script>
 <script src="settings_editor.js"></script>
 <script>
@@ -110,22 +103,13 @@ limitations under the License.
   const editor = window.LinnSettingsEditor;
   const $ = function (id) { return document.getElementById(id); };
 
-  let access = null, input = null, output = null;
-  let decoder = editor.createDecoder();
+  let output = null;   // the instrument, from the connection
   const controls = {};   // number -> { parameter, elements: [], state: span }
-  const values = {};     // number -> last value the instrument reported
   const waiting = {};    // number -> timer for a reply that has not come
-  let model = null, version = null, calibrationKnown = false;
-
-  function say(text, state) {
-    $("status").textContent = text;
-    $("statusBox").className = "status" + (state ? " " + state : "");
-  }
 
   function send(messages) {
-    if (!output) { say("Choose the MIDI out first", ""); return false; }
-    messages.forEach(function (m) { output.send(m); });
-    return true;
+    if (!output) { $("progress").textContent = "Choose the MIDI out in the connection at the top right"; return false; }
+    return conn.send(messages);
   }
 
   function setState(number, state) {
@@ -166,19 +150,9 @@ limitations under the License.
   function onReply(reply) {
     clearTimeout(waiting[reply.number]);
     const c = controls[reply.number];
-    values[reply.number] = reply.value;
-    if (reply.number === 272) { model = reply.value; describe(); }
-    if (reply.number === 273) { version = String(reply.value); describe(); }
-    if (reply.number === 274 && version) { version = version.split(".")[0] + "." + String(reply.value).padStart(3, "0"); describe(); }
     if (reply.number === 245) {
       const on = reply.value === 1;
-      $("modeNotice").textContent = on ? "User firmware mode is on, the instrument plays nothing until it is switched off under Device or on the User firmware page" : "";
-      $("modeNotice").className = "info" + (on ? " warn" : "");
-    }
-    if (reply.number === 275) {
-      calibrationKnown = true;
-      $("calibration").textContent = reply.value === 1 ? "Calibrated" : "Not calibrated, positions are approximate";
-      $("calibration").className = "info " + (reply.value === 1 ? "ok" : "warn");
+      conn.note(on ? "User firmware mode is on, the instrument plays nothing until it is switched off under Device or on the User firmware page" : "", on ? "warn" : "");
     }
     if (!c) return;
     showValue(reply.number, reply.value);
@@ -186,11 +160,6 @@ limitations under the License.
     setState(reply.number, mismatch ? "mismatch" : "ok");
     if (c.state) c.state.title = mismatch ? "The instrument kept " + editor.formatValue(c.parameter, reply.value) : "Confirmed";
     c.sent = undefined;
-  }
-
-  function describe() {
-    if (model) say("Connected to LinnStrument " + model, "on");
-    $("firmware").textContent = version ? "Firmware " + version : "";
   }
 
   // the form, one control per parameter, the two splits side by side
@@ -352,19 +321,21 @@ limitations under the License.
 
   // the instrument answers each query with six control changes from a queue that drains at
   // about four kilobytes a second, so the reads are paced to stay below that
-  let reading = false;
+  // a port change ends the read in flight, so a new instrument is read from the start
+  let reading = 0;
   function readAll() {
-    if (reading) return;
+    if (!output) { $("progress").textContent = "Choose the MIDI out in the connection at the top right"; return; }
     const numbers = editor.queryable().map(function (p) { return p.number; });
+    const run = ++reading;
     let at = 0;
-    reading = true;
     const step = function () {
+      if (run !== reading) return;
       if (!output || at >= numbers.length) {
-        reading = false;
         $("progress").textContent = output ? "Read " + numbers.length + " settings" : "";
         return;
       }
-      query(numbers.slice(at, at + 6));
+      if (!send(editor.queryMessages(numbers.slice(at, at + 6)))) { $("progress").textContent = "The instrument's port went away"; return; }
+      numbers.slice(at, at + 6).forEach(expectReply);
       at += 6;
       $("progress").textContent = "Reading " + Math.min(at, numbers.length) + " of " + numbers.length;
       setTimeout(step, 40);
@@ -372,55 +343,25 @@ limitations under the License.
     step();
   }
 
-  function onMessage(e) {
-    const reply = editor.replyValue(decoder.decode(Array.from(e.data)));
+  // the settings are read once the chosen ports answer as an instrument
+  let readPending = false;
+  function onEvent(event) {
+    if (event.type === "model" && readPending) { readPending = false; readAll(); }
+    const reply = editor.replyValue(event);
     if (reply) onReply(reply);
-  }
-
-  function fillPorts() {
-    [$("input"), $("output")].forEach(function (s) { s.innerHTML = ""; });
-    access.inputs.forEach(function (p) { $("input").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
-    access.outputs.forEach(function (p) { $("output").appendChild(new Option(p.name, p.id, false, /LinnStrument/.test(p.name))); });
-    choosePorts();
-  }
-
-  function choosePorts() {
-    if (input) input.onmidimessage = null;
-    input = access.inputs.get($("input").value) || null;
-    output = access.outputs.get($("output").value) || null;
-    if (input) input.onmidimessage = onMessage;
-    if (input && output) {
-      say("Connected to " + input.name, "ready");
-      calibrationKnown = false;
-      $("calibration").textContent = "";
-      $("modeNotice").textContent = "";
-      $("firmware").textContent = "";
-      send(editor.queryModel().concat(editor.queryVersion(), editor.queryCalibrated()));
-      setTimeout(function () {
-        if (!calibrationKnown) { $("calibration").textContent = "Calibration not reported"; $("calibration").className = "info"; }
-      }, 1500);
-      readAll();
-    } else {
-      say("Choose the MIDI in and out", "");
-    }
   }
 
   build();
   $("search").addEventListener("input", filter);
   $("readAll").addEventListener("click", readAll);
-  $("input").addEventListener("change", choosePorts);
-  $("output").addEventListener("change", choosePorts);
 
-  if (!navigator.requestMIDIAccess) {
-    say("No Web MIDI here, use Chrome or Edge", "");
-    return;
-  }
-  navigator.requestMIDIAccess().then(function (a) {
-    access = a;
-    access.onstatechange = fillPorts;
-    fillPorts();
-  }, function (err) {
-    say("MIDI access refused, allow it for this page", "");
+  const conn = LinnConnection.create({
+    onEvent: onEvent,
+    onPorts: function (ports) {
+      output = ports.output;
+      reading++;
+      readPending = !!(ports.input && output);
+    },
   });
 })();
 </script>
