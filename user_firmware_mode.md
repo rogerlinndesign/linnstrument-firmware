@@ -346,6 +346,12 @@ Ch3 Note Off 13 Velocity 127
 Driving it from scripts and AI agents
 =====================================
 
+`examples/` holds ready-made clients of the mode: `surface_designer.html` makes the instrument a
+controller of pads, keys, faders, XY pads and buttons for any DAW, `user_firmware_console.html`
+is a live view of the touches with lights and text to paint, `user_firmware_protocol.js` holds
+the message builders and the decoder to lift into your own project, and `user_firmware_demo.sh`
+is this walkthrough from a shell. `examples/README.md` describes them.
+
 LinnStrument shows up as the MIDI device "LinnStrument MIDI". Three free tools cover everything
 below on macOS, Windows and Linux, and they all speak the same text format for MIDI messages:
 [SendMIDI](https://github.com/gbevin/SendMIDI), [ReceiveMIDI](https://github.com/gbevin/ReceiveMIDI)

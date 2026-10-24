@@ -1,0 +1,1255 @@
+<!doctype html>
+<!--
+Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Turn a LinnStrument into the MIDI controller you draw: pads, keys, faders, XY pads and buttons for any DAW, with the lights showing the layout.">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23121212'/%3E%3Crect x='3' y='3' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Crect x='3' y='26' width='26' height='3' rx='1' fill='%23c2641f'/%3E%3Cg fill='%23dadad6'%3E%3Crect x='5' y='9' width='5' height='5' rx='1'/%3E%3Crect x='12' y='9' width='5' height='5' rx='1'/%3E%3Crect x='19' y='9' width='5' height='5' rx='1'/%3E%3Crect x='5' y='16' width='5' height='5' rx='1'/%3E%3Crect x='12' y='16' width='5' height='5' rx='1' fill='%2358e07a'/%3E%3Crect x='19' y='16' width='5' height='5' rx='1'/%3E%3C/g%3E%3C/svg%3E">
+<title>LinnStrument Surface Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="linnstrument.css">
+<style>
+  main { display: flex; flex: 1; min-height: 0; }
+  aside { width: 330px; flex: none; overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); }
+  section { padding: 20px 24px; border-bottom: 1px solid var(--line); }
+  section:last-child { border-bottom: 0; }
+  section h2 { display: flex; align-items: baseline; gap: 8px; }
+  section h2 .count { color: var(--dim); font-weight: 400; font-size: 13px; }
+  .hidden { display: none !important; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field input[type=text], .field select { width: 100%; max-width: none; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .fields .wide { grid-column: 1 / -1; }
+  .inline { display: flex; gap: 8px; align-items: flex-end; }
+  .inline .field { flex: 1; }
+  .actions { display: flex; gap: 2px 14px; flex-wrap: wrap; margin-top: 10px; }
+  .actions button { border: 0; padding: 4px 0; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+  .actions button:hover { color: var(--fg); }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .buttons .spacer { flex: 1; }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-top: 12px; cursor: pointer; }
+  .checks { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .state { color: var(--dim); font-size: 12px; margin-top: 6px; min-height: 18px; }
+  .state.dirty { color: var(--warn); }
+
+  /* the zones as rows an inspector lists: swatch, name, place, and a remove control on hover */
+  .zones { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .zones li { display: flex; align-items: center; border-radius: 4px; }
+  .zones li:hover, .zones li:focus-within { background: var(--panel-2); }
+  .zones li.chosen { background: var(--panel-2); box-shadow: inset 2px 0 0 var(--accent); }
+  .zones .pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 0; border-radius: 4px; text-align: left; font-weight: 400; }
+  .zones .pick:hover { border: 0; }
+  .zones .swatch { width: 12px; height: 12px; border-radius: 3px; background: var(--c); flex: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+  .zones .text { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+  .zones .name { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zones .place { color: var(--dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zones .remove { border: 0; padding: 4px 8px; color: var(--dim); font-size: 16px; line-height: 1; opacity: 0; flex: none; }
+  .zones li:hover .remove, .zones li:focus-within .remove, .zones li.chosen .remove { opacity: 1; }
+  .zones .remove:hover { color: var(--bad); }
+  .zones .remove:focus-visible { opacity: 1; }
+
+  /* colors as swatches, the way the console picks a paint color */
+  .palette { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; margin-top: 4px; }
+  .palette .swatch { aspect-ratio: 1; border-radius: 18%; border: 2px solid transparent; cursor: pointer; background: var(--pad); position: relative; padding: 0; overflow: hidden; }
+  .palette .swatch::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+                            background: radial-gradient(circle at 50% 50%, #fff 0%, var(--c) 30%, color-mix(in srgb, var(--c) 55%, var(--pad)) 65%, transparent 90%); }
+  .palette .swatch:hover { border-color: var(--dim); }
+  .palette .swatch[aria-checked="true"] { border-color: var(--fg); }
+  .palette .swatch.off::after { background: none; }
+  .palette .swatch.off { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+  .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 28px 32px 20px; gap: 16px; overflow: auto;
+           background: radial-gradient(ellipse 70% 60% at 50% 35%, rgba(194, 100, 31, .22), transparent 70%), var(--bg); }
+  .instrument { background: var(--steel); border-radius: 10px; padding: 20px 16px 20px 12px; position: relative;
+                box-shadow: inset 0 0 0 1px #262626, 0 24px 60px rgba(0, 0, 0, .7); }
+  .instrument::before, .instrument::after { content: ""; position: absolute; left: 0; right: 0; height: 18px;
+                background: linear-gradient(180deg, #d08048, var(--cherry) 55%, var(--cherry-2)); }
+  .instrument::before { top: 0; border-radius: 10px 10px 0 0; }
+  .instrument::after { bottom: 0; border-radius: 0 0 10px 10px; background: linear-gradient(0deg, #d08048, var(--cherry) 55%, var(--cherry-2)); }
+  .surface { display: flex; gap: 12px; margin: 22px 0; align-items: stretch; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .controls { display: grid; grid-template-rows: repeat(8, 1fr); gap: var(--gap); width: 9.5%; min-width: 80px; flex: none; }
+  .cell.control { aspect-ratio: auto; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; cursor: pointer;
+                  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5%; }
+  .cell.control .label { font-size: 8.5px; line-height: 1.15; letter-spacing: .08em; color: #e6e6e6; font-weight: 700; text-transform: uppercase;
+                         text-align: center; white-space: pre-line; }
+  .cell.control .button { position: relative; width: 36%; height: 42%; min-height: 10px; border-radius: 3px; background: var(--pad); overflow: hidden;
+                          box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), inset 0 -1px 0 rgba(255, 255, 255, .3); }
+  .grid { display: grid; gap: var(--gap); padding: var(--gap); flex: 1; background: var(--plate); border-radius: 4px; }
+  .cell { aspect-ratio: 1; border-radius: 8%; border: 1px solid transparent; padding: 0; background: var(--pad); position: relative; cursor: crosshair; overflow: hidden;
+          box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .3); }
+  .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; z-index: 1; }
+  /* the zone a pad belongs to: a tint of its color, the zone's label on its bottom left pad */
+  .cell.zone { background: color-mix(in srgb, var(--zc) 28%, var(--pad)); }
+  .cell .tag { position: absolute; left: 7%; bottom: 4%; font-size: 9px; line-height: 1; font-weight: 700; color: rgba(0, 0, 0, .55); letter-spacing: .02em; pointer-events: none; }
+  .cell.selected { box-shadow: inset 0 0 0 3px var(--accent); }
+  .cell.chosen { box-shadow: inset 0 0 0 2px var(--fg); }
+  .cell.hover { box-shadow: inset 0 0 0 2px var(--accent-2); }
+  .cell .led { position: absolute; inset: 0; border-radius: inherit; opacity: 0; transition: opacity .08s;
+               background: radial-gradient(circle at 50% 50%, #fff 0%, var(--c) 22%, color-mix(in srgb, var(--c) 55%, var(--pad)) 60%, transparent 85%); }
+  .cell.lit .led { opacity: 1; }
+  .cell .xy { position: absolute; width: calc(22% + var(--z, 0%) * 0.5); height: calc(22% + var(--z, 0%) * 0.5); border-radius: 50%;
+              background: radial-gradient(circle, rgba(0, 0, 0, .75) 0%, rgba(0, 0, 0, .55) 60%, rgba(0, 0, 0, 0) 100%);
+              left: var(--x, 50%); top: var(--y, 50%); transform: translate(-50%, -50%); opacity: 0; }
+  .cell.pressed .xy { opacity: 1; }
+
+  /* the panel under the instrument: the zone being edited, or the messages going out */
+  .panel { display: flex; flex-direction: column; flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .instrument { flex: none; }
+  .panel .bar { display: flex; align-items: center; gap: 12px; padding: 0 14px 0 6px; border-bottom: 1px solid var(--line); min-height: 42px; }
+  .panel .bar .spacer { flex: 1; }
+  .tabs { display: flex; align-self: stretch; }
+  .tabs button { border: 0; border-radius: 0; padding: 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600;
+                 border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tabs button:hover { color: var(--fg); }
+  .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+  .tabs button:focus-visible { outline-offset: -3px; }
+  /* the last message to the DAW, as a readout set into the bar */
+  .lastSent { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin-left: 6px; padding: 5px 12px; border-radius: 4px;
+              background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+  .lastSent .caps { color: var(--dim); }
+  /* wide enough for the longest message, "note on C#-1 (1) velocity 127 ch 16", so the bar never shifts */
+  .readout { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 36ch; }
+  .readout.notice { width: auto; font-family: inherit; color: var(--warn); }
+  .tabpanel { padding: 16px 20px 20px; }
+  .tabpanel h2 { margin-bottom: 4px; }
+  .panel pre { margin: 0; height: 150px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+  #zonePanel .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; align-items: end; }
+  #zonePanel .fields .wide { grid-column: span 2; }
+  #zonePanel .fields .hint.wide { grid-column: 1 / -1; }
+  #zonePanel .palette { grid-template-columns: repeat(11, 22px); }
+  #zonePanel .checks { gap: 0 24px; }
+  #zonePanel .buttons { align-items: center; }
+  #zonePanel .state { margin-top: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { .cell .led, button { transition: none; } }
+  @media (forced-colors: active) {
+    .cell, .cell.control .button { border-color: ButtonText; }
+    .cell.zone { border: 2px solid ButtonText; }
+    .cell.selected, .cell.chosen, .cell.hover, .zones li.chosen, .palette .swatch[aria-checked="true"] { outline: 3px solid Highlight; outline-offset: -3px; }
+    .cell.lit .led, .status .dot, .zones .swatch, .palette .swatch::after { forced-color-adjust: none; }
+    .zones .remove { opacity: 1; }
+  }
+  @media (max-width: 960px) {
+    main { flex-direction: column; }
+    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .stage { padding: 20px 16px; }
+    .controls { min-width: 64px; }
+    #zonePanel .fields { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="brand"><a href="index.html"><b>LinnStrument</b></a></h1>
+  <nav class="pages" aria-label="Pages">
+    <a href="surface_designer.html" aria-current="page">Designer</a>
+    <a href="settings_editor.html">Settings</a>
+    <a href="user_firmware_console.html">User firmware</a>
+  </nav>
+</header>
+
+<div class="visually-hidden" id="hintLive" aria-live="polite"></div>
+<main>
+  <aside>
+    <section>
+      <h2>Layout</h2>
+      <label class="field"><span class="caps">Layout</span><select id="layouts" aria-label="Layout"></select></label>
+      <div class="inline" style="margin-top:10px">
+        <label class="field"><span class="caps">Name</span><input type="text" id="name" maxlength="40"></label>
+        <button id="saveLayout">Save</button>
+      </div>
+      <div class="state" id="layoutState" aria-live="polite"></div>
+      <div class="hint" id="slotsHint"></div>
+      <div class="actions">
+        <button id="newLayout">New</button>
+        <button id="importLayout">Import</button>
+        <button id="exportLayout">Export</button>
+        <button id="deleteLayout">Delete</button>
+        <button id="revertLayout" class="hidden">Revert</button>
+        <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-label="Layout file to import">
+      </div>
+    </section>
+
+    <section>
+      <h2 id="zonesHeading" tabindex="-1">Zones <span class="count" id="zoneCount"></span></h2>
+      <ul class="zones" id="zoneList"></ul>
+      <div class="hint" id="zoneListHint">Drag across the pads to make a zone</div>
+    </section>
+
+  </aside>
+
+  <div class="stage">
+    <div class="instrument">
+      <div class="surface" id="surface" role="group" aria-label="Pads: arrow keys move, Space starts and ends a selection, Enter edits the zone, Delete removes it">
+        <div class="controls" id="controls"></div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="bar">
+        <div class="tabs" role="tablist" aria-label="Below the instrument">
+          <button role="tab" id="tabZone" aria-selected="true" aria-controls="zonePanel">Zone</button>
+          <button role="tab" id="tabMidi" aria-selected="false" aria-controls="midiPanel" tabindex="-1">MIDI out</button>
+        </div>
+        <span class="lastSent hidden" id="lastSent"><span class="caps" id="readoutLabel">Last sent</span><span class="readout" id="readout" aria-live="off"></span></span>
+        <span class="spacer"></span>
+        <button class="small hidden" id="clearLog">Clear</button>
+      </div>
+      <div id="zonePanel" role="tabpanel" aria-labelledby="tabZone" class="tabpanel">
+        <h2 id="propsTitle">Selection</h2>
+      <div class="meta" id="propsHint">Drag across the pads, or pick a zone in the list, to see its settings here</div>
+      <div id="zoneForm" class="hidden">
+        <div class="fields">
+          <label class="field wide"><span class="caps">Type</span><select id="zType">
+            <option value="pad">Pad</option>
+            <option value="keys">Keys</option>
+            <option value="fader">Fader</option>
+            <option value="xy">XY pad</option>
+            <option value="toggle">Button</option>
+          </select></label>
+          <div class="hint wide" id="typeHint" style="margin-top:0"></div>
+          <label class="field z-toggle wide"><span class="caps">Sends</span><select id="zMessage">
+            <option value="cc">Control change, 127 on and 0 off</option>
+            <option value="note">Note on and off</option>
+            <option value="program">Program change</option>
+          </select></label>
+          <label class="field z-pad z-keys m-note"><span class="caps" id="zNoteLabel">Note</span><input type="number" id="zNote" min="0" max="127" value="36"></label>
+          <label class="field z-fader m-cc"><span class="caps">CC</span><input type="number" id="zCc" min="0" max="127" value="20"></label>
+          <label class="field m-program"><span class="caps">Program</span><input type="number" id="zProgram" min="0" max="127" value="0"></label>
+          <label class="field z-xy"><span class="caps">CC for X</span><input type="number" id="zCcX" min="0" max="127" value="20"></label>
+          <label class="field z-xy"><span class="caps">CC for Y</span><input type="number" id="zCcY" min="0" max="127" value="21"></label>
+          <label class="field z-keys"><span class="caps">Row interval</span><input type="number" id="zRowInterval" min="1" max="24" value="5"></label>
+          <label class="field z-keys"><span class="caps">Scale</span><select id="zScale"></select></label>
+          <label class="field z-fader"><span class="caps">Starts at</span><input type="number" id="zInitial" min="0" max="127" value="0"></label>
+          <label class="field"><span class="caps">Channel</span><input type="number" id="zChannel" min="1" max="16" value="1"></label>
+          <label class="field z-pad z-keys wide"><span class="caps">Pressure</span><select id="zPressure">
+            <option value="poly">Polyphonic aftertouch</option>
+            <option value="channel">Channel aftertouch</option>
+            <option value="none">Not sent</option>
+          </select></label>
+          <div class="field wide"><span class="caps">Color</span><div class="palette" id="zColor" role="radiogroup" aria-label="Color"></div></div>
+          <div class="field wide z-keys"><span class="caps">Root color</span><div class="palette" id="zRoot" role="radiogroup" aria-label="Root note color"></div></div>
+          <div class="field wide"><span class="caps" id="zActiveLabel">Active color</span><div class="palette" id="zActive" role="radiogroup" aria-label="Active color"></div></div>
+        </div>
+        <div class="checks">
+          <label class="check z-pad z-toggle"><input type="checkbox" id="zPerCell" checked><span id="zPerCellText">One per cell, counting up</span></label>
+          <label class="check z-toggle"><input type="checkbox" id="zLatch" checked><span>Latches: a press switches it on, the next off</span></label>
+          <label class="check z-fader"><input type="checkbox" id="zBipolar"><span>Bipolar: fills from the middle, for pan</span></label>
+          <label class="check z-xy"><input type="checkbox" id="zSpring"><span>Springs back to the middle on release</span></label>
+        </div>
+        <div class="buttons">
+          <button class="primary small" id="zApply">Add zone</button>
+          <button class="small" id="zLearn" title="Sends the zone's messages once, so the DAW can learn them">Send for learn</button>
+          <button class="small" id="zDelete">Remove</button>
+          <span class="spacer"></span>
+          <button class="small" id="zCancel">Done</button>
+        </div>
+        <div class="state" id="zError" aria-live="polite"></div>
+      </div>
+      </div>
+      <div id="midiPanel" role="tabpanel" aria-labelledby="tabMidi" class="tabpanel hidden">
+        <pre id="log" role="log" aria-live="off" aria-label="Messages sent to the DAW"></pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="user_firmware_protocol.js"></script>
+<script src="connection.js"></script>
+<script src="surface_designer.js"></script>
+<script>
+(function () {
+  "use strict";
+  const ufm = window.LinnUserFirmware;
+  const designer = window.LinnSurfaceDesigner;
+  const $ = function (id) { return document.getElementById(id); };
+
+  const LED_CSS = { 1: "#ff4a3d", 2: "#ffd23a", 3: "#58e07a", 4: "#5fe3f0", 5: "#4f8cff", 6: "#ff5cf0",
+                    7: "#000000", 8: "#f4f7ff", 9: "#ff9a2e", 10: "#b8f04a", 11: "#ff7ac2" };
+  const COLUMN_LABELS = ["Global\nSettings", "Split", "Switch 2", "Switch 1", "Octave/\nTranspose", "Volume", "Preset", "Per-Split\nSettings"];
+  const COLOR_NAMES = {};
+  Object.keys(ufm.COLORS).forEach(function (name) { COLOR_NAMES[ufm.COLORS[name]] = name; });
+  const STORAGE = "linnstrument.surface.layouts";
+  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const TYPE_HINTS = {
+    pad: "Plays a note while pressed, the velocity from the strike, pressure as aftertouch",
+    keys: "A keyboard: notes rise by a semitone per column and by the row interval per row, scale notes lit",
+    fader: "Sends a CC from where the finger is along the cells, the level shown in lights",
+    xy: "Sends two CCs from the finger's position across and up the pad, with a crosshair",
+    toggle: "A switch: sends its message on a press, and the off message on the next press or the release",
+  };
+  const ACTIVE_LABELS = { pad: "Pressed color", keys: "Pressed color", fader: "Finger color", xy: "Finger color", toggle: "On color" };
+
+  let output = null, daw = null;   // the instrument and the controller out, from the connection
+  let model = null;
+  let columns = 26;
+  let layout = designer.presets(200)[0];
+  let saved = loadSaved();
+  let runner = null;
+  let running = false;
+  let surface = ufm.createSurfaceState(columns);
+  const cells = {};
+  let selection = null;      // { col0, row0, col1, row1 } being dragged or chosen
+  let editing = null;        // the zone id in the form, or null for a new one
+  let anchor = null;         // keyboard selection start
+  let hovered = null;        // the zone a list row is hovering
+  let dirty = false;
+  let pickedModel = 200;     // the model designed for until an instrument reports its own
+  const drafts = {};         // layout key -> its unsaved working copy, the fullest version seen
+  function hint(text) { $("hintLive").textContent = text; }
+
+  function logLine(text) {
+    const log = $("log");
+    log.textContent = (text + "\n" + log.textContent).split("\n").slice(0, 300).join("\n");
+  }
+  $("clearLog").addEventListener("click", function () { $("log").textContent = ""; });
+
+  // a port that was unplugged throws on send; the connection rebuilds the lists on its own
+  function send(port, messages) {
+    if (!port || !messages.length) return false;
+    try { messages.forEach(function (m) { port.send(m); }); } catch (e) { return false; }
+    return true;
+  }
+  function sendToDaw(messages) {
+    if (!messages.length) return;
+    send(daw, messages);
+    messages.forEach(function (m) { logLine(describeDaw(m)); });
+  }
+
+  // --- saved layouts, in this browser only
+
+  function loadSaved() {
+    try {
+      const list = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+      return list.map(function (l) { try { return designer.parse(l); } catch (e) { return null; } }).filter(Boolean);
+    } catch (e) { return []; }
+  }
+  function storeSaved() {
+    try { localStorage.setItem(STORAGE, JSON.stringify(saved)); return true; }
+    catch (e) { $("layoutState").textContent = "Could not save in this browser"; return false; }
+  }
+
+  function setDirty(on) {
+    dirty = on;
+    $("layoutState").textContent = on ? "Unsaved changes" : "";
+    $("layoutState").className = "state" + (on ? " dirty" : "");
+    $("revertLayout").classList.toggle("hidden", (!on && !(currentKey && drafts[currentKey])) || !sourceFor(currentKey, model || pickedModel));
+  }
+
+  function fillLayouts(chosen) {
+    const select = $("layouts");
+    select.innerHTML = "";
+    const presets = designer.presets(layout.model);
+    const group = function (label, list, prefix) {
+      const g = document.createElement("optgroup");
+      g.label = label;
+      list.forEach(function (l) { g.appendChild(new Option(l.name, prefix + l.name, false, chosen === prefix + l.name)); });
+      select.appendChild(g);
+    };
+    group("Starting points", presets, "preset:");
+    if (saved.length) group("Saved", saved, "saved:");
+    // new layouts live in the list until they are saved or reverted
+    const unsaved = [];
+    Object.keys(drafts).forEach(function (k) { if (k.indexOf("new:") === 0 && k !== currentKey) unsaved.push({ key: k, name: drafts[k].name }); });
+    if (currentKey && currentKey.indexOf("new:") === 0) unsaved.push({ key: currentKey, name: layout.name });
+    if (unsaved.length) {
+      const g = document.createElement("optgroup");
+      g.label = "Unsaved";
+      unsaved.forEach(function (u) { g.appendChild(new Option(u.name, u.key, false, chosen === u.key)); });
+      select.appendChild(g);
+    }
+    if (!chosen) select.selectedIndex = -1;
+  }
+  // the key of a layout in the list: where it came from and its name there
+  function keyOf(source, l) { return source + ":" + l.name; }
+  function layoutFor(key) {
+    if (!key) return null;
+    const colon = key.indexOf(":");
+    const source = key.slice(0, colon), name = key.slice(colon + 1);
+    if (source === "new") return drafts[key] || (key === currentKey ? layout : null);
+    const list = source === "preset" ? designer.presets(layout.model) : saved;
+    return list.find(function (l) { return l.name === name; }) || null;
+  }
+  let currentKey = null;   // where the open layout came from, the key its draft is kept under
+  let newCount = 0;
+  // the 200 layout the open 128 one was cut from, its draft or the saved one, if any
+  function wideSource() {
+    if (layout.model !== 128) return null;
+    const draft = currentKey ? drafts[currentKey] : null;
+    const wide = draft || (currentKey && currentKey.indexOf("saved:") === 0 ? sourceFor(currentKey, 200) : null);
+    return wide && wide.model === 200 ? wide : null;
+  }
+  // the fullest version of the open layout: itself on a 200, on a 128 its edits merged back
+  // into the 200 layout it was cut from, so nothing past column 16 is lost
+  function fullest() {
+    const wide = wideSource();
+    return wide ? designer.widen(layout, wide) : layout;
+  }
+  // on a 128 the zones kept for a 200 are out of sight: an edit that would push one out, or
+  // cut into it, is refused with the zone named
+  function hiddenClash() {
+    const wide = wideSource();
+    if (!wide) return null;
+    const shown = {}, kept = {};
+    designer.fitToModel(wide, 128).zones.forEach(function (z) { shown[z.id] = true; });
+    designer.widen(layout, wide).zones.forEach(function (z) { kept[z.id] = z; });
+    const lost = wide.zones.find(function (z) { return !shown[z.id] && (!kept[z.id] || kept[z.id].col0 !== z.col0); });
+    return lost ? "clashes with " + designer.describe(lost) + ", kept for a 200" : null;
+  }
+  // the layout a key names, as made for a model: a preset is rebuilt for it, a saved one is itself
+  function sourceFor(key, forModel) {
+    if (!key) return null;
+    const colon = key.indexOf(":");
+    const source = key.slice(0, colon), name = key.slice(colon + 1);
+    if (source === "preset") return designer.presets(forModel).find(function (l) { return l.name === name; }) || null;
+    if (source === "saved") return saved.find(function (l) { return l.name === name; }) || null;
+    return null;
+  }
+  function copyOf(l) { return designer.parse(designer.serialize(l)); }
+  function disarmDelete() {
+    if (deleteArmed) clearTimeout(deleteArmed);
+    deleteArmed = null;
+    $("deleteLayout").textContent = "Delete";
+  }
+
+  // Opens a layout. Unsaved edits of the one being left are kept as a draft and come back
+  // when it is opened again, so switching never loses work; Save settles a draft.
+  function useLayout(l, key) {
+    const refit = l === layout;
+    disarmDelete();
+    const target = model || pickedModel;
+    if (dirty && currentKey) drafts[currentKey] = copyOf(fullest());
+    if (!refit) currentKey = key || null;
+    const draft = currentKey ? drafts[currentKey] : null;
+    let next;
+    if (!refit) next = draft || l;
+    else if (dirty) next = draft || layout;
+    else if (currentKey) next = copyOf(sourceFor(currentKey, target) || layout);
+    else next = layout;
+    let dropped = 0;
+    if (next.model !== target) {
+      const fitted = designer.fitToModel(next, target);
+      dropped = next.zones.length - fitted.zones.length;
+      next = fitted;
+    }
+    layout = next;
+    $("name").value = layout.name;
+    fillLayouts(currentKey);
+    selection = null; editing = null; anchor = null;
+    showForm(false);
+    if (running) restartRunner();
+    // a fit is not an edit: the source stays whole and comes back when the model does
+    setDirty((refit && dirty) || (!refit && !!draft));
+    if (!refit && draft) $("layoutState").textContent = "Unsaved changes, kept from before";
+    if (dropped) $("layoutState").textContent = dropped + (dropped > 1 ? " zones" : " zone") + " past the last column of a " + target + " left out, kept for a 200";
+    renderZones();
+    renderCells();
+  }
+  // back to the layout as it was opened: its draft is dropped
+  $("revertLayout").addEventListener("click", function () {
+    if (!currentKey) return;
+    delete drafts[currentKey];
+    dirty = false;
+    const source = sourceFor(currentKey, model || pickedModel);
+    if (source) useLayout(copyOf(source), currentKey);
+    else setDirty(false);
+  });
+
+  function refreshSlots() {
+    if (runner) send(output, runner.setControlLights(slotLights()));
+    describeSlots();
+    renderCells();
+  }
+
+  // The control switches in column 0, rows 1 to 7, jump between layouts: the saved ones when
+  // there are any, the starting points otherwise. The Global Settings switch at row 0 is the
+  // firmware's own.
+  function slots() {
+    return (saved.length ? saved : designer.presets(layout.model)).slice(0, 7);
+  }
+  function slotLights() {
+    const lights = [0];
+    slots().forEach(function (l) { lights.push(l.name === layout.name ? ufm.COLORS.white : ufm.COLORS.blue); });
+    return lights;
+  }
+  function describeSlots() {
+    const list = slots();
+    $("slotsHint").textContent = list.length ? "Control switches 1 to " + list.length + " jump between " + (saved.length ? "your saved layouts" : "the starting points") + ", white is the current one" : "";
+  }
+  function switchToSlot(row) {
+    const chosen = slots()[row - 1];
+    if (!chosen) return;
+    useLayout(copyOf(chosen), keyOf(saved.length ? "saved" : "preset", chosen));
+    logLine("switched to \"" + layout.name + "\"");
+  }
+
+  $("layouts").addEventListener("change", function () {
+    const key = $("layouts").value;
+    const chosen = layoutFor(key);
+    if (chosen) useLayout(copyOf(chosen), key);
+  });
+  $("name").addEventListener("input", function () { layout.name = $("name").value; setDirty(true); fillLayouts(currentKey); refreshSlots(); });
+  $("newLayout").addEventListener("click", function () { useLayout(designer.createLayout(layout.model, "Untitled"), "new:" + (++newCount)); });
+  $("saveLayout").addEventListener("click", function () {
+    layout.name = $("name").value || "Untitled";
+    $("name").value = layout.name;
+    const copy = copyOf(fullest());
+    copy.name = layout.name;
+    const at = saved.findIndex(function (l) { return l.name === copy.name; });
+    const before = saved.slice();
+    if (at >= 0) saved[at] = copy; else saved.push(copy);
+    if (!storeSaved()) { saved = before; return; }
+    if (currentKey) delete drafts[currentKey];
+    currentKey = keyOf("saved", copy);
+    delete drafts[currentKey];
+    fillLayouts(currentKey);
+    setDirty(false);
+    $("layoutState").textContent = at >= 0 ? "Saved over the layout of that name" : "Saved in this browser";
+    refreshSlots();
+  });
+  // a first press arms the delete, a second within three seconds does it; any layout switch disarms
+  let deleteArmed = null;
+  $("deleteLayout").addEventListener("click", function () {
+    // only the saved layout that is open, whatever its name has been edited to in the meantime
+    const name = currentKey && currentKey.indexOf("saved:") === 0 ? currentKey.slice(6) : null;
+    const at = name === null ? -1 : saved.findIndex(function (l) { return l.name === name; });
+    if (at < 0) {
+      const elsewhere = saved.some(function (l) { return l.name === layout.name; });
+      $("layoutState").textContent = elsewhere ? "Open the saved \"" + layout.name + "\" from the list to delete it" : "\"" + layout.name + "\" is not a saved layout";
+      return;
+    }
+    if (!deleteArmed) {
+      const prompt = "Press again to delete \"" + name + "\" from this browser";
+      $("deleteLayout").textContent = "Confirm delete";
+      $("layoutState").textContent = prompt;
+      deleteArmed = setTimeout(function () {
+        deleteArmed = null;
+        $("deleteLayout").textContent = "Delete";
+        if ($("layoutState").textContent === prompt) $("layoutState").textContent = "";
+      }, 3000);
+      return;
+    }
+    disarmDelete();
+    const full = copyOf(fullest());
+    const before = saved.slice();
+    saved.splice(at, 1);
+    if (!storeSaved()) { saved = before; return; }
+    delete drafts[currentKey];
+    currentKey = "new:" + (++newCount);
+    if (full.model !== layout.model) drafts[currentKey] = full;
+    fillLayouts(currentKey);
+    setDirty(true);
+    $("layoutState").textContent = "Deleted; the layout stays open under Unsaved until you save it again or pick another";
+    refreshSlots();
+  });
+  $("exportLayout").addEventListener("click", function () {
+    layout.name = $("name").value || "Untitled";
+    const full = fullest();
+    full.name = layout.name;
+    const blob = new Blob([designer.serialize(full)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = layout.name.replace(/[\\/:*?"<>|]+/g, "_") + ".json";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  $("importLayout").addEventListener("click", function () { $("importFile").click(); });
+  $("importFile").addEventListener("change", function () {
+    const file = $("importFile").files[0];
+    if (!file) return;
+    file.text().then(function (text) {
+      try {
+        const imported = designer.parse(text);
+        const at = saved.findIndex(function (l) { return l.name === imported.name; });
+        const before = saved.slice();
+        if (at >= 0) saved[at] = imported; else saved.push(imported);
+        if (!storeSaved()) { saved = before; return; }
+        const key = keyOf("saved", imported);
+        delete drafts[key];
+        if (key === currentKey) dirty = false;
+        useLayout(copyOf(imported), key);
+        const fitted = $("layoutState").textContent;
+        $("layoutState").textContent = (at >= 0 ? "Imported over the saved layout of that name" : "Imported and saved in this browser") + (fitted ? "; " + fitted.charAt(0).toLowerCase() + fitted.slice(1) : "");
+        refreshSlots();
+      } catch (err) { $("layoutState").textContent = "Not a layout file: " + err.message; }
+    }, function () { $("layoutState").textContent = "Could not read the file"; });
+    $("importFile").value = "";
+  });
+
+  // --- the properties of the selected zone
+
+  function buildPalette(id, chosen) {
+    const palette = $(id);
+    palette.innerHTML = "";
+    Object.keys(ufm.COLORS).forEach(function (name) {
+      const color = ufm.COLORS[name];
+      if (color === ufm.COLORS.black) return;
+      const swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "swatch" + (color === 0 ? " off" : "");
+      swatch.title = name;
+      swatch.setAttribute("role", "radio");
+      swatch.setAttribute("aria-label", name);
+      swatch.setAttribute("aria-checked", color === chosen ? "true" : "false");
+      swatch.tabIndex = color === chosen ? 0 : -1;
+      swatch.style.setProperty("--c", LED_CSS[color] || "transparent");
+      swatch.dataset.color = color;
+      swatch.addEventListener("click", function () { choosePalette(palette, swatch); fieldChanged(true); });
+      palette.appendChild(swatch);
+    });
+    palette.addEventListener("keydown", function (e) {
+      const all = Array.prototype.slice.call(palette.querySelectorAll(".swatch"));
+      const at = all.indexOf(document.activeElement);
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: -at, End: all.length - 1 - at }[e.key];
+      if (at < 0 || step === undefined) return;
+      e.preventDefault();
+      const next = all[(at + step + all.length) % all.length];
+      choosePalette(palette, next);
+      next.focus();
+      fieldChanged(true);
+    });
+  }
+  function choosePalette(palette, swatch) {
+    palette.querySelectorAll(".swatch").forEach(function (s) {
+      const on = s === swatch;
+      s.setAttribute("aria-checked", on ? "true" : "false");
+      s.tabIndex = on ? 0 : -1;
+    });
+  }
+  // black (7) shows as off on the instrument and is picked as off here
+  function setPalette(id, color) {
+    const palette = $(id);
+    const swatch = palette.querySelector('.swatch[data-color="' + (color === ufm.COLORS.black ? 0 : color) + '"]') || palette.querySelector(".swatch");
+    choosePalette(palette, swatch);
+  }
+  function paletteValue(id) {
+    const on = $(id).querySelector('.swatch[aria-checked="true"]');
+    return on ? parseInt(on.dataset.color, 10) : 0;
+  }
+
+  function showForm(on) {
+    $("zoneForm").classList.toggle("hidden", !on);
+    $("propsHint").classList.toggle("hidden", on);
+    if (!on) { $("propsTitle").textContent = "Selection"; $("zError").textContent = ""; }
+    if (on) showTab("zone");
+  }
+
+  const TABS = { zone: ["tabZone", "zonePanel"], midi: ["tabMidi", "midiPanel"] };
+  function showTab(name) {
+    Object.keys(TABS).forEach(function (key) {
+      const on = key === name;
+      $(TABS[key][0]).setAttribute("aria-selected", on ? "true" : "false");
+      $(TABS[key][0]).tabIndex = on ? 0 : -1;
+      $(TABS[key][1]).classList.toggle("hidden", !on);
+    });
+    $("clearLog").classList.toggle("hidden", name !== "midi");
+  }
+  Object.keys(TABS).forEach(function (key) {
+    $(TABS[key][0]).addEventListener("click", function () { showTab(key); });
+    $(TABS[key][0]).addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const other = key === "zone" ? "midi" : "zone";
+      showTab(other);
+      $(TABS[other][0]).focus();
+    });
+  });
+
+  // the fields a type needs, and within a button the field its message needs
+  function showTypeFields() {
+    const type = $("zType").value;
+    const message = $("zMessage").value;
+    document.querySelectorAll("#zoneForm [class*='z-'], #zoneForm [class*='m-']").forEach(function (el) {
+      const forType = el.className.indexOf("z-") >= 0;
+      const forMessage = el.className.indexOf("m-") >= 0;
+      let show = (forType && el.classList.contains("z-" + type)) || (forMessage && type === "toggle" && el.classList.contains("m-" + message));
+      el.classList.toggle("hidden", !show);
+    });
+    $("typeHint").textContent = TYPE_HINTS[type];
+    $("zActiveLabel").textContent = ACTIVE_LABELS[type];
+    $("zNoteLabel").textContent = type === "keys" ? "Root note" : "Note";
+    $("zPerCellText").textContent = type === "toggle" ? "One switch per cell, counting up" : "One note per cell, counting up";
+  }
+
+  function fillForm(zone) {
+    const d = zone || Object.assign({ type: "pad", channel: 1 }, designer.DEFAULTS.pad);
+    const defaults = designer.DEFAULTS[d.type];
+    const value = function (name) { return d[name] !== undefined ? d[name] : defaults[name]; };
+    $("zType").value = d.type;
+    $("zMessage").value = value("message") || "cc";
+    setPalette("zColor", d.color);
+    setPalette("zActive", d.activeColor);
+    setPalette("zRoot", value("rootColor") || designer.DEFAULTS.keys.rootColor);
+    $("zChannel").value = d.channel;
+    $("zNote").value = value("note") !== undefined ? value("note") : 36;
+    $("zCc").value = value("cc") !== undefined ? value("cc") : 20;
+    $("zProgram").value = value("program") || 0;
+    $("zCcX").value = value("ccX") !== undefined ? value("ccX") : 20;
+    $("zCcY").value = value("ccY") !== undefined ? value("ccY") : 21;
+    $("zRowInterval").value = value("rowInterval") || 5;
+    $("zScale").value = value("scale") || "chromatic";
+    $("zInitial").value = value("initial") || 0;
+    $("zPressure").value = value("pressure") || "poly";
+    $("zPerCell").checked = value("perCell") !== undefined ? value("perCell") : true;
+    $("zLatch").checked = value("latch") !== undefined ? value("latch") : true;
+    $("zBipolar").checked = !!value("bipolar");
+    $("zSpring").checked = !!value("spring");
+    showTypeFields();
+  }
+
+  function openForm(zone, rect) {
+    editing = zone ? zone.id : null;
+    fillForm(zone);
+    $("zApply").classList.toggle("hidden", !!zone);
+    $("zDelete").classList.toggle("hidden", !zone);
+    $("zLearn").classList.toggle("hidden", !zone);
+    $("propsTitle").textContent = zone ? designer.label(zone) : "New zone";
+    selection = rect;
+    showForm(true);
+    $("zError").textContent = "";
+    renderCells();
+    renderZones();
+  }
+
+  function formFields() {
+    const type = $("zType").value;
+    const f = { type: type, col0: selection.col0, col1: selection.col1, row0: selection.row0, row1: selection.row1,
+                color: paletteValue("zColor"), activeColor: paletteValue("zActive"), channel: parseInt($("zChannel").value, 10) };
+    const num = function (id) { return parseInt($(id).value, 10); };
+    if (type === "pad") { f.note = num("zNote"); f.pressure = $("zPressure").value; f.perCell = $("zPerCell").checked; }
+    if (type === "keys") { f.note = num("zNote"); f.rowInterval = num("zRowInterval"); f.scale = $("zScale").value; f.rootColor = paletteValue("zRoot"); f.pressure = $("zPressure").value; }
+    if (type === "fader") { f.cc = num("zCc"); f.initial = num("zInitial"); f.bipolar = $("zBipolar").checked; }
+    if (type === "toggle") { f.message = $("zMessage").value; f.cc = num("zCc"); f.note = num("zNote"); f.program = num("zProgram"); f.latch = $("zLatch").checked; f.perCell = $("zPerCell").checked; }
+    if (type === "xy") { f.ccX = num("zCcX"); f.ccY = num("zCcY"); f.spring = $("zSpring").checked; }
+    return f;
+  }
+
+  // an existing zone takes every change at once; a new one waits for Add. A rejected value
+  // stays in its field for correcting; a rejected choice puts the form back to the zone.
+  function fieldChanged(refill) {
+    if (!editing || !selection) return;
+    try {
+      const was = layout.zones.find(function (z) { return z.id === editing; });
+      const zone = designer.replaceZone(layout, editing, formFields());
+      const clash = hiddenClash();
+      if (clash) { designer.replaceZone(layout, editing, was); throw new Error(clash); }
+      $("zError").textContent = "";
+      $("propsTitle").textContent = designer.label(zone);
+      setDirty(true);
+      if (running) refreshRunner();
+      renderZones();
+      renderCells();
+    } catch (err) {
+      const zone = layout.zones.find(function (z) { return z.id === editing; });
+      if (zone && refill === true) fillForm(zone);
+      $("zError").textContent = err.message + "; the zone kept its settings";
+    }
+  }
+  ["zNote", "zCc", "zProgram", "zCcX", "zCcY", "zChannel", "zRowInterval", "zInitial"].forEach(function (id) { $(id).addEventListener("input", fieldChanged); });
+  ["zPressure", "zScale", "zPerCell", "zLatch", "zBipolar", "zSpring"].forEach(function (id) { $(id).addEventListener("change", function () { fieldChanged(true); }); });
+  $("zMessage").addEventListener("change", function () { showTypeFields(); fieldChanged(true); });
+  $("zType").addEventListener("change", function () {
+    const type = $("zType").value;
+    const defaults = designer.DEFAULTS[type];
+    setPalette("zColor", defaults.color);
+    setPalette("zActive", defaults.activeColor);
+    if (defaults.cc !== undefined) $("zCc").value = defaults.cc;
+    if (defaults.note !== undefined) $("zNote").value = defaults.note;
+    if (defaults.initial !== undefined) $("zInitial").value = defaults.initial;
+    showTypeFields();
+    fieldChanged(true);
+  });
+
+  $("zApply").addEventListener("click", function () {
+    if (!selection || editing) return;
+    try {
+      const zone = designer.addZone(layout, formFields());
+      const clash = hiddenClash();
+      if (clash) { designer.removeZone(layout, zone.id); throw new Error(clash); }
+      $("zError").textContent = "";
+      setDirty(true);
+      if (running) refreshRunner();
+      openForm(zone, { col0: zone.col0, col1: zone.col1, row0: zone.row0, row1: zone.row1 });
+      const row = $("zoneList").querySelector("li.chosen .pick");
+      if (row) row.focus();
+    } catch (err) { $("zError").textContent = err.message; }
+  });
+  $("zLearn").addEventListener("click", function () {
+    const zone = layout.zones.find(function (z) { return z.id === editing; });
+    if (!zone) return;
+    if (!daw) { $("zError").textContent = "Choose the controller out first"; return; }
+    if (output && daw.id === output.id) { $("zError").textContent = "Controller out is the instrument itself, pick another port"; return; }
+    const messages = designer.learnMessages(zone);
+    send(daw, messages);
+    messages.forEach(function (m) { logLine(describeDaw(m) + " (learn)"); });
+  });
+  function removeZone(id, from) {
+    const rows = Array.prototype.slice.call($("zoneList").querySelectorAll("li"));
+    const at = rows.findIndex(function (li) { return li.dataset.id === id; });
+    designer.removeZone(layout, id);
+    if (editing === id) { editing = null; selection = null; showForm(false); }
+    setDirty(true);
+    if (running) refreshRunner();
+    renderZones();
+    renderCells();
+    if (from === "grid") return;
+    if (from === "form") { $("zonesHeading").focus(); return; }
+    const left = $("zoneList").querySelectorAll("li .pick");
+    const next = left[Math.min(at, left.length - 1)];
+    if (next) next.focus(); else $("zonesHeading").focus();
+  }
+  $("zDelete").addEventListener("click", function () { if (editing) removeZone(editing, "form"); });
+  $("zCancel").addEventListener("click", function () {
+    editing = null; selection = null;
+    showForm(false);
+    renderZones();
+    renderCells();
+    $("zonesHeading").focus();
+  });
+
+  // --- the zones list
+
+  function renderZones() {
+    const list = $("zoneList");
+    const active = document.activeElement && list.contains(document.activeElement) ? { id: document.activeElement.closest("li").dataset.id, remove: document.activeElement.classList.contains("remove") } : null;
+    list.innerHTML = "";
+    hovered = null;
+    indexZones();
+    describeSlots();
+    designer.ordered(layout).forEach(function (z) {
+      const li = document.createElement("li");
+      li.dataset.id = z.id;
+      li.classList.toggle("chosen", z.id === editing);
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "pick";
+      pick.setAttribute("aria-pressed", z.id === editing ? "true" : "false");
+      pick.setAttribute("aria-label", designer.label(z) + ", " + designer.place(z));
+      const swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.setAttribute("aria-hidden", "true");
+      swatch.style.setProperty("--c", LED_CSS[z.color] || "transparent");
+      const text = document.createElement("span");
+      text.className = "text";
+      text.innerHTML = '<span class="name"></span><span class="place"></span>';
+      text.querySelector(".name").textContent = designer.label(z);
+      text.querySelector(".place").textContent = designer.place(z);
+      pick.appendChild(swatch);
+      pick.appendChild(text);
+      pick.addEventListener("click", function () { openForm(z, { col0: z.col0, col1: z.col1, row0: z.row0, row1: z.row1 }); });
+      pick.addEventListener("keydown", function (e) {
+        if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeZone(z.id, "list"); }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "remove";
+      remove.tabIndex = -1;
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", "Remove " + designer.label(z));
+      remove.addEventListener("click", function () { removeZone(z.id, "list"); });
+      li.addEventListener("mouseenter", function () { hovered = z.id; renderCells(); });
+      li.addEventListener("mouseleave", function () { hovered = null; renderCells(); });
+      li.appendChild(pick);
+      li.appendChild(remove);
+      list.appendChild(li);
+    });
+    if (active) {
+      const li = list.querySelector('li[data-id="' + active.id + '"]');
+      if (li) li.querySelector(active.remove ? ".remove" : ".pick").focus();
+    }
+    $("zoneCount").textContent = layout.zones.length ? String(layout.zones.length) : "";
+    $("zoneListHint").classList.toggle("hidden", layout.zones.length > 0);
+  }
+
+  // --- the surface
+
+  function zoneTag(z) {
+    switch (z.type) {
+      case "pad": return z.perCell ? "" + z.note + "+" : "" + z.note;
+      case "keys": return NOTE_NAMES[z.note % 12] + " " + z.scale;
+      case "fader": return "CC " + z.cc;
+      case "xy": return "CC " + z.ccX + "/" + z.ccY;
+      case "toggle": {
+        const n = z.message === "note" ? z.note : z.message === "program" ? z.program : z.cc;
+        const word = z.message === "note" ? "" : z.message === "program" ? "PC " : "CC ";
+        return word + n + (z.perCell ? "+" : "");
+      }
+    }
+    return "";
+  }
+
+  function buildGrid() {
+    const grid = $("grid");
+    const controls = $("controls");
+    grid.innerHTML = "";
+    controls.innerHTML = "";
+    Object.keys(cells).forEach(function (k) { delete cells[k]; });
+    surface = ufm.createSurfaceState(columns);
+    const gap = columns > 20 ? "3px" : "4px";
+    grid.style.setProperty("--gap", gap);
+    controls.style.setProperty("--gap", gap);
+    grid.style.gridTemplateColumns = "repeat(" + (columns - 1) + ", minmax(0, 1fr))";
+    indexZones();
+    for (let row = 7; row >= 0; row--) {
+      for (let col = 0; col < columns; col++) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = col === 0 ? "cell control" : "cell";
+        el.dataset.col = col;
+        el.dataset.row = row;
+        if (col === 0) {
+          el.tabIndex = -1;
+          if (row > 0) el.addEventListener("click", function () { switchToSlot(row); });
+          else { el.disabled = true; el.setAttribute("aria-label", "Global Settings switch, the instrument's own"); }
+          const label = document.createElement("span");
+          label.className = "label";
+          label.textContent = COLUMN_LABELS[row];
+          label.setAttribute("aria-hidden", "true");
+          el.appendChild(label);
+          const button = document.createElement("div");
+          button.className = "button";
+          button.innerHTML = '<div class="led"></div>';
+          el.appendChild(button);
+        } else {
+          el.tabIndex = col === 1 && row === 7 ? 0 : -1;
+          el.innerHTML = '<div class="led"></div><div class="xy"></div><span class="tag" aria-hidden="true"></span>';
+        }
+        cells[col + ":" + row] = el;
+        (col === 0 ? controls : grid).appendChild(el);
+      }
+    }
+    renderCells();
+  }
+
+  // which zone each cell belongs to, rebuilt when the zones change
+  let zoneOfCell = {};
+  function indexZones() {
+    zoneOfCell = {};
+    layout.zones.forEach(function (z) {
+      for (let row = z.row0; row <= z.row1; row++) for (let col = z.col0; col <= z.col1; col++) zoneOfCell[col + ":" + row] = z;
+    });
+  }
+  function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+  function setLabel(el, text) { if (el.getAttribute("aria-label") !== text) el.setAttribute("aria-label", text); }
+
+  // zones, selection and the lights the runner shows, on every pad
+  function renderCells() {
+    const frame = runner ? runner.frame() : null;
+    const lights = slotLights();
+    const list = slots();
+    for (let row = 1; row < 8; row++) {
+      const el = cells["0:" + row];
+      if (!el) continue;
+      const color = running ? (frame ? frame[row * columns] : 0) : lights[row] || 0;
+      const led = el.querySelector(".led");
+      if (color) { led.style.setProperty("--c", LED_CSS[color]); led.style.opacity = 1; } else { led.style.opacity = 0; }
+      setLabel(el, COLUMN_LABELS[row].replace("\n", " ") + " switch" + (list[row - 1] ? ", layout " + list[row - 1].name : ""));
+    }
+    for (let row = 0; row < 8; row++) {
+      for (let col = 1; col < columns; col++) {
+        const el = cells[col + ":" + row];
+        if (!el) continue;
+        const z = zoneOfCell[col + ":" + row] || null;
+        el.classList.toggle("zone", !!z);
+        el.style.setProperty("--zc", z ? (LED_CSS[z.color] || "transparent") : "transparent");
+        setText(el.querySelector(".tag"), z && z.col0 === col && z.row0 === row ? zoneTag(z) : "");
+        const inSelection = selection && col >= selection.col0 && col <= selection.col1 && row >= selection.row0 && row <= selection.row1;
+        el.classList.toggle("selected", !!inSelection);
+        el.classList.toggle("chosen", !!(z && editing === z.id && !inSelection));
+        el.classList.toggle("hover", !!(z && hovered === z.id && !inSelection));
+        const color = frame ? frame[row * columns + col] : 0;
+        if (color) { el.style.setProperty("--c", LED_CSS[color]); el.classList.add("lit"); } else { el.classList.remove("lit"); }
+        const parts = ["column " + col + ", row " + row, z ? designer.label(z) : "no zone"];
+        if (color) parts.push("lit " + COLOR_NAMES[color]);
+        if (inSelection) parts.push("selected");
+        setLabel(el, parts.join(", "));
+      }
+    }
+  }
+
+  function rectFrom(a, b) {
+    return { col0: Math.min(a.col, b.col), col1: Math.max(a.col, b.col), row0: Math.min(a.row, b.row), row1: Math.max(a.row, b.row) };
+  }
+  function cellFromEvent(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest(".cell:not(.control)") : null;
+    return cell ? { col: parseInt(cell.dataset.col, 10), row: parseInt(cell.dataset.row, 10) } : null;
+  }
+  function finishSelection(rect, moved) {
+    const z = designer.zoneAt(layout, rect.col0, rect.row0);
+    if (!moved && z) openForm(z, { col0: z.col0, col1: z.col1, row0: z.row0, row1: z.row1 });
+    else openForm(null, rect);
+  }
+
+  let drag = null;
+  $("surface").addEventListener("pointerdown", function (e) {
+    const c = cellFromEvent(e);
+    if (!c) return;
+    e.preventDefault();
+    anchor = null;
+    drag = { start: c, moved: false };
+    selection = rectFrom(c, c);
+    renderCells();
+    $("surface").setPointerCapture(e.pointerId);
+  });
+  $("surface").addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    const c = cellFromEvent(e);
+    if (!c) return;
+    if (c.col !== drag.start.col || c.row !== drag.start.row) drag.moved = true;
+    selection = rectFrom(drag.start, c);
+    renderCells();
+  });
+  function endDrag(e) {
+    if (!drag) return;
+    const rect = selection;
+    const moved = drag.moved;
+    drag = null;
+    finishSelection(rect, moved);
+    const end = e && cellFromEvent(e);
+    const el = end && cells[end.col + ":" + end.row];
+    if (el) {
+      Object.keys(cells).forEach(function (k) { if (parseInt(k, 10) > 0) cells[k].tabIndex = -1; });
+      el.tabIndex = 0;
+      el.focus({ preventScroll: true });
+    }
+  }
+  $("surface").addEventListener("pointerup", endDrag);
+  $("surface").addEventListener("pointercancel", function () { drag = null; selection = editing ? selection : null; renderCells(); });
+
+  $("surface").addEventListener("keydown", function (e) {
+    const el = document.activeElement;
+    if (!el || !el.classList.contains("cell")) return;
+    let col = parseInt(el.dataset.col, 10), row = parseInt(el.dataset.row, 10);
+    if (col === 0 && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); switchToSlot(row); return; }
+    if (e.key === "Escape") {
+      if (editing || selection) { editing = null; selection = null; anchor = null; showForm(false); renderZones(); renderCells(); hint("Selection cancelled"); }
+      else if (anchor) { anchor = null; renderCells(); hint("Selection cancelled"); }
+      return;
+    }
+    if (e.key === "ArrowLeft") col--;
+    else if (e.key === "ArrowRight") col++;
+    else if (e.key === "ArrowUp") row++;
+    else if (e.key === "ArrowDown") row--;
+    else if (e.key === "Home") col = 1;
+    else if (e.key === "End") col = columns - 1;
+    else if (e.key === " " && col > 0) {
+      e.preventDefault();
+      if (!anchor) { anchor = { col: col, row: row }; selection = rectFrom(anchor, anchor); renderCells(); hint("Selection started, move and press Space again, Escape cancels"); }
+      else { const rect = rectFrom(anchor, { col: col, row: row }); anchor = null; finishSelection(rect, rect.col0 !== rect.col1 || rect.row0 !== rect.row1); }
+      return;
+    }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      const z = designer.zoneAt(layout, col, row);
+      if (z) openForm(z, { col0: z.col0, col1: z.col1, row0: z.row0, row1: z.row1 });
+      return;
+    }
+    else if (e.key === "Delete" || e.key === "Backspace") {
+      const z = designer.zoneAt(layout, col, row);
+      if (z) { e.preventDefault(); removeZone(z.id, "grid"); }
+      return;
+    }
+    else return;
+    e.preventDefault();
+    col = Math.max(anchor ? 1 : 0, Math.min(columns - 1, col));
+    row = Math.max(col === 0 ? 1 : 0, Math.min(7, row));
+    if (anchor) { selection = rectFrom(anchor, { col: col, row: row }); renderCells(); }
+    const next = cells[col + ":" + row];
+    if (next && next !== el) { el.tabIndex = -1; next.tabIndex = 0; next.focus(); }
+  });
+
+  // --- running
+
+  function showRun(on) {
+    $("runOn").setAttribute("aria-pressed", on ? "true" : "false");
+    $("runOff").setAttribute("aria-pressed", on ? "false" : "true");
+  }
+  // a notice about running, in the chip under the instrument
+  function runNotice(text) {
+    $("readoutLabel").textContent = "Run";
+    $("readout").textContent = text;
+    $("readout").classList.add("notice");
+    $("lastSent").classList.remove("hidden");
+    hint(text);
+  }
+
+  function startRunner() {
+    if (running) return;
+    if (!output) { runNotice("Choose the instrument's MIDI out at the top right first"); return; }
+    if (!daw) { runNotice("Choose the controller out at the top right first"); return; }
+    if (daw.id === output.id) { runNotice("Controller out is the instrument itself, pick another port"); return; }
+    runner = designer.createRunner(layout, slotLights());
+    send(output, runner.start());
+    running = true;
+    conn.note("");
+    $("readoutLabel").textContent = "Last sent";
+    $("readout").textContent = "";
+    $("readout").classList.remove("notice");
+    $("lastSent").classList.remove("hidden");
+    showRun(true);
+    renderCells();
+    logLine("running \"" + layout.name + "\" with " + layout.zones.length + " zones");
+  }
+  function stopRunner() {
+    const stopping = runner;
+    runner = null;
+    running = false;
+    if (stopping) {
+      const out = stopping.stop();
+      sendToDaw(out.toDaw);
+      send(output, out.toInstrument);
+    }
+    $("readout").textContent = "";
+    $("lastSent").classList.add("hidden");
+    showRun(false);
+    renderCells();
+  }
+  function restartRunner() {
+    if (!runner) return;
+    const out = runner.stop();
+    sendToDaw(out.toDaw);
+    runner = designer.createRunner(layout, slotLights());
+    send(output, runner.resume());
+  }
+  // after an edit of the running layout: the lights and axes follow, every value stays
+  function refreshRunner() {
+    if (!runner) return;
+    const out = runner.refresh();
+    sendToDaw(out.toDaw);
+    send(output, out.toInstrument);
+  }
+  function noteName(n) { return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 2) + " (" + n + ")"; }
+  function describeDaw(m) {
+    const ch = (m[0] & 15) + 1;
+    switch (m[0] & 0xF0) {
+      case 0x90: return "note on " + noteName(m[1]) + " velocity " + m[2] + " ch " + ch;
+      case 0x80: return "note off " + noteName(m[1]) + " ch " + ch;
+      case 0xA0: return "aftertouch " + noteName(m[1]) + " = " + m[2] + " ch " + ch;
+      case 0xD0: return "channel pressure " + m[1] + " ch " + ch;
+      case 0xB0: return "CC " + m[1] + " = " + m[2] + " ch " + ch;
+      case 0xC0: return "program " + m[1] + " ch " + ch;
+    }
+    return m.join(" ");
+  }
+
+  function showTouch(c) {
+    const el = cells[c.col + ":" + c.row];
+    if (!el || el.classList.contains("control")) return;
+    el.classList.toggle("pressed", c.pressed);
+    el.style.setProperty("--z", Math.round(c.pressure / 127 * 100) + "%");
+    if (c.x !== null) el.style.setProperty("--x", Math.round(Math.max(0, Math.min(1, c.x / designer.X_UNIT - (c.col - 1))) * 100) + "%");
+    if (c.y !== null) el.style.setProperty("--y", Math.round((1 - c.y / 127) * 100) + "%");
+  }
+
+  function onEvent(event) {
+    switch (event.type) {
+      case "mode":
+        if (!event.active && running) { stopRunner(); logLine("the instrument left the mode"); }
+        else if (event.active && !running) conn.note("The instrument is in user firmware mode already; switch Run on to take it over", "warn");
+        else if (!event.active) conn.note("");
+        return;
+      case "model":
+        model = event.model;
+        pickedModel = model;
+        $("modelPick").value = String(model);
+        modelPickField.classList.add("hidden");
+        if (event.columns !== columns) { columns = event.columns; buildGrid(); }
+        if (layout.model !== model) useLayout(layout, $("layouts").value);
+        return;
+      case "version": case "build": case "calibrated": return;
+    }
+    const changed = surface.apply(event);
+    if (changed) showTouch(changed);
+    if (!runner) return;
+    const out = runner.handle(event);
+    if (out.control !== undefined) { switchToSlot(out.control); return; }
+    if (out.toDaw.length) {
+      sendToDaw(out.toDaw);
+      $("readout").textContent = describeDaw(out.toDaw[out.toDaw.length - 1]);
+      $("lastSent").classList.remove("hidden");
+    }
+    if (out.toInstrument.length) { send(output, out.toInstrument); renderCells(); }
+  }
+
+  // the model to design for while no instrument reports its own, in the connection panel
+  const modelPickField = document.createElement("label");
+  modelPickField.innerHTML = '<span class="caps">Model</span><select id="modelPick" aria-label="Model to design for while no instrument is connected"><option value="200">LinnStrument 200</option><option value="128">LinnStrument 128</option></select>';
+  modelPickField.className = "ports";
+
+  const conn = LinnConnection.create({
+    extraOutputs: [{ id: "daw", label: "Controller out", aria: "MIDI output for the controller messages", pick: /IAC|loopMIDI/,
+                     hint: "A loopback port into your DAW (IAC on macOS, loopMIDI on Windows) or a synth; map the messages there with MIDI learn" }],
+    extras: [modelPickField],
+    offlineNote: "design layouts for the model you pick in the connection panel",
+    onEvent: onEvent,
+    onPorts: function (ports) {
+      if (running) { stopRunner(); logLine("stopped: the ports changed"); }
+      const sameInstrument = output && ports.output && ports.output.id === output.id && ports.input;
+      output = ports.output;
+      daw = ports.daw;
+      if (model && !sameInstrument) {
+        // the instrument is gone: back to the picked model until one reports again
+        model = null;
+        modelPickField.classList.remove("hidden");
+        columns = ufm.columnsFor(pickedModel);
+        buildGrid();
+        useLayout(layout, $("layouts").value);
+      }
+      if (daw && output && daw.id === output.id) conn.note("Controller out is the instrument itself, pick another port", "warn");
+      else conn.note("");
+    },
+  });
+  const runSwitch = document.createElement("div");
+  runSwitch.className = "toolbar-switch";
+  runSwitch.innerHTML = '<span class="caps">Run</span>' +
+    '<div class="segmented" role="group" aria-label="Run the layout"><button id="runOff" aria-pressed="true">Off</button><button id="runOn" aria-pressed="false">On</button></div>';
+  conn.addControl(runSwitch);
+  $("runOn").addEventListener("click", startRunner);
+  $("runOff").addEventListener("click", stopRunner);
+  $("modelPick").addEventListener("change", function () {
+    pickedModel = parseInt($("modelPick").value, 10);
+    columns = ufm.columnsFor(pickedModel);
+    buildGrid();
+    useLayout(layout, $("layouts").value);
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty || Object.keys(drafts).length) { e.preventDefault(); e.returnValue = ""; }
+  });
+  window.addEventListener("pagehide", function () { if (running) stopRunner(); });
+
+  Object.keys(designer.SCALES).forEach(function (name) { $("zScale").appendChild(new Option(name, name)); });
+  buildPalette("zColor", designer.DEFAULTS.pad.color);
+  buildPalette("zActive", designer.DEFAULTS.pad.activeColor);
+  buildPalette("zRoot", designer.DEFAULTS.keys.rootColor);
+  showTypeFields();
+  currentKey = keyOf("preset", layout);
+  $("name").value = layout.name;
+  fillLayouts(currentKey);
+  buildGrid();
+  renderZones();
+
+})();
+</script>
+</body>
+</html>

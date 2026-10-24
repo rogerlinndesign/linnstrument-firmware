@@ -111,7 +111,12 @@ without touching the firmware. The claims in that document that the desktop
 can reach are checked by `tests/test_userfirmware.cpp`; change both together,
 and give a new claim a test. `examples/` holds a browser
 console for the mode and a shell walkthrough, with the protocol code in
-`examples/user_firmware_protocol.js`, and a settings editor page
+`examples/user_firmware_protocol.js`, a surface designer page
+(`examples/surface_designer.html`, logic in `examples/surface_designer.js`)
+that turns the instrument into a custom controller of pads, keys, faders, XY
+pads and buttons for any DAW, the shared connection widget and Web MIDI handling
+in `examples/connection.js`, a front page `examples/index.html` for hosting
+the folder on a static https host, and a settings editor page
 (`examples/settings_editor.html`, logic in `examples/settings_editor.js`) whose
 form is generated from the NRPN table in `midi.md` by `go run
 ./tools/linnstrument nrpns` into `examples/nrpn_parameters.js`, never edited
