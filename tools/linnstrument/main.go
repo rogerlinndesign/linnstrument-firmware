@@ -47,6 +47,9 @@ Commands:
   serve [PORT]           serve the browser pages in examples/ over http (default port 8765, 0 picks
                          a free one) and open them, unless LINN_NO_BROWSER is set; served from one
                          origin, the browser remembers the MIDI permission
+  mcp [200|128]          serve the Virtual LinnStrument to an AI assistant as an MCP server over
+                         stdio: touches, lights, screenshots and MIDI both ways (needs the app
+                         built as tools/virtual/README.md says, or LINN_VIRTUAL naming it)
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -131,6 +134,16 @@ func dispatch(port, command string, args []string) error {
 			listen = args[0]
 		}
 		return serveExamples(repo, listen, os.Getenv("LINN_NO_BROWSER") == "")
+	case "mcp":
+		repo, err := repoRoot()
+		if err != nil {
+			return err
+		}
+		model := "200"
+		if len(args) > 0 {
+			model = args[0]
+		}
+		return serveMcp(repo, model, os.Stdin, os.Stdout)
 	case "mutate":
 		repo, err := repoRoot()
 		if err != nil {

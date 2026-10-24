@@ -383,6 +383,11 @@ it to Claude Code with `routemidi --install-mcp claude-code` (other clients: see
   then `21 3` and `22 3` lights a cell, `27 72`, `27 105` and `28 3` draw "Hi" in green at the
   selected cell, and `99 2`, `98 43`, `6 2`, `38 16` asks for the model (NRPN 299 with value
   272: 299 is 2 times 128 plus 43, 272 is 2 times 128 plus 16).
+
+Without an instrument, the Virtual LinnStrument in `tools/virtual/` answers the same way on its
+port "Virtual LinnStrument", and `go run ./tools/linnstrument mcp` serves it to an agent directly
+as the MCP server `virtual-linnstrument` of `.mcp.json`: `press` and `tap` touch it, `leds` and
+`screenshot` show it, `send_midi` and `received_midi` carry the messages above as hex bytes.
 * `read_route` returns the touches as text messages, one per line, with a cursor to poll from.
 
 Whatever the client, the loop is the same: enter the mode, enable what you need per row, set

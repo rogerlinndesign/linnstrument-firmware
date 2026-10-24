@@ -3,6 +3,10 @@
     "routemidi": {
       "command": "routemidi",
       "args": ["--mcp"]
+    },
+    "virtual-linnstrument": {
+      "command": "go",
+      "args": ["run", "./tools/linnstrument", "mcp"]
     }
   }
 }

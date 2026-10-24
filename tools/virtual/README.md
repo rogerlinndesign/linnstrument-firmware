@@ -94,6 +94,13 @@ Using it
   its arguments, so quit the first before starting a scripted one. `send` and `received` carry
   MIDI over the same pipe, so a script needs no MIDI tool: `send B0 63 02 B0 62 2B B0 06 02 B0
   26 10` asks for the model and `received 1` prints the NRPN 272 answer.
+* `go run ./tools/linnstrument mcp [200|128]` serves the app to an AI assistant as an MCP server
+  over stdio, with the commands above as tools (`press`, `move`, `release`, `tap`, `foot`,
+  `leds`, `status`, `screenshot`, `model`, `send_midi`, `received_midi`, `wait`) and a
+  screenshot returned as an image. The app starts on the first tool call and quits with the
+  session. `.mcp.json` registers it for Claude Code as `virtual-linnstrument`; other clients
+  take the same command. `LINN_VIRTUAL` names the binary when it is not the one built under
+  `build/virtual`.
 * Pressure sets how hard every touch presses, Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so

@@ -81,7 +81,8 @@ a local port and opens them; see `examples/README.md` for the pages.
 `tools/virtual/` builds Virtual LinnStrument: the same firmware running on
 your computer behind a window that shows its lights, takes the mouse as a
 finger and has a virtual MIDI port, for trying a change without an instrument
-on the desk. Its README explains the CMake build.
+on the desk. Its README explains the CMake build, and `go run
+./tools/linnstrument mcp` serves it to an AI assistant as an MCP server.
 
 
 Flashing and testing on the instrument

@@ -157,7 +157,11 @@ lights as `ROW: c c c ...` lines from the top row down, 0 off, 7 black),
 (the MIDI it sent since the last call), `screenshot FILE [SCALE]`, `model`,
 `sleep SECONDS`, `quit`; each answers with its output and `ok`. Touches made
 this way go through the real firmware, so they produce the same MIDI an
-instrument would. Keep it running on a pipe from the binary inside the
+instrument would. The simplest way in from a session is the MCP server:
+`go run ./tools/linnstrument mcp` serves the app over stdio with those
+commands as tools and screenshots as images, and `.mcp.json` registers it as
+`virtual-linnstrument`, so the tools are there in Claude Code once the app is
+built. From a shell, keep it running on a pipe from the binary inside the
 bundle (`: > cmds.txt; tail -f cmds.txt | "$app/Virtual
 LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --script - &`), append
 commands, and read the lights with `leds` or look at a screenshot; `sendmidi
