@@ -94,6 +94,13 @@ Using it
   its arguments, so quit the first before starting a scripted one. `send` and `received` carry
   MIDI over the same pipe, so a script needs no MIDI tool: `send B0 63 02 B0 62 2B B0 06 02 B0
   26 10` asks for the model and `received 1` prints the NRPN 272 answer.
+* `tools/virtual/build-release.sh TAG` builds the app from an older release of the firmware, for
+  example `2.3.4`, the version customers still run: the tag's sketch goes in a worktree under
+  `build/virtual-TAG/src` with this checkout's app, mocks and Go module copied in, and the
+  binary path is printed last. Pages and scripts then see what that firmware does with their
+  MIDI (2.3.4 answers no query for the model, so the pages' old-firmware path shows). The
+  CMake option `VIRTUAL_OLD_FIRMWARE` the script sets leaves out the text-over-MIDI resets a
+  sketch before 2.4.0 does not have; 2.3.4 is the oldest release tried.
 * `go run ./tools/linnstrument mcp [200|128]` serves the app to an AI assistant as an MCP server
   over stdio, with the commands above as tools (`press`, `move`, `release`, `tap`, `foot`,
   `leds`, `status`, `screenshot`, `model`, `send_midi`, `received_midi`, `wait`) and a

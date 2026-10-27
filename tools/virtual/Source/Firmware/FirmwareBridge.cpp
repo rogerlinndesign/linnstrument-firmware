@@ -25,9 +25,11 @@ namespace firmware {
 void boot(int model, const std::vector<uint8_t>& flashImage, SerialSink sink) {
   // setup() never touches these, so a second boot (a model switch) clears them like tests/mocks.cpp does
   if (userFirmwareActive) changeUserFirmwareMode(false);
+#ifndef VIRTUAL_OLD_FIRMWARE   // text over MIDI arrived with firmware 2.4.0
   stopMidiTextScroll();
   midiTextAppend(0);
   midiTextFont = 2;
+#endif
   midiCellColCC = 0;
   midiCellRowCC = 0;
   controlModeActive = false;

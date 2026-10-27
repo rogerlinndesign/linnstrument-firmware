@@ -69,6 +69,12 @@ set_source_files_properties(${FIRMWARE_SOURCES} PROPERTIES
   INCLUDE_DIRECTORIES "${SUPPORT};${MERGED_DIR};${REPO}"
   OBJECT_DEPENDS ${MERGED})
 
+# a build from a release before 2.4.0, which has no text over MIDI (tools/virtual/build-release.sh)
+option(VIRTUAL_OLD_FIRMWARE "The sketch predates firmware 2.4.0" OFF)
+if(VIRTUAL_OLD_FIRMWARE)
+  target_compile_definitions(VirtualLinnStrument PRIVATE VIRTUAL_OLD_FIRMWARE)
+endif()
+
 target_compile_definitions(VirtualLinnStrument PRIVATE
   JUCE_WEB_BROWSER=0
   JUCE_USE_CURL=0

@@ -168,7 +168,10 @@ commands, and read the lights with `leds` or look at a screenshot; `sendmidi
 dev "Virtual LinnStrument" ...` and `receivemidi dev "Virtual LinnStrument"`
 reach its MIDI port too. A script file without `quit` leaves the app running
 (stdin ending quits it), and only one instance runs at a time (a second
-launch exits and the first ignores its arguments). The first build fetches JUCE
+launch exits and the first ignores its arguments).
+`tools/virtual/build-release.sh 2.3.4` builds the app from that release's
+firmware instead, the way to see what customers' units do with a page or a
+MIDI script before asking the person to try. The first build fetches JUCE
 9.0.4 and takes a few minutes; later builds re-merge the sketch only when a
 firmware file changed. `tools/virtual/README.md` has the details
 and the limits (no multi-touch with the mouse, no calibration, no serial mode).
