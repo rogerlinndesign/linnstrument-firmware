@@ -3,5 +3,25 @@
     "files.associations": {
         "__locale": "cpp",
         "cstddef": "cpp"
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/tools/virtual",
+    "cmake.buildDirectory": "${workspaceFolder}/build/virtual",
+    "cmake.defaultVariants": {
+        "buildType": {
+            "default": "release",
+            "description": "The build type",
+            "choices": {
+                "release": {
+                    "short": "Release",
+                    "long": "Optimised, where tools/linnstrument mcp looks for the app",
+                    "buildType": "Release"
+                },
+                "debug": {
+                    "short": "Debug",
+                    "long": "With debug information",
+                    "buildType": "Debug"
+                }
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@
         },
         {
             "name": "Arduino",
-            "compilerPath": "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-g++",
+            "compilerPath": "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/bin/arm-none-eabi-g++",
             "compilerArgs": [
                 "-w",
                 "-std=gnu++11",
@@ -25,27 +25,28 @@
                 "-nostdlib",
                 "-fno-threadsafe-statics",
                 "--param",
+                "max-inline-insns-single=500",
                 "-fno-rtti",
                 "-fno-exceptions"
             ],
-            "intelliSenseMode": "gcc-x64",
+            "intelliSenseMode": "gcc-arm",
             "includePath": [
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/libsam",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/CMSIS/CMSIS/Include/",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/CMSIS/Device/ATMEL/",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/cores/arduino",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/variants/arduino_due_x",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/libraries/SPI/src",
-                "/Users/gbevin/Documents/Arduino/libraries/DueFlashStorage/src",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/arm-none-eabi",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/backward",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/lib/gcc/arm-none-eabi/4.8.3/include",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/lib/gcc/arm-none-eabi/4.8.3/include-fixed",
-                "/Users/gbevin/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include"
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/libsam",
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/CMSIS/CMSIS/Include/",
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/CMSIS/Device/ATMEL/",
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/cores/arduino",
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/variants/arduino_due_x",
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/libraries/SPI/src",
+                "${workspaceFolder}/libraries/DueFlashStorage/src",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/arm-none-eabi",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/backward",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/lib/gcc/arm-none-eabi/4.8.3/include",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/lib/gcc/arm-none-eabi/4.8.3/include-fixed",
+                "${userHome}/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include"
             ],
             "forcedInclude": [
-                "/Users/gbevin/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/cores/arduino/Arduino.h"
+                "${userHome}/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/cores/arduino/Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",

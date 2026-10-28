@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(go run ./tools/linnstrument build)",
-      "Bash(go run ./tools/linnstrument test)",
+      "Bash(go run ./tools/linnstrument test*)",
       "Bash(go run ./tools/linnstrument ports)",
       "Bash(go run ./tools/linnstrument probe)",
       "Bash(go run ./tools/linnstrument led *)",
@@ -12,7 +12,9 @@
       "Bash(go run ./tools/linnstrument mutate*)",
       "Bash(node --test *)",
       "Bash(cmake --build *)",
+      "Bash(cmake -S *)",
       "Bash(go build *)",
+      "Bash(go test *)",
       "Bash(go vet *)",
       "Bash(gofmt *)",
       "Bash(arduino-cli compile *)",
