@@ -34,7 +34,8 @@ apt-get install -y -qq curl ca-certificates git build-essential nodejs >/dev/nul
 GO_VERSION=$(sed -n 's/^go //p' /work/linnstrument-firmware/go.mod)
 curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
 export PATH=/usr/local/go/bin:$PATH
-curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh >/dev/null 2>&1
+# the same pinned arduino-cli as the workflow
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/v1.5.1/install.sh | BINDIR=/usr/local/bin sh -s 1.5.1 >/dev/null 2>&1
 cd /work/linnstrument-firmware
 echo "== test job"
 go vet ./...

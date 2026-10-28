@@ -29,9 +29,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -51,12 +51,17 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # arduino-cli requires the sketch folder to carry the sketch name
           path: linnstrument-firmware
 
-      - uses: arduino/setup-arduino-cli@v2
+      # arduino-cli's own installer, pinned: arduino/setup-arduino-cli still runs on Node 20
+      - name: Install arduino-cli
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/v1.5.1/install.sh | BINDIR="$HOME/.local/bin" sh -s 1.5.1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install the Arduino SAM core
         run: |
@@ -80,7 +85,7 @@ jobs:
           echo "FIRMWARE_NAME=linnstrument-firmware-${version}${build}-${sha}" >> "$GITHUB_ENV"
           cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}${build}-${sha}.bin"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ env.FIRMWARE_NAME }}
           path: out/${{ env.FIRMWARE_NAME }}.bin
@@ -97,9 +102,9 @@ jobs:
             name: macos
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -121,7 +126,7 @@ jobs:
           lipo -create -output out/linnstrument-macos out/linnstrument-arm64 out/linnstrument-amd64
           rm out/linnstrument-arm64 out/linnstrument-amd64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linnstrument-tool-${{ matrix.name }}
           path: out/*
@@ -130,9 +135,9 @@ jobs:
     needs: test
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -150,7 +155,7 @@ jobs:
           cd build/virtual/VirtualLinnStrument_artefacts/Release
           ditto -c -k --keepParent "Virtual LinnStrument.app" "$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: virtual-linnstrument-macos
           path: |
