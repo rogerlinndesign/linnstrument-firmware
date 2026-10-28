@@ -37,10 +37,14 @@ context at a cell, `linn::touch()` to put a touch on a cell without scanning,
 real scans of the fake sensor, `linn::midiIn()` and `linn::midiInNrpn()` to feed
 incoming MIDI, `linn::drainMidi()` to let the MIDI queue out,
 `linn::pumpSerial()` to run the serial protocol over fed bytes.
-`support/host_mock.h` controls the fakes, including `host::setSensor()` for the
-raw X, Y and Z a cell reads. X and Y are single axes across the whole surface,
-not per cell: about 171 raw units of X per column, and a raw Y band per row
-(`CALY_DEFAULT_MIN` and `CALY_DEFAULT_MAX` in `ls_calibration.ino`).
+`linn::touch()` is for tests of mapping and state, where a touch simply has to
+be there; `press()`, `hold()` and `release()` are for velocity, pressure and
+anything timed, because they take the finger through the scans the firmware
+measures. `support/host_mock.h` controls the fakes, including
+`host::setSensor()` for the raw X, Y and Z a cell reads. X and Y are single
+axes across the whole surface, not per cell: about 171 raw units of X per
+column, and a raw Y band per row (`CALY_DEFAULT_MIN` and `CALY_DEFAULT_MAX` in
+`ls_calibration.ino`).
 
 Writing a test
 --------------
@@ -55,7 +59,12 @@ TEST(notes_row_offset_changes_the_layout) {
 
 Every test also gets a line in `mutations.tsv`: the test's name, a firmware
 file, a snippet of it that occurs exactly once (`\n` in the field is a line
-break) and a broken version of that snippet. `go run ./tools/linnstrument
+break) and a broken version of that snippet, tab separated:
+
+```
+nrpn_271_enters_serial_mode	ls_midi.ino	    case 271:	    case 272:
+```
+ `go run ./tools/linnstrument
 mutate` first runs the whole suite on the real firmware, then applies each
 line in turn, confirms the named test fails on the broken firmware, and
 restores the file, also on an interrupt. A test with no line in the table is
@@ -89,6 +98,15 @@ Things the fixture decides for you
   after 5000 passes and fails the test rather than hanging it.
 * Sensor reads return zero; `host::setSensor()` is the only way a cell reads
   anything.
+
+The files, one topic each: `test_notes.cpp` (note mapping and layouts),
+`test_layouts.cpp`, `test_velocity.cpp`, `test_playing.cpp` (touches to MIDI),
+`test_phantom.cpp`, `test_lowrow.cpp`, `test_arpeggiator.cpp`,
+`test_switches.cpp`, `test_presets.cpp`, `test_settings.cpp`,
+`test_upgrade.cpp` (every settings layout since version 1),
+`test_calibration.cpp`, `test_channelbucket.cpp`, `test_midi.cpp` (framing,
+NRPNs, clock), `test_serialmode.cpp` (the Updater's protocol) and
+`test_userfirmware.cpp` (every claim of `user_firmware_mode.md`).
 
 What cannot be tested here: anything that depends on real sensor readings, LED
 timing, or the feel of the instrument. Those still need a flash and a person at

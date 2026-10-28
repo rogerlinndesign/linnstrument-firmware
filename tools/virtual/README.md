@@ -32,6 +32,13 @@ Every build re-merges the sketch when a firmware file changed, so a firmware edi
 Using it
 --------
 
+* Settings persist the way the instrument's do, in `Virtual LinnStrument/flash-200.bin` and
+  `flash-128.bin` in the user's application data folder (`~/Library/Application Support` on
+  macOS), written on quit, on a model switch and periodically while they change. Delete the
+  file for a factory-fresh unit, and before judging a change to default settings, which an old
+  file would hide.
+* The zip from a GitHub Actions run is not signed or notarised: the first launch is blocked by
+  macOS; right-click the app, choose Open, and confirm once.
 * The menu at the top left picks a 200 or a 128; switching restarts the firmware.
 * Click a pad to play it, drag to slide along a row or bend inside a cell, shift-click or
   right-click to hold a touch down until the next click on it. The left column works like the
@@ -117,10 +124,6 @@ Using it
   User Firmware Mode on it is `LINNSTRUMENT_DEVICE="Virtual LinnStrument"
   examples/user_firmware_demo.sh`: lights, text and a scroll appear in the window. Windows has
   no virtual ports; a loopMIDI pair is the workaround, not wired up yet.
-* Settings persist the way the instrument's do, in `Virtual LinnStrument/flash-200.bin` and
-  `flash-128.bin` in the user's application data folder (`~/Library/Application Support` on
-  macOS), written on quit, on a model switch and periodically while they change. Delete a
-  file for a factory-fresh unit.
 
 What it cannot do
 -----------------

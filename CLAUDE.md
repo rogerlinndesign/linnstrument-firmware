@@ -68,8 +68,11 @@ go run ./tools/linnstrument test
 ```
 
 This compiles the whole sketch for the desktop against the stand-ins in
-`tests/support/` and runs every `tests/test_*.cpp` in a few seconds; `test
-NAME` runs only the tests whose name contains NAME. Run it after every change,
+`tests/support/` and runs every `tests/test_*.cpp` in about five seconds;
+`test NAME` runs only the tests whose name contains NAME. A `build` takes
+about ten seconds once the core is compiled, `mutate` about six seconds per
+line, and the Virtual LinnStrument rebuilds in about twenty seconds after a
+firmware edit. Run it after every change,
 before the firmware build. `tools/ci-linux.sh` runs the build and tool
 GitHub jobs in an x86_64 Ubuntu container with Docker; x86 traps on integer
 division by zero where the Due and Apple silicon return 0, so a change that
@@ -127,9 +130,9 @@ mismatch or a stale generated file. `go run ./tools/linnstrument serve` serves
 the pages on a local port (the browser then remembers the MIDI permission,
 which it cannot for a page opened from a file). `node --test examples/` runs
 every page's tests. A session can drive a connected unit in that mode over
-MIDI through RouteMIDI's MCP server, which `.mcp.json` registers when
-`routemidi` is installed, or through `sendmidi` and `receivemidi` from the
-shell.
+MIDI through RouteMIDI's MCP server, which `.mcp.json` registers (without
+`routemidi` installed that server fails at startup, which is harmless), or
+through `sendmidi` and `receivemidi` from the shell.
 
 ## Virtual LinnStrument
 
@@ -425,6 +428,16 @@ the enum in `linnstrument-firmware.ino`, a `paint...` function in
 `ls_displayModes.ino`, and `handle...NewTouch` / `handle...Release` in
 `ls_settings.ino`. Look at a recent small feature commit (for example the
 Transpose switch assignments, commit 41c0451) as a template.
+
+A new low row mode, to take the other common request, touches: the
+`LowRowMode` enum in `linnstrument-firmware.ino`, the `switch` statements on
+`lowRowMode` in `ls_lowRow.ino` (`lowRowRequiresSlideTracking()`,
+`allowNewTouchOnLowRow()`, `handleLowRowState()` and the ones after it), the
+cell that selects it in the per-split settings touch handler in
+`ls_settings.ino` (the "Low-row settings" cases) and its painter in
+`ls_displayModes.ino`, the `inRange()` bound of NRPN 34 in `ls_midi.ino` and
+the table in `midi.md`, and a test in `tests/test_lowrow.cpp` with its line in
+`tests/mutations.tsv`.
 
 ## Things that look wrong but are deliberate
 
