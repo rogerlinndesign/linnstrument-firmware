@@ -150,15 +150,68 @@ jobs:
         run: |
           "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot build/virtual-linnstrument.png
 
-      # only the executable comes signed, by the linker, and macOS calls a downloaded bundle whose
-      # resources aren't sealed damaged, with no Open Anyway; an ad-hoc signature over the whole
-      # bundle makes it an app from an unidentified developer, which the person can open
-      - name: Sign the app ad hoc and zip it
+      # The app is signed with the Developer ID in the repository's secrets and notarised, so it
+      # opens like any downloaded app. Without the secrets, as in a pull request from a fork, it's
+      # signed ad hoc instead: only the linker signs the executable, and macOS calls a downloaded
+      # bundle whose resources aren't sealed damaged, with no Open Anyway.
+      #   MACOS_CERTIFICATE      base64 .p12 with the Developer ID Application identity
+      #   MACOS_CERTIFICATE_PWD  that .p12's export password
+      #   NOTARY_KEY             base64 App Store Connect API key (.p8)
+      #   NOTARY_KEY_ID          that key's Key ID
+      #   NOTARY_ISSUER_ID       the App Store Connect Issuer ID
+      - name: Import the Developer ID certificate
+        id: signing
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ] || [ -z "$NOTARY_KEY" ]; then
+            echo "no Developer ID secrets here, the app is signed ad hoc"
+            echo "identity=-" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PWD="$(openssl rand -base64 24)"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certs.p12"
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/certs.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
+          # the current search list, one keychain per argument, with the new one in front
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+          rm "$RUNNER_TEMP/certs.p12"
+          identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application[^"]*\)".*/\1/p' | head -1)
+          test -n "$identity"
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+          echo "$NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          xcrun notarytool store-credentials notary --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+          rm "$RUNNER_TEMP/notary.p8"
+
+      - name: Sign, notarise and zip the app
+        env:
+          IDENTITY: ${{ steps.signing.outputs.identity }}
         run: |
           cd build/virtual/VirtualLinnStrument_artefacts/Release
-          codesign --force --deep --sign - "Virtual LinnStrument.app"
+          zip="$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
+          if [ "$IDENTITY" = "-" ]; then
+            codesign --force --deep --sign - "Virtual LinnStrument.app"
+          else
+            codesign --force --deep --strict --timestamp --options=runtime --sign "$IDENTITY" "Virtual LinnStrument.app"
+          fi
           codesign --verify --deep --strict "Virtual LinnStrument.app"
-          ditto -c -k --keepParent "Virtual LinnStrument.app" "$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
+          ditto -c -k --keepParent "Virtual LinnStrument.app" "$zip"
+          if [ "$IDENTITY" != "-" ]; then
+            xcrun notarytool submit "$zip" --keychain-profile notary --wait
+            xcrun stapler staple "Virtual LinnStrument.app"
+            spctl --assess --type execute -vv "Virtual LinnStrument.app"
+            rm "$zip"
+            ditto -c -k --keepParent "Virtual LinnStrument.app" "$zip"
+          fi
 
       # uploaded as they are, so the download is the app's zip itself, not a zip around it
       - uses: actions/upload-artifact@v7
