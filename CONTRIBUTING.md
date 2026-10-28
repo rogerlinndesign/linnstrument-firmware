@@ -3,7 +3,9 @@ Contributing to the LinnStrument firmware
 
 This guide is for anyone who wants to fix a bug or add a feature, whether you
 write the code yourself or work with an AI coding assistant. It describes the
-workflow that keeps changes easy to review and safe to ship.
+workflow that keeps changes easy to review and safe to ship. If you only want
+to use the browser pages with your instrument, `examples/README.md` is all you
+need. A glossary of the terms used here is at the end.
 
 Bug reports and feature requests from customers go to
 support@rogerlinndesign.com, not to this repository. GitHub issues are disabled.
@@ -24,6 +26,38 @@ GitHub Desktop is fine for creating branches, looking at changes and pushing. If
 an AI assistant does the editing and committing, you rarely need anything else.
 
 
+What to install
+---------------
+
+Nothing, for the browser pages, or for changing the firmware with Claude Code
+on the web and the LinnStrument Updater (see "Working with an AI coding
+assistant"). For development on your own computer, in this order:
+
+* **Git and a GitHub account.** GitHub Desktop covers branches and pushing.
+* **Claude Code**, if you want an assistant: the installers are at
+  claude.ai/code. The terminal program is started with `claude` in this
+  folder; the VS Code extension opens the folder instead. Both read `CLAUDE.md`
+  on their own.
+* **Go 1.25 or later** (go.dev/dl) and **arduino-cli** (arduino.github.io), each
+  a single installer, then once: `arduino-cli core install arduino:sam@1.6.12`.
+* **macOS:** the Xcode Command Line Tools, `xcode-select --install`, and on
+  Apple silicon Rosetta, `softwareupdate --install-rosetta`, which the Arduino
+  compiler needs. **Linux:** g++, and your user in the serial port group.
+  **Windows:** MinGW for the desktop tests.
+* **CMake 3.22 or later** for the Virtual LinnStrument. Its first build fetches
+  JUCE and takes a few minutes; later builds take about twenty seconds.
+* Optional: **Node** for the example pages' tests, **Docker** for
+  `tools/ci-linux.sh`, **sendmidi** and **receivemidi**
+  (github.com/gbevin) and **RouteMIDI** for MIDI from the shell or as tools for
+  the assistant. `.mcp.json` registers RouteMIDI's MCP server; when it is not
+  installed, Claude Code reports that server as failed at startup, which is
+  harmless.
+
+Then `go run ./tools/linnstrument test` (a few seconds) and `go run
+./tools/linnstrument build` (a minute or two the first time, about ten seconds
+after that) prove the setup.
+
+
 Building
 --------
 
@@ -34,11 +68,8 @@ Three ways, all producing the same firmware:
    `linnstrument-firmware.ino` and press Verify. "Sketch > Export Compiled
    Binary" writes the `.bin` into `build/arduino.sam.arduino_due_x/`.
 2. **Command line.** `go run ./tools/linnstrument build` runs arduino-cli and
-   writes the `.bin` into `build/`. This needs Go (1.25 or later) and
-   arduino-cli installed, both single installers on macOS, Windows and Linux.
-   On macOS
-   the tool also needs the Xcode Command Line Tools (`xcode-select --install`),
-   which Homebrew requires anyway.
+   writes the `.bin` into `build/`, in about ten seconds once the core has been
+   compiled. See "What to install".
 3. **GitHub Actions.** Every push to any branch, and every pull request, is
    compiled automatically. Open the "Actions" tab on GitHub, click the run for
    your commit, and download the firmware from "Artifacts" at the bottom. The
@@ -63,7 +94,8 @@ Desktop tests
 
 `go run ./tools/linnstrument test` compiles the firmware for your computer and
 runs the tests in `tests/` in a few seconds, with no instrument attached;
-`test NAME` runs only the tests whose name contains NAME. They cover the
+`test NAME` runs only the tests whose name contains NAME, and `mutate` proves
+every test can fail, at about six seconds per test. They cover the
 logic that can be checked without hardware: note layout, velocity, phantom touch
 rejection, settings migration, MIDI and serial framing. Run them before every
 push, and add one when you fix a bug in logic they can reach. See
@@ -86,17 +118,44 @@ on the desk. Its README explains the CMake build, `go run
 `tools/virtual/build-release.sh TAG` builds it from an older firmware release.
 
 
+What is safe and what is not
+----------------------------
+
+* The browser pages change nothing on the instrument beyond the settings and
+  lights you ask for. User Firmware Mode, which the designer and the console
+  use, is off again after a power cycle.
+* The LinnStrument Updater keeps settings and calibration: it backs them up,
+  flashes, and restores them. `go run ./tools/linnstrument update` does the
+  same from the command line. `flash` on its own, bossac and the Arduino IDE
+  erase settings and calibration; the unit then starts in serial mode and asks
+  to be calibrated.
+* An assistant may flash a unit only when you say so in that conversation
+  (`CLAUDE.md` makes that a rule), and the command allowlist in
+  `.claude/settings.json` covers building, testing, probing and backing up but
+  never flashing or restoring, so those always ask you first.
+* Keep the official firmware `.bin` of the release you were running (from
+  rogerlinndesign.com) so you can always go back, and keep a `backup` file
+  from before the first flash.
+* The one way to make a unit unreachable over USB: a build in which Global
+  Settings or its OS Update cell no longer work has no serial port and cannot
+  be reflashed; the unit has to be opened to reach the Due's erase button.
+  `CLAUDE.md` forbids an assistant to disable those. Everything else is
+  recoverable.
+* Recovery when a flashed build misbehaves: hold Global Settings, tap OS
+  Update (the unit switches to serial mode), run the Updater with the official
+  `.bin`, calibrate if the unit asks, and `go run ./tools/linnstrument restore
+  FILE` if you had made a backup with the tool.
+
+
 Flashing and testing on the instrument
 --------------------------------------
 
 Flash the `.bin` with the LinnStrument Updater, the same tool customers use.
 Put the file next to the Updater app or choose it from inside the app. The
 Updater saves your settings before flashing and restores them afterwards.
-Flashing with bossac or the Arduino IDE directly erases all settings and the
-calibration.
 
-Keep the official firmware `.bin` of the release you were running so you can
-always go back.
+<img src="docs/images/linnstrument-updater.png" width="600"
+     alt="The LinnStrument Updater">
 
 For developers, `tools/linnstrument` does from the command line what the
 Updater does, with the Updater's signed bossac for macOS and Windows bundled
@@ -161,20 +220,62 @@ The file `CLAUDE.md` in this repository is read automatically by Claude Code
 and tells it how the firmware is built, what it must not do, and how a change
 is verified. You do not need to repeat any of that.
 
-### Setting up without a terminal
+### How the work is divided
+
+Four stages, each settling something the previous one cannot:
+
+1. **The assistant** edits the code and runs the desktop tests in `tests/`,
+   which check the firmware's logic in seconds: note layout, velocity,
+   settings, MIDI, the serial protocol. A change that breaks them is not done.
+2. **The Virtual LinnStrument** (`tools/virtual/`) runs the real firmware on
+   your computer. The assistant can drive it through the MCP server
+   (`go run ./tools/linnstrument mcp`): press cells, read the lights, send and
+   receive MIDI, take a screenshot. That settles what the lights and the MIDI
+   do.
+3. **Your instrument** settles feel, pressure, timing and sound. Only a person
+   at the unit can; the assistant flashes it only when you say so.
+4. **GitHub Actions** is the build of record: every push is compiled and the
+   firmware attached to the run, so a reviewer, and you on another machine,
+   get the same binary.
+
+### Setting up
 
 * **Claude Code on the web** (claude.ai/code): connect your GitHub account,
   pick this repository, and work from the browser. It edits on a branch in the
   cloud, commits, and can open the pull request. Nothing needs to be installed.
   It cannot compile there, so the loop is: ask, review the change, have it
-  push, wait for the Actions run, download the `.bin`, flash, test.
+  push, wait for the Actions run, download the `.bin`, flash with the Updater,
+  test.
 * **Claude Code in VS Code**: install the Claude Code extension, open the
   repository folder, and chat in the side panel. Same workflow, with the files
-  visible next to the conversation. This needs the Arduino toolchain locally if
-  you want it to compile on your machine, otherwise rely on GitHub Actions.
+  visible next to the conversation, and with the toolchain installed it
+  compiles and tests on your machine.
+* **Claude Code in the terminal**: type `claude` in the repository folder.
+  This is the fullest setup: it compiles, runs the tests, drives the Virtual
+  LinnStrument and, with your permission, a connected instrument. The first
+  time it runs a command it asks; `.claude/settings.json` pre-approves
+  building, testing, probing and backing up, never flashing.
 
 Either way, make sure you are on your own branch before you start, and tell
 the assistant the branch name.
+
+### Your first session
+
+Prompts that work as they are, to be adapted:
+
+> I am on a LinnStrument 200 with firmware 2.3.4, on the branch
+> dev/me-played-colour. Read CLAUDE.md and CONTRIBUTING.md and tell me in a
+> few lines how a change gets from here onto my instrument.
+
+> Change the default colour of played notes from the current one to cyan.
+> Run the desktop tests, compile, and give me the steps to check it on the
+> instrument.
+
+> Build the Virtual LinnStrument, start it, play a few notes on it and tell me
+> which lights came on and what MIDI it sent.
+
+> Commit this on my branch with a one-line past-tense message, push, and tell
+> me which Actions run to download the firmware from.
 
 ### How to brief it
 
@@ -193,8 +294,10 @@ they appear on the instrument.
 
 ### What to ask of it, every time
 
-1. **Compile before reporting back.** If it cannot compile, as on the web, it
-   should say so and point you to the Actions run, not guess.
+1. **Compile and run the desktop tests before reporting back.** If it cannot
+   compile, as on the web, it should say so and point you to the Actions run,
+   not guess. For anything about lights or MIDI, ask it to try the change on
+   the Virtual LinnStrument too.
 2. **Explain the change in plain words** and list the files it touched. If the
    explanation does not match what you asked, say so.
 3. **Give you test steps** for the instrument: what to set, what to press,
@@ -204,12 +307,15 @@ they appear on the instrument.
 5. **Keep the change small.** If it proposes a rewrite or a cleanup of code you
    did not ask about, decline it and ask for the minimal change.
 
-### What it cannot do
+### What it can and cannot do
 
-It cannot run the firmware, touch the instrument, hear anything or see the LEDs.
-You are the test harness. When it says "this should work", it means "this
-compiles and I believe it is right". Only your test on the instrument settles
-it.
+It can compile, run the desktop tests, run the firmware in the Virtual
+LinnStrument and read its lights and MIDI, and with your word flash a unit and
+back up and restore its settings. It cannot feel the surface, hear anything,
+or judge timing and pressure. For those you are the test harness: when it
+says "this should work", it means "this compiles, passes the tests and
+behaves on the virtual instrument". Only your test on the instrument settles
+the rest.
 
 If it tells you an existing constant or check "looks like a bug", check the
 "Things that look wrong but are deliberate" list in `CLAUDE.md` before letting
@@ -226,3 +332,33 @@ than letting it guess at a second fix.
 
 When the change works, ask it to open the pull request, or open it yourself on
 GitHub, with the description described above.
+
+
+Glossary
+--------
+
+* **Fork, branch, pull request.** Your own copy of the repository on GitHub, a
+  named line of changes inside it, and the request to take those changes into
+  this repository.
+* **GitHub Actions, artifact.** The builds GitHub runs on every push, and the
+  files a run attaches: the firmware `.bin`, the tool, the Virtual LinnStrument.
+* **`.bin`.** The compiled firmware file the Updater flashes.
+* **Arduino core.** The compiler and libraries for the Due, installed once with
+  `arduino-cli core install arduino:sam@1.6.12`.
+* **Serial mode, MIDI mode.** The instrument's two USB personalities: a serial
+  port while the Updater talks to it (OS Update in Global Settings), a MIDI
+  device the rest of the time.
+* **Calibration.** The per-unit measurement of the surface's X and Y, kept
+  with the settings and lost when a flash erases them.
+* **NRPN, CC.** MIDI messages: a control change number with a value, and a
+  numbered parameter sent as four of them. `midi.md` lists the instrument's.
+* **User Firmware Mode.** The mode in which the instrument sends raw touches
+  and takes lights over MIDI, which the browser pages use
+  (`user_firmware_mode.md`).
+* **Desktop tests, mutation.** The checks in `tests/` that run on your
+  computer, and the proof that each can fail (`tests/README.md`).
+* **MCP server.** The way an assistant gets tools: `go run ./tools/linnstrument
+  mcp` offers the Virtual LinnStrument's commands as tools, RouteMIDI's offers
+  MIDI ports.
+* **Virtual LinnStrument.** The firmware running on your computer behind a
+  window (`tools/virtual/README.md`).
