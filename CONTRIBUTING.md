@@ -84,18 +84,25 @@ own computer, here's what you need, roughly in this order:
   attaches. It does `backup`, `restore`, `flash`, `update` and `serve`. Unzip
   `linnstrument-tool-macos` or `linnstrument-tool-linux-windows` and put the
   binary in the repository folder. A "Download ZIP" copy will do, since it
-  holds the bossac the tool flashes with and the pages it serves. On a Mac,
-  before the first run, open a terminal in that folder and type:
+  holds the bossac the tool flashes with and the pages it serves. Before the
+  first run, open a terminal in that folder and type:
 
   ```
   chmod +x linnstrument-macos
+  ```
+
+  The zip drops the file's executable flag, and without it the terminal says
+  "permission denied". On Linux, type the same for `linnstrument-linux-amd64`
+  or `linnstrument-linux-arm64`. The macOS tool from this repository's runs is
+  signed with a Developer ID and notarised, so macOS checks it with Apple on
+  its first run, which needs an internet connection. A build without those
+  credentials, such as a pull request from a fork, is not notarised, and
+  macOS kills it or says Apple could not verify it. For that one, also type:
+
+  ```
   xattr -d com.apple.quarantine linnstrument-macos
   ```
 
-  The zip drops the file's executable flag, and macOS stops a downloaded
-  program it can't verify. Without the first line the terminal says
-  "permission denied", and without the second the program is killed or a
-  dialog says Apple could not verify it. On Linux only `chmod +x` is needed.
   Then run it from that folder, for example `./linnstrument-macos ports`.
 * **macOS:** the Xcode Command Line Tools (`xcode-select --install`) and, on
   Apple silicon, Rosetta (`softwareupdate --install-rosetta`), which the

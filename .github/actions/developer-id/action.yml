@@ -1,0 +1,70 @@
+# Copyright 2026 Roger Linn Design (https://www.rogerlinndesign.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Puts the Developer ID Application identity from the repository's secrets in a temporary keychain
+# and stores the notary credentials under the keychain profile "notary". Without the secrets, as
+# in a pull request from a fork, it does nothing and the identity is "-", which signs ad hoc.
+name: Developer ID
+description: Import the Developer ID certificate and the notary credentials
+inputs:
+  certificate:
+    description: base64 .p12 with the Developer ID Application identity
+  certificate-password:
+    description: that .p12's export password
+  notary-key:
+    description: base64 App Store Connect API key (.p8)
+  notary-key-id:
+    description: that key's Key ID
+  notary-issuer-id:
+    description: the App Store Connect Issuer ID
+outputs:
+  identity:
+    description: the signing identity, or "-" without the secrets
+    value: ${{ steps.import.outputs.identity }}
+runs:
+  using: composite
+  steps:
+    - id: import
+      shell: bash
+      env:
+        MACOS_CERTIFICATE: ${{ inputs.certificate }}
+        MACOS_CERTIFICATE_PWD: ${{ inputs.certificate-password }}
+        NOTARY_KEY: ${{ inputs.notary-key }}
+        NOTARY_KEY_ID: ${{ inputs.notary-key-id }}
+        NOTARY_ISSUER_ID: ${{ inputs.notary-issuer-id }}
+      run: |
+        set -eo pipefail
+        if [ -z "$MACOS_CERTIFICATE" ] || [ -z "$NOTARY_KEY" ]; then
+          echo "no Developer ID secrets here, signing ad hoc"
+          echo "identity=-" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+        KEYCHAIN_PWD="$(openssl rand -base64 24)"
+        echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certs.p12"
+        security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN"
+        security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+        security import "$RUNNER_TEMP/certs.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
+        # the current search list, one keychain per argument, with the new one in front
+        # shellcheck disable=SC2046
+        security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+        rm "$RUNNER_TEMP/certs.p12"
+        identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application[^"]*\)".*/\1/p' | head -1)
+        test -n "$identity"
+        echo "identity=$identity" >> "$GITHUB_OUTPUT"
+        echo "$NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+        xcrun notarytool store-credentials notary --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+        rm "$RUNNER_TEMP/notary.p8"

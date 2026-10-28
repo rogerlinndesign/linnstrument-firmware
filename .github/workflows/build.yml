@@ -126,6 +126,30 @@ jobs:
           lipo -create -output out/linnstrument-macos out/linnstrument-arm64 out/linnstrument-amd64
           rm out/linnstrument-arm64 out/linnstrument-amd64
 
+      # signed and notarised so that a downloaded copy runs without removing its quarantine; a
+      # bare program can't have its ticket stapled, so macOS asks Apple on the first run
+      - name: Import the Developer ID certificate
+        id: signing
+        if: runner.os == 'macOS'
+        uses: ./.github/actions/developer-id
+        with:
+          certificate: ${{ secrets.MACOS_CERTIFICATE }}
+          certificate-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          notary-key: ${{ secrets.NOTARY_KEY }}
+          notary-key-id: ${{ secrets.NOTARY_KEY_ID }}
+          notary-issuer-id: ${{ secrets.NOTARY_ISSUER_ID }}
+
+      - name: Sign and notarise the macOS tool
+        if: runner.os == 'macOS' && steps.signing.outputs.identity != '-'
+        env:
+          IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: |
+          codesign --force --timestamp --options=runtime --sign "$IDENTITY" out/linnstrument-macos
+          codesign --verify --strict out/linnstrument-macos
+          ditto -c -k out/linnstrument-macos "$RUNNER_TEMP/linnstrument-macos.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/linnstrument-macos.zip" --keychain-profile notary --wait
+          codesign --verify --check-notarization -R=notarized out/linnstrument-macos
+
       - uses: actions/upload-artifact@v7
         with:
           name: linnstrument-tool-${{ matrix.name }}
@@ -154,43 +178,15 @@ jobs:
       # opens like any downloaded app. Without the secrets, as in a pull request from a fork, it's
       # signed ad hoc instead: only the linker signs the executable, and macOS calls a downloaded
       # bundle whose resources aren't sealed damaged, with no Open Anyway.
-      #   MACOS_CERTIFICATE      base64 .p12 with the Developer ID Application identity
-      #   MACOS_CERTIFICATE_PWD  that .p12's export password
-      #   NOTARY_KEY             base64 App Store Connect API key (.p8)
-      #   NOTARY_KEY_ID          that key's Key ID
-      #   NOTARY_ISSUER_ID       the App Store Connect Issuer ID
       - name: Import the Developer ID certificate
         id: signing
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
-          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
-          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
-        run: |
-          if [ -z "$MACOS_CERTIFICATE" ] || [ -z "$NOTARY_KEY" ]; then
-            echo "no Developer ID secrets here, the app is signed ad hoc"
-            echo "identity=-" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
-          KEYCHAIN_PWD="$(openssl rand -base64 24)"
-          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certs.p12"
-          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
-          security import "$RUNNER_TEMP/certs.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
-          # the current search list, one keychain per argument, with the new one in front
-          # shellcheck disable=SC2046
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
-          rm "$RUNNER_TEMP/certs.p12"
-          identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application[^"]*\)".*/\1/p' | head -1)
-          test -n "$identity"
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-          echo "$NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
-          xcrun notarytool store-credentials notary --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
-          rm "$RUNNER_TEMP/notary.p8"
+        uses: ./.github/actions/developer-id
+        with:
+          certificate: ${{ secrets.MACOS_CERTIFICATE }}
+          certificate-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          notary-key: ${{ secrets.NOTARY_KEY }}
+          notary-key-id: ${{ secrets.NOTARY_KEY_ID }}
+          notary-issuer-id: ${{ secrets.NOTARY_ISSUER_ID }}
 
       - name: Sign, notarise and zip the app
         env:
