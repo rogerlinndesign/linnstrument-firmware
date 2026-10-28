@@ -2,5 +2,5 @@
     "board": "arduino:sam:arduino_due_x",
     "sketch": "linnstrument-firmware.ino",
     "port": "/dev/tty.usbmodem2101",
-    "output": "build"
+    "output": "build/arduino"
 }

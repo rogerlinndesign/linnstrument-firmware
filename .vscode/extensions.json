@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "vscode-arduino.vscode-arduino-community",
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "golang.go",
+        "anthropic.claude-code"
+    ]
+}

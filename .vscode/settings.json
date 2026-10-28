@@ -1,4 +1,7 @@
 {
+    "arduino.disableIntelliSenseAutoGen": true,
+    "arduino.analyzeOnOpen": false,
+    "arduino.analyzeOnSettingChange": false,
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "__locale": "cpp",
