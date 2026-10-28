@@ -21,10 +21,12 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // fakeApp answers the --script protocol the way the Virtual LinnStrument does and records
@@ -109,6 +111,9 @@ type rpcReply struct {
 		Content         []map[string]any `json:"content"`
 		IsError         bool             `json:"isError"`
 		ProtocolVersion string           `json:"protocolVersion"`
+		ServerInfo      struct {
+			Version string `json:"version"`
+		} `json:"serverInfo"`
 	} `json:"result"`
 	Error *jsonRpcError `json:"error"`
 }
@@ -208,5 +213,92 @@ func TestMcpRejectsWhatItCannotDo(t *testing.T) {
 	}
 	if strings.Join(fake.given(), "|") != "quit" {
 		t.Fatalf("the app was asked something: %v", fake.given())
+	}
+}
+
+func TestMcpReportsTheBuildOfTheTool(t *testing.T) {
+	kept := version
+	defer func() { version = kept }()
+	version = "240.075-1a2b3c4"
+	replies, _ := runMcp(t, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)
+	if got := replies[0].Result.ServerInfo.Version; got != "240.075-1a2b3c4" {
+		t.Fatalf("server version %q", got)
+	}
+}
+
+// restartingServer hands out a new fake app on every start, so that a test sees each one
+func restartingServer(t *testing.T, prepare func(*virtualApp)) (*mcpServer, *[]*fakeApp) {
+	fakes := &[]*fakeApp{}
+	server := &mcpServer{out: io.Discard, tools: mcpTools(), start: func() (*virtualApp, error) {
+		fake, app := newFakeApp(t)
+		if prepare != nil {
+			prepare(app)
+		}
+		*fakes = append(*fakes, fake)
+		return app, nil
+	}}
+	return server, fakes
+}
+
+func statusTool(t *testing.T, server *mcpServer) mcpTool {
+	for _, tool := range server.tools {
+		if tool.Name == "status" {
+			return tool
+		}
+	}
+	t.Fatal("no status tool")
+	return mcpTool{}
+}
+
+func TestMcpStartsTheAppAgainAfterItQuit(t *testing.T) {
+	server, fakes := restartingServer(t, nil)
+	status := statusTool(t, server)
+	if _, err := server.call(status, map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+	// what closing the window does: the app reads and answers nothing more
+	(*fakes)[0].reader.Close()
+	(*fakes)[0].writer.Close()
+	content, err := server.call(status, map[string]any{})
+	if err != nil {
+		t.Fatalf("after the app quit: %v", err)
+	}
+	if len(*fakes) != 2 || len((*fakes)[1].given()) != 1 || (*fakes)[1].given()[0] != "status" {
+		t.Fatalf("the status call did not reach a new app: %d apps", len(*fakes))
+	}
+	if !strings.Contains(content[0]["text"].(string), "had quit") {
+		t.Fatalf("no word of the restart: %v", content)
+	}
+}
+
+func TestMcpStartsTheNewBuildAfterARebuild(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "Virtual LinnStrument")
+	if err := os.WriteFile(binary, nil, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	built := time.Now().Add(-time.Hour)
+	os.Chtimes(binary, built, built)
+	server, fakes := restartingServer(t, func(app *virtualApp) {
+		info, _ := os.Stat(binary)
+		app.binary, app.built = binary, info.ModTime()
+	})
+	status := statusTool(t, server)
+	if _, err := server.call(status, map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+	rebuilt := built.Add(time.Minute)
+	os.Chtimes(binary, rebuilt, rebuilt)
+	content, err := server.call(status, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first := (*fakes)[0].given(); len(*fakes) != 2 || first[len(first)-1] != "quit" {
+		t.Fatalf("the old build was not replaced: %d apps, %v", len(*fakes), first)
+	}
+	if !strings.Contains(content[0]["text"].(string), "rebuilt") {
+		t.Fatalf("no word of the rebuild: %v", content)
+	}
+	if _, err := server.call(status, map[string]any{}); err != nil || len(*fakes) != 2 {
+		t.Fatalf("restarted again without a rebuild: %d apps, %v", len(*fakes), err)
 	}
 }

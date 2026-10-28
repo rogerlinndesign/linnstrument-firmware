@@ -138,9 +138,10 @@ Using it
   over stdio. The commands above are its tools (`press`, `move`, `release`, `tap`, `foot`,
   `leds`, `status`, `screenshot`, `model`, `send_midi`, `received_midi`, `wait`), and a
   screenshot is returned as an image. The app starts on the first tool call and quits with the
-  session. `.mcp.json` registers it for Claude Code as `virtual-linnstrument`, and other clients
-  take the same command. `LINN_VIRTUAL` names the binary when it's not the one built under
-  `build/virtual`.
+  session. When its window was closed or the app was rebuilt, the next tool call starts it
+  again, which releases any touch held down, and the reply says so. `.mcp.json` registers it for
+  Claude Code as `virtual-linnstrument`, and other clients take the same command. `LINN_VIRTUAL`
+  names the binary when it's not the one built under `build/virtual`.
 * Pressure sets how hard every touch presses, and Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so the

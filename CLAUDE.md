@@ -177,10 +177,10 @@ instrument would. The simplest way in from a session is the MCP server:
 `go run ./tools/linnstrument mcp` serves the app over stdio with those
 commands as tools and screenshots as images, and `.mcp.json` registers it as
 `virtual-linnstrument`, so the tools are there in Claude Code once the app is
-built. The server starts the app on the first tool call and keeps that
-process: after rebuilding the app, or when its window was closed, reconnect
-the server (`/mcp` in Claude Code) to get the new binary. From a shell, keep
-it running on a pipe from the binary inside the bundle
+built. The server starts the app on the first tool call, and starts it again
+when its window was closed or the app was rebuilt, which releases held
+touches and says so in the reply. From a shell, keep it running on a pipe
+from the binary inside the bundle
 (`: > build/cmds.txt; tail -f build/cmds.txt | "$app/Virtual
 LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --script - &`),
 append commands, and read the lights with `leds` or look at a screenshot.

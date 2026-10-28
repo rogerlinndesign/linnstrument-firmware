@@ -44,20 +44,33 @@ var mcpProtocolVersions = map[string]bool{"2024-11-05": true, "2025-03-26": true
 // virtualApp talks the --script protocol: one command per line, the reply is its output
 // followed by "ok", or one line starting with "error:".
 type virtualApp struct {
-	in   io.Writer
-	out  *bufio.Reader
-	done func() // ends the process after quit, nil for a fake
+	in     io.Writer
+	out    *bufio.Reader
+	done   func()    // ends the process after quit, nil for a fake
+	binary string    // the app's binary and its time when the process started, to notice a
+	built  time.Time // rebuild; empty for a fake
+}
+
+var errAppGone = errors.New("the Virtual LinnStrument is gone")
+
+// rebuilt tells whether the binary changed since this process started from it
+func (a *virtualApp) rebuilt() bool {
+	if a.binary == "" {
+		return false
+	}
+	info, err := os.Stat(a.binary)
+	return err == nil && !info.ModTime().Equal(a.built)
 }
 
 func (a *virtualApp) command(line string) (string, error) {
 	if _, err := io.WriteString(a.in, line+"\n"); err != nil {
-		return "", fmt.Errorf("the app is gone: %w", err)
+		return "", fmt.Errorf("%w: %v", errAppGone, err)
 	}
 	var lines []string
 	for {
 		text, err := a.out.ReadString('\n')
 		if err != nil {
-			return "", fmt.Errorf("the app stopped answering: %w", err)
+			return "", fmt.Errorf("%w, it stopped answering: %v", errAppGone, err)
 		}
 		text = strings.TrimRight(text, "\r\n")
 		if text == "ok" {
@@ -104,6 +117,10 @@ func startVirtualApp(repo string, model string) (*virtualApp, error) {
 	if err != nil {
 		return nil, err
 	}
+	info, err := os.Stat(binary)
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.Command(binary, "--script", "-", "--model", model)
 	cmd.Stderr = os.Stderr
 	in, err := cmd.StdinPipe()
@@ -117,7 +134,7 @@ func startVirtualApp(repo string, model string) (*virtualApp, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("cannot start %s: %w (only one Virtual LinnStrument runs at a time, quit any other first)", binary, err)
 	}
-	app := &virtualApp{in: in, out: bufio.NewReader(out)}
+	app := &virtualApp{in: in, out: bufio.NewReader(out), binary: binary, built: info.ModTime()}
 	app.done = func() {
 		in.Close()
 		exited := make(chan struct{})
@@ -381,7 +398,7 @@ func (s *mcpServer) handle(request jsonRpcRequest) {
 		s.reply(request.ID, map[string]any{
 			"protocolVersion": version,
 			"capabilities":    map[string]any{"tools": map[string]any{}},
-			"serverInfo":      map[string]any{"name": "virtual-linnstrument", "version": "1.0"},
+			"serverInfo":      map[string]any{"name": "virtual-linnstrument", "version": buildName()},
 			"instructions":    mcpInstructions,
 		}, nil)
 	case "ping":
@@ -425,7 +442,29 @@ func (s *mcpServer) handle(request jsonRpcRequest) {
 	}
 }
 
+// call starts the app on the first call, and again after it was rebuilt or has quit, as when its
+// window was closed, so that the client never has to reconnect; a restart releases held touches
 func (s *mcpServer) call(tool mcpTool, args map[string]any) ([]map[string]any, error) {
+	var restarted string
+	if s.app != nil && s.app.rebuilt() {
+		s.app.quit()
+		s.app = nil
+		restarted = "The Virtual LinnStrument was rebuilt, so the new build was started; touches held before are released."
+	}
+	content, err := s.run(tool, args)
+	if errors.Is(err, errAppGone) && s.app != nil {
+		s.app.quit()
+		s.app = nil
+		restarted = "The Virtual LinnStrument had quit, so it was started again; touches held before are released."
+		content, err = s.run(tool, args)
+	}
+	if err != nil || restarted == "" {
+		return content, err
+	}
+	return append(text(restarted), content...), nil
+}
+
+func (s *mcpServer) run(tool mcpTool, args map[string]any) ([]map[string]any, error) {
 	if s.app == nil {
 		app, err := s.start()
 		if err != nil {
