@@ -9,11 +9,11 @@ assistant, musicians included, not only programmers.
 Three ways in
 -------------
 
-1. **Use the browser pages, nothing to install.** The pages in `examples/` talk to a connected
+1. **Use the browser pages, nothing to install.** The pages in `examples/browser/` talk to a
    LinnStrument over MIDI from Chrome, Edge or Firefox: a surface designer that turns the
    instrument into a custom controller of pads, keys, faders, XY pads and buttons for any DAW,
    an editor for every setting, and a live view of User Firmware Mode. Open
-   `examples/index.html`, allow MIDI when the browser asks, pick the instrument at the top
+   `examples/browser/index.html`, allow MIDI when the browser asks, pick the instrument at the top
    right. `examples/README.md` describes them. Full support needs firmware 2.4.0 or later; on
    an older one the page says what is missing.
 

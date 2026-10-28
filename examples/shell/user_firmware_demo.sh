@@ -17,8 +17,8 @@
 # must be in its normal MIDI mode and show up as "LinnStrument MIDI", or set LINNSTRUMENT_DEVICE
 # to another port, for instance the Virtual LinnStrument app's:
 #
-#   examples/user_firmware_demo.sh [seconds to watch touches, default 5]
-#   LINNSTRUMENT_DEVICE="Virtual LinnStrument" examples/user_firmware_demo.sh
+#   examples/shell/user_firmware_demo.sh [seconds to watch touches, default 5]
+#   LINNSTRUMENT_DEVICE="Virtual LinnStrument" examples/shell/user_firmware_demo.sh
 set -e
 
 DEV=${LINNSTRUMENT_DEVICE:-"LinnStrument MIDI"}

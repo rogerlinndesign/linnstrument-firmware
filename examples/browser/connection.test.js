@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// Run with: node --test examples/connection.test.js
+// Run with: node --test examples/browser/connection.test.js
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const connection = require("./connection.js");

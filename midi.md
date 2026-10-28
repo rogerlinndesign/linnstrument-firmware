@@ -72,9 +72,9 @@ This is an overview of the message chain:
 ```
 
 The following table lists all the NRPN input values that LinnStrument understands. The settings
-editor in `examples/` builds its form from this table (`go run ./tools/linnstrument nrpns`), so
-keep the shape of the rows: the group as the first words of the description, and the named values
-as `n: label` pairs in parentheses.
+editor in `examples/browser/` builds its form from this table (`go run ./tools/linnstrument
+nrpns`), so keep the shape of the rows: the group as the first words of the description, and the
+named values as `n: label` pairs in parentheses.
 
 | NRPN | Value | Description
 |------|-------|-----------------------------------------------------------------------------------------------

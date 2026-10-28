@@ -112,24 +112,24 @@ explains the mechanism and the helpers; the short version:
 touch surface with MIDI-controlled lights: the way to customise what it does
 without touching the firmware. The claims in that document that the desktop
 can reach are checked by `tests/test_userfirmware.cpp`; change both together,
-and give a new claim a test. `examples/` holds a browser
-console for the mode and a shell walkthrough, with the protocol code in
-`examples/user_firmware_protocol.js`, a surface designer page
-(`examples/surface_designer.html`, logic in `examples/surface_designer.js`)
-that turns the instrument into a custom controller of pads, keys, faders, XY
-pads and buttons for any DAW, the shared connection widget and Web MIDI handling
-in `examples/connection.js`, a front page `examples/index.html` for hosting
-the folder on a static https host, and a settings editor page
-(`examples/settings_editor.html`, logic in `examples/settings_editor.js`) whose
-form is generated from the NRPN table in `midi.md` by `go run
-./tools/linnstrument nrpns` into `examples/nrpn_parameters.js`, never edited
-by hand. That command also checks the table against `receivedNrpn()` and
+and give a new claim a test. `examples/browser/` holds the pages that use
+the mode, everything a static https host serves: a browser console for the
+mode, with the protocol code in `user_firmware_protocol.js`, a surface
+designer page (`surface_designer.html`, logic in `surface_designer.js`) that
+turns the instrument into a custom controller of pads, keys, faders, XY pads
+and buttons for any DAW, the shared connection widget and Web MIDI handling in
+`connection.js`, a front page `index.html`, and a settings editor page
+(`settings_editor.html`, logic in `settings_editor.js`) whose form is
+generated from the NRPN table in `midi.md` by `go run ./tools/linnstrument
+nrpns` into `nrpn_parameters.js`, never edited by hand;
+`examples/shell/user_firmware_demo.sh` is the same walkthrough from a shell.
+That command also checks the table against `receivedNrpn()` and
 `sendNrpnParameter()` in `ls_midi.ino`: every number, its `inRange()` bounds,
 and that a query answers it. Run it after changing either side; CI fails on a
 mismatch or a stale generated file. `go run ./tools/linnstrument serve` serves
 the pages on a local port (the browser then remembers the MIDI permission,
-which it cannot for a page opened from a file). `node --test examples/` runs
-every page's tests. A session can drive a connected unit in that mode over
+which it cannot for a page opened from a file). `node --test examples/browser/`
+runs every page's tests. A session can drive a connected unit in that mode over
 MIDI through RouteMIDI's MCP server, which `.mcp.json` registers (without
 `routemidi` installed that server fails at startup, which is harmless), or
 through `sendmidi` and `receivemidi` from the shell.

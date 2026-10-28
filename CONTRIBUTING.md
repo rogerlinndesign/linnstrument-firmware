@@ -102,13 +102,14 @@ push, and add one when you fix a bug in logic they can reach. See
 `tests/README.md` for how to write one. GitHub Actions runs them on every push
 as well, together with `go vet ./...`, `go test ./...`, `go run
 ./tools/linnstrument nrpns` (which checks the NRPN table in midi.md against
-the firmware) and `node --test examples/` for the example code, and builds
+the firmware) and `node --test examples/browser/` for the pages, and builds
 the Virtual LinnStrument on macOS. `tools/ci-linux.sh` runs the build and
 test jobs in an x86_64 Ubuntu container with Docker, for checking a change on
 Linux before pushing it.
 
-`go run ./tools/linnstrument serve` serves the browser pages in `examples/` on
-a local port and opens them; see `examples/README.md` for the pages.
+`go run ./tools/linnstrument serve` serves the browser pages in
+`examples/browser/` on a local port and opens them; see `examples/README.md`
+for the pages.
 
 `tools/virtual/` builds Virtual LinnStrument: the same firmware running on
 your computer behind a window that shows its lights, takes the mouse as a

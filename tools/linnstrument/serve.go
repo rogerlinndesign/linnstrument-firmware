@@ -28,7 +28,7 @@ import (
 // front page in the browser. Served from one origin, the browser remembers the Web MIDI
 // permission, which it cannot do for pages opened from files.
 func serveExamples(repo string, port string, openBrowser bool) error {
-	dir := filepath.Join(repo, "examples")
+	dir := filepath.Join(repo, "examples", "browser")
 	if _, err := os.Stat(filepath.Join(dir, "index.html")); err != nil {
 		return fmt.Errorf("no examples to serve at %s", dir)
 	}

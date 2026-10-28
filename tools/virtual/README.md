@@ -118,11 +118,10 @@ Using it
 * Pressure sets how hard every touch presses, Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so
-  `examples/surface_designer.html`, `examples/user_firmware_console.html`,
-  `examples/settings_editor.html`, `sendmidi`, `receivemidi` and RouteMIDI talk to it as they
-  would to the instrument. The quickest tour of
-  User Firmware Mode on it is `LINNSTRUMENT_DEVICE="Virtual LinnStrument"
-  examples/user_firmware_demo.sh`: lights, text and a scroll appear in the window. Windows has
+  the pages in `examples/browser/`, `sendmidi`, `receivemidi` and RouteMIDI talk to it as they
+  would to the instrument. The quickest tour of User Firmware Mode on it is
+  `LINNSTRUMENT_DEVICE="Virtual LinnStrument" examples/shell/user_firmware_demo.sh`: lights,
+  text and a scroll appear in the window. Windows has
   no virtual ports; a loopMIDI pair is the workaround, not wired up yet.
 
 What it cannot do

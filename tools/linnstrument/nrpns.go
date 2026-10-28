@@ -14,7 +14,7 @@
 
 package main
 
-// Turns the NRPN table in midi.md into examples/nrpn_parameters.js, the parameter description
+// Turns the NRPN table in midi.md into examples/browser/nrpn_parameters.js, the parameter description
 // the settings editor builds its form from, so the page and the documentation cannot drift.
 
 import (
