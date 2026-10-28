@@ -16,6 +16,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -117,5 +118,13 @@ func TestParseNrpnRow(t *testing.T) {
 	p, _ = parseNrpnRow(272, "-", "Device Model (200 or 128), read-only, ask for it with NRPN 299", tables)
 	if p.Kind != "readonly" || p.Name != "Model" {
 		t.Errorf("model: %+v", p)
+	}
+	p, _ = parseNrpnRow(273, "-", "Device Firmware Version (read-only, 240 for firmware 2.4.0)", tables)
+	if p.Kind != "readonly" || p.Name != "Firmware Version" || p.Note != "read-only, 240 for firmware 2.4.0" {
+		t.Errorf("version: %+v", p)
+	}
+	p, _ = parseNrpnRow(271, "1", "Device Serial Mode (1: On, same as tapping OS Update; the updater or OS Update switch it off)", tables)
+	if p.Kind != "action" || strings.Contains(p.Note, "1: On") {
+		t.Errorf("serial mode note repeats the description: %+v", p)
 	}
 }

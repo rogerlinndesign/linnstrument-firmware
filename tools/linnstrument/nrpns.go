@@ -231,7 +231,7 @@ func parseNrpnRow(number int, valueField, description string, tables map[string]
 		p.Kind = "number"
 	}
 	if number == 271 {
-		p.Note = "Takes the instrument off MIDI until OS Update is tapped on it or the updater returns it; " + p.Note
+		p.Note = "Takes the instrument off MIDI until OS Update is tapped on it or the updater returns it"
 	}
 	return p, nil
 }

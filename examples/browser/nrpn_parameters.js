@@ -4289,7 +4289,7 @@ limitations under the License.
         "kind": "action",
         "min": 1,
         "max": 1,
-        "note": "Takes the instrument off MIDI until OS Update is tapped on it or the updater returns it; 1: On, same as tapping OS Update; the updater or OS Update switch it off",
+        "note": "Takes the instrument off MIDI until OS Update is tapped on it or the updater returns it",
         "description": "Device Serial Mode (1: On, same as tapping OS Update; the updater or OS Update switch it off)"
       },
       {
@@ -4299,8 +4299,8 @@ limitations under the License.
         "kind": "readonly",
         "min": 0,
         "max": 0,
-        "note": "(200 or 128), read-only, ask for it with NRPN 299",
-        "description": "Device Model (200 or 128), read-only, ask for it with NRPN 299"
+        "note": "read-only, 200 or 128",
+        "description": "Device Model (read-only, 200 or 128)"
       },
       {
         "number": 273,
@@ -4309,8 +4309,8 @@ limitations under the License.
         "kind": "readonly",
         "min": 0,
         "max": 0,
-        "note": "(for example 234 for firmware 234.074), read-only",
-        "description": "Device Firmware Version (for example 234 for firmware 234.074), read-only"
+        "note": "read-only, 240 for firmware 2.4.0",
+        "description": "Device Firmware Version (read-only, 240 for firmware 2.4.0)"
       },
       {
         "number": 274,
@@ -4319,8 +4319,8 @@ limitations under the License.
         "kind": "readonly",
         "min": 0,
         "max": 0,
-        "note": "(for example 74 for firmware 234.074), read-only",
-        "description": "Device Firmware Build (for example 74 for firmware 234.074), read-only"
+        "note": "read-only, 75 for the build the instrument shows as .075",
+        "description": "Device Firmware Build (read-only, 75 for the build the instrument shows as .075)"
       },
       {
         "number": 275,

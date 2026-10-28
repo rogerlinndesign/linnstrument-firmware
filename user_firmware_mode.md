@@ -2,22 +2,24 @@ LinnStrument User Firmware Mode
 ===============================
 
 User Firmware Mode turns LinnStrument into a raw MIDI touch surface. The firmware stops playing
-notes and stops drawing its own lights, and instead reports every cell press and, if you ask for
+notes and stops drawing its own lights. Instead, it reports every cell press and, if you ask for
 it, the X, Y and Z of every touch over MIDI, while you drive the LEDs over MIDI. This makes it
-possible to build custom applications without changing the firmware. MIDI, even over USB, is slow
-compared to the processor's own access to the sensor, so anything that needs the first
-milliseconds of a touch, like velocity detection, can't be built this way; the firmware does that
-part for you and sends the result.
+possible to build custom applications without changing the firmware. Note that MIDI, even over
+USB, is slow compared to the processor's own access to the sensor, so anything that needs the
+first milliseconds of a touch, like velocity detection, can't be built this way. The firmware
+does that part for you and sends the result.
 
 The messages, values and ranges in this document are verified by the desktop tests in
-`tests/test_userfirmware.cpp`; when the firmware and this text disagree, a test fails, so treat
-the tables as exact. What only a hand on the instrument can check, the panel gestures, is not.
+`tests/test_userfirmware.cpp`. When the firmware and this text disagree, a test fails, so you
+can treat the tables as exact. The panel gestures, which only a hand on the instrument can
+check, aren't verified this way.
 
 
 Quick start
 ===========
 
-On the "LinnStrument MIDI" port, as bytes, everything on channel 1 unless said otherwise:
+Here's a first session in a few messages, as bytes on the "LinnStrument MIDI" port, with
+everything on channel 1 unless said otherwise:
 
 ```
 B0 63 01  B0 62 75  B0 06 00  B0 26 01    NRPN 245 = 1 enters the mode (245 is 1 x 128 + 117)
@@ -29,8 +31,8 @@ B0 14 05  B0 15 03  B0 16 03              CC 20, 21, 22: light column 5, row 3 g
 B0 63 01  B0 62 75  B0 06 00  B0 26 00    NRPN 245 = 0 leaves the mode
 ```
 
-A reply or an announcement from the instrument is the same four control changes, followed by
-the null RPN, CC 101 and CC 100 with value 127.
+A reply or an announcement from the instrument comes as the same four control changes, followed
+by the null RPN, which is CC 101 and CC 100 with value 127.
 
 
 What it can and cannot do
@@ -46,59 +48,60 @@ It can:
 * tell you which model and firmware it is
 * be switched on and off remotely, and tell you when the player switches it by hand
 
-It cannot:
+It can't:
 
 * give you a better velocity than the firmware's own, since the strike happens before MIDI could
   report it
-* survive a power cycle, it always starts switched off
+* survive a power cycle, since it always starts switched off
 * keep the LEDs lit while the Global Settings panel is open
 
 
 Switching it on and off
 =======================
 
-Send NRPN 245 with value 1 on any channel to switch User Firmware Mode on, value 0 to switch it
-off. NRPN 299 with value 245 asks for the current state.
+Send NRPN 245 with value 1 on any channel to switch User Firmware Mode on, and value 0 to switch
+it off. You can ask for the current state by sending NRPN 299 with value 245.
 
-Whenever the mode changes, whether you asked for it or the player toggled it by hand, LinnStrument
-sends NRPN 245 with the new state on channel 9. The player can leave the mode by holding OS Update
-in Global Settings for a full second, and can enter it the same way from the normal firmware. A
-short tap on that cell is something else: it toggles serial mode for firmware updates, which takes
-the instrument off MIDI until the cell is tapped again.
+Whenever the mode changes, whether you asked for it or the player toggled it by hand,
+LinnStrument sends NRPN 245 with the new state on channel 9. The player can leave the mode by
+holding OS Update in Global Settings for a full second, and can enter it the same way from the
+normal firmware. Note that a short tap on that cell is something else. It toggles serial mode
+for firmware updates, which takes the instrument off MIDI until the cell is tapped again.
 
-On entering, all lights go out, the Global Settings switch lights yellow, every per-row setting
-below starts switched off and the decimation interval is back at its default. Set up your lights
-and your X, Y, Z and slide options again every time. The light cursor is not reset by the switch,
-so set it before you paint.
+When the mode is entered, all lights go out and the Global Settings switch lights yellow. Every
+per-row setting below starts switched off, and the decimation interval is back at its default.
+This means that you set up your lights and your X, Y, Z and slide options again every time. The
+light cursor isn't reset by the switch, so set it before you paint.
 
-The Global Settings panel keeps working so the player can still reach Velocity Sensitivity,
-Pressure Sensitivity, MIDI I/O and Actions. While that panel is open, no touches are reported,
-the LED commands are ignored and your lights are hidden; they come back when it closes. The
-foot switches keep whatever they are assigned to and send their normal messages: by default
-the right one is sustain and the left one the arpeggiator.
+The Global Settings panel keeps working, so that the player can still reach Velocity
+Sensitivity, Pressure Sensitivity, MIDI I/O and Actions. While that panel is open, no touches
+are reported, the LED commands are ignored and your lights are hidden. They come back when it
+closes. The foot switches keep whatever they're assigned to and send their normal messages. By
+default, the right one is sustain and the left one the arpeggiator.
 
 A few things from the normal firmware stay in force. Holding Global Settings and Per-Split
-Settings together puts the instrument to sleep, and with Sleep on in Global Settings it goes to
-sleep by itself after the sleep delay without a touch, lights included. The touch filtering is
-the firmware's own: at most three touches in one column are tracked, and the fourth corner of a
-rectangle of three held cells is rejected as a phantom touch. NRPN 271 still switches the
-instrument to serial mode, after which it is gone from MIDI. With MIDI Through on (NRPN 254)
+Settings together puts the instrument to sleep. With Sleep on in Global Settings, it also goes
+to sleep by itself after the sleep delay without a touch, lights included. The touch filtering
+is the firmware's own: at most three touches in one column are tracked, and the fourth corner of
+a rectangle of three held cells is rejected as a phantom touch. NRPN 271 still switches the
+instrument to serial mode, after which it's gone from MIDI. With MIDI Through on (NRPN 254),
 everything you send is echoed back to you, SysEx included.
 
-If your script dies, the instrument stays in the mode with the last lights until something
-sends NRPN 245 with value 0 or the player holds OS Update, so make leaving the mode part of
-your exit path. Send every NRPN as all four control changes in a row: a query cut off after
+If your script dies, the instrument stays in the mode with the last lights until something sends
+NRPN 245 with value 0 or the player holds OS Update. So make leaving the mode part of your exit
+path. Send every NRPN as all four control changes in a row, since a query that's cut off after
 CC 99 and CC 98 leaves the instrument expecting CC 6 and CC 38 next.
 
 
 Coordinates
 ===========
 
-Rows are MIDI channels: the bottom row is channel 1, the top row channel 8. Columns are note
-numbers and CC numbers: the control switches on the left are column 0, the first playing column
-is 1. A LinnStrument 200 has columns 0 to 25, a LinnStrument 128 columns 0 to 16.
+Rows are MIDI channels, with the bottom row on channel 1 and the top row on channel 8. Columns
+are note numbers and CC numbers. The control switches on the left are column 0, and the first
+playing column is 1. A LinnStrument 200 has columns 0 to 25, and a LinnStrument 128 has columns
+0 to 16.
 
-The control switch column reports presses like any other cell, as note 0, except the Global
+The control switch column reports presses like any other cell, as note 0, except for the Global
 Settings switch at the bottom, which opens the panel instead. It never sends X, Y or Z.
 
 | What            | Carried in   | Range                                         |
@@ -111,19 +114,20 @@ Settings switch at the bottom, which opens the panel instead. It never sends X, 
 Cell presses
 ============
 
-A press sends Note On with the column as note number on the row's channel. The velocity is what
-the firmware measured from the strike, shaped by the Velocity Sensitivity setting; with a fixed
-velocity configured, every note carries that value.
+A press sends Note On on the row's channel, with the column as the note number. The velocity is
+what the firmware measured from the strike, shaped by the Velocity Sensitivity setting. With a
+fixed velocity configured, every note carries that value instead.
 
-A release sends Note Off on the same note and channel. Its velocity is a release velocity, from
-how fast the pressure fell away: 127 for a finger that lifts instantly, less for a slow release.
+A release sends Note Off on the same note and channel. Its velocity is a release velocity that
+comes from how fast the pressure fell away: 127 for a finger that lifts instantly, and less for
+a slow release.
 
 
 3D touch data
 =============
 
-X, Y and Z are off until you enable them, separately for each row and each axis. Send the CC
-below on the row's channel with value 1 to enable, 0 to disable.
+X, Y and Z are off until you enable them, separately for each row and each axis. To do so, send
+the CC below on the row's channel with value 1 to enable, or 0 to disable.
 
 | CC | Enables                |
 |----|------------------------|
@@ -133,29 +137,28 @@ below on the row's channel with value 1 to enable, 0 to disable.
 | 12 | Z data for the row     |
 
 Z, the pressure, is sent as Polyphonic Pressure on the row's channel with the column as note
-number. 0 is the lightest touch that still registers, 127 the firmest. Pressure is smoothed over
-successive scans, so a sudden change arrives as a short ramp.
+number. 0 is the lightest touch that still registers, and 127 the firmest. Pressure is smoothed
+over successive scans, so a sudden change arrives as a short ramp.
 
-X, the left-right position, is one axis across the whole surface: 0 at the left edge, 4265 at
-the right edge of a 200 and about 2660 on a 128, with one cell being about 171 units. The exact
-ends depend on the calibration. It is sent as a 14-bit value in two Control Changes on the
-row's channel, the LSB first on CC 32 plus the column, then the MSB on CC 0 plus the column.
+X, the left-right position, is one axis across the whole surface. It's 0 at the left edge and
+4265 at the right edge of a 200, about 2660 on a 128, with one cell being about 171 units. The
+exact ends depend on the calibration. X is sent as a 14-bit value in two Control Changes on the
+row's channel: first the LSB on CC 32 plus the column, then the MSB on CC 0 plus the column.
 
 Y, the up-down position within the cell, is sent as CC 64 plus the column on the row's channel,
-0 at the bottom edge to 127 at the top edge. Like pressure it is smoothed over scans.
+from 0 at the bottom edge to 127 at the top edge. Like pressure, it's smoothed over scans.
 
-A value is only sent when it changed, and never faster than the decimation interval below. A
-new touch always sends its first X, Y and Z, even at the spot and pressure the previous one
-left.
+A value is only sent when it changed, and never faster than the decimation interval below. A new
+touch always sends its first X, Y and Z, even at the spot and pressure the previous one left.
 
-One thing to watch when decoding: column 6 sends its X on CC 6 and CC 38, which are also the
-NRPN data entry controllers. LinnStrument only sends NRPNs for the mode announcement on channel 9
-and as the reply to a query, on the channel the query came from, so treat CC 6 and 38 as data
-entry only right after CC 99 and 98 arrived on that channel, and as X otherwise. The one other
-case is a change of a split's pitch bend range or MPE settings over NRPN while the mode is on,
-which sends RPN 0 or 6 (CC 101, 100, 6, 38) on that split's channels. In the same
-way, column 1's X arrives on CC 1 and column 7's on CC 7, the mod wheel and volume controllers,
-so filter before forwarding a row's channel to a synth.
+There's one thing to watch out for when decoding: column 6 sends its X on CC 6 and CC 38, which
+are also the NRPN data entry controllers. LinnStrument only sends NRPNs for the mode
+announcement on channel 9 and as the reply to a query, on the channel the query came from. So
+treat CC 6 and 38 as data entry only right after CC 99 and 98 arrived on that channel, and as X
+otherwise. The one other case is a change of a split's pitch bend range or MPE settings over
+NRPN while the mode is on, which sends RPN 0 or 6 (CC 101, 100, 6, 38) on that split's channels.
+In the same way, column 1's X arrives on CC 1 and column 7's on CC 7, the mod wheel and volume
+controllers, so filter before forwarding a row's channel to a synth.
 
 
 Data decimation
@@ -163,45 +166,46 @@ Data decimation
 
 Every touch produces a stream of values, which can overwhelm a slow receiver. The firmware
 therefore sends each value at most once per decimation interval. The default is about 8
-milliseconds over USB, 34 times the MIDI byte interval that NRPN 252 sets. CC 13 sets it in
-milliseconds, and 0 switches the interval off so every change is sent. In low power mode nothing
-below 12 is accepted and the interval stays where it was. The output queue holds 4096 bytes;
-when a burst fills it, whole messages are dropped rather than cut, so a receiver that falls
-behind loses values but never sees a torn message.
+milliseconds over USB, which is 34 times the MIDI byte interval that NRPN 252 sets. CC 13 sets
+the interval in milliseconds, and 0 switches it off so that every change is sent. In low power
+mode, nothing below 12 is accepted and the interval stays where it was. The output queue holds
+4096 bytes. When a burst fills it, whole messages are dropped rather than cut, so a receiver
+that falls behind loses values but never sees a torn message.
 
 
 Slide mode
 ==========
 
 Sliding a finger along a row from cell to cell is something LinnStrument tracks far better than
-you could by combining the messages above, so there is a slide mode per row, enabled with CC 9 on
-the row's channel.
+you could by combining the messages above. That's why there's a slide mode per row, which you
+enable with CC 9 on the row's channel.
 
-When a finger crosses into the next cell, three messages follow each other on the row's channel:
-CC 119 with the column the finger is leaving, Note On for the new column with the same velocity
-as the first cell of the slide, then Note Off for the old column with the new column as its
-velocity. That order lets software hand the touch over without a gap.
+When a finger crosses into the next cell, three messages follow each other on the row's channel.
+First comes CC 119 with the column the finger is leaving, then Note On for the new column with
+the same velocity as the first cell of the slide, and then Note Off for the old column with the
+new column as its velocity. That order lets software hand the touch over without a gap.
 
 
 Lights
 ======
 
 CC 20 selects a column and CC 21 a row, counting from 0 on the switch column and the bottom row.
-CC 22 then sets that cell's color, from the color table in `midi.md`: 1 to 6 and 8 to 11 light
-it; 0, 7 (black) and any value of 12 and higher switch it off. Column 0 can be painted like any
-other, including the Global Settings cell, whose yellow light is then covered. A CC 20 or CC 21
-beyond the instrument's columns or rows is ignored and the cursor keeps its previous value.
-These lights live on their own layer, which is cleared when the mode is left, so nothing you
-draw survives into the normal firmware.
+CC 22 then sets that cell's color from the color table in `midi.md`. The colors 1 to 6 and 8 to
+11 light it, while 0, 7 (black) and any value of 12 and higher switch it off. Column 0 can be
+painted like any other, including the Global Settings cell, whose yellow light is then covered.
+A CC 20 or CC 21 beyond the instrument's columns or rows is ignored, and the cursor keeps its
+previous value. These lights live on their own layer, which is cleared when the mode is left, so
+nothing you draw survives into the normal firmware.
 
 CC 25 colors the cell under the cursor like CC 22 and then moves the cursor one cell to the
-right, continuing at column 0 of the next row up. A whole surface is therefore one CC 20, one
-CC 21 and then one CC 25 per cell: 208 messages on a 200, 136 on a 128. Above the top row the
-cursor stops and CC 25 is ignored until CC 21 moves it back, and so is CC 22, because after a
-full run the cursor sits above the top row. While the Global Settings panel is open the cursor
-still moves and only the light is skipped, so a stream stays in step. There is no message that
-clears the whole surface: a full run of CC 25 with value 0 does it, as does leaving the mode.
-Repaint only the cells that changed rather than the whole surface on every step.
+right, continuing at column 0 of the next row up. A whole surface is therefore one CC 20, one CC
+21 and then one CC 25 per cell, which is 208 messages on a 200 and 136 on a 128. Above the top
+row the cursor stops, and CC 25 is ignored until CC 21 moves it back. So is CC 22, because after
+a full run the cursor sits above the top row. While the Global Settings panel is open, the
+cursor still moves and only the light is skipped, so that a stream stays in step. There's no
+message that clears the whole surface, but a full run of CC 25 with value 0 does it, and so does
+leaving the mode. Repaint only the cells that changed rather than the whole surface on every
+step.
 
 CC 23 and CC 24, which store and clear custom light patterns, belong to the normal firmware and
 have no use here.
@@ -210,11 +214,11 @@ have no use here.
 Text
 ====
 
-The firmware's own fonts can be used as well. CC 27 appends a character to a text of up to 32,
-with the 7-bit ASCII code as the value; a value of 0 clears the text. CC 26 selects the font:
-0 is the tiny font, 1 the small font, 2 the big font, which is the default, and 3 the condensed
-font the 128 uses for its own screens. Characters a font does not have are skipped, and every
-character takes its width plus one blank column:
+You can use the firmware's own fonts as well. CC 27 appends a character to a text of up to 32,
+with the 7-bit ASCII code as the value, and a value of 0 clears the text. CC 26 selects the
+font: 0 is the tiny font, 1 the small font, 2 the big font, which is the default, and 3 the
+condensed font the 128 uses for its own screens. Characters a font doesn't have are skipped, and
+every character takes its width plus one blank column:
 
 | Font        | Rows | Characters                                      | Width            |
 |-------------|------|-------------------------------------------------|------------------|
@@ -223,30 +227,30 @@ character takes its width plus one blank column:
 | 2 big       | 8    | space, punctuation, digits, capitals, lowercase | always 5         |
 | 3 condensed | 8    | space, + - . /, digits, capitals, b             | 1 to 5, mostly 3 |
 
-In the small font the digits (except the 1, which is 2) and most capitals are 4 wide, E F I J L
-T 3, M V W X Y 5. In the
-condensed font the digits and capitals are 3 wide except G K N Q at 4 and M W at 5, the 1 is 2
-and the dot 1. The small and condensed fonts leave their top pixel row empty, the condensed font
-its bottom row too. So "HELLO" in the condensed font is 20 columns, which fits the 25 playing
-columns of a 200 but not the 16 of a 128, and in the big font it is 30 and fits neither; the
-cursor and the width tell you where the text ends.
+In the small font, the digits (except the 1, which is 2) and most capitals are 4 wide, E F I J L
+T are 3 and M V W X Y are 5. In the condensed font, the digits and capitals are 3 wide except G
+K N Q at 4 and M W at 5, the 1 is 2 and the dot 1. The small and condensed fonts leave their top
+pixel row empty, and the condensed font its bottom row too. So "HELLO" in the condensed font is
+20 columns, which fits the 25 playing columns of a 200 but not the 16 of a 128. In the big font
+it's 30 and fits neither. The cursor and the width tell you where the text ends.
 
 CC 28 draws the text in the color of its value, with the cursor cell as the bottom left pixel,
-and then clears the text so the next one starts fresh. Blank pixels inside the text's box are
-switched off, cells outside it are left alone, and whatever runs past the right edge or above
-the top row is cut off. The switch column never holds text: a cursor there starts the text at
+and then clears the text so that the next one starts fresh. Blank pixels inside the text's box
+are switched off and cells outside it are left alone. Whatever runs past the right edge or above
+the top row is cut off. The switch column never holds text, so a cursor there starts the text at
 column 1.
 
-CC 29 scrolls the text instead of drawing it: it enters from the right edge, moves along the
-cursor's row one column every 40 milliseconds and leaves at the left edge, so it takes about
-the column count plus the text's width times 40 milliseconds, about 1.5 seconds for "HELLO" in
-the condensed font on a 128. Nothing announces the end; count it from the width. The scroll owns
-the band of rows it moves through, the font's height from the cursor's row up: lights you
-painted there are erased as the text passes and are not put back. A new CC 29 replaces a scroll
-that is still running and clears that whole band, a CC 29 with no text just stops and clears it,
-and leaving the mode stops it as well. Repaint the band after a scroll if you need it.
+CC 29 scrolls the text instead of drawing it. The text enters from the right edge, moves along
+the cursor's row one column every 40 milliseconds and leaves at the left edge. This means it
+takes about the column count plus the text's width times 40 milliseconds, about 1.5 seconds for
+"HELLO" in the condensed font on a 128. Nothing announces the end, so count it from the width.
+The scroll owns the band of rows it moves through, which is the font's height from the cursor's
+row up. Lights you painted there are erased as the text passes and aren't put back. A new CC 29
+replaces a scroll that's still running and clears that whole band, a CC 29 with no text just
+stops and clears it, and leaving the mode stops it as well. Repaint the band after a scroll if
+you need it.
 
-Text uses the same layer as the lights and follows the same rules: nothing is drawn while the
+Text uses the same layer as the lights and follows the same rules. Nothing is drawn while the
 Global Settings panel is open, though CC 28 and CC 29 still clear the text, and everything
 disappears when the mode is left.
 
@@ -254,14 +258,16 @@ disappears when the mode is left.
 Asking which instrument this is
 ===============================
 
-NRPN 299 is a query: send it with the number of another parameter as its value, and the
+NRPN 299 is a query. You send it with the number of another parameter as its value, and the
 instrument replies with that parameter and its current value, on the channel the query came
-from. Read-only parameters exist for scripts: 272 answers with the model, 200 or 128,
-273 with the firmware version, for example 234 for firmware 234.074, 274 with its build, 74 for
-that same firmware, and 275 with 1 when the instrument has been calibrated and 0 when it has not,
-in which case X and Y come from the default calibration and are less exact. Together with 245,
-which answers whether the mode is on, a script can find out what it is talking to before it
-sends anything else. The model gives you the column count and the X range above.
+from. Read-only parameters for scripts exist since firmware 2.4.0, and so do CC 25 to 29
+(painted runs and text). 272 answers with the model, 200 or 128. 273 answers with the firmware
+version, for example 240 for firmware 2.4.0 (240.075 on the instrument's screen), and 274 with
+its build, 75 for that same firmware. 275 answers with 1 when the instrument has been calibrated
+and 0 when it hasn't, in which case X and Y come from the default calibration and are less
+exact. An older firmware answers none of these four. Together with 245, which answers whether
+the mode is on, a script can find out what it's talking to before it sends anything else. The
+model gives you the column count and the X range above.
 
 
 MIDI message summary
@@ -303,13 +309,14 @@ Incoming:
 | CC 29    | any     | color        | Scroll the text along the selected row, then clear it     |
 
 Other incoming messages are handled as in the normal firmware, except that notes from the host
-do not light cells while the mode is on.
+don't light cells while the mode is on.
 
 
 Examples
 ========
 
-A single press on column 12 of row 3 with X, Y and Z enabled for that row, in non-slide mode:
+Here's a single press on column 12 of row 3 with X, Y and Z enabled for that row, in non-slide
+mode:
 
 ```
 Ch3 Note On 12 Velocity 120
@@ -322,7 +329,7 @@ Ch3 CC 76 Value Y
 Ch3 Note Off 12 Velocity 127
 ```
 
-The same press sliding into column 13 with slide mode on:
+And here's the same press sliding into column 13 with slide mode on:
 
 ```
 Ch3 Note On 12 Velocity 120
@@ -346,11 +353,11 @@ Ch3 Note Off 13 Velocity 127
 Driving it from scripts and AI agents
 =====================================
 
-`examples/browser/` holds ready-made clients of the mode: `surface_designer.html` makes the
-instrument a controller of pads, keys, faders, XY pads and buttons for any DAW,
-`user_firmware_console.html` is a live view of the touches with lights and text to paint, and
-`user_firmware_protocol.js` holds the message builders and the decoder to lift into your own
-project; `examples/shell/user_firmware_demo.sh` is this walkthrough from a shell.
+`examples/browser/` holds ready-made clients of the mode. `surface_designer.html` makes the
+instrument a controller of pads, keys, faders, XY pads and buttons for any DAW, and
+`user_firmware_console.html` is a live view of the touches with lights and text to paint.
+`user_firmware_protocol.js` holds the message builders and the decoder, ready to lift into your
+own project, and `examples/shell/user_firmware_demo.sh` is this walkthrough from a shell.
 `examples/README.md` describes them.
 
 LinnStrument shows up as the MIDI device "LinnStrument MIDI". Three free tools cover everything
@@ -358,7 +365,7 @@ below on macOS, Windows and Linux, and they all speak the same text format for M
 [SendMIDI](https://github.com/gbevin/SendMIDI), [ReceiveMIDI](https://github.com/gbevin/ReceiveMIDI)
 and [RouteMIDI](https://github.com/gbevin/RouteMIDI).
 
-From a shell:
+Here's how it goes from a shell:
 
 ```
 sendmidi dev "LinnStrument MIDI" nrpn 245 1                 # enter User Firmware Mode
@@ -371,45 +378,47 @@ receivemidi dev "LinnStrument MIDI"                         # watch the touches 
 sendmidi dev "LinnStrument MIDI" nrpn 245 0                 # back to the normal firmware
 ```
 
-From an AI agent, RouteMIDI's MCP server gives the same access as tools instead of commands. Add
-it to Claude Code with `routemidi --install-mcp claude-code` (other clients: see
-`routemidi --help`), or use the `.mcp.json` in this repository. Then:
+From an AI agent, RouteMIDI's MCP server gives you the same access, as tools instead of
+commands. Add it to Claude Code with `routemidi --install-mcp claude-code` (for other clients,
+see `routemidi --help`), or use the `.mcp.json` in this repository. Then:
 
 * `list_midi_ports` shows "LinnStrument MIDI" among the inputs and outputs.
 * `start_route` with the tokens `in "LinnStrument MIDI" out "LinnStrument MIDI"` opens a route
   that both sends to the instrument and captures what it sends.
-* `inject_midi` sends text messages into that route. An NRPN is its four control changes:
+* `inject_midi` sends text messages into that route. An NRPN is its four control changes, so
   `channel 1 control-change 99 1`, `98 117`, `6 0`, `38 1` enters the mode (245 is 1 times 128
-  plus 117). `channel 4 control-change 12 1` enables Z on row 3, `channel 1 control-change 20 5`
-  then `21 3` and `22 3` lights a cell, `27 72`, `27 105` and `28 3` draw "Hi" in green at the
-  selected cell, and `99 2`, `98 43`, `6 2`, `38 16` asks for the model (NRPN 299 with value
+  plus 117). `channel 4 control-change 12 1` enables Z on row 3, and `channel 1 control-change
+  20 5` then `21 3` and `22 3` lights a cell. `27 72`, `27 105` and `28 3` draw "Hi" in green at
+  the selected cell, and `99 2`, `98 43`, `6 2`, `38 16` asks for the model (NRPN 299 with value
   272: 299 is 2 times 128 plus 43, 272 is 2 times 128 plus 16).
-
-Without an instrument, the Virtual LinnStrument in `tools/virtual/` answers the same way on its
-port "Virtual LinnStrument", and `go run ./tools/linnstrument mcp` serves it to an agent directly
-as the MCP server `virtual-linnstrument` of `.mcp.json`: `press` and `tap` touch it, `leds` and
-`screenshot` show it, `send_midi` and `received_midi` carry the messages above as hex bytes.
 * `read_route` returns the touches as text messages, one per line, with a cursor to poll from.
 
+Without an instrument, the Virtual LinnStrument in `tools/virtual/` answers the same way on its
+port "Virtual LinnStrument". `go run ./tools/linnstrument mcp` serves it to an agent directly as
+the MCP server `virtual-linnstrument` of `.mcp.json`. There, `press` and `tap` touch it, `leds`
+and `screenshot` show it, and `send_midi` and `received_midi` carry the messages above as hex
+bytes.
+
 Whatever the client, the loop is the same: enter the mode, enable what you need per row, set
-your lights, read the stream, and leave the mode when done so the player gets the instrument
-back.
+your lights, read the stream, and leave the mode when you're done so that the player gets the
+instrument back.
 
 
 Recipes
 =======
 
-In `sendmidi` form, all on channel 1 unless the row's channel is meant:
+Here are a few recipes in `sendmidi` form, all on channel 1 unless the row's channel is meant:
 
-* Clear the surface: `cc 20 0 cc 21 0` then `cc 25 0` once per cell, 208 times on a 200 and
-  136 on a 128.
-* Paint a column: `cc 20 5` then, for each row, `cc 21 ROW cc 22 COLOR`; CC 25 only runs along
-  a row.
-* Light the cell under a finger and restore it afterwards: on Note On `cc 20 COL cc 21 ROW
-  cc 22 8` (white), on Note Off the same with the cell's own color from your copy of the
-  surface. Keep that copy yourself, the instrument cannot be asked what is lit.
+* Clear the surface: `cc 20 0 cc 21 0` then `cc 25 0` once per cell, 208 times on a 200 and 136
+  on a 128.
+* Paint a column: `cc 20 5` then, for each row, `cc 21 ROW cc 22 COLOR`. Note that CC 25 only
+  runs along a row.
+* Light the cell under a finger and restore it afterwards: on Note On
+  `cc 20 COL cc 21 ROW cc 22 8` (white), and on Note Off the same with the cell's own color from
+  your copy of the surface. You have to keep that copy yourself, since the instrument can't be
+  asked what is lit.
 * Show a word, then get the row back: `cc 21 ROW cc 26 3 cc 27 72 cc 27 73 cc 29 COLOR`, wait
-  the column count plus the text's width times 40 milliseconds, then repaint the band of rows
-  the scroll used.
-* Find out what you are talking to before painting: `nrpn 299 272` and read NRPN 272 back,
-  26 columns for 200 and 17 for 128.
+  the column count plus the text's width times 40 milliseconds, and then repaint the band of
+  rows the scroll used.
+* Find out what you're talking to before painting: `nrpn 299 272` and read NRPN 272 back, 26
+  columns for 200 and 17 for 128.

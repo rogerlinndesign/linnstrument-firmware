@@ -22,14 +22,15 @@ on the device.
 
 Compile from the command line with the Go companion tool, which wraps
 arduino-cli, the same toolchain Arduino IDE 2.x uses. Go 1.25 or later and
-arduino-cli are the prerequisites on macOS, Windows and Linux alike; macOS also
-needs the Xcode Command Line Tools, because the serial port enumerator uses cgo:
+arduino-cli are the prerequisites on macOS, Windows and Linux alike. On macOS
+you also need the Xcode Command Line Tools, because the serial port enumerator
+uses cgo. After `arduino-cli core install arduino:sam@1.6.12` once:
 
 ```
 go run ./tools/linnstrument build
 ```
 
-That runs, from the repo root, and then reports static RAM use:
+From the repo root, that runs this and then reports static RAM use:
 
 ```
 arduino-cli compile --fqbn arduino:sam:arduino_due_x \
@@ -45,7 +46,7 @@ Rules and facts:
 * Requires the `arduino:sam` core, version 1.6.12. Install with
   `arduino-cli core install arduino:sam@1.6.12`.
 * On Apple silicon the SAM toolchain is x86_64 only and needs Rosetta. If the
-  compiler fails with "bad CPU type in executable", Rosetta is missing; tell the
+  compiler fails with "bad CPU type in executable", Rosetta is missing. Tell the
   person rather than working around it. GitHub Actions
   (`.github/workflows/build.yml`) compiles every push on x86 runners and
   attaches the `.bin`, prebuilt `linnstrument` tool binaries for Linux,
@@ -55,7 +56,7 @@ Rules and facts:
 * The end of the output reports flash use ("Sketch uses N bytes") and, added
   by the tool, static RAM ("Global variables use N bytes", data plus bss of
   the 96 KB SRAM). Quote both in any change that adds arrays, buffers or
-  features. Static RAM is already above 80%; keep additions small.
+  features. Static RAM is already above 80%, so keep additions small.
 * Compile after every edit before claiming anything works. Where arduino-cli
   is not available, as in Claude Code on the web, say so, push the branch, and
   point the person at the GitHub Actions run. Never report a compile you did
@@ -68,71 +69,83 @@ go run ./tools/linnstrument test
 ```
 
 This compiles the whole sketch for the desktop against the stand-ins in
-`tests/support/` and runs every `tests/test_*.cpp` in about five seconds;
-`test NAME` runs only the tests whose name contains NAME. A `build` takes
-about ten seconds once the core is compiled, `mutate` about six seconds per
-line, and the Virtual LinnStrument rebuilds in about twenty seconds after a
-firmware edit. Run it after every change,
-before the firmware build. `tools/ci-linux.sh` runs the build and tool
-GitHub jobs in an x86_64 Ubuntu container with Docker; x86 traps on integer
-division by zero where the Due and Apple silicon return 0, so a change that
-touches arithmetic is worth one Linux run before pushing. `tests/README.md`
-explains the mechanism and the helpers; the short version:
+`tests/support/` and runs every `tests/test_*.cpp` in about five seconds.
+`test NAME` runs only the tests whose name contains NAME, case-sensitively,
+and fails when none does. A `build` takes about ten seconds once the core is
+compiled, `mutate` about six seconds per line (over ten minutes for all of
+them), and the Virtual LinnStrument rebuilds in about twenty seconds after a
+firmware edit. Run the tests after every change, before the firmware build.
+`tools/ci-linux.sh` runs the test, build and tool GitHub jobs in an x86_64
+Ubuntu container with Docker. Note that x86 traps on integer division by zero
+where the Due and Apple silicon return 0, so a change that touches arithmetic
+is worth one Linux run before pushing. `tests/README.md` explains the
+mechanism and the helpers. Here's the short version:
 
 * A test is `TEST(name) { ... }` with `CHECK`, `CHECK_EQ` and `CHECK_NEAR`.
   Tests share one translation unit with the sketch, so they call firmware
   functions and read globals directly. Names must be unique across files.
 * Start every test with `linn::reset()`, then `linn::select(col, row)` for the
   current-cell context, `linn::touch(col, row, rawZ)` to place touches,
-  `linn::drainMidi()` before reading MIDI output from `host::serialOutput()`,
+  `linn::drainMidi()` before reading MIDI output from `host::serialOutput()`
+  (everything since the reset or the last `host::clearSerialOutput()`),
   `host::feedSerial()` plus `linn::pumpSerial()` for the serial protocol.
 * The clock is fake: `host::advanceMicros()` moves it, and every `millis()` or
   `micros()` read adds a microsecond so busy waits end. `setupDone` stays
   false, so `performContinuousTasks()` is a no-op unless a test sets it around
   one call; call the function under test directly instead. `linn::reset()`
-  wipes the whole settings struct, nothing survives from the previous test.
+  wipes the whole settings struct, so nothing survives from the previous test.
 * A fix to host-reachable logic ships with a test that fails without it, and
-  every test gets a line in `tests/mutations.tsv`: a snippet of firmware text
-  that occurs exactly once (`\n` in the field is a line break) and its broken
-  replacement, which must make exactly that test fail. `go run
-  ./tools/linnstrument mutate` applies each line, checks the test fails, and
-  restores the file; `mutate NAME` runs only the lines whose test name
-  contains NAME. A test that survives its mutation is not a test.
+  every test gets a line in `tests/mutations.tsv`: the test's name, the
+  firmware file, a snippet of its text that occurs exactly once (`\n` in the
+  field is a line break) and its broken replacement, which must make exactly
+  that test fail. `go run ./tools/linnstrument mutate` applies each line,
+  checks the test fails, and restores the file; `mutate NAME` runs only the
+  lines whose test name contains NAME, and fails for a selected test with no
+  line or a NAME no test contains. A test that survives its mutation is not a
+  test.
 * Keep the suite fast. A test that needs more than a fraction of a second is
   doing too much.
 * Sensor reads return zero on the desktop. Set `currentRawZ` on a cell and
-  clear its `shouldRefreshZ` flag instead, which is what `linn::touch()` does.
+  clear its `shouldRefreshZ` flag instead, which is what `linn::touch()` does,
+  or give the cell raw readings with `host::setSensor()`, which `linn::press()`
+  does so that velocity and pressure are measured.
 * Serial output goes through a 64 byte write buffer that drains one byte per
   10 us of fake clock, like the Due's USB port. Advance the clock between
   passes, or use `linn::drainMidi()`, or output stalls.
 
 ## User Firmware Mode
 
-`user_firmware_mode.md` describes the mode in which the instrument is a raw MIDI
-touch surface with MIDI-controlled lights: the way to customise what it does
-without touching the firmware. The claims in that document that the desktop
-can reach are checked by `tests/test_userfirmware.cpp`; change both together,
-and give a new claim a test. `examples/browser/` holds the pages that use
-the mode, everything a static https host serves: a browser console for the
-mode, with the protocol code in `user_firmware_protocol.js`, a surface
+`user_firmware_mode.md` describes the mode in which the instrument is a raw
+MIDI touch surface with MIDI-controlled lights: the way to customise what it
+does without touching the firmware. The claims in that document that the
+desktop can reach are checked by `tests/test_userfirmware.cpp`. Change both
+together, and give a new claim a test. `examples/browser/` holds the pages
+that use the mode, everything a static https host serves: a browser console
+for the mode, with the protocol code in `user_firmware_protocol.js`, a surface
 designer page (`surface_designer.html`, logic in `surface_designer.js`) that
 turns the instrument into a custom controller of pads, keys, faders, XY pads
 and buttons for any DAW, the shared connection widget and Web MIDI handling in
 `connection.js`, a front page `index.html`, and a settings editor page
 (`settings_editor.html`, logic in `settings_editor.js`) whose form is
-generated from the NRPN table in `midi.md` by `go run ./tools/linnstrument
-nrpns` into `nrpn_parameters.js`, never edited by hand;
-`examples/shell/user_firmware_demo.sh` is the same walkthrough from a shell.
-That command also checks the table against `receivedNrpn()` and
+generated from the NRPN table in `midi.md` by
+`go run ./tools/linnstrument nrpns` into `nrpn_parameters.js`, never edited by
+hand. `examples/shell/user_firmware_demo.sh` is the same walkthrough from a
+shell. That command also checks the table against `receivedNrpn()` and
 `sendNrpnParameter()` in `ls_midi.ino`: every number, its `inRange()` bounds,
-and that a query answers it. Run it after changing either side; CI fails on a
+and that a query answers it. Run it after changing either side. CI fails on a
 mismatch or a stale generated file. `go run ./tools/linnstrument serve` serves
 the pages on a local port (the browser then remembers the MIDI permission,
-which it cannot for a page opened from a file). `node --test examples/browser/`
-runs every page's tests. A session can drive a connected unit in that mode over
-MIDI through RouteMIDI's MCP server, which `.mcp.json` registers (without
-`routemidi` installed that server fails at startup, which is harmless), or
-through `sendmidi` and `receivemidi` from the shell.
+which it cannot for a page opened from a file). `tools/deploy-pages.sh`
+publishes them to https://uwyn.com/linnstrument/, to the destination in
+`LINN_PAGES_TARGET`. That's public, so only run it when the person asks, after
+a dry run with `-n`, and never write the destination into the repository.
+`node --test examples/browser/` runs every page's tests, and
+`tools/layout_sweep.js`, run in the console of a served page, checks their
+layout from phone to wide screen. Run it after any change to their CSS or
+markup. A session can drive a connected unit in that mode over MIDI through
+RouteMIDI's MCP server, which `.mcp.json` registers (without `routemidi`
+installed that server fails at startup, which is harmless), or through
+`sendmidi` and `receivemidi` from the shell.
 
 ## Virtual LinnStrument
 
@@ -140,7 +153,7 @@ through `sendmidi` and `receivemidi` from the shell.
 the sketch merged into one file (`go run ./tools/linnstrument merge`), compiled
 against `tests/support/` with the computer's clock, behind a window that
 draws the LEDs, turns the mouse into touches and exposes a virtual MIDI port
-named "Virtual LinnStrument". It is the fastest way to see a firmware or user
+named "Virtual LinnStrument". It's the fastest way to see a firmware or user
 firmware mode change behave, without an instrument:
 
 ```
@@ -148,43 +161,51 @@ cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
 cmake --build build/virtual --config Release
 app=build/virtual/VirtualLinnStrument_artefacts/Release
 "$app/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" \
-  --model 128 --screenshot shot.png --after 6
+  --model 128 --screenshot build/shot.png --after 6
 ```
 
 `--screenshot` writes the window to a PNG after `--after` seconds and quits,
-so a session that cannot see the screen still can. `--script FILE` (or `-`
-for stdin) reads text commands instead, the way to drive it from a terminal:
+so a session that cannot see the screen still can. `--script FILE` (or `-` for
+stdin) reads text commands instead, the way to drive it from a terminal:
 `press COL ROW [X Y [Z]]`, `move`, `release`, `tap`, `foot`, `leds` (the
 lights as `ROW: c c c ...` lines from the top row down, 0 off, 7 black),
 `status`, `send BYTES` (MIDI into the firmware, in hex), `received [SECONDS]`
 (the MIDI it sent since the last call), `screenshot FILE [SCALE]`, `model`,
-`sleep SECONDS`, `quit`; each answers with its output and `ok`. Touches made
+`sleep SECONDS`, `quit`. Each answers with its output and `ok`. Touches made
 this way go through the real firmware, so they produce the same MIDI an
 instrument would. The simplest way in from a session is the MCP server:
 `go run ./tools/linnstrument mcp` serves the app over stdio with those
 commands as tools and screenshots as images, and `.mcp.json` registers it as
 `virtual-linnstrument`, so the tools are there in Claude Code once the app is
-built. From a shell, keep it running on a pipe from the binary inside the
-bundle (`: > cmds.txt; tail -f cmds.txt | "$app/Virtual
-LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --script - &`), append
-commands, and read the lights with `leds` or look at a screenshot; `sendmidi
-dev "Virtual LinnStrument" ...` and `receivemidi dev "Virtual LinnStrument"`
-reach its MIDI port too. A script file without `quit` leaves the app running
-(stdin ending quits it), and only one instance runs at a time (a second
-launch exits and the first ignores its arguments).
-`tools/virtual/build-release.sh 2.3.4` builds the app from that release's
-firmware instead, the way to see what customers' units do with a page or a
-MIDI script before asking the person to try. The first build fetches JUCE
-9.0.4 and takes a few minutes; later builds re-merge the sketch only when a
-firmware file changed. `tools/virtual/README.md` has the details
-and the limits (no multi-touch with the mouse, no calibration, no serial mode).
+built. The server starts the app on the first tool call and keeps that
+process: after rebuilding the app, or when its window was closed, reconnect
+the server (`/mcp` in Claude Code) to get the new binary. From a shell, keep
+it running on a pipe from the binary inside the bundle
+(`: > build/cmds.txt; tail -f build/cmds.txt | "$app/Virtual
+LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --script - &`),
+append commands, and read the lights with `leds` or look at a screenshot.
+`sendmidi dev "Virtual LinnStrument" ...` and
+`receivemidi dev "Virtual LinnStrument"` reach its MIDI port too. A script
+file without `quit` leaves the app running (stdin ending quits it), and only
+one instance runs at a time (a second launch exits and the first ignores its
+arguments). `tools/virtual/build-release.sh 2.3.4` builds the app from that
+release's firmware instead, the way to see what customers' units do with a
+page or a MIDI script before asking the person to try. The first build fetches
+JUCE 9.0.4 and takes a few minutes, and later builds re-merge the sketch only
+when a firmware file changed. `tools/virtual/README.md` has the details and
+the limits (no multi-touch with the mouse, no calibration, no serial mode).
 
 ## Flashing and talking to a connected instrument
 
 Flashing erases all settings and calibration on the unit. Only do it when the
 person has said, in this conversation, that the connected unit may be erased.
 Otherwise flashing is theirs to do with the LinnStrument Updater, which saves
-and restores settings around the update.
+and restores settings around the update. It has no file picker on a Mac: it
+flashes the `.bin` in its own folder, else the release built into it, so give
+the person the steps in "Flashing and testing on the instrument" in
+CONTRIBUTING.md, including checking the firmware name it shows before Go
+Ahead. A unit that no longer runs or reaches OS Update is recovered by holding
+Global Settings while plugging it in (FWUP mode, see CONTRIBUTING.md).
 
 When allowed, with the unit in serial mode (OS Update in Global Settings) and
 showing up as a serial port (`/dev/cu.usbmodem*` on macOS, `/dev/ttyACM*` on
@@ -204,16 +225,16 @@ go run ./tools/linnstrument <command>, with one of:
 ```
 
 `flash` mirrors the Updater: a 1200 baud touch puts the SAM3X in its
-bootloader, then bossac writes and verifies: whatever `LINN_BOSSAC` names
-when set, otherwise the signed universal `tools/bossac/macos/bossac` on macOS
-and `tools/bossac/windows/bossac.exe` on Windows (the one in the Arduino
-package is Intel only), and arduino-cli's copy on Linux or when the bundled
-one is missing. After a flash the firmware
-boots in serial mode with calibration pending, so the unit stays reachable.
-After `restore` or `update` the unit is back in MIDI mode, as for a customer.
-`serialmode` brings it back into serial mode over MIDI through `sendmidi`
-(Geert's cross-platform CLI, needed on the PATH), so a session can go both ways
-without anyone at the instrument, as long as the unit runs firmware with NRPN
+bootloader, then bossac writes and verifies: whatever `LINN_BOSSAC` names when
+set, otherwise the signed universal `tools/bossac/macos/bossac` on macOS and
+`tools/bossac/windows/bossac.exe` on Windows (the one in the Arduino package
+is Intel only), and arduino-cli's copy on Linux or when the bundled one is
+missing. After a flash the firmware boots in serial mode with calibration
+pending, so the unit stays reachable. After `restore` or `update` the unit is
+back in MIDI mode, as for a customer. `serialmode` brings it back into serial
+mode over MIDI through `sendmidi` (Geert's cross-platform CLI, needed on the
+PATH), so a session can go both ways without anyone at the instrument, as long
+as the unit runs firmware with NRPN
 271. Prefer `flash` while iterating, and keep a `backup` file from before the
 first flash.
 
@@ -227,13 +248,50 @@ Facts about the serial link, measured on a LinnStrument 128:
 * The protocol is the Updater's: send `5, 4, 3, 2, 1 ...\n`, expect
   `LinnStruments are go!\n`, then one-letter commands (`s` settings, `l` LED,
   `r` restore, `p`/`j`/`q` projects, `m` back to MIDI mode) with 96 byte
-  batches and CRC32 per batch.
-  `ls_serial.ino` is the firmware side, `tools/linnstrument/device.go` the host
-  side.
+  batches and CRC32 per batch. `ls_serial.ino` is the firmware side,
+  `tools/linnstrument/device.go` the host side.
 * In serial mode the unit sends no MIDI, and in MIDI mode it has no serial port.
 * A mode switch is stored with `storeSettings()`, which does nothing while the
   sequencer is running. Then the next DTR reset on a port open can undo the
   switch, so stop the sequencer before `serialmode` or `backup`.
+
+## When the person is not a programmer
+
+Many people here are musicians working through Claude Code on the web, with no
+toolchain and no terminal. For them:
+
+* Explain each change in plain words, naming settings and cells as the
+  instrument shows them, and give the test steps on the instrument.
+* Pushing is the only way they get a build. Ask before pushing as always, and
+  say that pushing their branch is safe and starts the build. Then give the
+  link to the Actions run and the firmware artifact's name once it is green.
+  Only a green run offers the firmware: the builds wait for the tests, and a
+  run that ends red deletes what it attached. If you cannot see the run, give
+  them the Actions page of their fork and ask whether it shows a green tick or
+  a red cross. On red, ask them to open the failed job and paste its last
+  lines, then fix it and push again. Nothing from a red run reaches them.
+* Before pushing a change that adds or changes a stored setting, say plainly
+  that going back to 2.3.4 later resets their settings and calibration, and
+  suggest writing the settings down and saving sequencer projects with the
+  Updater first (a backup with the prebuilt tool only for someone at home in a
+  terminal). If it adds a new choice to an existing setting (a low row mode, a
+  switch assignment), tell them to set that setting back to a choice 2.3.4 has
+  before going back: 2.3.4 copies the value unchecked and would index past its
+  tables.
+* A change to a default value does not show on their instrument, because the
+  Updater restores their settings after flashing. Say so, and steer towards a
+  change in behaviour or setting the value on the instrument.
+* For flashing, give the Updater steps from "Flashing and testing on the
+  instrument" in CONTRIBUTING.md (the unzipped Updater dragged into a folder
+  with the `.bin`, never run where it was unzipped, checking the firmware name
+  it shows) and the way back. Never suggest bossac or the Arduino IDE for
+  uploading: both erase the settings and the calibration.
+* Their build is `master` plus their change, so the instrument reports the
+  development version (2.4.0 now) and carries every change since 2.3.4. Say
+  so before they flash.
+* Serial debug output needs a serial terminal and the unit in serial mode,
+  which they usually do not have. Prefer a diagnostic the lights show, or ask
+  them to describe what they see and hear.
 
 ## Source layout
 
@@ -244,7 +302,7 @@ Consequences:
 * Every global, function and type is visible from every file. Names must be
   unique across the whole sketch. When searching, grep all `.ino` files.
 * The settings and touch structs and most enums are declared in
-  `linnstrument-firmware.ino`; a few types live where they are used
+  `linnstrument-firmware.ino`. A few types live where they are used
   (`ls_sequencer.ino`, `ls_lowRow.ino`, `ls_serial.ino`, `ls_font.ino`,
   `ls_midi.h`). A type must be declared before the first function that uses
   it, which is why most sit in the main file. Function prototypes are
@@ -275,8 +333,8 @@ File map:
   firmware mode; the CC and NRPN dispatch itself is in `ls_midi.ino`.
 * `ls_lowRow.ino`: low row modes (sustain, restrike, strum, arpeggiator, bend,
   CC).
-* `ls_arpeggiator.ino`, `ls_clock.ino`: the internal arpeggiator and the
-  24 PPQ musical clock.
+* `ls_arpeggiator.ino`, `ls_clock.ino`: the internal arpeggiator and the 24
+  PPQ musical clock.
 * `ls_sequencer.ino`: the polyphonic step sequencer, one per split, and project
   storage.
 * `ls_settings.ino`: settings defaults, flash storage, presets, and the touch
@@ -287,7 +345,8 @@ File map:
   migration from every older settings layout.
 * `ls_serial.ino`: the serial protocol with the updater: handshake, send and
   restore settings and projects, switch to MIDI mode.
-* `tools/virtual/`: the Virtual LinnStrument app, see below.
+* `tools/virtual/`: the Virtual LinnStrument app, see "Virtual LinnStrument"
+  above.
 * `ls_leds.ino`, `ls_font.ino`, `ls_touchanim.ino`, `ls_playbook.ino`,
   `ls_promo.ino`: LED driving, text rendering, animations.
 * `ls_switches.ino`: the two panel switches and two foot switches, and the
@@ -358,7 +417,7 @@ Rules that follow:
 * Any new screen, table or animation needs both variants, or a layout computed
   from `NUMCOLS`. Branch on `LINNMODEL` only for genuinely different hardware.
 * The desktop tests run with `linn::reset()` for a 200 and `linn::reset(128)`
-  for a 128; test layout code on both.
+  for a 128. Test layout code on both.
 * Say which model a change was tried on.
 
 ## Idioms you will meet on the first edit
@@ -374,7 +433,7 @@ Rules that follow:
   the current display mode, `setDisplayMode()` switches screens. Never write to
   the LED hardware directly.
 * Settings cells tell a tap from a hold with `ensureCellBeforeHoldWait()`,
-  which returns true for a release within `SENSOR_HOLD_DELAY`; holds are
+  which returns true for a release within `SENSOR_HOLD_DELAY`. Holds are
   handled in the `...Hold()` functions. The OS Update cell toggles serial mode
   on a tap and User Firmware Mode on a hold.
 
@@ -416,7 +475,8 @@ Changing any field of `DeviceSettings`, `GlobalSettings`, `SplitSettings` or
    a blob of every earlier layout and checks that planted values arrive, and
    give it a mutation line.
 
-Commit 1f8858f (low row transpose) is a complete example of such a bump.
+Commit 1f8858f (low row transpose) is a complete example of steps 1 to 6,
+and steps 7 and 8 came later.
 
 Sequencer projects (`SequencerProject`, `StepData`, `StepEvent`) have no
 migration at all: they are restored raw and rejected when their size changed,
@@ -436,8 +496,13 @@ A new low row mode, to take the other common request, touches: the
 cell that selects it in the per-split settings touch handler in
 `ls_settings.ino` (the "Low-row settings" cases) and its painter in
 `ls_displayModes.ino`, the `inRange()` bound of NRPN 34 in `ls_midi.ino` and
-the table in `midi.md`, and a test in `tests/test_lowrow.cpp` with its line in
-`tests/mutations.tsv`.
+the table in `midi.md` (its value list as well as its range), then `go run
+./tools/linnstrument nrpns` to regenerate `examples/browser/nrpn_parameters.js`,
+which CI compares, and a test in `tests/test_lowrow.cpp` with its line in
+`tests/mutations.tsv`. The eight modes sit in rows 4 to 7 of columns 12 and
+13 of the per-split screen, so a ninth takes one of the free cells below, and
+the `0-7` bound is raised in `ls_midi.ino` and in both rows of `midi.md` (34
+for the left split, 134 for the right).
 
 ## Things that look wrong but are deliberate
 
@@ -449,11 +514,16 @@ the table in `midi.md`, and a test in `tests/test_lowrow.cpp` with its line in
   columns second, unlike every other array. The comment there says why.
 * The `/*!!*/` markers in `setup()` flag hardware-specific sequencing. Do not
   reorder those lines. Pins 35 and 36 there select serial versus MIDI and USB
-  versus DIN. A flashed build that can no longer reach the OS Update cell in
-  Global Settings has no serial port and cannot be reflashed over USB; the
-  unit then has to be opened to use the Due's erase button. Never disable
-  Global Settings, the OS Update tap, or `applySerialMode()` in a build you
-  flash.
+  versus DIN. Among them is the check that holding Global Settings at power on
+  starts firmware update mode (FWUP): pins 35 and 36 set for serial over USB,
+  nothing else running. It is the only way back for a build that hangs or can
+  no longer reach the OS Update cell, at the cost of the settings and
+  calibration. A build that breaks those lines, or what they call before that
+  check (`initializeSensors()`, `initializeCalibration()`, `initializeLeds()`,
+  `switchPressAtStartup()`), cannot be reflashed over USB at all, and the unit
+  then has to be opened to use the Due's erase button. Never change them, and
+  never disable Global Settings, the OS Update tap, or `applySerialMode()` in
+  a build you flash.
 * Commented-out `#define` lines near the top of `linnstrument-firmware.ino`
   (frame displays, `TESTING_SENSOR_DISABLE`, diagnostics) are switches for
   people debugging on hardware. Leave them as you found them and never enable
@@ -464,13 +534,12 @@ the table in `midi.md`, and a test in `tests/test_lowrow.cpp` with its line in
 Serial output needs the LinnStrument in serial mode (the OS Update cell in
 Global Settings toggles it) and `DEBUG_ENABLED` defined in `ls_debug.h`.
 `DEBUGPRINT((level, "text"))` prints when `debugLevel` is at least `level`.
-`debugLevel` starts at -1, so only level -1 prints until the player sets it:
-with `DEBUG_ENABLED`, column 17 rows 0 to 4 of Global Settings set levels -1
-to 3, and the secret switches in column 18 rows 0 to 5 print MIDI debug
-output and show X, Y and Z frames, scan time and free RAM. The
-`DISPLAY_*_AT_LAUNCH` defines at the top of
-`linnstrument-firmware.ino` force serial mode and one of those switches at
-boot, for when the settings panel cannot be reached.
+`debugLevel` starts at -1, so only level -1 prints until the player sets it.
+With `DEBUG_ENABLED`, column 17 rows 0 to 4 of Global Settings set levels -1
+to 3, and the secret switches in column 18 rows 0 to 5 print MIDI debug output
+and show X, Y and Z frames, scan time and free RAM. The `DISPLAY_*_AT_LAUNCH`
+defines at the top of `linnstrument-firmware.ino` force serial mode and one of
+those switches at boot, for when the settings panel cannot be reached.
 
 The person tests on the instrument and pastes serial logs or describes what
 they saw, unless a unit is connected to this machine and they have allowed
@@ -533,5 +602,6 @@ commit, a single line in the past tense matching the history ("Added ...",
 changes.
 
 **Before reporting a change as done:** the desktop tests pass, it compiles for
-the Due, the full diff was re-read, every `.ino` file was grepped for the same
-pattern, and the person has exact steps to try on the instrument.
+the Due (where neither can run, as on the web, the Actions run is green), the
+full diff was re-read, every `.ino` file was grepped for the same pattern, and
+the person has exact steps to try on the instrument.
