@@ -366,7 +366,9 @@ Working with an AI coding assistant
 
 The file `CLAUDE.md` in this repository is read automatically by Claude Code.
 It tells the assistant how the firmware is built, what it must not do, and
-how a change is verified, so you don't need to repeat any of that.
+how a change is verified, so you don't need to repeat any of that. Other
+assistants, such as Codex or Cursor, read `AGENTS.md`, which sends them to
+the same file.
 
 ### How the work is divided
 
