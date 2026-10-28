@@ -149,19 +149,22 @@ There are three ways to build, and they all produce the same firmware:
    download is a zip, so unzip it to get the `.bin`. The same run attaches
    prebuilt `linnstrument` tool binaries for Linux, Windows and macOS, the
    Virtual LinnStrument for Apple silicon Macs, and a screenshot of it
-   running. Every artifact is named after the firmware version and the
-   commit, for example `linnstrument-firmware-240.075-1a2b3c4` for the
-   firmware, `virtual-linnstrument-macos-240.075-1a2b3c4.zip` for the app and
+   running. Every artifact is named after the firmware version and the commit,
+   for example `linnstrument-firmware-240.075-1a2b3c4` for the firmware,
+   `virtual-linnstrument-macos-240.075-1a2b3c4.zip` for the app and
    `virtual-linnstrument-240.075-1a2b3c4.png` for the screenshot. The tool
    tells you the same with `./linnstrument-macos version`, and the app in its
-   window title and status line. Note that downloading needs a
-   GitHub login, and GitHub keeps artifacts for 90 days by default. Only a run
-   with a green tick offers downloads. The builds start once the tests pass,
-   and a run that ends with a red cross deletes what it had attached. A pull
-   request from a fork can't delete, so its red run keeps them. On a fork the
-   runs are on the fork's own Actions tab, which asks once to enable workflows
-   with a green button. "Run workflow" there builds a branch without a new
-   push. This needs no software on your computer at all.
+   window title and status line. Note that downloading needs a GitHub login,
+   and GitHub keeps artifacts for 90 days by default. Only a run with a green
+   tick offers downloads. The builds start once the tests pass, and a run that
+   ends with a red cross deletes what it had attached. A pull request from a
+   fork can't delete, so its red run keeps them. On a fork the runs are on the
+   fork's own Actions tab, which asks once to enable workflows with a green
+   button. "Run workflow" there builds a branch without a new push. This needs
+   no software on your computer at all.
+
+   <img src="docs/images/actions-artifacts.png" width="600"
+        alt="The Artifacts list at the bottom of an Actions run">
 
 A build of `master`, or of a branch made from it, is the development version
 of the next release. This means the instrument reports version 2.4.0 and
