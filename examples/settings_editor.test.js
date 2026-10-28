@@ -79,6 +79,14 @@ test("every parameter but the actions is queried", () => {
   assert.ok(numbers.includes(243) && numbers.includes(272));
 });
 
+test("the read starts on the model answer, or on the mode answer of a firmware without one", () => {
+  assert.equal(editor.startsRead({ type: "model", model: 128 }), true);
+  assert.equal(editor.startsRead({ type: "mode", active: false }), true);
+  assert.equal(editor.startsRead({ type: "version", version: 240 }), false);
+  assert.equal(editor.startsRead({ type: "nrpn", number: 30, value: 1 }), false);
+  assert.equal(editor.startsRead(null), false);
+});
+
 test("the decoder's named replies and plain NRPN replies both become a number and a value", () => {
   assert.deepEqual(editor.replyValue({ type: "nrpn", number: 202, value: 12, channel: 1 }), { number: 202, value: 12 });
   assert.deepEqual(editor.replyValue({ type: "mode", active: true, channel: 9 }), { number: 245, value: 1 });

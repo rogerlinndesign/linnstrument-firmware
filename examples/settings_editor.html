@@ -92,6 +92,9 @@ limitations under the License.
   </aside>
   <div class="content" id="content"></div>
 </main>
+<footer>
+  LinnStrument is made by <a href="https://www.rogerlinndesign.com/linnstrument">Roger Linn</a> and <a href="https://uwyn.com">Geert Bevin</a><span class="sep"></span><a href="https://github.com/rogerlinndesign/linnstrument-firmware">Source on GitHub</a>
+</footer>
 
 <script src="user_firmware_protocol.js"></script>
 <script src="connection.js"></script>
@@ -120,7 +123,11 @@ limitations under the License.
   function expectReply(number) {
     clearTimeout(waiting[number]);
     setState(number, "pending");
-    waiting[number] = setTimeout(function () { setState(number, "silent"); }, 1500);
+    waiting[number] = setTimeout(function () {
+      setState(number, "silent");
+      const c = controls[number];
+      if (c && c.state) c.state.title = number >= 271 && conn.info().firmwareOld ? "Needs firmware 2.4.0 or later" : "No answer";
+    }, 2000);
   }
 
   function query(numbers) {
@@ -346,7 +353,7 @@ limitations under the License.
   // the settings are read once the chosen ports answer as an instrument
   let readPending = false;
   function onEvent(event) {
-    if (event.type === "model" && readPending) { readPending = false; readAll(); }
+    if (readPending && editor.startsRead(event)) { readPending = false; readAll(); }
     const reply = editor.replyValue(event);
     if (reply) onReply(reply);
   }

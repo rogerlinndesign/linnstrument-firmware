@@ -170,6 +170,29 @@ test("starting the runner enters the mode, enables only the axes the rows need a
   assert.equal(paint[0][2], 0);
 });
 
+test("a firmware without painted runs gets every cell lit one by one", () => {
+  const layout = layoutWith([{ type: "pad", col0: 1, col1: 2, row0: 0, row1: 0 }], 128);
+  const runner = designer.createRunner(layout, null, { eachCell: () => true });
+  const messages = runner.start();
+  assert.equal(messages.filter((m) => m[1] === 25).length, 0);
+  const colors = messages.filter((m) => m[1] === 22);
+  assert.equal(colors.length, 17 * 8);
+  assert.deepEqual(messages.slice(messages.indexOf(colors[0]) - 2, messages.indexOf(colors[0]) + 1), ufm.setLed(0, 0, 0));
+  assert.equal(colors[1][2], ufm.COLORS.orange);
+  assert.deepEqual(runner.handle(press(1, 0)).toInstrument, ufm.setLed(1, 0, ufm.COLORS.white));
+});
+
+test("a run painted before the firmware was known to be old is repainted cell by cell", () => {
+  const layout = layoutWith([{ type: "pad", col0: 1, col1: 2, row0: 0, row1: 0 }], 128);
+  let old = false;
+  const runner = designer.createRunner(layout, null, { eachCell: () => old });
+  assert.equal(runner.start().filter((m) => m[1] === 25).length, 17 * 8);
+  old = true;
+  const repaint = runner.refresh().toInstrument;
+  assert.equal(repaint.filter((m) => m[1] === 22).length, 17 * 8);
+  assert.equal(runner.refresh().toInstrument.length, 0);
+});
+
 test("a pad grid plays one note per cell with pressure, and lights the held cell", () => {
   const layout = layoutWith([{ type: "pad", col0: 1, col1: 4, row0: 0, row1: 1, note: 36, perCell: true, channel: 10 }]);
   const runner = designer.createRunner(layout);

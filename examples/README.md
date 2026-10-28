@@ -12,7 +12,11 @@ visit, because a file has no origin the browser can remember a grant for.
 `go run ./tools/linnstrument serve` serves the folder on a local port and opens the front page;
 served that way the browser asks once. `index.html` is the front page for hosting them: copy
 the folder to any static web host over https, which Web MIDI requires, and the pages work as
-they do locally; nothing is stored anywhere but the browser.
+they do locally; nothing is stored anywhere but the browser. The pages ask the instrument for
+its model, firmware and calibration (NRPNs 272 to 275) and paint runs of lights with CC 25,
+which need firmware 2.4.0 or later; with an older one the connection panel says so, the model
+is the one picked by hand, the designer lights the cells one by one, and the console's text
+stays dark.
 
 * `settings_editor.html`: every setting the instrument exposes over MIDI, as a form with the two
   splits side by side. On connecting it reads all of them back from the instrument; a change is

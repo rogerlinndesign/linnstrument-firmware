@@ -350,8 +350,10 @@ limitations under the License.
   // zone's state is made when it is first seen. A finger crossing from one cell to the next
   // arrives as a press on the new cell while the old one is still down, then a release of the
   // old one, so every zone tracks the cells it holds and only an empty zone counts as lifted.
-  function createRunner(layout, initialControlLights) {
+  // options.eachCell() true paints cell by cell with CC 20 to 22, for a firmware without CC 25
+  function createRunner(layout, initialControlLights, options) {
     const columns = columnsOf(layout);
+    const eachCell = (options && options.eachCell) || function () { return false; };
     const state = {};
     let controlLights = [0, 0, 0, 0, 0, 0, 0, 0];
     if (initialControlLights) controlLights = initialControlLights.slice(0, ROWS).concat([0, 0, 0, 0, 0, 0, 0, 0]).slice(0, ROWS).map(function (c) { return isInt(c, 0, 11) ? c : 0; });
@@ -370,6 +372,7 @@ limitations under the License.
     }
     function fingersDown(s) { return Object.keys(s.fingers).length > 0; }
     let shown = null;
+    let paintedRun = false;   // the first paint went out as a run, which an old firmware ignores
 
     function frame() {
       const colors = [];
@@ -432,12 +435,15 @@ limitations under the License.
     function lightMessages() {
       const now = frame();
       let messages = [];
-      if (!shown) {
+      const everything = !shown || (paintedRun && eachCell());
+      if (!shown && !eachCell()) {
         messages = ufm.paintRun(0, 0, now);
+        paintedRun = true;
       } else {
         for (let i = 0; i < now.length; i++) {
-          if (now[i] !== shown[i]) messages = messages.concat(ufm.setLed(i % columns, Math.floor(i / columns), now[i]));
+          if (everything || now[i] !== shown[i]) messages = messages.concat(ufm.setLed(i % columns, Math.floor(i / columns), now[i]));
         }
+        paintedRun = false;
       }
       shown = now;
       return messages;

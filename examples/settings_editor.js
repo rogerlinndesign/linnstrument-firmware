@@ -55,6 +55,12 @@ limitations under the License.
     return (parameters || nrpns.parameters).filter(function (p) { return p.kind !== "action"; });
   }
 
+  // The first answer that proves an instrument is listening: the model on firmware 2.4.0 or
+  // later, otherwise the mode, which every firmware answers and which is queried last.
+  function startsRead(event) {
+    return !!event && (event.type === "model" || event.type === "mode");
+  }
+
   // the decoder names a few replies; every reply is a parameter number and its value here
   function replyValue(event) {
     if (!event) return null;
@@ -139,6 +145,7 @@ limitations under the License.
     parameters: nrpns.parameters,
     tables: nrpns.tables,
     queryable: queryable,
+    startsRead: startsRead,
     queryMessages: queryMessages,
     setMessages: setMessages,
     replyValue: replyValue,

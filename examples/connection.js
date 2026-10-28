@@ -16,10 +16,11 @@ limitations under the License.
 // The instrument connection every LinnStrument page shares: Web MIDI access, the port lists,
 // the queries that identify the instrument, and the widget in the header's top right (a dot and
 // a label) that opens a panel with the status lines and the port selects. A page creates one
-// with create({ onEvent, onPorts, extraOutputs: [{ id, label, aria, hint, pick }], extras,
-// offlineNote }), gets every decoded message through onEvent and the chosen ports through
-// onPorts, and uses what it returns: send, sendTo(id), ports(), info(), note(text, state),
-// open(on, focus), addControl(el). Browser only; connection.test.js covers the pure parts.
+// with create({ onEvent, onPorts, onFirmware, extraOutputs: [{ id, label, aria, hint, pick }],
+// extras, offlineNote }), gets every decoded message through onEvent, the chosen ports through
+// onPorts and the news that the firmware is an old one through onFirmware, and uses what it
+// returns: send, sendTo(id), ports(), info(), note(text, state), open(on, focus), addControl(el).
+// Browser only; connection.test.js covers the pure parts.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
     module.exports = factory(require("./user_firmware_protocol.js"));
@@ -35,6 +36,7 @@ limitations under the License.
     if (info.refused) return { text: "MIDI access refused", state: "" };
     if (!info.input || !info.output) return { text: "Choose MIDI ports", state: "" };
     if (info.model) return { text: "LinnStrument " + info.model, state: "on" };
+    if (info.firmwareOld) return { text: "Older firmware", state: "ready" };
     return { text: info.input, state: "ready" };
   }
 
@@ -46,12 +48,20 @@ limitations under the License.
     return match ? match.id : "";
   }
 
+  // The firmware answers queries in the order they came and only 2.4.0 or later knows the model's
+  // NRPN, so a mode answer without a model answer by the end of the wait means an older one.
+  const OLD_FIRMWARE = "Firmware 2.4.0 or later is needed for the model, painted runs of lights and text; update with the LinnStrument Updater";
+  function firmwareText(info) {
+    if (info.firmwareOld) return OLD_FIRMWARE;
+    return info.version ? "Firmware " + info.version : "";
+  }
+
   function statusText(info) {
     if (info.noMidi) return "No Web MIDI here, use Chrome, Edge or Firefox";
     if (info.refused) return "MIDI access refused, allow it for this page";
     if (!info.input || !info.output) return "Choose the MIDI in and out";
     if (info.model) return "Connected to LinnStrument " + info.model;
-    return "Connected to " + info.input;
+    return "Connected to " + info.input + (info.firmwareOld ? ", older firmware" : "");
   }
 
   function create(options) {
@@ -62,8 +72,9 @@ limitations under the License.
     let autoOpened = false;
     const chosenByPerson = {};   // select key -> the id the person picked, "" for None
     const extra = {};
-    const info = { noMidi: false, refused: false, input: null, output: null, model: null, version: null, calibrated: null };
+    const info = { noMidi: false, refused: false, input: null, output: null, model: null, version: null, calibrated: null, firmwareOld: false };
     let calibrationTimer = null;
+    let modeAnswered = false;
 
     // --- the header widget and its panel
 
@@ -142,9 +153,11 @@ limitations under the License.
       button.className = "connection" + (d.state ? " " + d.state : "");
       statusBox.className = "status" + (d.state ? " " + d.state : "");
       statusBox.querySelector(".text").textContent = statusText(info);
-      panel.querySelector(".firmware").textContent = info.version ? "Firmware " + info.version : "";
+      const fw = panel.querySelector(".firmware");
+      fw.textContent = firmwareText(info);
+      fw.className = "info firmware" + (info.firmwareOld ? " warn" : "");
       const cal = panel.querySelector(".calibration");
-      if (info.calibrated === null) { cal.textContent = ""; cal.className = "info calibration"; }
+      if (info.calibrated === null || info.firmwareOld) { cal.textContent = ""; cal.className = "info calibration"; }
       else if (info.calibrated === "unknown") { cal.textContent = "Calibration not reported"; cal.className = "info calibration"; }
       else { cal.textContent = info.calibrated ? "Calibrated" : "Not calibrated, positions are approximate"; cal.className = "info calibration " + (info.calibrated ? "ok" : "warn"); }
       attention();
@@ -154,9 +167,10 @@ limitations under the License.
     // the live region reads them out when they change
     function attention() {
       const noteEl = panel.querySelector(".note");
+      // an older firmware is in the label itself, so it needs no flag next to the dot
       const warn = info.calibrated === false || noteEl.className.indexOf("warn") >= 0;
       button.querySelector(".flag").hidden = !warn;
-      const text = [statusText(info), panel.querySelector(".calibration").textContent, noteEl.textContent].filter(Boolean).join(". ");
+      const text = [statusText(info), info.firmwareOld ? OLD_FIRMWARE : "", panel.querySelector(".calibration").textContent, noteEl.textContent].filter(Boolean).join(". ");
       if (text !== announced) { announced = text; if (panel.hidden) live.textContent = text; }
     }
 
@@ -187,10 +201,11 @@ limitations under the License.
       const event = decoder.decode(Array.from(e.data));
       if (!event) return;
       switch (event.type) {
-        case "model": info.model = event.model; show(); break;
+        case "model": info.model = event.model; info.firmwareOld = false; show(); break;
+        case "mode": modeAnswered = true; break;
         case "version": info.version = String(event.version); show(); break;
         case "build": if (info.version) info.version = info.version.split(".")[0] + "." + String(event.build).padStart(3, "0"); show(); break;
-        case "calibrated": info.calibrated = event.calibrated; clearTimeout(calibrationTimer); show(); break;
+        case "calibrated": info.calibrated = event.calibrated; show(); break;
       }
       if (opts.onEvent) opts.onEvent(event);
     }
@@ -257,7 +272,8 @@ limitations under the License.
       if (input) input.onmidimessage = onMessage;
       info.input = input ? input.name : null;
       info.output = output ? output.name : null;
-      info.model = null; info.version = null; info.calibrated = null;
+      info.model = null; info.version = null; info.calibrated = null; info.firmwareOld = false;
+      modeAnswered = false;
       clearTimeout(calibrationTimer);
       note("");
       show();
@@ -265,7 +281,14 @@ limitations under the License.
       if (input && output) {
         autoOpened = false;
         send(ufm.queryModel().concat(ufm.queryVersion(), ufm.queryCalibrated(), ufm.queryUserFirmwareMode()));
-        calibrationTimer = setTimeout(function () { if (info.calibrated === null) { info.calibrated = "unknown"; show(); } }, 1500);
+        calibrationTimer = setTimeout(function () {
+          if (info.calibrated === null) info.calibrated = "unknown";
+          if (info.model === null && modeAnswered) {
+            info.firmwareOld = true;
+            if (opts.onFirmware) opts.onFirmware(info);
+          }
+          show();
+        }, 1500);
       }
     }
     selIn.addEventListener("change", function () { chosenByPerson.input = selIn.value; choosePorts(); });
@@ -319,5 +342,5 @@ limitations under the License.
     return { send: send, sendTo: sendTo, ports: ports, info: function () { return info; }, note: note, open: open, addControl: addControl };
   }
 
-  return { create: create, describe: describe, statusText: statusText, pickPort: pickPort };
+  return { create: create, describe: describe, statusText: statusText, firmwareText: firmwareText, pickPort: pickPort };
 });

@@ -24,6 +24,7 @@ test("the header label follows the connection state", () => {
   assert.deepEqual(connection.describe({ input: null, output: "LinnStrument MIDI" }), { text: "Choose MIDI ports", state: "" });
   assert.deepEqual(connection.describe({ input: "LinnStrument MIDI", output: "LinnStrument MIDI" }), { text: "LinnStrument MIDI", state: "ready" });
   assert.deepEqual(connection.describe({ input: "LinnStrument MIDI", output: "LinnStrument MIDI", model: 128 }), { text: "LinnStrument 128", state: "on" });
+  assert.deepEqual(connection.describe({ input: "LinnStrument MIDI", output: "LinnStrument MIDI", firmwareOld: true }), { text: "Older firmware", state: "ready" });
 });
 
 test("a port list keeps the chosen port while it exists, else takes the first matching name, else none", () => {
@@ -36,9 +37,16 @@ test("a port list keeps the chosen port while it exists, else takes the first ma
   assert.equal(connection.pickPort([], "", /LinnStrument/), "");
 });
 
+test("the firmware line reports the version, or that the firmware is too old for the pages", () => {
+  assert.equal(connection.firmwareText({ version: null }), "");
+  assert.equal(connection.firmwareText({ version: "240.075" }), "Firmware 240.075");
+  assert.match(connection.firmwareText({ version: null, firmwareOld: true }), /2\.4\.0 or later.*Updater/);
+});
+
 test("the status line in the panel says what to do", () => {
   assert.equal(connection.statusText({ noMidi: true }), "No Web MIDI here, use Chrome, Edge or Firefox");
   assert.equal(connection.statusText({ input: null }), "Choose the MIDI in and out");
   assert.equal(connection.statusText({ input: "Virtual LinnStrument", output: "Virtual LinnStrument" }), "Connected to Virtual LinnStrument");
   assert.equal(connection.statusText({ input: "a", output: "b", model: 200 }), "Connected to LinnStrument 200");
+  assert.equal(connection.statusText({ input: "LinnStrument MIDI", output: "b", firmwareOld: true }), "Connected to LinnStrument MIDI, older firmware");
 });

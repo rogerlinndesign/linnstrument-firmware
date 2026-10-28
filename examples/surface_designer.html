@@ -125,7 +125,8 @@ limitations under the License.
   .lastSent { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin-left: 6px; padding: 5px 12px; border-radius: 4px;
               background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
   .lastSent .caps { color: var(--dim); }
-  /* wide enough for the longest message, "note on C#-1 (1) velocity 127 ch 16", so the bar never shifts */
+  /* wide enough for the longest message, "note on C#-1 (1) velocity 127 ch 16", so the bar never
+     shifts */
   .readout { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 36ch; }
   .readout.notice { width: auto; font-family: inherit; color: var(--warn); }
   .tabpanel { padding: 16px 20px 20px; }
@@ -272,6 +273,9 @@ limitations under the License.
     </div>
   </div>
 </main>
+<footer>
+  LinnStrument is made by <a href="https://www.rogerlinndesign.com/linnstrument">Roger Linn</a> and <a href="https://uwyn.com">Geert Bevin</a><span class="sep"></span><a href="https://github.com/rogerlinndesign/linnstrument-firmware">Source on GitHub</a>
+</footer>
 
 <script src="user_firmware_protocol.js"></script>
 <script src="connection.js"></script>
@@ -1093,12 +1097,14 @@ limitations under the License.
     hint(text);
   }
 
+  // an older firmware has no painted runs, so the lights go out cell by cell
+  const runnerOptions = { eachCell: function () { return conn.info().firmwareOld; } };
   function startRunner() {
     if (running) return;
     if (!output) { runNotice("Choose the instrument's MIDI out at the top right first"); return; }
     if (!daw) { runNotice("Choose the controller out at the top right first"); return; }
     if (daw.id === output.id) { runNotice("Controller out is the instrument itself, pick another port"); return; }
-    runner = designer.createRunner(layout, slotLights());
+    runner = designer.createRunner(layout, slotLights(), runnerOptions);
     send(output, runner.start());
     running = true;
     conn.note("");
@@ -1128,7 +1134,7 @@ limitations under the License.
     if (!runner) return;
     const out = runner.stop();
     sendToDaw(out.toDaw);
-    runner = designer.createRunner(layout, slotLights());
+    runner = designer.createRunner(layout, slotLights(), runnerOptions);
     send(output, runner.resume());
   }
   // after an edit of the running layout: the lights and axes follow, every value stays
@@ -1202,6 +1208,8 @@ limitations under the License.
     extras: [modelPickField],
     offlineNote: "design layouts for the model you pick in the connection panel",
     onEvent: onEvent,
+    // lights painted as a run before the firmware was known to be old never showed
+    onFirmware: function () { if (running) refreshRunner(); },
     onPorts: function (ports) {
       if (running) { stopRunner(); logLine("stopped: the ports changed"); }
       const sameInstrument = output && ports.output && ports.output.id === output.id && ports.input;
