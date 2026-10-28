@@ -36,8 +36,16 @@ limitations under the License.
     if (info.refused) return { text: "MIDI access refused", state: "" };
     if (!info.input || !info.output) return { text: "Choose MIDI ports", state: "" };
     if (info.model) return { text: "LinnStrument " + info.model, state: "on" };
-    if (info.firmwareOld) return { text: "Older firmware", state: "ready" };
+    if (info.silent) return { text: "No answer", state: "" };
+    // 2.3.4 is the current release, so a firmware before 2.4.0 is connected and working, not a fault
+    if (info.firmwareOld) return { text: "LinnStrument, 2.3.4 or earlier", state: "on" };
     return { text: info.input, state: "ready" };
+  }
+
+  // the ports an extra output may use: never the instrument's own, nor any other LinnStrument,
+  // which would take the controller's messages as its own input
+  function extraPorts(outputs, instrumentId) {
+    return outputs.filter(function (p) { return p.id !== instrumentId && !/LinnStrument/.test(p.name); });
   }
 
   // The port to select from a list: the one chosen before if it is still there, else the first
@@ -50,10 +58,31 @@ limitations under the License.
 
   // The firmware answers queries in the order they came and only 2.4.0 or later knows the model's
   // NRPN, so a mode answer without a model answer by the end of the wait means an older one.
-  const OLD_FIRMWARE = "Firmware 2.4.0 or later is needed for the model, painted runs of lights and text; update with the LinnStrument Updater";
+  const OLD_FIRMWARE = "Firmware 2.3.4, the current release, or earlier: everything but text works. 2.4.0, in testing, adds model detection, faster lighting and text";
   function firmwareText(info) {
     if (info.firmwareOld) return OLD_FIRMWARE;
     return info.version ? "Firmware " + info.version : "";
+  }
+  // NRPN 273 answers 240 for firmware 2.4.0 and NRPN 274 its build; the instrument's own screen
+  // shows them as 240 and .075
+  function versionText(version, build) {
+    const text = String(version).split("").join(".");
+    return build === undefined || build === null ? text : text + " build " + build;
+  }
+
+  // the model a person picked, kept in the browser for every page of the same origin, since a
+  // firmware before 2.4.0 cannot report it; storage can be missing or refused, as in a private window
+  const MODEL_KEY = "linnstrument.model";
+  function storedModel(storage) {
+    try {
+      const model = parseInt((storage || localStorage).getItem(MODEL_KEY), 10);
+      return model === 200 || model === 128 ? model : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function storeModel(model, storage) {
+    try { (storage || localStorage).setItem(MODEL_KEY, String(model)); } catch (e) { }
   }
 
   function statusText(info) {
@@ -61,7 +90,8 @@ limitations under the License.
     if (info.refused) return "MIDI access refused, allow it for this page";
     if (!info.input || !info.output) return "Choose the MIDI in and out";
     if (info.model) return "Connected to LinnStrument " + info.model;
-    return "Connected to " + info.input + (info.firmwareOld ? ", older firmware" : "");
+    if (info.silent) return "No answer from " + info.input + ". If it's a LinnStrument, check that its MIDI I/O is set to USB: in Global Settings, the bottom pad of column 15";
+    return "Connected to " + info.input;
   }
 
   function create(options) {
@@ -72,7 +102,7 @@ limitations under the License.
     let autoOpened = false;
     const chosenByPerson = {};   // select key -> the id the person picked, "" for None
     const extra = {};
-    const info = { noMidi: false, refused: false, input: null, output: null, model: null, version: null, calibrated: null, firmwareOld: false };
+    const info = { noMidi: false, refused: false, input: null, output: null, model: null, version: null, calibrated: null, firmwareOld: false, silent: false };
     let calibrationTimer = null;
     let modeAnswered = false;
 
@@ -155,7 +185,7 @@ limitations under the License.
       statusBox.querySelector(".text").textContent = statusText(info);
       const fw = panel.querySelector(".firmware");
       fw.textContent = firmwareText(info);
-      fw.className = "info firmware" + (info.firmwareOld ? " warn" : "");
+      fw.className = "info firmware";
       const cal = panel.querySelector(".calibration");
       if (info.calibrated === null || info.firmwareOld) { cal.textContent = ""; cal.className = "info calibration"; }
       else if (info.calibrated === "unknown") { cal.textContent = "Calibration not reported"; cal.className = "info calibration"; }
@@ -201,10 +231,10 @@ limitations under the License.
       const event = decoder.decode(Array.from(e.data));
       if (!event) return;
       switch (event.type) {
-        case "model": info.model = event.model; info.firmwareOld = false; show(); break;
-        case "mode": modeAnswered = true; break;
-        case "version": info.version = String(event.version); show(); break;
-        case "build": if (info.version) info.version = info.version.split(".")[0] + "." + String(event.build).padStart(3, "0"); show(); break;
+        case "model": info.model = event.model; info.firmwareOld = false; info.silent = false; show(); break;
+        case "mode": modeAnswered = true; if (info.silent) { info.silent = false; show(); } break;
+        case "version": info.versionNumber = event.version; info.version = versionText(event.version); show(); break;
+        case "build": if (info.version) info.version = versionText(info.versionNumber, event.build); show(); break;
         case "calibrated": info.calibrated = event.calibrated; show(); break;
       }
       if (opts.onEvent) opts.onEvent(event);
@@ -249,7 +279,8 @@ limitations under the License.
       };
       fill(selIn, inputs, pick("input", inputs, /LinnStrument/));
       fill(selOut, outputs, pick("output", outputs, /LinnStrument/));
-      extraOutputs.forEach(function (x) { fill(selExtra[x.id], outputs, pick(x.id, outputs, x.pick)); });
+      const others = extraPorts(outputs, selOut.value);
+      extraOutputs.forEach(function (x) { fill(selExtra[x.id], others, pick(x.id, others, x.pick)); });
       if (instrumentChosen() !== before) choosePorts();
       else {
         if (extrasChosen() !== beforeExtras) chooseExtras();
@@ -272,7 +303,7 @@ limitations under the License.
       if (input) input.onmidimessage = onMessage;
       info.input = input ? input.name : null;
       info.output = output ? output.name : null;
-      info.model = null; info.version = null; info.calibrated = null; info.firmwareOld = false;
+      info.model = null; info.version = null; info.calibrated = null; info.firmwareOld = false; info.silent = false;
       modeAnswered = false;
       clearTimeout(calibrationTimer);
       note("");
@@ -287,12 +318,16 @@ limitations under the License.
             info.firmwareOld = true;
             if (opts.onFirmware) opts.onFirmware(info);
           }
+          // neither query answered: a port that is not a LinnStrument, or one whose MIDI goes
+          // out on its jacks; a loopback port echoes the queries but never answers them
+          if (info.model === null && !modeAnswered) info.silent = true;
           show();
         }, 1500);
       }
     }
     selIn.addEventListener("change", function () { chosenByPerson.input = selIn.value; choosePorts(); });
-    selOut.addEventListener("change", function () { chosenByPerson.output = selOut.value; choosePorts(); });
+    // a new instrument port leaves the extra lists, so they are filled again around it
+    selOut.addEventListener("change", function () { chosenByPerson.output = selOut.value; fillPorts(); choosePorts(); });
     Object.keys(selExtra).forEach(function (id) {
       selExtra[id].addEventListener("change", function () { chosenByPerson[id] = selExtra[id].value; chooseExtras(); });
     });
@@ -342,5 +377,6 @@ limitations under the License.
     return { send: send, sendTo: sendTo, ports: ports, info: function () { return info; }, note: note, open: open, addControl: addControl };
   }
 
-  return { create: create, describe: describe, statusText: statusText, firmwareText: firmwareText, pickPort: pickPort };
+  return { create: create, describe: describe, statusText: statusText, firmwareText: firmwareText, versionText: versionText, pickPort: pickPort, extraPorts: extraPorts,
+           storedModel: storedModel, storeModel: storeModel };
 });

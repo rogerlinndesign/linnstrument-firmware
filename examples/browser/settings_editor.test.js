@@ -132,3 +132,32 @@ test("the search matches names, numbers and descriptions", () => {
   assert.ok(!editor.matches(row, "velocity"));
   assert.ok(editor.matches(row, ""));
 });
+
+test("only the parameters firmware 2.4.0 added are marked as needing it", () => {
+  const marked = editor.parameters.filter((p) => editor.needsNewerFirmware(p.number)).map((p) => p.number);
+  assert.deepEqual(marked, [271, 272, 273, 274, 275]);
+  [245, 270, 299, 66].forEach((n) => assert.equal(editor.needsNewerFirmware(n), false));
+});
+
+test("switching MIDI to the jacks, which cuts the page off, asks for a second click", () => {
+  assert.match(editor.confirmation(234, 0), /MIDI jacks/);
+  assert.equal(editor.confirmation(234, 1), null);
+  assert.equal(editor.confirmation(233, 0), null);
+  assert.equal(by[234].options.find((o) => o.value === 0).label, "MIDI Jacks");
+});
+
+test("a two-way setting names its choice unless the choices are Off and On", () => {
+  assert.equal(editor.choiceLabel(by[201], 1), "Right Split");
+  assert.equal(editor.choiceLabel(by[201], 0), "Left Split");
+  assert.equal(editor.choiceLabel(by[234], 1), "USB");
+  assert.equal(editor.choiceLabel(by[2], 1), null);
+  assert.equal(editor.choiceLabel(by[233], 1), null);
+});
+
+test("a fader's CC number reads as a CC or as channel aftertouch", () => {
+  assert.equal(editor.valueMeaning(by[40], 74), "CC 74");
+  assert.equal(editor.valueMeaning(by[40], 128), "Channel Aftertouch");
+  assert.equal(editor.valueMeaning(by[153], 0), "CC 0");
+  assert.equal(editor.valueMeaning(by[253], 16), null);
+  assert.equal(editor.valueMeaning(by[25], 74), null);
+});

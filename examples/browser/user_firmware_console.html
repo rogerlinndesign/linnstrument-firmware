@@ -42,6 +42,7 @@ limitations under the License.
   table.axes input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
 
   .hidden { display: none !important; }
+  #scrollHint { margin: -8px 0 0; }
   /* while the mode is off the panel stays in place, its sections dimmed and out of reach */
   .side-note { padding: 16px 24px 0; color: var(--dim); }
   section.off { opacity: .4; }
@@ -65,7 +66,7 @@ limitations under the License.
 
   .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 28px 32px 20px; gap: 16px; overflow: auto;
            background: radial-gradient(ellipse 70% 60% at 50% 35%, rgba(194, 100, 31, .22), transparent 70%), var(--bg); }
-  .instrument { background: var(--steel); border-radius: 10px; padding: 20px 16px 20px 12px; position: relative;
+  .instrument { background: var(--steel); border-radius: 10px; padding: 20px 16px 20px 12px; position: relative; width: max-content; min-width: 100%;
                 box-shadow: inset 0 0 0 1px #262626, 0 24px 60px rgba(0, 0, 0, .7); }
   .instrument::before, .instrument::after { content: ""; position: absolute; left: 0; right: 0; height: 18px;
                 background: linear-gradient(180deg, #d08048, var(--cherry) 55%, var(--cherry-2)); }
@@ -85,7 +86,9 @@ limitations under the License.
   .cell.control:focus-visible { outline: none; }
   .cell.control:focus-visible .button { outline: 3px solid var(--accent); }
   /* the playing pads: one light grey plate with the pads barely raised out of it */
-  .grid { display: grid; gap: var(--gap); padding: var(--gap); flex: 1; background: var(--plate); border-radius: 4px; }
+  /* pads keep a size a pointer can hit; past that the instrument alone scrolls sideways */
+  .instrument-scroll { overflow-x: auto; flex: none; }
+  .grid { display: grid; gap: var(--gap); padding: var(--gap); flex: 1; background: var(--plate); border-radius: 4px; --pad-min: 20px; }
   .cell { aspect-ratio: 1; border-radius: 8%; border: 1px solid transparent; padding: 0; background: var(--pad); position: relative; cursor: crosshair; overflow: hidden;
           box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .3); }
   .cell:hover { border-color: transparent; }
@@ -118,10 +121,15 @@ limitations under the License.
     .cell.lit .led, .swatch::after, .status .dot { forced-color-adjust: none; }
   }
   @media (max-width: 960px) {
-    main { flex-direction: column; }
-    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-    .stage { padding: 20px 16px; }
+    /* one column: the page scrolls as a whole, the instrument first */
+    main { flex-direction: column; flex: 1 0 auto; min-height: auto; }
+    aside { width: auto; border-right: 0; border-top: 1px solid var(--line); order: 2; overflow: visible; }
+    .stage { padding: 20px 16px; overflow: visible; }
     .controls { min-width: 64px; }
+  }
+  /* a width a phone or tablet has, where a finger plays the pads */
+  @media (max-width: 760px) {
+    .grid { --pad-min: 26px; }
   }
 </style>
 </head>
@@ -166,8 +174,9 @@ limitations under the License.
       <div class="hint">Click a pad to light it, click again to switch it off, drag to paint a run</div>
     </section>
 
-    <section class="mode-only hidden">
+    <section class="mode-only hidden" id="textSection">
       <h2>Text</h2>
+      <p class="hint hidden" id="textNeeds">Text over MIDI arrived with firmware 2.4.0; this instrument's firmware is older.</p>
       <label class="field"><span class="caps">Text <span id="textCount" class="count">2 of 32</span></span>
         <input type="text" id="text" maxlength="32" value="Hi" placeholder="Up to 32 characters"></label>
       <div class="fields">
@@ -189,12 +198,15 @@ limitations under the License.
   </aside>
 
   <div class="stage">
+    <div class="instrument-scroll">
     <div class="instrument">
       <div class="surface" id="surface" role="group" aria-label="Pads: arrow keys move, Enter or Space lights or clears one">
         <div class="controls" id="controls"></div>
         <div class="grid" id="grid"></div>
       </div>
     </div>
+    </div>
+    <p class="hint hidden" id="scrollHint">On a touch screen, swipe the frame around the pads to scroll sideways</p>
     <div class="activity">
       <div class="bar">
         <span class="caps">Activity</span>
@@ -227,6 +239,7 @@ limitations under the License.
 
   let output = null;   // the instrument, from the connection
   let columns = 26;
+  let pickedModel = 200;     // the model shown until an instrument reports its own
   let model = null;
   let paintColor = ufm.COLORS.green;
   let surface = ufm.createSurfaceState(columns);
@@ -247,7 +260,9 @@ limitations under the License.
 
   // the state the instrument reported, on the two halves of the switch in the header; the
   // side panel only has something to offer while the mode is on
+  let modeOn = false;
   function showMode(on) {
+    modeOn = on === true;
     if (!$("enter")) return;
     $("enter").setAttribute("aria-pressed", on === true ? "true" : "false");
     $("leave").setAttribute("aria-pressed", on === false ? "true" : "false");
@@ -257,6 +272,7 @@ limitations under the License.
       section.classList.toggle("off", on !== true);
       section.inert = on !== true;
     });
+    showTextSupport();
     $("activityNote").textContent = on === null ? "Waiting for the instrument" : on ? "Mode on" : "The instrument plays as usual; switch the mode on at the top right to take it over";
     $("lastSent").classList.toggle("hidden", on !== true);
     if (on !== true) $("readout").textContent = "";
@@ -371,7 +387,7 @@ limitations under the License.
     const gap = columns > 20 ? "3px" : "4px";
     grid.style.setProperty("--gap", gap);
     controls.style.setProperty("--gap", gap);
-    grid.style.gridTemplateColumns = "repeat(" + (columns - 1) + ", minmax(0, 1fr))";
+    grid.style.gridTemplateColumns = "repeat(" + (columns - 1) + ", minmax(var(--pad-min, 0px), 1fr))";
     for (let row = 7; row >= 0; row--) {
       for (let col = 0; col < columns; col++) {
         const el = document.createElement("button");
@@ -486,7 +502,10 @@ limitations under the License.
   $("clearAll").addEventListener("click", function () {
     const zeros = [];
     for (let i = 0; i < columns * 8; i++) zeros.push(0);
-    if (send(ufm.paintRun(0, 0, zeros))) {
+    // an older firmware has no painted runs, so every cell is cleared on its own
+    let off = ufm.paintRun(0, 0, zeros);
+    if (conn.info().firmwareOld) { off = []; for (let i = 0; i < zeros.length; i++) off = off.concat(ufm.setLed(i % columns, Math.floor(i / columns), 0)); }
+    if (send(off)) {
       Object.keys(painted).forEach(function (key) {
         const parts = key.split(":");
         showLight(parseInt(parts[0], 10), parseInt(parts[1], 10), 0);
@@ -519,8 +538,11 @@ limitations under the License.
         return;
       case "model":
         model = event.model;
-        if (event.columns !== columns) { columns = event.columns; buildGrid(); }
-        $("textCol").max = columns - 1;
+        pickedModel = model;
+        LinnConnection.storeModel(model);
+        $("modelPick").value = String(model);
+        modelPickField.classList.add("hidden");
+        setColumns(event.columns);
         logLine("instrument reports model " + model);
         return;
       case "version": case "build": case "calibrated":
@@ -566,25 +588,74 @@ limitations under the License.
   buildPalette();
   buildGrid();
 
-  const conn = LinnConnection.create({
+  // an older firmware ignores CC 26 to 29, so the text controls rest with a line saying why
+  function showTextSupport() {
+    const old = !!(conn && conn.info().firmwareOld);
+    $("textNeeds").classList.toggle("hidden", !old);
+    const section = $("textSection");
+    if (old) { section.classList.add("off"); section.inert = true; }
+  }
+  function setColumns(count) {
+    if (count !== columns) { columns = count; buildGrid(); }
+    $("textCol").max = columns - 1;
+    surface = ufm.createSurfaceState(columns);
+  }
+  // the model to show while no instrument reports its own (an older firmware never does)
+  const modelPickField = document.createElement("div");
+  modelPickField.innerHTML = '<label><span class="caps">Model</span><select id="modelPick" aria-label="Model to show while the instrument does not report one"><option value="200">LinnStrument 200</option><option value="128">LinnStrument 128</option></select></label>' +
+    '<div class="hint">Firmware before 2.4.0 cannot report it, so pick yours; the page remembers it</div>';
+  modelPickField.className = "ports";
+  const modeHint = document.createElement("div");
+  modeHint.className = "hint";
+  modeHint.textContent = "Instrument silent after the page closed with the mode on? Hold OS Update in Global Settings (column 16, third row) for a second. A short tap switches it to update mode instead; tap again to come back";
+  let conn = null;
+  conn = LinnConnection.create({
+    extras: [modelPickField, modeHint],
     onEvent: onEvent,
+    onFirmware: function () {
+      showTextSupport();
+      if (LinnConnection.storedModel() === null) conn.open(true, false);
+    },
     onPorts: function (ports) {
       output = ports.output;
       model = null;
+      modelPickField.classList.remove("hidden");
       showMode(null);
+      setColumns(ufm.columnsFor(pickedModel));
       // a touch the old port reported is not on the new one
       surface = ufm.createSurfaceState(columns);
       Object.keys(cells).forEach(function (k) { cells[k].classList.remove("pressed"); });
     },
   });
+  $("modelPick").addEventListener("change", function () {
+    pickedModel = parseInt($("modelPick").value, 10);
+    LinnConnection.storeModel(pickedModel);
+    setColumns(ufm.columnsFor(pickedModel));
+  });
+  if (LinnConnection.storedModel() === 128 && !model) {
+    pickedModel = 128;
+    $("modelPick").value = "128";
+    setColumns(ufm.columnsFor(pickedModel));
+  }
   const modeSwitch = document.createElement("div");
   modeSwitch.className = "toolbar-switch";
-  modeSwitch.innerHTML = '<span class="caps">User firmware mode</span>' +
+  modeSwitch.innerHTML = '<span class="caps">Mode</span>' +
     '<div class="segmented" role="group" aria-label="User firmware mode"><button id="leave" aria-pressed="false">Off</button><button id="enter" aria-pressed="false">On</button></div>';
   conn.addControl(modeSwitch);
   $("enter").addEventListener("click", function () { send(ufm.enterUserFirmwareMode()); });
   $("leave").addEventListener("click", function () { send(ufm.leaveUserFirmwareMode()); });
+  // leaving the page, by a tab or by closing it, hands the instrument back, as the designer does
+  window.addEventListener("pagehide", function () { if (modeOn) send(ufm.leaveUserFirmwareMode()); });
   showMode(null);
+
+  // a hint for touch screens, where a swipe on the pads plays them, shown only while the
+  // instrument is wider than its area
+  const scroller = document.querySelector(".instrument-scroll");
+  const scrollWatch = new ResizeObserver(function () {
+    $("scrollHint").classList.toggle("hidden", scroller.scrollWidth <= scroller.clientWidth + 1);
+  });
+  scrollWatch.observe(scroller);
+  scrollWatch.observe(scroller.querySelector(".instrument"));
 })();
 </script>
 </body>

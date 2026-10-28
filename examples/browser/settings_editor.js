@@ -141,7 +141,44 @@ limitations under the License.
     return names.some(function (n) { return n.toLowerCase().indexOf(needle) >= 0; });
   }
 
+  // the name of a two-way setting's current choice, shown beside its checkbox when the choices
+  // are something else than Off and On (Left Split or Right Split, MIDI Jacks or USB)
+  function choiceLabel(parameter, value) {
+    if (parameter.kind !== "toggle" || parameter.options.map(function (o) { return o.label; }).join("/") === "Off/On") return null;
+    const option = parameter.options.find(function (o) { return o.value === value; });
+    return option ? option.label : null;
+  }
+
+  // What a number setting's value stands for, from a note that maps its values like
+  // "0-127: CC, 128: Channel Aftertouch": "CC 74" for 74, "Channel Aftertouch" for 128. A note
+  // whose labels hold numbers of their own maps nothing.
+  function valueMeaning(parameter, value) {
+    if (parameter.kind !== "number" || !parameter.note) return null;
+    const segments = parameter.note.split(", ").map(function (part) { return /^(\d+)(?:-(\d+))?: ([^\d]+)$/.exec(part); });
+    if (!segments.every(Boolean)) return null;
+    for (const m of segments) {
+      const low = parseInt(m[1], 10), high = m[2] === undefined ? low : parseInt(m[2], 10);
+      if (value >= low && value <= high) return high > low ? m[3] + " " + value : m[3];
+    }
+    return null;
+  }
+
+  // a value that cuts the page off from the instrument asks for a second click first
+  function confirmation(number, value) {
+    if (number === 234 && value === 0) return "Confirm MIDI jacks: this page then loses the instrument. To undo, tap the bottom pad of column 15 in Global Settings";
+    return null;
+  }
+
+  // 271 to 275 arrived with firmware 2.4.0; an older one neither answers nor acts on them
+  function needsNewerFirmware(number) {
+    return number >= 271 && number <= 275;
+  }
+
   return {
+    needsNewerFirmware: needsNewerFirmware,
+    confirmation: confirmation,
+    choiceLabel: choiceLabel,
+    valueMeaning: valueMeaning,
     parameters: nrpns.parameters,
     tables: nrpns.tables,
     queryable: queryable,

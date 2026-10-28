@@ -34,7 +34,12 @@ limitations under the License.
   section h2 { display: flex; align-items: baseline; gap: 8px; }
   section h2 .count { color: var(--dim); font-weight: 400; font-size: 13px; }
   .hidden { display: none !important; }
+  #scrollHint { margin: -8px 0 0; }
+  .daw-hint { margin: 0; color: var(--muted); font-size: 13px; }
+  .daw-hint a, #dawSteps a { color: var(--fg); }
   .field { display: flex; flex-direction: column; gap: 4px; }
+  .with-name { display: flex; align-items: center; gap: 8px; }
+  .value-name { color: var(--muted); font-size: 13px; min-width: 3ch; }
   .field input[type=text], .field select { width: 100%; max-width: none; }
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .fields .wide { grid-column: 1 / -1; }
@@ -78,7 +83,7 @@ limitations under the License.
 
   .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 28px 32px 20px; gap: 16px; overflow: auto;
            background: radial-gradient(ellipse 70% 60% at 50% 35%, rgba(194, 100, 31, .22), transparent 70%), var(--bg); }
-  .instrument { background: var(--steel); border-radius: 10px; padding: 20px 16px 20px 12px; position: relative;
+  .instrument { background: var(--steel); border-radius: 10px; padding: 20px 16px 20px 12px; position: relative; width: max-content; min-width: 100%;
                 box-shadow: inset 0 0 0 1px #262626, 0 24px 60px rgba(0, 0, 0, .7); }
   .instrument::before, .instrument::after { content: ""; position: absolute; left: 0; right: 0; height: 18px;
                 background: linear-gradient(180deg, #d08048, var(--cherry) 55%, var(--cherry-2)); }
@@ -92,7 +97,9 @@ limitations under the License.
                          text-align: center; white-space: pre-line; }
   .cell.control .button { position: relative; width: 36%; height: 42%; min-height: 10px; border-radius: 3px; background: var(--pad); overflow: hidden;
                           box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), inset 0 -1px 0 rgba(255, 255, 255, .3); }
-  .grid { display: grid; gap: var(--gap); padding: var(--gap); flex: 1; background: var(--plate); border-radius: 4px; }
+  /* pads keep a size a pointer can hit; past that the instrument alone scrolls sideways */
+  .instrument-scroll { overflow-x: auto; flex: none; }
+  .grid { display: grid; gap: var(--gap); padding: var(--gap); flex: 1; background: var(--plate); border-radius: 4px; --pad-min: 20px; }
   .cell { aspect-ratio: 1; border-radius: 8%; border: 1px solid transparent; padding: 0; background: var(--pad); position: relative; cursor: crosshair; overflow: hidden;
           box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .3); }
   .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; z-index: 1; }
@@ -149,11 +156,16 @@ limitations under the License.
     .zones .remove { opacity: 1; }
   }
   @media (max-width: 960px) {
-    main { flex-direction: column; }
-    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-    .stage { padding: 20px 16px; }
+    /* one column: the page scrolls as a whole, the instrument first */
+    main { flex-direction: column; flex: 1 0 auto; min-height: auto; }
+    aside { width: auto; border-right: 0; border-top: 1px solid var(--line); order: 2; overflow: visible; }
+    .stage { padding: 20px 16px; overflow: visible; }
     .controls { min-width: 64px; }
     #zonePanel .fields { grid-template-columns: 1fr 1fr; }
+  }
+  /* a width a phone or tablet has, where a finger plays the pads */
+  @media (max-width: 760px) {
+    .grid { --pad-min: 26px; }
   }
 </style>
 </head>
@@ -199,12 +211,16 @@ limitations under the License.
   </aside>
 
   <div class="stage">
+    <p class="daw-hint hidden" id="dawHint">Pick the port your DAW listens on as Controller out, at the top right. <a href="https://github.com/rogerlinndesign/linnstrument-firmware/blob/master/examples/README.md#using-the-designer-with-your-daw" target="_blank" rel="noopener">Step by step</a></p>
+    <div class="instrument-scroll">
     <div class="instrument">
       <div class="surface" id="surface" role="group" aria-label="Pads: arrow keys move, Space starts and ends a selection, Enter edits the zone, Delete removes it">
         <div class="controls" id="controls"></div>
         <div class="grid" id="grid"></div>
       </div>
     </div>
+    </div>
+    <p class="hint hidden" id="scrollHint">On a touch screen, swipe the frame around the pads to scroll sideways</p>
     <div class="panel">
       <div class="bar">
         <div class="tabs" role="tablist" aria-label="Below the instrument">
@@ -218,6 +234,7 @@ limitations under the License.
       <div id="zonePanel" role="tabpanel" aria-labelledby="tabZone" class="tabpanel">
         <h2 id="propsTitle">Selection</h2>
       <div class="meta" id="propsHint">Drag across the pads, or pick a zone in the list, to see its settings here</div>
+      <div class="hint" id="dawSteps">To play it from a DAW, make a loopback port (the IAC Driver on macOS, loopMIDI on Windows), pick it as Controller out at the top right, switch off the LinnStrument's own input in the DAW, then switch Run on. <a href="https://github.com/rogerlinndesign/linnstrument-firmware/blob/master/examples/README.md#using-the-designer-with-your-daw" target="_blank" rel="noopener">Step by step</a></div>
       <div id="zoneForm" class="hidden">
         <div class="fields">
           <label class="field wide"><span class="caps">Type</span><select id="zType">
@@ -233,7 +250,7 @@ limitations under the License.
             <option value="note">Note on and off</option>
             <option value="program">Program change</option>
           </select></label>
-          <label class="field z-pad z-keys m-note"><span class="caps" id="zNoteLabel">Note</span><input type="number" id="zNote" min="0" max="127" value="36"></label>
+          <label class="field z-pad z-keys m-note"><span class="caps" id="zNoteLabel">Note</span><span class="with-name"><input type="number" id="zNote" min="0" max="127" value="36"><span class="value-name" id="zNoteName"></span></span></label>
           <label class="field z-fader m-cc"><span class="caps">CC</span><input type="number" id="zCc" min="0" max="127" value="20"></label>
           <label class="field m-program"><span class="caps">Program</span><input type="number" id="zProgram" min="0" max="127" value="0"></label>
           <label class="field z-xy"><span class="caps">CC for X</span><input type="number" id="zCcX" min="0" max="127" value="20"></label>
@@ -294,6 +311,12 @@ limitations under the License.
   Object.keys(ufm.COLORS).forEach(function (name) { COLOR_NAMES[ufm.COLORS[name]] = name; });
   const STORAGE = "linnstrument.surface.layouts";
   const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  // middle C, note 60, is C3, as in the MIDI out log
+  function noteOnly(n) { return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 2); }
+  function showNoteName() {
+    const n = parseInt($("zNote").value, 10);
+    $("zNoteName").textContent = n >= 0 && n <= 127 ? noteOnly(n) : "";
+  }
   const TYPE_HINTS = {
     pad: "Plays a note while pressed, the velocity from the strike, pressure as aftertouch",
     keys: "A keyboard: notes rise by a semitone per column and by the row interval per row, scale notes lit",
@@ -653,6 +676,7 @@ limitations under the License.
   function showForm(on) {
     $("zoneForm").classList.toggle("hidden", !on);
     $("propsHint").classList.toggle("hidden", on);
+    $("dawSteps").classList.toggle("hidden", on);
     if (!on) { $("propsTitle").textContent = "Selection"; $("zError").textContent = ""; }
     if (on) showTab("zone");
   }
@@ -705,6 +729,7 @@ limitations under the License.
     setPalette("zRoot", value("rootColor") || designer.DEFAULTS.keys.rootColor);
     $("zChannel").value = d.channel;
     $("zNote").value = value("note") !== undefined ? value("note") : 36;
+    showNoteName();
     $("zCc").value = value("cc") !== undefined ? value("cc") : 20;
     $("zProgram").value = value("program") || 0;
     $("zCcX").value = value("ccX") !== undefined ? value("ccX") : 20;
@@ -769,6 +794,7 @@ limitations under the License.
     }
   }
   ["zNote", "zCc", "zProgram", "zCcX", "zCcY", "zChannel", "zRowInterval", "zInitial"].forEach(function (id) { $(id).addEventListener("input", fieldChanged); });
+  $("zNote").addEventListener("input", showNoteName);
   ["zPressure", "zScale", "zPerCell", "zLatch", "zBipolar", "zSpring"].forEach(function (id) { $(id).addEventListener("change", function () { fieldChanged(true); }); });
   $("zMessage").addEventListener("change", function () { showTypeFields(); fieldChanged(true); });
   $("zType").addEventListener("change", function () {
@@ -778,6 +804,7 @@ limitations under the License.
     setPalette("zActive", defaults.activeColor);
     if (defaults.cc !== undefined) $("zCc").value = defaults.cc;
     if (defaults.note !== undefined) $("zNote").value = defaults.note;
+    showNoteName();
     if (defaults.initial !== undefined) $("zInitial").value = defaults.initial;
     showTypeFields();
     fieldChanged(true);
@@ -801,7 +828,6 @@ limitations under the License.
     const zone = layout.zones.find(function (z) { return z.id === editing; });
     if (!zone) return;
     if (!daw) { $("zError").textContent = "Choose the controller out first"; return; }
-    if (output && daw.id === output.id) { $("zError").textContent = "Controller out is the instrument itself, pick another port"; return; }
     const messages = designer.learnMessages(zone);
     send(daw, messages);
     messages.forEach(function (m) { logLine(describeDaw(m) + " (learn)"); });
@@ -911,7 +937,7 @@ limitations under the License.
     const gap = columns > 20 ? "3px" : "4px";
     grid.style.setProperty("--gap", gap);
     controls.style.setProperty("--gap", gap);
-    grid.style.gridTemplateColumns = "repeat(" + (columns - 1) + ", minmax(0, 1fr))";
+    grid.style.gridTemplateColumns = "repeat(" + (columns - 1) + ", minmax(var(--pad-min, 0px), 1fr))";
     indexZones();
     for (let row = 7; row >= 0; row--) {
       for (let col = 0; col < columns; col++) {
@@ -1103,7 +1129,6 @@ limitations under the License.
     if (running) return;
     if (!output) { runNotice("Choose the instrument's MIDI out at the top right first"); return; }
     if (!daw) { runNotice("Choose the controller out at the top right first"); return; }
-    if (daw.id === output.id) { runNotice("Controller out is the instrument itself, pick another port"); return; }
     runner = designer.createRunner(layout, slotLights(), runnerOptions);
     send(output, runner.start());
     running = true;
@@ -1144,7 +1169,7 @@ limitations under the License.
     sendToDaw(out.toDaw);
     send(output, out.toInstrument);
   }
-  function noteName(n) { return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 2) + " (" + n + ")"; }
+  function noteName(n) { return noteOnly(n) + " (" + n + ")"; }
   function describeDaw(m) {
     const ch = (m[0] & 15) + 1;
     switch (m[0] & 0xF0) {
@@ -1177,6 +1202,7 @@ limitations under the License.
       case "model":
         model = event.model;
         pickedModel = model;
+        LinnConnection.storeModel(model);
         $("modelPick").value = String(model);
         modelPickField.classList.add("hidden");
         if (event.columns !== columns) { columns = event.columns; buildGrid(); }
@@ -1198,23 +1224,32 @@ limitations under the License.
   }
 
   // the model to design for while no instrument reports its own, in the connection panel
-  const modelPickField = document.createElement("label");
-  modelPickField.innerHTML = '<span class="caps">Model</span><select id="modelPick" aria-label="Model to design for while no instrument is connected"><option value="200">LinnStrument 200</option><option value="128">LinnStrument 128</option></select>';
+  const modelPickField = document.createElement("div");
+  modelPickField.innerHTML = '<label><span class="caps">Model</span><select id="modelPick" aria-label="Model to design for while no instrument reports its own"><option value="200">LinnStrument 200</option><option value="128">LinnStrument 128</option></select></label>' +
+    '<div class="hint">Firmware before 2.4.0 cannot report it, so pick yours; the page remembers it</div>';
   modelPickField.className = "ports";
+  const runHint = document.createElement("div");
+  runHint.className = "hint";
+  runHint.textContent = "Instrument silent after the page closed with Run on? Hold OS Update in Global Settings (column 16, third row) for a second. A short tap switches it to update mode instead; tap again to come back";
 
   const conn = LinnConnection.create({
     extraOutputs: [{ id: "daw", label: "Controller out", aria: "MIDI output for the controller messages", pick: /IAC|loopMIDI/,
-                     hint: "A loopback port into your DAW (IAC on macOS, loopMIDI on Windows) or a synth; map the messages there with MIDI learn" }],
-    extras: [modelPickField],
+                     hint: "A loopback port into your DAW (IAC Driver on macOS, loopMIDI on Windows) or a synth. In the DAW, switch off the LinnStrument's own input" }],
+    extras: [modelPickField, runHint],
     offlineNote: "design layouts for the model you pick in the connection panel",
     onEvent: onEvent,
     // lights painted as a run before the firmware was known to be old never showed
-    onFirmware: function () { if (running) refreshRunner(); },
+    onFirmware: function () {
+      if (running) refreshRunner();
+      if (LinnConnection.storedModel() === null) conn.open(true, false);
+    },
     onPorts: function (ports) {
       if (running) { stopRunner(); logLine("stopped: the ports changed"); }
       const sameInstrument = output && ports.output && ports.output.id === output.id && ports.input;
       output = ports.output;
       daw = ports.daw;
+      // until a controller out is chosen the page says where the DAW comes in
+      $("dawHint").classList.toggle("hidden", !!daw);
       if (model && !sameInstrument) {
         // the instrument is gone: back to the picked model until one reports again
         model = null;
@@ -1223,8 +1258,7 @@ limitations under the License.
         buildGrid();
         useLayout(layout, $("layouts").value);
       }
-      if (daw && output && daw.id === output.id) conn.note("Controller out is the instrument itself, pick another port", "warn");
-      else conn.note("");
+      conn.note("");
     },
   });
   const runSwitch = document.createElement("div");
@@ -1234,11 +1268,16 @@ limitations under the License.
   conn.addControl(runSwitch);
   $("runOn").addEventListener("click", startRunner);
   $("runOff").addEventListener("click", stopRunner);
-  $("modelPick").addEventListener("change", function () {
-    pickedModel = parseInt($("modelPick").value, 10);
+  function pickModel(picked) {
+    pickedModel = picked;
+    $("modelPick").value = String(picked);
     columns = ufm.columnsFor(pickedModel);
     buildGrid();
     useLayout(layout, $("layouts").value);
+  }
+  $("modelPick").addEventListener("change", function () {
+    LinnConnection.storeModel(parseInt($("modelPick").value, 10));
+    pickModel(parseInt($("modelPick").value, 10));
   });
 
   window.addEventListener("beforeunload", function (e) {
@@ -1256,6 +1295,16 @@ limitations under the License.
   fillLayouts(currentKey);
   buildGrid();
   renderZones();
+  if (LinnConnection.storedModel() === 128 && !model) pickModel(128);
+
+  // a hint for touch screens, where a swipe on the pads plays them, shown only while the
+  // instrument is wider than its area
+  const scroller = document.querySelector(".instrument-scroll");
+  const scrollWatch = new ResizeObserver(function () {
+    $("scrollHint").classList.toggle("hidden", scroller.scrollWidth <= scroller.clientWidth + 1);
+  });
+  scrollWatch.observe(scroller);
+  scrollWatch.observe(scroller.querySelector(".instrument"));
 
 })();
 </script>

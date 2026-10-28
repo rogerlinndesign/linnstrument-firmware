@@ -32,7 +32,7 @@ button, select, input { font: inherit; letter-spacing: inherit; color: inherit; 
 .caps { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600; color: var(--muted); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-header { display: flex; align-items: center; gap: 24px; padding: 0 28px; height: 64px; background: var(--bar); position: sticky; top: 0; z-index: 2; }
+header { display: flex; align-items: center; gap: 24px; padding: 0 28px; height: 64px; background: var(--bar); position: sticky; top: 0; z-index: 2; flex: none; }
 .brand { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; margin: 0; font-weight: 400; }
 .brand b { font-size: 21px; font-weight: 800; color: var(--fg); letter-spacing: .01em; }
 /* the pages, as tabs the way the site's navigation bar does them: the current one white and
@@ -45,11 +45,13 @@ header { display: flex; align-items: center; gap: 24px; padding: 0 28px; height:
 .pages a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
 header .spacer { flex: 1; }
 /* a page's switch in the header, left of the connection: its name and a two-way choice */
-.toolbar-switch { display: flex; align-items: center; gap: 12px; margin-right: 14px; }
+.toolbar-switch { display: flex; align-items: center; gap: 12px; margin-right: 14px; flex: none; white-space: nowrap; }
 .toolbar-switch .segmented button { padding: 6px 14px; font-size: 13px; }
 /* the connection, top right: a dot and a label that open the panel with the ports */
 .connection { display: flex; align-items: center; gap: 9px; border: 1px solid transparent; border-radius: 4px; padding: 7px 12px; color: var(--muted);
-              font-size: 13px; font-weight: 600; white-space: nowrap; }
+              font-size: 13px; font-weight: 600; white-space: nowrap; min-width: 0; }
+/* a long port name ends in an ellipsis rather than pushing the page sideways; the panel has it whole */
+.connection .label { overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 .connection:hover, .connection[aria-expanded="true"] { border-color: var(--line-2); color: var(--fg); }
 .connection .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 8px var(--bad); flex: none; }
 .connection.ready .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
@@ -57,7 +59,9 @@ header .spacer { flex: 1; }
 /* something in the panel wants a look: not calibrated, or a warning the page put there */
 .connection .flag { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
 .brand a { color: inherit; text-decoration: none; }
+/* on a short window the panel scrolls inside itself instead of running off the bottom */
 .connection-panel { position: absolute; top: 64px; right: 20px; width: 330px; max-width: calc(100vw - 32px); padding: 20px 24px 22px; z-index: 5;
+                    max-height: calc(100vh - 80px); overflow-y: auto; overscroll-behavior: contain;
                     background: var(--panel); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, .6); }
 .connection-panel .ports { margin-top: 14px; }
 .connection-panel .hint { margin-top: 6px; }
@@ -118,15 +122,25 @@ h2 { font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 12px; lett
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
 }
+/* between the one-column layout and a wide window the header is the tightest */
+@media (max-width: 1100px) {
+  header { gap: 16px; }
+  .pages a { padding: 14px 10px 0; }
+  .toolbar-switch { margin-right: 4px; }
+}
 @media (max-width: 960px) {
+  html, body { height: auto; }
   header { height: 56px; padding: 0 16px; gap: 12px; }
   header { flex-wrap: wrap; height: auto; min-height: 56px; padding: 6px 16px; row-gap: 0; }
   .pages { order: 3; flex-basis: 100%; height: 40px; overflow-x: auto; margin-left: -4px; }
-  .connection-panel { top: 100%; right: 8px; }
+  .connection-panel { top: 100%; right: 8px; max-height: calc(100vh - 130px); }
   .connection .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .toolbar-switch .caps { display: none; }
+  .toolbar-switch { gap: 8px; margin-right: 4px; }
   .brand b { font-size: 18px; }
   .pages { margin-left: 0; }
   .pages a { padding: 0 10px; }
   footer { padding: 10px 16px; }
+}
+@media (max-width: 360px) {
+  .pages a { padding: 0 8px; letter-spacing: .1em; }
 }

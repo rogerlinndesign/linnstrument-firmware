@@ -34,6 +34,8 @@ limitations under the License.
   aside nav a:hover { background: var(--panel-2); }
   aside nav a span { color: var(--dim); font-weight: 400; font-variant-numeric: tabular-nums; }
   aside input[type=search] { width: 100%; }
+  .key { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; color: var(--dim); font-size: 12px; line-height: 1.4; }
+  .key li { display: flex; align-items: center; gap: 10px; }
   .progress { color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 1.5em; font-variant-numeric: tabular-nums; }
 
   .content { flex: 1; overflow-y: auto; min-width: 0; padding: 8px 36px 48px; }
@@ -51,20 +53,34 @@ limitations under the License.
   .toggles label { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); min-width: 22px; cursor: pointer; }
   .toggles .ctl { gap: 3px; }
   .toggles .state { width: 5px; height: 5px; }
-  .ctl { position: relative; display: inline-flex; align-items: center; gap: 8px; }
-  .state { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); flex: none; }
+  .ctl { position: relative; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
+  .ctl select { min-width: 0; }
+  .ctl .choice { color: var(--muted); font-size: 13px; }
+  .numbercol { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 180px; }
+  .numbercol .meaning { color: var(--muted); font-size: 12px; }
+  /* an empty ring until the instrument answered, filled once it did */
+  .state { width: 8px; height: 8px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-2); flex: none; }
+  .state.old { background: var(--line-2); box-shadow: none; }
+  .state.pending, .state.ok, .state.silent { box-shadow: none; }
   .state.pending { background: var(--warn); }
   .state.ok { background: var(--ok); }
-  .state.mismatch { background: #ff7a2e; box-shadow: 0 0 6px #ff7a2e; }
+  /* a square, so it never reads as the amber of a reply still on its way */
+  .state.mismatch { background: #ff7a2e; box-shadow: 0 0 6px #ff7a2e; border-radius: 1px; }
   .state.silent { background: var(--bad); }
   .readonly { color: var(--muted); font-variant-numeric: tabular-nums; }
   .note { color: var(--dim); font-size: 12px; flex-basis: 100%; }
   .hidden { display: none !important; }
   @media (max-width: 960px) {
-    main { flex-direction: column; }
-    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    /* one column: the page scrolls as a whole */
+    main { flex-direction: column; flex: 1 0 auto; min-height: auto; }
+    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
+    .key { grid-template-columns: 1fr 1fr; column-gap: 16px; }
+    .content { overflow: visible; }
+    .content section h2 { position: static; }
     .params, .params.splits { grid-template-columns: 1fr; }
     .params .head { display: none; }
+    .params.splits > div[data-side]::before { content: attr(data-side); flex-basis: 100%; color: var(--dim); font-size: 11px;
+                                              text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
     .content { padding: 8px 16px 32px; }
   }
 </style>
@@ -88,7 +104,16 @@ limitations under the License.
       <button class="primary" id="readAll">Read all</button>
     </div>
     <div class="progress" id="progress" aria-live="polite"></div>
-    <div class="hint">Every setting LinnStrument exposes over MIDI. A change is sent at once and read back: green when confirmed, orange when the instrument kept another value, red when it did not answer</div>
+    <div class="hint">Every setting LinnStrument exposes over MIDI. A change is sent at once and read back.</div>
+    <!-- the key uses the form's own dots, so it always looks like what it explains -->
+    <ul class="key" aria-label="What the dots mean">
+      <li><span class="state" aria-hidden="true"></span>Not read yet</li>
+      <li><span class="state pending" aria-hidden="true"></span>Waiting for the answer</li>
+      <li><span class="state ok" aria-hidden="true"></span>Confirmed</li>
+      <li><span class="state mismatch" aria-hidden="true"></span>The instrument kept another value</li>
+      <li><span class="state silent" aria-hidden="true"></span>No answer</li>
+      <li><span class="state old" aria-hidden="true"></span>Needs firmware 2.4.0</li>
+    </ul>
   </aside>
   <div class="content" id="content"></div>
 </main>
@@ -124,10 +149,33 @@ limitations under the License.
     clearTimeout(waiting[number]);
     setState(number, "pending");
     waiting[number] = setTimeout(function () {
+      if (conn.info().firmwareOld && editor.needsNewerFirmware(number)) { markFirmware(); return; }
       setState(number, "silent");
       const c = controls[number];
-      if (c && c.state) c.state.title = number >= 271 && conn.info().firmwareOld ? "Needs firmware 2.4.0 or later" : "No answer";
+      if (c && c.state) c.state.title = "No answer";
     }, 2000);
+  }
+
+  // what an older firmware lacks shows as such, in grey, instead of as a missing answer
+  const NEEDS = "needs 2.4.0";
+  function markFirmware() {
+    const old = conn.info().firmwareOld;
+    Object.keys(controls).forEach(function (key) {
+      const number = parseInt(key, 10);
+      if (!editor.needsNewerFirmware(number)) return;
+      const c = controls[number];
+      if (c.button) {
+        c.button.disabled = old;
+        c.button.textContent = old ? "Needs firmware 2.4.0" : "Switch to serial mode";
+      }
+      c.elements.forEach(function (el) {
+        if (el.className === "readonly" && (old || el.textContent === NEEDS)) el.textContent = old ? NEEDS : "?";
+      });
+      if (!old) return;
+      clearTimeout(waiting[number]);
+      setState(number, "old");
+      c.state.title = "Needs firmware 2.4.0 or later";
+    });
   }
 
   function query(numbers) {
@@ -152,6 +200,8 @@ limitations under the License.
       else el.textContent = editor.formatValue(c.parameter, value);
     });
     if (c.out) c.out.textContent = editor.formatValue(c.parameter, value);
+    if (c.showChoice) c.showChoice();
+    if (c.showMeaning) c.showMeaning();
   }
 
   function onReply(reply) {
@@ -169,6 +219,32 @@ limitations under the License.
     c.sent = undefined;
   }
 
+  // A value that cuts the page off from the instrument waits for a second click on a button
+  // beside the control; until then the control goes back to what the instrument has.
+  function confirmer(wrap, parameter, restore) {
+    const button = document.createElement("button");
+    button.className = "small hidden";
+    let pending = null, timer = null;
+    button.addEventListener("click", function () {
+      clearTimeout(timer);
+      button.classList.add("hidden");
+      showValue(parameter.number, pending);
+      write(parameter, pending);
+    });
+    wrap.appendChild(button);
+    return function (value) {
+      const ask = editor.confirmation(parameter.number, value);
+      if (!ask) return false;
+      restore();
+      pending = value;
+      button.textContent = ask;
+      button.classList.remove("hidden");
+      clearTimeout(timer);
+      timer = setTimeout(function () { button.classList.add("hidden"); }, 5000);
+      return true;
+    };
+  }
+
   // the form, one control per parameter, the two splits side by side
   function control(parameter, ariaName) {
     const wrap = document.createElement("div");
@@ -179,9 +255,21 @@ limitations under the License.
       const box = document.createElement("input");
       box.type = "checkbox";
       box.setAttribute("aria-label", label);
-      box.addEventListener("change", function () { write(parameter, box.checked ? 1 : 0); });
       wrap.appendChild(box);
       c.elements.push(box);
+      if (editor.choiceLabel(parameter, 0)) {
+        const choice = document.createElement("span");
+        choice.className = "choice";
+        wrap.appendChild(choice);
+        c.showChoice = function () { choice.textContent = editor.choiceLabel(parameter, box.checked ? 1 : 0); };
+        c.showChoice();
+      }
+      const guard = confirmer(wrap, parameter, function () { box.checked = !box.checked; if (c.showChoice) c.showChoice(); });
+      box.addEventListener("change", function () {
+        const value = box.checked ? 1 : 0;
+        if (c.showChoice) c.showChoice();
+        if (!guard(value)) write(parameter, value);
+      });
     } else if (parameter.kind === "enum" || parameter.kind === "choice-action") {
       const select = document.createElement("select");
       select.setAttribute("aria-label", label);
@@ -189,7 +277,13 @@ limitations under the License.
       wrap.appendChild(select);
       c.elements.push(select);
       if (parameter.kind === "enum") {
-        select.addEventListener("change", function () { write(parameter, parseInt(select.value, 10)); });
+        let previous = select.value;
+        select.addEventListener("focus", function () { previous = select.value; });
+        const guard = confirmer(wrap, parameter, function () { select.value = previous; });
+        select.addEventListener("change", function () {
+          const value = parseInt(select.value, 10);
+          if (!guard(value)) { previous = select.value; write(parameter, value); }
+        });
       } else {
         const go = document.createElement("button");
         go.className = "small";
@@ -210,10 +304,23 @@ limitations under the License.
       num.type = "number"; num.min = parameter.min; num.max = parameter.max; num.value = parameter.min;
       num.setAttribute("aria-label", label + ", value");
       let timer = null;
-      range.addEventListener("input", function () { num.value = range.value; clearTimeout(timer); timer = setTimeout(function () { write(parameter, parseInt(range.value, 10)); }, 120); });
-      num.addEventListener("change", function () { range.value = num.value; write(parameter, parseInt(num.value, 10)); });
       holder.appendChild(range); holder.appendChild(num);
-      wrap.appendChild(holder);
+      // a value that stands for something gets its meaning under the slider
+      if (editor.valueMeaning(parameter, parameter.min) !== null) {
+        const column = document.createElement("div");
+        column.className = "numbercol";
+        const meaning = document.createElement("span");
+        meaning.className = "meaning";
+        column.appendChild(holder);
+        column.appendChild(meaning);
+        wrap.appendChild(column);
+        c.showMeaning = function () { meaning.textContent = editor.valueMeaning(parameter, parseInt(num.value, 10)) || ""; };
+        c.showMeaning();
+      } else {
+        wrap.appendChild(holder);
+      }
+      range.addEventListener("input", function () { num.value = range.value; if (c.showMeaning) c.showMeaning(); clearTimeout(timer); timer = setTimeout(function () { write(parameter, parseInt(range.value, 10)); }, 120); });
+      num.addEventListener("change", function () { range.value = num.value; if (c.showMeaning) c.showMeaning(); write(parameter, parseInt(num.value, 10)); });
       c.elements.push(range, num);
     } else if (parameter.kind === "action") {
       const go = document.createElement("button");
@@ -232,6 +339,7 @@ limitations under the License.
         setState(parameter.number, "ok");
       });
       wrap.appendChild(go);
+      c.button = go;
     } else {
       const text = document.createElement("span");
       text.className = "readonly";
@@ -290,8 +398,8 @@ limitations under the License.
       section.rows.forEach(function (row) {
         const cells = [nameCell(row)];
         if (section.id === "splits") {
-          const l = document.createElement("div"); l.appendChild(rowControl(row.left, "left"));
-          const r = document.createElement("div"); r.appendChild(rowControl(row.right, "right"));
+          const l = document.createElement("div"); l.appendChild(rowControl(row.left, "left")); l.dataset.side = "Left split";
+          const r = document.createElement("div"); r.appendChild(rowControl(row.right, "right")); r.dataset.side = "Right split";
           cells.push(l, r);
         } else {
           const d = document.createElement("div"); d.appendChild(rowControl(row));
@@ -364,10 +472,12 @@ limitations under the License.
 
   const conn = LinnConnection.create({
     onEvent: onEvent,
+    onFirmware: markFirmware,
     onPorts: function (ports) {
       output = ports.output;
       reading++;
       readPending = !!(ports.input && output);
+      markFirmware();
     },
   });
 })();

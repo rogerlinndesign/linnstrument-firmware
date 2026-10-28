@@ -76,9 +76,10 @@ int rows() { return NUMROWS; }
 bool userFirmwareMode() { return userFirmwareActive; }
 bool serialMode() { return Device.serialMode; }
 
+// OSVersion ends and OSVersionBuild starts with the dot the instrument's screen puts between them
 const char* version() {
   static char text[16];
-  snprintf(text, sizeof(text), "%s%s", OSVersion, OSVersionBuild);
+  snprintf(text, sizeof(text), "%s%s", OSVersion, OSVersionBuild[0] == '.' && OSVersion[strlen(OSVersion) - 1] == '.' ? OSVersionBuild + 1 : OSVersionBuild);
   return text;
 }
 
