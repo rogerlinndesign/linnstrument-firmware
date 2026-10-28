@@ -4,6 +4,8 @@
 build/*
 linnstrument-firmware.sublime-*
 stino.settings
-/linn
-/linn.exe
+/linnstrument
+/linnstrument-macos
+/linnstrument-linux-*
+/linnstrument-windows.exe
 linnstrument-backup-*.json

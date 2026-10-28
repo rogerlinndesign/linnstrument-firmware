@@ -98,6 +98,35 @@ const (
 	outcomeNoSuchTest
 )
 
+// the tests a filter selects, an error when it selects none
+func selectTests(names []string, filter string) ([]string, error) {
+	var selected []string
+	for _, name := range names {
+		if strings.Contains(name, filter) {
+			selected = append(selected, name)
+		}
+	}
+	if len(selected) == 0 {
+		return nil, fmt.Errorf("no test name contains %q (the match is case-sensitive)", filter)
+	}
+	return selected, nil
+}
+
+// the tests without a line in mutations.tsv
+func uncovered(names []string, list []mutation) []string {
+	covered := map[string]bool{}
+	for _, m := range list {
+		covered[m.test] = true
+	}
+	var missing []string
+	for _, name := range names {
+		if !covered[name] {
+			missing = append(missing, name)
+		}
+	}
+	return missing
+}
+
 func testOutcome(ctx context.Context, repo, filter string) outcome {
 	cmd := exec.CommandContext(ctx, "go", "run", "./tools/linnstrument", "test", filter)
 	cmd.Dir = repo
@@ -123,18 +152,14 @@ func runMutations(repo string, only string) error {
 	if err != nil {
 		return err
 	}
+	selected, err := selectTests(names, only)
+	if err != nil {
+		return err
+	}
 	problems := 0
-	if only == "" {
-		covered := map[string]bool{}
-		for _, m := range list {
-			covered[m.test] = true
-		}
-		for _, name := range names {
-			if !covered[name] {
-				fmt.Printf("NO MUTATION  %s\n", name)
-				problems++
-			}
-		}
+	for _, name := range uncovered(selected, list) {
+		fmt.Printf("NO MUTATION  %s\n", name)
+		problems++
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

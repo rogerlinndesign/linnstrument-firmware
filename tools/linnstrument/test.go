@@ -164,6 +164,15 @@ func findCompiler() (string, error) {
 }
 
 func runTests(repo string, filter string) error {
+	if filter != "" {
+		names, err := testNames(repo)
+		if err != nil {
+			return err
+		}
+		if _, err := selectTests(names, filter); err != nil {
+			return err
+		}
+	}
 	cxx, err := findCompiler()
 	if err != nil {
 		return err

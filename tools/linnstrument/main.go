@@ -44,24 +44,29 @@ Commands:
                          (default: build/sketch/linnstrument-firmware.cpp)
   nrpns [FILE]           write the NRPN table of midi.md as the JavaScript the settings editor
                          reads (default: examples/browser/nrpn_parameters.js)
-  serve [PORT]           serve the browser pages in examples/browser/ over http (default port 8765, 0 picks
-                         a free one) and open them, unless LINN_NO_BROWSER is set; served from one
-                         origin, the browser remembers the MIDI permission
+  serve [PORT]           serve the browser pages in examples/browser/ over http (default port
+                         8765, 0 picks a free one) and open them, unless LINN_NO_BROWSER is set;
+                         served from one origin, the browser remembers the MIDI permission
   mcp [200|128]          serve the Virtual LinnStrument to an AI assistant as an MCP server over
                          stdio: touches, lights, screenshots and MIDI both ways (needs the app
                          built as tools/virtual/README.md says, or LINN_VIRTUAL naming it)
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
-  backup [FILE]          save settings and sequencer projects to a file (default: linnstrument-backup-<time>.json)
+  backup [FILE]          save settings and sequencer projects to a file
+                         (default: linnstrument-backup-<time>.json)
   restore FILE           send a backup back; the instrument then leaves serial mode
-  flash [FIRMWARE.bin]   flash build/linnstrument-firmware.ino.bin; ERASES settings and calibration
+  flash [FIRMWARE.bin]   flash build/linnstrument-firmware.ino.bin;
+                         ERASES settings and calibration
   update [FIRMWARE.bin]  backup, flash, restore: what the LinnStrument Updater does
-  serialmode             switch a unit in MIDI mode to serial mode (needs sendmidi and firmware with NRPN 271)
-  midimode               switch a unit in serial mode back to MIDI mode (firmware with the m command)
+  serialmode             switch a unit in MIDI mode to serial mode
+                         (needs sendmidi and firmware with NRPN 271)
+  midimode               switch a unit in serial mode back to MIDI mode
+                         (firmware with the m command)
 
-The instrument must be in serial mode (OS Update in Global Settings). -port overrides the
-automatic detection by USB id. The backup, restore and update commands need firmware 2.0 or later.
+From probe on, the instrument must be in serial mode (OS Update in Global Settings), and for
+serialmode in MIDI mode. -port overrides the automatic detection by USB id. The backup, restore
+and update commands need firmware 2.0 or later.
 `
 
 type Backup struct {

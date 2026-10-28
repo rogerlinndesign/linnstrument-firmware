@@ -18,10 +18,37 @@ on:
   pull_request:
   workflow_dispatch:
 
-# a pull request from a branch in this repository is already built by its push
+# a pull request from a branch in this repository is already built by its push; the tests run
+# first and every build waits for them, and a run that ends red deletes what it uploaded, so only
+# a green run offers anything to download
 jobs:
-  build:
+  test:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Desktop tests
+        run: go run ./tools/linnstrument test
+
+      - name: Example tests
+        run: node --test examples/browser/
+
+      - name: Check midi.md against the firmware and the generated NRPN table
+        run: go test ./... && go run ./tools/linnstrument nrpns && git diff --exit-code examples/browser/nrpn_parameters.js
+
+  build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +75,7 @@ jobs:
         run: |
           version=$(sed -n 's/^const char\* OSVersion = "\([0-9.]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
           build=$(sed -n 's/^const char\* OSVersionBuild = "\(\.[0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
+          version=${version%.}   # OSVersion ends with the dot OSVersionBuild starts with
           sha=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "FIRMWARE_NAME=linnstrument-firmware-${version}${build}-${sha}" >> "$GITHUB_ENV"
           cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}${build}-${sha}.bin"
@@ -59,7 +87,7 @@ jobs:
           if-no-files-found: error
 
   tool:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    needs: test
     strategy:
       matrix:
         include:
@@ -74,18 +102,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Desktop tests
-        run: go run ./tools/linnstrument test
-
-      - name: Example tests
-        run: node --test examples/browser/
-
-      - name: Check midi.md against the firmware and the generated NRPN table
-        run: go test ./... && go run ./tools/linnstrument nrpns && git diff --exit-code examples/browser/nrpn_parameters.js
 
       # the serial port enumerator needs cgo on macOS, so the macOS binaries are built there
       - name: Build tools/linnstrument for Linux and Windows
@@ -111,7 +127,7 @@ jobs:
           path: out/*
 
   virtual:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    needs: test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,3 +156,19 @@ jobs:
           path: |
             build/virtual-linnstrument-macos.zip
             build/virtual-linnstrument.png
+
+  # a pull request from a fork gets a read-only token, so there this step cannot delete and fails
+  discard:
+    needs: [test, build, tool, virtual]
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete the artifacts of a run that did not pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[].id'); do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+          done

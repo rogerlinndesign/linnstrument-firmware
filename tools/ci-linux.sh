@@ -23,11 +23,11 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/linnstrument-firmware"
-cp -R "$repo"/. "$work/linnstrument-firmware/"
-rm -rf "$work/linnstrument-firmware/build" "$work/linnstrument-firmware/.git"
+# build/ holds hundreds of megabytes of local output the container does not need
+tar -C "$repo" --exclude ./build --exclude ./.git -cf - . | tar -C "$work/linnstrument-firmware" -xf -
 
 cat > "$work/ci.sh" <<'INNER'
-set -e
+set -eo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null
 apt-get install -y -qq curl ca-certificates git build-essential nodejs >/dev/null 2>&1
@@ -35,25 +35,29 @@ GO_VERSION=$(sed -n 's/^go //p' /work/linnstrument-firmware/go.mod)
 curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
 export PATH=/usr/local/go/bin:$PATH
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh >/dev/null 2>&1
-cd /work
-echo "== build job"
-arduino-cli core update-index >/dev/null
-arduino-cli core install arduino:sam@1.6.12 2>&1 | tail -1
-arduino-cli compile --fqbn arduino:sam:arduino_due_x --libraries linnstrument-firmware/libraries --output-dir out linnstrument-firmware 2>&1 | grep -i "sketch uses\|error"
 cd /work/linnstrument-firmware
-echo "== tool job"
+echo "== test job"
 go vet ./...
 go test ./...
 # a pipe would hide a failing step from set -e, so each one reports through a file
 go run ./tools/linnstrument test > /tmp/tests.log 2>&1 || { cat /tmp/tests.log; exit 1; }
 tail -1 /tmp/tests.log
 node --test examples/browser/ > /tmp/node.log 2>&1 || { cat /tmp/node.log; exit 1; }
-go run ./tools/linnstrument nrpns /tmp/nrpn_parameters.js >/dev/null && cmp /tmp/nrpn_parameters.js examples/browser/nrpn_parameters.js
+go run ./tools/linnstrument nrpns /tmp/nrpn_parameters.js > /tmp/nrpns.log 2>&1 || { cat /tmp/nrpns.log; exit 1; }
+cmp /tmp/nrpn_parameters.js examples/browser/nrpn_parameters.js
 grep -E "^# (pass|fail)" /tmp/node.log
+cd /work
+echo "== build job"
+arduino-cli core update-index >/dev/null
+arduino-cli core install arduino:sam@1.6.12 > /tmp/core.log 2>&1 || { cat /tmp/core.log; exit 1; }
+arduino-cli compile --fqbn arduino:sam:arduino_due_x --libraries linnstrument-firmware/libraries --output-dir out linnstrument-firmware > /tmp/build.log 2>&1 || { cat /tmp/build.log; exit 1; }
+grep -i "sketch uses" /tmp/build.log
+cd /work/linnstrument-firmware
+echo "== tool job"
 GOOS=linux GOARCH=amd64 go build -o /tmp/linnstrument-linux-amd64 ./tools/linnstrument
 GOOS=linux GOARCH=arm64 go build -o /tmp/linnstrument-linux-arm64 ./tools/linnstrument
 GOOS=windows GOARCH=amd64 go build -o /tmp/linnstrument-windows.exe ./tools/linnstrument
 echo "== all jobs passed"
 INNER
 
-exec docker run --rm --platform linux/amd64 -v "$work:/work" -w /work ubuntu:24.04 sh /work/ci.sh
+exec docker run --rm --platform linux/amd64 -v "$work:/work" -w /work ubuntu:24.04 bash /work/ci.sh
