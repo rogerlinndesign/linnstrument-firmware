@@ -139,7 +139,7 @@ which it cannot for a page opened from a file). `tools/deploy-pages.sh`
 publishes them to https://uwyn.com/linnstrument/, to the destination in
 `LINN_PAGES_TARGET`. That's public, so only run it when the person asks, after
 a dry run with `-n`, and never write the destination into the repository.
-`node --test examples/browser/` runs every page's tests, and
+`node --test examples/browser/*.test.js` runs every page's tests, and
 `tools/layout_sweep.js`, run in the console of a served page, checks their
 layout from phone to wide screen. Run it after any change to their CSS or
 markup. A session can drive a connected unit in that mode over MIDI through

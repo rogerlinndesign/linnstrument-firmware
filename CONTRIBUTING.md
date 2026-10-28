@@ -179,11 +179,12 @@ framing. Run them before every push, and add one when you fix a bug in logic
 they can reach. `tests/README.md` explains how to write one. GitHub Actions
 runs them on every push as well, together with `go vet ./...`,
 `go test ./...`, `go run ./tools/linnstrument nrpns` (which checks the NRPN
-table in midi.md against the firmware) and `node --test examples/browser/`
-for the pages. It also builds the Virtual LinnStrument on macOS.
-`tools/ci-linux.sh` runs the test, build and tool jobs in an x86_64 Ubuntu
-container with Docker, so that you can check a change on Linux before pushing
-it.
+table in midi.md against the firmware) and
+`node --test examples/browser/*.test.js` for the pages. It also builds the
+Virtual LinnStrument on macOS. `tools/ci-linux.sh` runs the test, build and
+tool jobs in an x86_64 Ubuntu container with Docker, so that you can check a
+change on Linux before pushing it.
+
 
 `go run ./tools/linnstrument serve` serves the browser pages in
 `examples/browser/` on a local port and opens them, and `examples/README.md`

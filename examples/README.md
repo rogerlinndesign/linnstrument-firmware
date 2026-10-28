@@ -103,7 +103,7 @@ Open With. A page opened from a file asks for MIDI on every visit, because a fil
 the browser can remember the grant for. Nothing is stored
 anywhere but in the browser. `connection.js`, `settings_editor.js`, `surface_designer.js` and
 `user_firmware_protocol.js` are modules with tests beside them, which you run with
-`node --test examples/browser/`. `go run ./tools/linnstrument nrpns` regenerates
+`node --test examples/browser/*.test.js`. `go run ./tools/linnstrument nrpns` regenerates
 `nrpn_parameters.js` from `midi.md`. Finally, `go run ./tools/linnstrument serve` serves the
 folder on a local port and opens the front page, and when the pages are served that way the
 browser asks for MIDI once.

@@ -42,7 +42,7 @@ jobs:
         run: go run ./tools/linnstrument test
 
       - name: Example tests
-        run: node --test examples/browser/
+        run: node --test examples/browser/*.test.js
 
       - name: Check midi.md against the firmware and the generated NRPN table
         run: go test ./... && go run ./tools/linnstrument nrpns && git diff --exit-code examples/browser/nrpn_parameters.js

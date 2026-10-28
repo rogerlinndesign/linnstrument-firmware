@@ -42,7 +42,7 @@ go test ./...
 # a pipe would hide a failing step from set -e, so each one reports through a file
 go run ./tools/linnstrument test > /tmp/tests.log 2>&1 || { cat /tmp/tests.log; exit 1; }
 tail -1 /tmp/tests.log
-node --test examples/browser/ > /tmp/node.log 2>&1 || { cat /tmp/node.log; exit 1; }
+node --test examples/browser/*.test.js > /tmp/node.log 2>&1 || { cat /tmp/node.log; exit 1; }
 go run ./tools/linnstrument nrpns /tmp/nrpn_parameters.js > /tmp/nrpns.log 2>&1 || { cat /tmp/nrpns.log; exit 1; }
 cmp /tmp/nrpn_parameters.js examples/browser/nrpn_parameters.js
 grep -E "^# (pass|fail)" /tmp/node.log
