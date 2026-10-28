@@ -150,17 +150,26 @@ jobs:
         run: |
           "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot build/virtual-linnstrument.png
 
-      - name: Zip the app
+      # only the executable comes signed, by the linker, and macOS calls a downloaded bundle whose
+      # resources aren't sealed damaged, with no Open Anyway; an ad-hoc signature over the whole
+      # bundle makes it an app from an unidentified developer, which the person can open
+      - name: Sign the app ad hoc and zip it
         run: |
           cd build/virtual/VirtualLinnStrument_artefacts/Release
+          codesign --force --deep --sign - "Virtual LinnStrument.app"
+          codesign --verify --deep --strict "Virtual LinnStrument.app"
           ditto -c -k --keepParent "Virtual LinnStrument.app" "$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
+
+      # uploaded as they are, so the download is the app's zip itself, not a zip around it
+      - uses: actions/upload-artifact@v7
+        with:
+          path: build/virtual-linnstrument-macos.zip
+          archive: false
 
       - uses: actions/upload-artifact@v7
         with:
-          name: virtual-linnstrument-macos
-          path: |
-            build/virtual-linnstrument-macos.zip
-            build/virtual-linnstrument.png
+          path: build/virtual-linnstrument.png
+          archive: false
 
   # a pull request from a fork gets a read-only token, so there this step cannot delete and fails
   discard:

@@ -46,13 +46,13 @@ Rules and facts:
 * Requires the `arduino:sam` core, version 1.6.12. Install with
   `arduino-cli core install arduino:sam@1.6.12`.
 * On Apple silicon the SAM toolchain is x86_64 only and needs Rosetta. If the
-  compiler fails with "bad CPU type in executable", Rosetta is missing. Tell the
-  person rather than working around it. GitHub Actions
+  compiler fails with "bad CPU type in executable", Rosetta is missing. Tell
+  the person rather than working around it. GitHub Actions
   (`.github/workflows/build.yml`) compiles every push on x86 runners and
   attaches the `.bin`, prebuilt `linnstrument` tool binaries for Linux,
-  Windows and macOS, and a zip of the Virtual LinnStrument with a screenshot
-  of it running, the one way to see the firmware run from a session that
-  cannot build.
+  Windows and macOS, and the Virtual LinnStrument as a zip with a screenshot
+  of it running beside it, the one way to see the firmware run from a session
+  that cannot build.
 * The end of the output reports flash use ("Sketch uses N bytes") and, added
   by the tool, static RAM ("Global variables use N bytes", data plus bss of
   the 96 KB SRAM). Quote both in any change that adds arrays, buffers or

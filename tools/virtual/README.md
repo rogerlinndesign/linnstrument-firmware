@@ -45,10 +45,11 @@ Using it
   macOS). They're written on quit, on a model switch and periodically while they change. Delete
   the file for a factory-fresh unit, and also before judging a change to default settings, since
   an old file would hide it.
-* The zip from a GitHub Actions run isn't signed or notarised, so macOS blocks its first launch.
-  Current macOS no longer lets a right-click Open get past that. Instead, unzip it, then either
-  run `xattr -dr com.apple.quarantine "Virtual LinnStrument.app"` in a terminal in that folder,
-  or try to open it once and then choose Open Anyway in System Settings > Privacy & Security.
+* The zip from a GitHub Actions run, `virtual-linnstrument-macos.zip`, holds an app that's
+  signed ad hoc but not notarised, so macOS blocks its first launch, and current macOS no longer
+  lets a right-click Open get past that. Instead, unzip it, then either run `xattr -dr
+  com.apple.quarantine "Virtual LinnStrument.app"` in a terminal in that folder, or try to open
+  it once and then choose Open Anyway in System Settings > Privacy & Security.
 * The menu at the top left picks a 200 or a 128, and switching restarts the firmware.
 * Click a pad to play it, drag to slide along a row or bend inside a cell, and shift-click or
   right-click to hold a touch down until the next click on it. The left column works like the
