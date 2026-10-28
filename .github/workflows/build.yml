@@ -78,12 +78,9 @@ jobs:
 
       - name: Name the firmware file after the version and commit
         run: |
-          version=$(sed -n 's/^const char\* OSVersion = "\([0-9.]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
-          build=$(sed -n 's/^const char\* OSVersionBuild = "\(\.[0-9]*\)";/\1/p' linnstrument-firmware/linnstrument-firmware.ino)
-          version=${version%.}   # OSVersion ends with the dot OSVersionBuild starts with
-          sha=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "FIRMWARE_NAME=linnstrument-firmware-${version}${build}-${sha}" >> "$GITHUB_ENV"
-          cp out/linnstrument-firmware.ino.bin "out/linnstrument-firmware-${version}${build}-${sha}.bin"
+          name="linnstrument-firmware-$(linnstrument-firmware/tools/build-name.sh "$GITHUB_SHA")"
+          echo "FIRMWARE_NAME=$name" >> "$GITHUB_ENV"
+          cp out/linnstrument-firmware.ino.bin "out/$name.bin"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -108,21 +105,24 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Name the build after the version and commit
+        run: echo "BUILD_NAME=$(tools/build-name.sh "$GITHUB_SHA")" >> "$GITHUB_ENV"
+
       # the serial port enumerator needs cgo on macOS, so the macOS binaries are built there
       - name: Build tools/linnstrument for Linux and Windows
         if: runner.os == 'Linux'
         run: |
           mkdir -p out
-          GOOS=linux   GOARCH=amd64 go build -o out/linnstrument-linux-amd64 ./tools/linnstrument
-          GOOS=linux   GOARCH=arm64 go build -o out/linnstrument-linux-arm64 ./tools/linnstrument
-          GOOS=windows GOARCH=amd64 go build -o out/linnstrument-windows.exe ./tools/linnstrument
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=$BUILD_NAME" -o out/linnstrument-linux-amd64 ./tools/linnstrument
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=$BUILD_NAME" -o out/linnstrument-linux-arm64 ./tools/linnstrument
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$BUILD_NAME" -o out/linnstrument-windows.exe ./tools/linnstrument
 
       - name: Build tools/linnstrument for macOS (universal)
         if: runner.os == 'macOS'
         run: |
           mkdir -p out
-          CGO_ENABLED=1 GOARCH=arm64 go build -o out/linnstrument-arm64 ./tools/linnstrument
-          CGO_ENABLED=1 GOARCH=amd64 go build -o out/linnstrument-amd64 ./tools/linnstrument
+          CGO_ENABLED=1 GOARCH=arm64 go build -ldflags "-X main.version=$BUILD_NAME" -o out/linnstrument-arm64 ./tools/linnstrument
+          CGO_ENABLED=1 GOARCH=amd64 go build -ldflags "-X main.version=$BUILD_NAME" -o out/linnstrument-amd64 ./tools/linnstrument
           lipo -create -output out/linnstrument-macos out/linnstrument-arm64 out/linnstrument-amd64
           rm out/linnstrument-arm64 out/linnstrument-amd64
 
@@ -152,7 +152,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: linnstrument-tool-${{ matrix.name }}
+          name: linnstrument-tool-${{ matrix.name }}-${{ env.BUILD_NAME }}
           path: out/*
 
   virtual:
@@ -165,6 +165,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Name the build after the version and commit
+        run: echo "BUILD_NAME=$(tools/build-name.sh "$GITHUB_SHA")" >> "$GITHUB_ENV"
+
       - name: Build Virtual LinnStrument
         run: |
           cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
@@ -172,7 +175,7 @@ jobs:
 
       - name: Screenshot it
         run: |
-          "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot build/virtual-linnstrument.png
+          "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot "build/virtual-linnstrument-$BUILD_NAME.png"
 
       # The app is signed with the Developer ID in the repository's secrets and notarised, so it
       # opens like any downloaded app. Without the secrets, as in a pull request from a fork, it's
@@ -193,7 +196,7 @@ jobs:
           IDENTITY: ${{ steps.signing.outputs.identity }}
         run: |
           cd build/virtual/VirtualLinnStrument_artefacts/Release
-          zip="$GITHUB_WORKSPACE/build/virtual-linnstrument-macos.zip"
+          zip="$GITHUB_WORKSPACE/build/virtual-linnstrument-macos-$BUILD_NAME.zip"
           if [ "$IDENTITY" = "-" ]; then
             codesign --force --deep --sign - "Virtual LinnStrument.app"
           else
@@ -212,12 +215,12 @@ jobs:
       # uploaded as they are, so the download is the app's zip itself, not a zip around it
       - uses: actions/upload-artifact@v7
         with:
-          path: build/virtual-linnstrument-macos.zip
+          path: build/virtual-linnstrument-macos-${{ env.BUILD_NAME }}.zip
           archive: false
 
       - uses: actions/upload-artifact@v7
         with:
-          path: build/virtual-linnstrument.png
+          path: build/virtual-linnstrument-${{ env.BUILD_NAME }}.png
           archive: false
 
   # a pull request from a fork gets a read-only token, so there this step cannot delete and fails

@@ -16,6 +16,7 @@ limitations under the License.
 #include "Engine.h"
 
 #include "Firmware/FirmwareBridge.h"
+#include "BuildInfo.h"
 
 #include <chrono>
 #include <thread>
@@ -163,7 +164,7 @@ void Engine::setFootSwitch(int which, bool down) {
 
 juce::String Engine::status() const {
   if (!isThreadRunning()) return "Stopped";
-  juce::String text = "LinnStrument " + juce::String(firmware::model()) + ", firmware " + firmware::version();
+  juce::String text = "LinnStrument " + juce::String(firmware::model()) + ", firmware " + firmware::version() + ", commit " + VIRTUAL_COMMIT;
   text += hasVirtualPorts() ? ", MIDI port \"" + portName() + "\"" : ", no virtual MIDI port on this platform";
   if (!firmware::calibrated()) text += ", default calibration";
   if (firmware::userFirmwareMode()) text += ", user firmware mode";

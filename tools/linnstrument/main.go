@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -50,6 +51,7 @@ Commands:
   mcp [200|128]          serve the Virtual LinnStrument to an AI assistant as an MCP server over
                          stdio: touches, lights, screenshots and MIDI both ways (needs the app
                          built as tools/virtual/README.md says, or LINN_VIRTUAL naming it)
+  version                print which build of this tool this is
   ports                  list serial ports and mark the LinnStrument
   probe                  handshake with the instrument and report its settings layout version
   led COL ROW COLOR      light one LED (color numbers as in linnstrument-firmware.ino)
@@ -69,6 +71,35 @@ serialmode in MIDI mode. -port overrides the automatic detection by USB id. The 
 and update commands need firmware 2.0 or later.
 `
 
+// set by CI with -ldflags "-X main.version=..." to what tools/build-name.sh prints
+var version = ""
+
+func buildName() string {
+	if version != "" {
+		return version
+	}
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "development build"
+	}
+	commit, modified := "", false
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			commit = s.Value
+		case "vcs.modified":
+			modified = s.Value == "true"
+		}
+	}
+	if len(commit) < 7 {
+		return "development build"
+	}
+	if modified {
+		return "development build of " + commit[:7] + " with local changes"
+	}
+	return "development build of " + commit[:7]
+}
+
 type Backup struct {
 	Created         time.Time `json:"created"`
 	SettingsVersion int       `json:"settingsVersion"`
@@ -77,7 +108,7 @@ type Backup struct {
 }
 
 func main() {
-	flag.Usage = func() { fmt.Fprint(os.Stderr, usage) }
+	flag.Usage = func() { fmt.Fprint(os.Stderr, "linnstrument "+buildName()+"\n\n"+usage) }
 	port := flag.String("port", "", "serial port of the LinnStrument")
 	flag.Parse()
 	args := flag.Args()
@@ -159,6 +190,9 @@ func dispatch(port, command string, args []string) error {
 			only = args[0]
 		}
 		return runMutations(repo, only)
+	case "version":
+		fmt.Println("linnstrument " + buildName())
+		return nil
 	case "ports":
 		return listPorts()
 	case "serialmode":

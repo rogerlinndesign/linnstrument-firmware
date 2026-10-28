@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
-project(VirtualLinnStrument VERSION 0.1.0 LANGUAGES C CXX)
+
+# the app carries the version of the firmware it runs: OSVersion "240." and OSVersionBuild ".075"
+# make version 2.4.0, build 75
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../../linnstrument-firmware.ino FIRMWARE_VERSION_LINES
+  REGEX "^const char\\* OSVersion(Build)? = ")
+string(REGEX MATCH "OSVersion = \"([0-9])([0-9])([0-9])" _ "${FIRMWARE_VERSION_LINES}")
+set(FIRMWARE_VERSION ${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3})
+string(REGEX MATCH "OSVersionBuild = \"\\.0*([0-9]+)" _ "${FIRMWARE_VERSION_LINES}")
+set(FIRMWARE_BUILD ${CMAKE_MATCH_1})
+project(VirtualLinnStrument VERSION ${FIRMWARE_VERSION} LANGUAGES C CXX)
 
 # Virtual LinnStrument: the real firmware, compiled for the desktop against the stand-ins the
 # tests use, behind a window that draws its lights and turns the mouse into touches, with a
@@ -42,9 +51,17 @@ juce_add_gui_app(VirtualLinnStrument
   COMPANY_NAME "Roger Linn Design"
   BUNDLE_ID com.rogerlinndesign.virtuallinnstrument
   ICON_BIG Resources/Icon/Icon-512.png
-  VERSION ${PROJECT_VERSION})
+  VERSION ${PROJECT_VERSION}
+  BUILD_VERSION ${FIRMWARE_BUILD})
 juce_generate_juce_header(VirtualLinnStrument)
 add_dependencies(VirtualLinnStrument MergedSketch)
+
+set(BUILD_INFO ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo/BuildInfo.h)
+add_custom_target(BuildInfo
+  COMMAND ${CMAKE_COMMAND} -DREPO=${REPO} -DOUT=${BUILD_INFO} -P ${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.cmake
+  BYPRODUCTS ${BUILD_INFO})
+add_dependencies(VirtualLinnStrument BuildInfo)
+target_include_directories(VirtualLinnStrument PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo)
 
 juce_add_binary_data(VirtualLinnStrumentData SOURCES
   Resources/Fonts/Mulish-Bold.ttf

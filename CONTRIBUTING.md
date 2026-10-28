@@ -82,10 +82,11 @@ own computer, here's what you need, roughly in this order:
   Go.
 * **Without Go**, you can use the prebuilt tool that every green Actions run
   attaches. It does `backup`, `restore`, `flash`, `update` and `serve`. Unzip
-  `linnstrument-tool-macos` or `linnstrument-tool-linux-windows` and put the
-  binary in the repository folder. A "Download ZIP" copy will do, since it
-  holds the bossac the tool flashes with and the pages it serves. Before the
-  first run, open a terminal in that folder and type:
+  `linnstrument-tool-macos` or `linnstrument-tool-linux-windows`, followed by
+  the version and commit, and put the binary in the repository folder. A
+  "Download ZIP" copy will do, since it holds the bossac the tool flashes with
+  and the pages it serves. Before the first run, open a terminal in that
+  folder and type:
 
   ```
   chmod +x linnstrument-macos
@@ -147,11 +148,13 @@ There are three ways to build, and they all produce the same firmware:
    your commit, and download the firmware from "Artifacts" at the bottom. The
    download is a zip, so unzip it to get the `.bin`. The same run attaches
    prebuilt `linnstrument` tool binaries for Linux, Windows and macOS, the
-   Virtual LinnStrument for Apple silicon Macs as
-   `virtual-linnstrument-macos.zip`, and a screenshot of it running as
-   `virtual-linnstrument.png`. The firmware is the artifact named after the
-   version and the commit, for example
-   `linnstrument-firmware-240.075-1a2b3c4`. Note that downloading needs a
+   Virtual LinnStrument for Apple silicon Macs, and a screenshot of it
+   running. Every artifact is named after the firmware version and the
+   commit, for example `linnstrument-firmware-240.075-1a2b3c4` for the
+   firmware, `virtual-linnstrument-macos-240.075-1a2b3c4.zip` for the app and
+   `virtual-linnstrument-240.075-1a2b3c4.png` for the screenshot. The tool
+   tells you the same with `./linnstrument-macos version`, and the app in its
+   window title and status line. Note that downloading needs a
    GitHub login, and GitHub keeps artifacts for 90 days by default. Only a run
    with a green tick offers downloads. The builds start once the tests pass,
    and a run that ends with a red cross deletes what it had attached. A pull
@@ -192,7 +195,8 @@ table in midi.md against the firmware) and
 `node --test examples/browser/*.test.js` for the pages. It also builds the
 Virtual LinnStrument on macOS. `tools/ci-linux.sh` runs the test, build and
 tool jobs in an x86_64 Ubuntu container with Docker, so that you can check a
-change on Linux before pushing it.
+change on Linux before pushing it. `tools/build-name.sh` prints the name
+those builds carry, such as `240.075-1a2b3c4`.
 
 
 `go run ./tools/linnstrument serve` serves the browser pages in

@@ -17,7 +17,9 @@ limitations under the License.
 
 #include <iostream>
 
+#include "BuildInfo.h"
 #include "Commands.h"
+#include "Firmware/FirmwareBridge.h"
 #include "LinnLookAndFeel.h"
 #include "MainComponent.h"
 
@@ -34,7 +36,7 @@ public:
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     juce::StringArray args = juce::StringArray::fromTokens(commandLine, true);
     int model = args.contains("--model") && args[args.indexOf("--model") + 1] == "128" ? 128 : 200;
-    window = std::make_unique<MainWindow>(getApplicationName(), model);
+    window = std::make_unique<MainWindow>(getApplicationName() + " " + firmware::version() + "-" + VIRTUAL_COMMIT, model);
     auto* main = dynamic_cast<MainComponent*>(window->getContentComponent());
     int at = args.indexOf("--screenshot");
     if (at >= 0 && at + 1 < args.size()) {
