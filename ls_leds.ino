@@ -327,6 +327,9 @@ void refreshLedColumn(unsigned long now) {
       case cellFocusPulse:
         cellDisplay = lastFocusPulseOn ? cellOn : cellOff;
         break;
+      case cellDim:
+        cellDisplay = (displayInterval[actualCol][rowCount] < 3) ? cellOn : cellOff;
+        break;
     }
 
     if (Device.operatingLowPower) {
