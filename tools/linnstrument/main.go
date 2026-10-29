@@ -214,7 +214,7 @@ func dispatch(port, command string, args []string) error {
 			}
 			v[i] = byte(n)
 		}
-		s, err := openSession(port, 3)
+		s, err := openSession(port, sessionAttempts)
 		if err != nil {
 			return err
 		}
@@ -229,7 +229,7 @@ func dispatch(port, command string, args []string) error {
 		if len(args) > 0 {
 			file = args[0]
 		}
-		s, err := openSession(port, 3)
+		s, err := openSession(port, sessionAttempts)
 		if err != nil {
 			return err
 		}
@@ -244,7 +244,7 @@ func dispatch(port, command string, args []string) error {
 		if err != nil {
 			return err
 		}
-		s, err := openSession(port, 3)
+		s, err := openSession(port, sessionAttempts)
 		if err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func listPorts() error {
 }
 
 func probe(port string) error {
-	s, err := openSession(port, 3)
+	s, err := openSession(port, sessionAttempts)
 	if err != nil {
 		return err
 	}
@@ -386,7 +386,7 @@ func update(repo, port, firmware string) error {
 	if _, err := os.Stat(firmware); err != nil {
 		return fmt.Errorf("no firmware at %s, run the build command first", firmware)
 	}
-	s, err := openSession(port, 3)
+	s, err := openSession(port, sessionAttempts)
 	if err != nil {
 		return err
 	}

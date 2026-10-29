@@ -246,7 +246,9 @@ Facts about the serial link, measured on a LinnStrument 128:
 * Opening or closing the port toggles DTR, and the USB bridge then resets the
   instrument about one time in three, 0.4 to 1.5 seconds later. The port
   disappears for under a second and comes back. The tool waits out that
-  window after opening and retries the handshake. Do everything in one open
+  window after opening and reopens up to six times when the port went away,
+  which happened to about one open in four, sometimes twice in a row.
+  `LINN_SERIAL_TRACE=1` logs each attempt. Do everything in one open
   session; do not open and close the port per command.
 * The protocol is the Updater's: send `5, 4, 3, 2, 1 ...\n`, expect
   `LinnStruments are go!\n`, then one-letter commands (`s` settings, `l` LED,

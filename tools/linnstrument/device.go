@@ -39,6 +39,9 @@ const (
 	batchSize       = 96
 	batchPause      = 20 * time.Millisecond
 	settleAfterOpen = 2 * time.Second
+	// measured on a 128: about one open in four loses the port to the reset its DTR edge sets
+	// off, sometimes twice in a row, so three tries were not enough
+	sessionAttempts = 6
 	ioTimeout       = 3 * time.Second
 )
 
@@ -108,31 +111,43 @@ type Session struct {
 	explicit string
 }
 
+func serialTrace(start time.Time, format string, args ...any) {
+	if os.Getenv("LINN_SERIAL_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "[%6.2fs] %s\n", time.Since(start).Seconds(), fmt.Sprintf(format, args...))
+	}
+}
+
 func openSession(explicit string, attempts int) (*Session, error) {
 	var last error
+	start := time.Now()
 	for i := 0; i < attempts; i++ {
 		if i > 0 {
 			time.Sleep(time.Second)
 		}
 		name, err := waitForPort(explicit, 6*time.Second)
 		if err != nil {
+			serialTrace(start, "attempt %d: no port: %v", i+1, err)
 			last = err
 			continue
 		}
 		port, err := serial.Open(name, &serial.Mode{BaudRate: 115200})
 		if err != nil {
+			serialTrace(start, "attempt %d: open failed: %v", i+1, err)
 			last = err
 			continue
 		}
+		serialTrace(start, "attempt %d: opened %s", i+1, name)
 		port.SetReadTimeout(ioTimeout)
 		time.Sleep(settleAfterOpen)
 		port.ResetInputBuffer()
 		s := &Session{port: port, Name: name, explicit: explicit}
 		if err := s.handshake(); err != nil {
+			serialTrace(start, "attempt %d: handshake failed: %v", i+1, err)
 			port.Close()
 			last = err
 			continue
 		}
+		serialTrace(start, "attempt %d: handshake done", i+1)
 		return s, nil
 	}
 	return nil, fmt.Errorf("no handshake after %d attempts: %w", attempts, last)

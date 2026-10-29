@@ -62,7 +62,7 @@ func enterSerialMode(explicitPort string) error {
 
 // enterMidiMode sends the serial command that leaves serial mode and waits for the port to go.
 func enterMidiMode(explicitPort string) error {
-	s, err := openSession(explicitPort, 3)
+	s, err := openSession(explicitPort, sessionAttempts)
 	if err != nil {
 		return err
 	}
