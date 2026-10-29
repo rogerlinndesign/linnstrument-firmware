@@ -302,3 +302,13 @@ func TestMcpStartsTheNewBuildAfterARebuild(t *testing.T) {
 		t.Fatalf("restarted again without a rebuild: %d apps, %v", len(*fakes), err)
 	}
 }
+
+func TestMcpToolSchemasListRequiredAsAnArray(t *testing.T) {
+	replies, _ := runMcp(t, `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`)
+	for _, tool := range replies[0].Result.Tools {
+		schema := tool["inputSchema"].(map[string]any)
+		if _, ok := schema["required"].([]any); !ok {
+			t.Errorf("%v: required is %v, not an array", tool["name"], schema["required"])
+		}
+	}
+}

@@ -161,7 +161,11 @@ type mcpTool struct {
 	run         func(app *virtualApp, args map[string]any) ([]map[string]any, error)
 }
 
+// schema always lists required, empty or not: Claude Code rejects the whole tool list over a null
 func schema(required []string, properties string) json.RawMessage {
+	if required == nil {
+		required = []string{}
+	}
 	req, _ := json.Marshal(required)
 	return json.RawMessage(`{"type":"object","properties":{` + properties + `},"required":` + string(req) + `}`)
 }
