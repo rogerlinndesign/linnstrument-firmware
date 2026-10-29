@@ -40,6 +40,8 @@ private:
   void startModel();
   void fitWindowToInstrument();
   void footSwitchChanged(int which);
+  void showStatus();
+  void layoutFooter();
 
   Engine engine;
   Surface surface { engine };

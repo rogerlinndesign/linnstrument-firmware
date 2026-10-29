@@ -40,6 +40,7 @@ MainComponent::MainComponent(int model) {
   statusLabel.setColour(juce::Label::textColourId, linn::muted);
   statusLabel.setFont(juce::Font(juce::FontOptions(12.0f)));
   statusLabel.setTitle("Instrument");
+  statusLabel.setMinimumHorizontalScale(1.0f);
   addAndMakeVisible(statusLabel);
 
   for (auto* label : { &pressureLabel, &velocityLabel }) {
@@ -88,6 +89,7 @@ MainComponent::MainComponent(int model) {
   hintLabel.setColour(juce::Label::textColourId, linn::dim);
   hintLabel.setFont(juce::Font(juce::FontOptions(12.0f)));
   hintLabel.setJustificationType(juce::Justification::centredRight);
+  hintLabel.setMinimumHorizontalScale(1.0f);
   addAndMakeVisible(hintLabel);
 
   engine.setVelocityScans(3);
@@ -104,7 +106,25 @@ MainComponent::~MainComponent() {
 void MainComponent::startModel() {
   engine.start(modelBox.getSelectedId());
   surface.resized();
-  statusLabel.setText(engine.status(), juce::dontSendNotification);
+  showStatus();
+}
+
+void MainComponent::showStatus() {
+  auto text = engine.status();
+  if (text == statusLabel.getText()) return;
+  statusLabel.setText(text, juce::dontSendNotification);
+  layoutFooter();
+}
+
+// the status takes the width its text needs and the hint what is left, ending in an ellipsis
+// when that is too little; a label would otherwise squeeze its text narrower to make it fit
+void MainComponent::layoutFooter() {
+  auto bottom = getLocalBounds().removeFromBottom(hintHeight).reduced(24, 6);
+  auto border = statusLabel.getBorderSize().getLeftAndRight();
+  int needed = (int) std::ceil(juce::GlyphArrangement::getStringWidth(statusLabel.getFont(), statusLabel.getText())) + border + 2;
+  statusLabel.setBounds(bottom.removeFromLeft(juce::jmin(needed, bottom.getWidth())));
+  bottom.removeFromLeft(24);
+  hintLabel.setBounds(bottom);
 }
 
 // the window takes the instrument's own proportions, so no black bands are left around it
@@ -139,7 +159,7 @@ bool MainComponent::saveScreenshot(const juce::File& file, float scale) {
 }
 
 void MainComponent::timerCallback() {
-  statusLabel.setText(engine.status(), juce::dontSendNotification);
+  showStatus();
 }
 
 void MainComponent::paint(juce::Graphics& g) {
@@ -157,23 +177,32 @@ void MainComponent::paint(juce::Graphics& g) {
 void MainComponent::resized() {
   auto area = getLocalBounds();
   auto top = area.removeFromTop(barHeight).reduced(24, 15);
+  // what gives way, in order, when the window is narrower than the bar needs: the VIRTUAL tag,
+  // then the sliders down to 60, then the model menu down to 136
+  int sub = 82, slider = 130, model = 176;
+  int deficit = 138 + sub + model + 20 + 2 * slider + 70 + 16 + 66 + 28 + 74 + 8 + 74 - top.getWidth();
+  if (deficit > 0) { sub = 0; deficit -= 82; }
+  if (deficit > 0) { int cut = juce::jmin(deficit, 2 * (130 - 60)); slider -= (cut + 1) / 2; deficit -= cut; }
+  if (deficit > 0) { int cut = juce::jmin(deficit, 176 - 136); model -= cut; }
+  subLabel.setVisible(sub > 0);
   brandLabel.setBounds(top.removeFromLeft(138));
-  subLabel.setBounds(top.removeFromLeft(70));
-  top.removeFromLeft(12);
-  modelBox.setBounds(top.removeFromLeft(176));
+  if (sub > 0) {
+    subLabel.setBounds(top.removeFromLeft(70));
+    top.removeFromLeft(12);
+  }
+  modelBox.setBounds(top.removeFromLeft(model));
   top.removeFromLeft(20);
   footRight.setBounds(top.removeFromRight(74));
   top.removeFromRight(8);
   footLeft.setBounds(top.removeFromRight(74));
   top.removeFromRight(28);
-  velocitySlider.setBounds(top.removeFromRight(130));
+  velocitySlider.setBounds(top.removeFromRight(slider));
   velocityLabel.setBounds(top.removeFromRight(66));
   top.removeFromRight(16);
-  pressureSlider.setBounds(top.removeFromRight(130));
+  pressureSlider.setBounds(top.removeFromRight(slider));
   pressureLabel.setBounds(top.removeFromRight(70));
 
-  auto bottom = area.removeFromBottom(hintHeight).reduced(24, 6);
-  statusLabel.setBounds(bottom.removeFromLeft(juce::jmin(360, bottom.getWidth() / 2)));
-  hintLabel.setBounds(bottom);
+  area.removeFromBottom(hintHeight);
+  layoutFooter();
   surface.setBounds(area.reduced(surfaceInset, surfaceInset));
 }
