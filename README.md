@@ -33,8 +33,9 @@ Three ways in
    instrument, the Virtual LinnStrument runs the firmware behind a window with a virtual MIDI
    port, and a pull request brings the change in. An AI assistant in the terminal can drive all
    of that for you and, when you say so, a connected instrument too. `CONTRIBUTING.md` lists
-   what to install and the workflow. `CLAUDE.md` is what the assistant reads (other assistants
-   find it through `AGENTS.md`), and it's useful reading for people too.
+   what to install and the workflow, and its "On a Mac, start to finish" lists the steps with an
+   assistant. `CLAUDE.md` is what the assistant reads (other assistants find it through
+   `AGENTS.md`), and it's useful reading for people too.
 
 ![The surface designer page with a LinnStrument 128 connected](docs/images/surface-designer.png)
 

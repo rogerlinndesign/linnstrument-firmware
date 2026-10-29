@@ -30,7 +30,10 @@ uses cgo. After `arduino-cli core install arduino:sam@1.6.12` once:
 go run ./tools/linnstrument build
 ```
 
-From the repo root, that runs this and then reports static RAM use:
+From the repo root, that runs this, reports static RAM use and copies the
+`.bin` to the name CI gives it, `build/linnstrument-firmware-240.075-` and the
+commit (`-modified` added for uncommitted sketch changes), which the Updater
+shows before it flashes:
 
 ```
 arduino-cli compile --fqbn arduino:sam:arduino_due_x \

@@ -36,7 +36,8 @@ import (
 const usage = `Usage: go run ./tools/linnstrument [-port PORT] <command> [arguments]
 
 Commands:
-  build                  compile the firmware into build/ and report flash and RAM use
+  build                  compile the firmware into build/, report flash and RAM use, and copy
+                         the .bin to a name with the version and commit for the Updater
   test [NAME]            build and run the desktop unit tests in tests/ (needs a C++ compiler),
                          NAME restricts the run to tests whose name contains it
   mutate [NAME]          prove the tests can fail: apply each change in tests/mutations.tsv to the

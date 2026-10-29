@@ -30,6 +30,44 @@ To change the firmware with Claude Code on the web, with nothing installed:
 8. Try it on the instrument and tell the assistant what you saw and heard.
 
 
+On a Mac, start to finish
+-------------------------
+
+To change the firmware with Claude Code on your own Mac, where your changes
+stay until you decide to push them:
+
+1. Install the tools once ("What to install"): the Xcode Command Line Tools
+   with `xcode-select --install`, on Apple silicon Rosetta with
+   `softwareupdate --install-rosetta`, then with Homebrew
+   `brew install go arduino-cli cmake` and
+   `arduino-cli core install arduino:sam@1.6.12`. Install Claude Code from
+   claude.ai/code.
+2. Clone the repository into a folder named `linnstrument-firmware` and
+   create a branch for your change ("Getting the code").
+3. In that folder, `go run ./tools/linnstrument test` and
+   `go run ./tools/linnstrument build` prove that your setup works. Build the
+   Virtual LinnStrument once too, which takes a few minutes the first time
+   (see `tools/virtual/README.md`).
+4. Type `claude` in the folder, approve the MCP servers it asks about, and
+   describe the change as what the instrument should do ("How to brief it").
+5. The assistant edits the code, runs the tests and builds the firmware. Ask
+   it to show the change on the Virtual LinnStrument, or play it there
+   yourself with the mouse.
+6. Before the first flash, read "What is safe and what is not": how to go
+   back, and what to save first.
+7. Flash it in one of two ways. Either put the Updater and the named copy
+   the build wrote, `build/linnstrument-firmware-240.075-` followed by the
+   commit, in a new folder and check the firmware name the Updater shows
+   ("Flashing and testing on the instrument"). Or tap Global Settings, then
+   OS Update, and tell the assistant it may run
+   `go run ./tools/linnstrument update`, which backs up the settings,
+   flashes and restores them.
+8. Try it on the instrument and tell the assistant what you saw and heard.
+
+Your commits stay on your Mac. The assistant asks before every push, and
+nothing is published until you say yes.
+
+
 Getting the code
 ----------------
 
@@ -141,7 +179,10 @@ There are three ways to build, and they all produce the same firmware:
    Compiled Binary" then writes the `.bin` into
    `build/arduino.sam.arduino_due_x/`.
 2. **Command line.** `go run ./tools/linnstrument build` runs arduino-cli and
-   writes the `.bin` into `build/`. Once the core has been compiled, this takes
+   writes the `.bin` into `build/`, together with a copy named after the
+   version and the commit, such as `linnstrument-firmware-240.075-1a2b3c4.bin`,
+   with `-modified` added when the change isn't committed yet. That copy is
+   the one to give the Updater. Once the core has been compiled, this takes
    about ten seconds. See "What to install".
 3. **GitHub Actions.** Every push to any branch, and every pull request, is
    compiled automatically. Open the "Actions" tab on GitHub, click the run for
@@ -293,8 +334,9 @@ the Windows app asks for one. The downloads differ:
 * **Windows.** The zip holds a folder with `LinnStrument Updater.exe`, a
   `tools` folder and the release's `linnstrument-firmware-2.3.4.bin`.
 
-To flash your own build, make a new folder for it and add your `.bin` from the
-Actions download, keeping its name.
+To flash your own build, make a new folder for it and add your `.bin`, keeping
+its name: the one from the Actions download, or the named copy a local build
+writes into `build/`.
 
 * **Mac.** Unzip the Updater download and drag the app into the new folder
   with Finder (moving or copying both work). Do not run it where it was

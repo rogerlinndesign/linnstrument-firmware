@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -96,7 +97,68 @@ func build(repo string) error {
 		return fmt.Errorf("compile failed: %w", err)
 	}
 	reportRAM(repo)
+	return nameFirmware(repo)
+}
+
+// nameFirmware copies the build to the name CI gives it, which the Updater shows before it
+// flashes, so that a person can tell which build they are about to install
+func nameFirmware(repo string) error {
+	name, err := firmwareName(repo)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(repo, "build")
+	old, _ := filepath.Glob(filepath.Join(dir, sketchName+"-*.bin"))
+	for _, path := range old {
+		os.Remove(path)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, sketchName+".ino.bin"))
+	if err != nil {
+		return err
+	}
+	named := filepath.Join(dir, sketchName+"-"+name+".bin")
+	if err := os.WriteFile(named, data, 0o644); err != nil {
+		return err
+	}
+	fmt.Printf("For the LinnStrument Updater: %s\n", named)
 	return nil
+}
+
+// firmwareName is what tools/build-name.sh prints, such as 240.075-1a2b3c4, with -modified
+// when the sketch has changes that are not committed
+func firmwareName(repo string) (string, error) {
+	sketch, err := os.ReadFile(filepath.Join(repo, sketchName+".ino"))
+	if err != nil {
+		return "", err
+	}
+	version, err := firmwareVersion(string(sketch))
+	if err != nil {
+		return "", err
+	}
+	commit, err := exec.Command("git", "-C", repo, "rev-parse", "--short=7", "HEAD").Output()
+	if err != nil {
+		return version + "-unknown", nil
+	}
+	name := version + "-" + strings.TrimSpace(string(commit))
+	changes, _ := exec.Command("git", "-C", repo, "status", "--porcelain", "--untracked-files=no", "--", ":(glob)*.ino", ":(glob)*.h").Output()
+	if len(strings.TrimSpace(string(changes))) > 0 {
+		name += "-modified"
+	}
+	return name, nil
+}
+
+var osVersionPattern = regexp.MustCompile(`(?m)^const char\* OSVersion = "([0-9.]*)";`)
+var osVersionBuildPattern = regexp.MustCompile(`(?m)^const char\* OSVersionBuild = "(\.[0-9]*)";`)
+
+// firmwareVersion is the version as the instrument's screen shows it; OSVersion ends with the
+// dot OSVersionBuild starts with
+func firmwareVersion(sketch string) (string, error) {
+	version := osVersionPattern.FindStringSubmatch(sketch)
+	build := osVersionBuildPattern.FindStringSubmatch(sketch)
+	if version == nil || build == nil {
+		return "", errors.New("no OSVersion and OSVersionBuild in the sketch")
+	}
+	return strings.TrimSuffix(version[1], ".") + build[1], nil
 }
 
 // reportRAM prints the static RAM use, which the SAM core itself does not report.
