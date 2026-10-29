@@ -5,10 +5,26 @@ The Virtual LinnStrument is the LinnStrument firmware running on your computer, 
 that shows its lights and turns the mouse into a finger, with a virtual MIDI port named "Virtual
 LinnStrument". It's the real firmware, not an imitation. The same `.ino` files are merged into
 one C++ file the way the Arduino build and the desktop tests do it, compiled against the
-stand-ins in `tests/support/`, and run on a thread with the computer's clock. Everything the
-instrument does over MIDI, the notes, expression, NRPNs, User Firmware Mode, lights and text,
-behaves exactly as on the hardware. This makes it the quick way to develop against the
-instrument without having one on your desk.
+stand-ins in `tests/support/`, and run on a thread with the computer's clock. What the firmware
+decides is therefore what an instrument decides: the notes, channels and expression a touch
+turns into, the NRPNs, the settings screens, User Firmware Mode, the lights and the text. What's
+simulated is everything around it: the touches come from the mouse, a script or an assistant
+instead of a sensor, and the lights are drawn instead of lit. This makes it the quick way to
+develop against the instrument without having one on your desk.
+
+What it's for
+-------------
+
+It's for trying a firmware change, a page or a MIDI script before it reaches an instrument, and
+for an AI assistant to check its own work. It settles what the lights show, which screens and
+settings a touch reaches, and what MIDI goes out for a given touch or comes back for a given
+message. It doesn't settle how a change feels to play: pressure response, velocity, sliding,
+timing and sound still need a real LinnStrument and a person at it. It isn't meant as an
+instrument to perform with either, since a mouse plays one touch at a time.
+
+The ready-made app that GitHub Actions attaches to every run is for Apple silicon Macs. It's
+only been built and tried on macOS. Windows has no virtual MIDI ports, so the app has nothing to
+send to there, and Linux hasn't been tried.
 
 Building
 --------
@@ -154,8 +170,23 @@ Using it
 What it cannot do
 -----------------
 
-It can't do multi-touch with a mouse, beyond holding touches with shift-click, right-click or
-Space. It can't do calibration either, which needs real sensor readings, so the firmware runs on
-its default calibration. Finally, it can't do serial mode either: tapping OS Update switches the
-firmware to it, and with no serial port behind the window the instrument goes quiet until OS
-Update is tapped again.
+* **Touches are idealised.** A touch gives the firmware one clean reading for its cell, with the
+  pressure set by the Pressure slider (or a script's Z) and the velocity measured from that
+  pressure rising over a few scans, as fast as the Velocity slider says. A finger's readings
+  vary and drift, so the velocity, pressure and position numbers differ from an instrument's for
+  the same gesture.
+* **No sensor quirks.** Untouched cells read nothing, so there's no noise, no cross talk between
+  touches in a column and no phantom touches for the firmware to reject.
+* **No multi-touch with a mouse,** beyond holding touches with shift-click, right-click or
+  Space. A script or an assistant can hold several touches at once.
+* **No calibration.** It needs real sensor readings, so the firmware runs on its default
+  calibration.
+* **Different timing.** The app scans the whole surface, then pauses for 1.5 ms, on the
+  computer's clock. The scan rate, and anything that depends on it, doesn't match the instrument,
+  so timing and latency have to be judged on hardware.
+* **One MIDI port.** All MIDI goes through the virtual port, whether the settings choose USB or
+  DIN.
+* **No serial mode.** Tapping OS Update switches the firmware to it, and with no serial port
+  behind the window the instrument goes quiet until OS Update is tapped again. That's also why
+  the Updater and the tool's `backup`, `restore` and `flash` can't reach it. Its settings live in
+  the flash file described above.
