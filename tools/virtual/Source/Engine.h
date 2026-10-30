@@ -73,10 +73,14 @@ public:
   // the firmware's pass over the cells drifts against these scans, since it reads a new touch
   // several times in a row, so a strike stays at its level for two scans to be sure that it's read
   static constexpr int landingScans = 2;
-  // how fast a press rises towards a middling pressure of 1000, in raw Z per millisecond. On a
-  // LinnStrument 128, soft and medium presses took most of a second to get there and only hard
-  // strikes rose fast, in about 15 ms.
-  static double riseRate(int strength) { return 1000.0 / (800.0 * std::pow(15.0 / 800.0, std::pow((strength - 1) / 11.0, 3.0))); }
+  // how fast a press rises towards a pressure, in raw Z per millisecond. On a LinnStrument 128, soft
+  // and medium presses took most of a second to get to a middling pressure of 1000 and only hard
+  // strikes rose fast, in about 15 ms. Pressing harder means tensing harder and the silicone gets
+  // stiffer as it's squeezed, so a higher pressure is reached sooner, in a time that shrinks with
+  // its square root.
+  static double riseRate(int strength, double pressure) {
+    return 1000.0 / (800.0 * std::pow(15.0 / 800.0, std::pow((strength - 1) / 11.0, 3.0))) * std::pow(pressure / 1000.0, 1.5);
+  }
   // a finger takes about 50 ms to leave, and its pressure drops faster towards the end
   static constexpr double liftMillis = 50;
   void setFootSwitch(int which, bool down);
@@ -128,7 +132,7 @@ private:
     bool ownPressure;   // pressed with an explicit Z, which a move without Z keeps
     bool liftFirst;     // replaced a touch the firmware has not yet seen lifted
     int releaseIn;      // scans until it lets go, when it's the cell a slide is leaving
-    double rate = 0;    // how fast it rises, which comes from how hard it struck
+    int strike = 10;    // how hard it struck, which sets how fast it rises
     double landing = 0; // the level it lands at in the first scan
     double rising = 0;  // its pressure as it rises, before it's rounded to z
     int landedScans = 0;

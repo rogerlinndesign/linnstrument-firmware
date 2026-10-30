@@ -163,7 +163,7 @@ int Engine::advanceTouches(double millis) {
     }
     else {
       double remaining = target - t.rising, easing = target / 4;
-      double step = t.rate * millis * (remaining < easing ? juce::jmax(0.1, remaining / easing) : 1.0);
+      double step = riseRate(t.strike, target) * millis * (remaining < easing ? juce::jmax(0.1, remaining / easing) : 1.0);
       t.rising = juce::jmin(target, t.rising + step);
       if (target - t.rising < 1) t.settled = true;
     }
@@ -182,7 +182,7 @@ static int touchKey(int col, int row) { return col * 8 + row; }
 void Engine::press(int col, int row, float xFraction, float yFraction, int rawZ) {
   const juce::ScopedLock lock(touchLock);
   Touch t { col, row, instance->rawX(col, xFraction), instance->rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false, 0 };
-  t.rate = riseRate(strike);
+  t.strike = strike;
   t.landing = strikeLevel(strike);
   auto it = touches.find(touchKey(col, row));
   if (it != touches.end()) {

@@ -45,6 +45,7 @@ M = [
  ('Engine.cpp', '      double left = 1.0 - std::pow(t.lifted / liftMillis, 2.0);', '      double left = 0;', 'lowers_the_pressure'),
  ('Engine.h', 'return 1000.0 / (800.0 * std::pow(15.0 / 800.0,', 'return 1000.0 / (80.0 * std::pow(15.0 / 80.0,', 'rises_slowly'),
  ('Engine.h', 'return 1000.0 / (800.0 * std::pow(15.0 / 800.0,', 'return 1000.0 / (800.0 * std::pow(150.0 / 800.0,', 'rises_slowly'),
+ ('Engine.h', ' * std::pow(pressure / 1000.0, 1.5);', ' * pressure / 1000.0;', 'rises_slowly'),
  ('Firmware/FirmwareInstance.inc', '        for (int row = 0; row < NUMROWS; ++row) channels.push_back((s.midiChanPerRow - 1 + row) % 16 + 1);', '        channels.push_back(s.midiChanPerRow);', 'lights_its_pads'),
  ('Firmware/FirmwareInstance.inc', '      case oneChannel: return { s.midiChanMain };', '      case oneChannel: return { s.midiChanMain % 16 + 1 };', 'lights_its_pads'),
  ('Firmware/FirmwareInstance.inc', '          if (s.midiChanSet[c]) return { c + 1 };', '          if (!s.midiChanSet[c]) return { c + 1 };', 'lights_its_pads'),
