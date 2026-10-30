@@ -16,6 +16,10 @@ limitations under the License.
 // Tests for the Virtual LinnStrument's own code, the parts the firmware's desktop tests can't
 // reach: tracking fingers, the surface, the engine's pace and the firmware bridge.
 //   VirtualTests [NAME]   runs the tests whose name contains NAME, or all of them
+#if defined(__APPLE__)
+// before JUCE, whose Point the system's would clash with
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 #include <JuceHeader.h>
 
 #include <cmath>
@@ -559,6 +563,22 @@ void the_nameplate_is_the_panels() {
   CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
 }
 
+void the_engines_port_is_listed_by_its_identifier() {
+  auto& e = engine();
+  if (!e.hasVirtualPorts()) return;
+  // JUCE lists a new port once CoreMIDI tells the main thread's run loop about it
+  bool listed = false;
+  for (int tries = 0; tries < 100 && !listed; ++tries) {
+    for (auto& port : juce::MidiInput::getAvailableDevices()) listed = listed || (port.identifier == e.portIdentifier() && port.name == e.portName());
+#if JUCE_MAC
+    if (!listed) CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
+#else
+    if (!listed) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+#endif
+  }
+  CHECK(listed);
+}
+
 void painted_bold_text_is_mulish_bold() {
   auto* lf = dynamic_cast<LinnLookAndFeel*>(&juce::LookAndFeel::getDefaultLookAndFeel());
   CHECK(lf != nullptr);
@@ -774,6 +794,7 @@ Suite bridge("Firmware bridge", {
   { "every_unit_is_calibrated", every_unit_is_calibrated },
   { "the_nameplate_is_the_panels", the_nameplate_is_the_panels },
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
+  { "the_engines_port_is_listed_by_its_identifier", the_engines_port_is_listed_by_its_identifier },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },
