@@ -74,6 +74,11 @@ public:
   virtual bool sequencerNoteSelected() = 0;
   // the left split's pitch bend range in semitones
   virtual int bendRange() = 0;
+  // lifts the limits that guard against an instrument's sensor, for a touch screen that has none
+  // of its cross talk or phantom touches: more than three touches in a column, the fourth corner
+  // of a rectangle, the settings switches while notes are held and the pitch of light touches
+  // sharing a column (sensorLimitsLifted in linnstrument-firmware.ino)
+  virtual void liftSensorLimits(bool lifted) = 0;
   // the channels, 1 to 16, that a note sent in on lights every pad of in a split: the one it takes
   // notes on, or each row's channel in channel per row, where the channel picks the row
   virtual std::vector<int> noteChannels(int split) = 0;

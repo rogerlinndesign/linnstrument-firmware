@@ -518,7 +518,9 @@ for the left split, 134 for the right).
 * `MAX_TOUCHES_IN_COLUMN` is 3 and is load-bearing. Measured on hardware: with
   4 or more fingers held in one column, cross talk pulls X readings far enough
   that real touches in neighbouring columns are rejected as phantoms. Do not
-  raise or remove it as a "fix".
+  raise or remove it as a "fix". Desktop builds can lift it, with the other guards against the
+  sensor, through `sensorLimitsLifted` for the touch app's screen, and in the
+  Due build that's the constant false.
 * `Z_BIAS` and the other sensitivity tables in `ls_sensor.ino` are rows first,
   columns second, unlike every other array. The comment there says why.
 * The `/*!!*/` markers in `setup()` flag hardware-specific sequencing. Do not

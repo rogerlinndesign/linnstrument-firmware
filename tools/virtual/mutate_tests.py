@@ -43,6 +43,7 @@ M = [
  ('Firmware/FirmwareInstance.inc', '      for (byte c = 0; c < MAXCOLS; ++c) Z_BIAS[r][c] = Z_BIAS_MULTIPLIER;\n', '', 'strikes_alike'),
  ('Engine.cpp', '      t.rising = t.landing;\n', '      t.rising = juce::jmin(t.landing, target);\n', 'whatever_the_pressure'),
  ('Engine.cpp', '      double left = 1.0 - std::pow(t.lifted / liftMillis, 2.0);', '      double left = 0;', 'lowers_the_pressure'),
+ ('Firmware/FirmwareInstance.inc', '  void liftSensorLimits(bool lifted) override { sensorLimitsLifted = lifted; }', '  void liftSensorLimits(bool) override {}', 'fourth_touch_into_a_column'),
  ('Engine.h', 'return 1000.0 / (800.0 * std::pow(15.0 / 800.0,', 'return 1000.0 / (80.0 * std::pow(15.0 / 80.0,', 'rises_slowly'),
  ('Engine.h', 'return 1000.0 / (800.0 * std::pow(15.0 / 800.0,', 'return 1000.0 / (800.0 * std::pow(150.0 / 800.0,', 'rises_slowly'),
  ('Engine.h', ' * std::pow(pressure / 1000.0, 1.5);', ' * pressure / 1000.0;', 'rises_slowly'),

@@ -164,6 +164,7 @@ public:
   }
   bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
+  void liftSensorLimits(bool lifted) override { sensorLimitsLifted = lifted; }
   std::vector<int> noteChannels(int split) override {
     auto& s = Split[split];
     switch (s.midiMode) {

@@ -740,6 +740,24 @@ void a_soft_press_rises_slowly_and_a_hard_one_at_once() {
   e.setPressure(600);
 }
 
+void lifted_sensor_limits_let_a_fourth_touch_into_a_column() {
+  auto& e = engine();
+  for (bool lifted : { false, true }) {
+    e.firmware().liftSensorLimits(lifted);
+    e.takeMidiOut();
+    for (int row = 1; row <= 4; ++row) e.press(5, row, 0.5f, 0.5f);
+    int sounding = 0;
+    for (int i = 0; i < 50 && sounding < 4; ++i) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(4));
+      sounding += noteOns(e.takeMidiOut());
+    }
+    for (int row = 1; row <= 4; ++row) e.release(5, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(80));
+    CHECK(sounding == (lifted ? 4 : 3));
+  }
+  e.firmware().liftSensorLimits(false);
+}
+
 void the_bridge_reports_the_tempo() {
   auto& e = engine();
   auto set = [&e](int bpm) {
@@ -945,6 +963,7 @@ Suite bridge("Firmware bridge", {
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
   { "the_engines_ports_are_listed_by_their_identifiers", the_engines_ports_are_listed_by_their_identifiers },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
+  { "lifted_sensor_limits_let_a_fourth_touch_into_a_column", lifted_sensor_limits_let_a_fourth_touch_into_a_column },
   { "a_strike_sets_the_velocity_whatever_the_pressure", a_strike_sets_the_velocity_whatever_the_pressure },
   { "every_cell_strikes_alike", every_cell_strikes_alike },
   { "letting_go_lowers_the_pressure_before_the_note_ends", letting_go_lowers_the_pressure_before_the_note_ends },

@@ -129,6 +129,14 @@ byte NUMROWS = 8;                    // number of touch sensor rows
 
 #define MAX_TOUCHES_IN_COLUMN  3
 
+// a touch screen has none of the sensor's cross talk or phantom touches, so a desktop build lets
+// it lift the limits that guard against those, while an instrument always keeps them
+#ifdef LINN_DESKTOP
+boolean sensorLimitsLifted = false;
+#else
+const boolean sensorLimitsLifted = false;
+#endif
+
 // Sequencer constants
 #define MAX_PROJECTS              16
 #define MAX_SEQUENCERS            2

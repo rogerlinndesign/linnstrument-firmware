@@ -122,6 +122,7 @@ void reset(byte model) {
   memset(&config, 0, sizeof(config));
   LINNMODEL = model;
   NUMCOLS = model == 200 ? 26 : 17;
+  sensorLimitsLifted = false;
   NUMROWS = 8;
   initializeSensors();
   initializeCalibration();

@@ -434,7 +434,8 @@ boolean handleNewTouch() {
 
     // user firmware mode only handles the global settings command button
     if (!userFirmwareActive || sensorRow == GLOBAL_SETTINGS_ROW) {
-      if (sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
+      if (!sensorLimitsLifted &&
+          sensorRow != SWITCH_1_ROW &&                        // if commands buttons are pressed that are not the two switches
           sensorRow != SWITCH_2_ROW) {                        // only activate them if there's note being played on the playing surface
         for (int r = 0; r < NUMROWS; ++r) {                   // this prevents accidental settings modifications while playing
           if ((colsInRowsTouched[r] & ~(int32_t)(1)) != 0) {
@@ -469,7 +470,7 @@ boolean handleNewTouch() {
           handleSlideTransferCandidate(sensorCol+1);
         }
         // only allow a certain number of touches in a single column to prevent cross talk
-        else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
+        else if (!sensorLimitsLifted && countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
           cellTouched(ignoredCell);
         }
         // this is really a new touch without any relationship to an ongoing slide
@@ -768,7 +769,7 @@ boolean handleXYZupdate() {
       return true;
 
     case velocityNew:
-      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {
+      if (!sensorLimitsLifted && (isPhantomTouchIndividual() || isPhantomTouchContextual())) {
         cellTouched(untouchedCell);
         return false;
       }
@@ -1431,7 +1432,7 @@ short handleXExpression() {
   // determine if the last X movement was a rogue sweep
   sensorCell->rogueSweepX = (deltaX >= ROGUE_SWEEP_X_THRESHOLD);
         
-  if ((countTouchesInColumn() < 2 ||
+  if ((sensorLimitsLifted || countTouchesInColumn() < 2 ||
        sensorCell->currentRawZ > (Device.sensorLoZ + SENSOR_PITCH_Z)) &&  // when there are multiple touches in the same column, reduce the pitch bend Z sensitivity to prevent unwanted pitch slides
       sensorCell->hasUsableX()) {                                         // if no phantom presses are active, send the pitch bend change, otherwise only send those changes that are small and gradual to prevent rogue pitch sweeps
 
