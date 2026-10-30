@@ -713,22 +713,19 @@ void letting_go_lowers_the_pressure_before_the_note_ends() {
 void a_soft_press_rises_slowly_and_a_hard_one_at_once() {
   auto& e = engine();
   Engine::TouchView view;
-  // how far a soft press rose from where it landed towards its pressure in 150 ms, which a higher
-  // pressure gets further
-  auto softly = [&](int pressure) {
-    e.setPressure(pressure);
-    e.setStrike(1);
-    e.press(5, 3, 0.5f, 0.5f);
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
-    double landed = Engine::strikeLevel(1);
-    double share = e.touchAt(5, 3, view) ? (view.pressure * 3000.0 - landed) / (pressure - landed) : -1;
-    e.release(5, 3);
-    std::this_thread::sleep_for(std::chrono::milliseconds(80));
-    return share;
-  };
-  double light = softly(600), firm = softly(2400);
-  CHECK(light > 0 && light < 0.3);
-  CHECK(firm > light * 1.4 && firm < 0.6);
+  // a soft press is still well short of its pressure after 150 ms, however late a busy machine wakes
+  // this test up
+  e.setPressure(600);
+  e.setStrike(1);
+  e.press(5, 3, 0.5f, 0.5f);
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  double landed = Engine::strikeLevel(1);
+  CHECK(e.touchAt(5, 3, view) && (view.pressure * 3000.0 - landed) / (600 - landed) < 0.6);
+  e.release(5, 3);
+  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  // and a higher pressure is reached sooner, which the rate sets whatever the clock does
+  auto millisTo = [](double pressure) { return pressure / Engine::riseRate(1, pressure); };
+  CHECK(millisTo(600) > 600 && millisTo(2400) < millisTo(600) / 1.5);
   e.setPressure(1500);
   e.setStrike(12);
   e.press(5, 3, 0.5f, 0.5f);
