@@ -22,6 +22,7 @@ limitations under the License.
 #endif
 #include <JuceHeader.h>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -563,13 +564,16 @@ void the_nameplate_is_the_panels() {
   CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
 }
 
-void the_engines_port_is_listed_by_its_identifier() {
+void the_engines_ports_are_listed_by_their_identifiers() {
   auto& e = engine();
   if (!e.hasVirtualPorts()) return;
+  auto has = [&](const juce::Array<juce::MidiDeviceInfo>& ports, const juce::String& id) {
+    return std::any_of(ports.begin(), ports.end(), [&](auto& port) { return port.identifier == id && port.name == e.portName(); });
+  };
   // JUCE lists a new port once CoreMIDI tells the main thread's run loop about it
   bool listed = false;
   for (int tries = 0; tries < 100 && !listed; ++tries) {
-    for (auto& port : juce::MidiInput::getAvailableDevices()) listed = listed || (port.identifier == e.portIdentifier() && port.name == e.portName());
+    listed = has(juce::MidiInput::getAvailableDevices(), e.outputIdentifier()) && has(juce::MidiOutput::getAvailableDevices(), e.inputIdentifier());
 #if JUCE_MAC
     if (!listed) CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
 #else
@@ -794,7 +798,7 @@ Suite bridge("Firmware bridge", {
   { "every_unit_is_calibrated", every_unit_is_calibrated },
   { "the_nameplate_is_the_panels", the_nameplate_is_the_panels },
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
-  { "the_engines_port_is_listed_by_its_identifier", the_engines_port_is_listed_by_its_identifier },
+  { "the_engines_ports_are_listed_by_their_identifiers", the_engines_ports_are_listed_by_their_identifiers },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },

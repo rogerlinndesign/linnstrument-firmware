@@ -80,13 +80,12 @@ public:
   juce::File flashFolder;
 
   juce::String portName() const { return "Virtual LinnStrument"; }
-  // the port this engine plays out of as the list of MIDI inputs names it, which JUCE gives without
-  // the prefix it marks its own virtual ports with; another Virtual LinnStrument shares its name
-  juce::String portIdentifier() const {
-    if (output == nullptr) return {};
-    auto id = output->getIdentifier();
-    return id.startsWith("VIRTUAL") ? id.substring(7) : id;
-  }
+  // the ports this engine plays out of and listens on, as the lists of MIDI inputs and outputs name
+  // them, which JUCE gives without the prefix it marks its own virtual ports with; another Virtual
+  // LinnStrument shares their name
+  juce::String outputIdentifier() const { return output != nullptr ? listed(output->getIdentifier()) : juce::String(); }
+  juce::String inputIdentifier() const { return input != nullptr ? listed(input->getIdentifier()) : juce::String(); }
+  static juce::String listed(const juce::String& id) { return id.startsWith("VIRTUAL") ? id.substring(7) : id; }
   juce::String status() const;
   bool hasVirtualPorts() const { return output != nullptr && input != nullptr; }
 
