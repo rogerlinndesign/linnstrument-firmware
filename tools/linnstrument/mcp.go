@@ -256,6 +256,14 @@ func mcpTools() []mcpTool {
 		{Name: "move", Description: "Move a held touch inside its cell, for pitch bend (x), timbre (y) or a pressure change (z). The touch keeps its pressure unless z is given.",
 			InputSchema: schema([]string{"col", "row", "x", "y"}, colProperty+","+rowProperty+","+xyProperty+","+zProperty),
 			run:         simple(func(args map[string]any) (string, error) { return cellCommand("move", args, "x", "y", "z") })},
+		{Name: "slide", Description: "Slide a held touch into the next cell of its row, as a finger does: both cells are down for a few scans, so the firmware takes it for a slide, not a new note. y is the finger's height in the new cell.",
+			InputSchema: schema([]string{"col", "row", "to_col"}, colProperty+","+rowProperty+`,"to_col":{"type":"integer","description":"the playing column next to col that the touch slides into"},"y":{"type":"number","description":"position inside the new cell, 0 bottom to 1 top (default 0.5)"}`),
+			run: simple(func(args map[string]any) (string, error) {
+				if _, ok := number(args, "to_col"); !ok {
+					return "", errors.New("to_col is required")
+				}
+				return cellCommand("slide", args, "to_col", "y")
+			})},
 		{Name: "release", Description: "Lift a held touch.",
 			InputSchema: schema([]string{"col", "row"}, colProperty+","+rowProperty),
 			run:         simple(func(args map[string]any) (string, error) { return cellCommand("release", args) })},
