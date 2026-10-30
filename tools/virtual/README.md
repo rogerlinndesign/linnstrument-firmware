@@ -202,11 +202,14 @@ file. GitHub Actions runs the tests and drives the built app by script on every 
 What it cannot do
 -----------------
 
-* **Touches are idealised.** A touch gives the firmware one clean reading for its cell, with the
-  pressure set by the Pressure slider (or a script's Z) and the velocity measured from that
-  pressure rising over a few scans, as fast as the Velocity slider says. A finger's readings
-  vary and drift, so the velocity, pressure and position numbers differ from an instrument's for
-  the same gesture.
+* **Touches are idealised.** A touch gives the firmware one clean reading for its cell. It lands at
+  a level that the Velocity slider sets, which is what the firmware measures the velocity from,
+  then rises towards the pressure of the Pressure slider (or a script's Z), slowly for a soft
+  press and within milliseconds for a hard one, and when you let go its pressure falls away over
+  about 50 ms before the note ends. Those timings were measured on a LinnStrument 128, but a
+  finger's readings vary and drift, so the velocity, pressure and position numbers still differ
+  from an instrument's for the same gesture. Every cell responds alike, since the per-cell bias
+  that evens out an instrument's sensor is turned off.
 * **No sensor quirks.** Untouched cells read nothing, so there's no noise, no cross talk between
   touches in a column and no phantom touches for the firmware to reject.
 * **No multi-touch with a mouse,** beyond holding touches with shift-click, right-click or

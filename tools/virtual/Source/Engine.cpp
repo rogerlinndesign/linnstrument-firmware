@@ -98,23 +98,38 @@ void Engine::run() {
       std::this_thread::sleep_until(start + std::chrono::microseconds((long long) (length * (slice + 1) / slices)));
     }
     start += std::chrono::microseconds((long long) length);
-    held = advanceTouches();
+    held = advanceTouches(length / 1000.0);
     if (++scansRun % 2000 == 0) {
       saveFlash();
     }
   }
 }
 
-// one step of every touch's pressure per scan, so the firmware measures a velocity from the rise;
-// how many are held, which the next scan takes the time of
-int Engine::advanceTouches() {
+// moves every touch's pressure on by a scan that took this many milliseconds, so that the firmware
+// sees it rise and fall as a finger's would, and returns how many cells are held, since that sets
+// how long the next scan takes
+int Engine::advanceTouches(double millis) {
   const juce::ScopedLock lock(touchLock);
   int held = 0;
   for (auto it = touches.begin(); it != touches.end();) {
     Touch& t = it->second;
     if (t.targetZ == 0) {
-      instance->setSensor(t.col, t.row, 0, 0, 0);
-      it = touches.erase(it);
+      // the finger is leaving, so the pressure drops to nothing, slowly at first and then faster
+      if (t.lifted < 0) {
+        t.lifted = 0;
+        t.liftedFrom = t.z;
+      }
+      t.lifted += millis;
+      double left = 1.0 - std::pow(t.lifted / liftMillis, 2.0);
+      t.z = left > 0 ? (int) (t.liftedFrom * left) : 0;
+      if (t.z <= 0) {
+        instance->setSensor(t.col, t.row, 0, 0, 0);
+        it = touches.erase(it);
+        continue;
+      }
+      instance->setSensor(t.col, t.row, t.x, t.y, (uint16_t) t.z);
+      ++held;
+      ++it;
       continue;
     }
     // a press that replaced a lifting touch within one scan: the lift goes out first
@@ -130,12 +145,30 @@ int Engine::advanceTouches() {
       it = touches.erase(it);
       continue;
     }
-    if (t.z < t.targetZ) {
-      t.z = juce::jmin(t.targetZ, t.z + juce::jmax(1, t.targetZ / velocityScans));
+    // a strike first lands at its own level, since that's what the firmware takes the velocity
+    // from. After that it drops to the pressure if it landed above it, or it rises towards it at
+    // its own speed and eases in at the end. Once it's there, it follows changes to the pressure
+    // within a few milliseconds.
+    double target = t.targetZ;
+    if (t.landedScans < landingScans) {
+      t.rising = t.landing;
+      ++t.landedScans;
+    }
+    else if (t.settled) {
+      t.rising += (target - t.rising) * juce::jmin(1.0, millis / 5.0);
+    }
+    else if (t.rising > target) {
+      t.rising = target;
+      t.settled = true;
     }
     else {
-      t.z = t.targetZ;
+      double remaining = target - t.rising, easing = target / 4;
+      double step = t.rate * millis * (remaining < easing ? juce::jmax(0.1, remaining / easing) : 1.0);
+      t.rising = juce::jmin(target, t.rising + step);
+      if (target - t.rising < 1) t.settled = true;
     }
+    if (t.settled && std::abs(target - t.rising) < 1) t.rising = target;
+    t.z = juce::roundToInt(t.rising);
     instance->setSensor(t.col, t.row, t.x, t.y, (uint16_t) t.z);
     held += t.z > 0 ? 1 : 0;
     ++it;
@@ -149,9 +182,16 @@ static int touchKey(int col, int row) { return col * 8 + row; }
 void Engine::press(int col, int row, float xFraction, float yFraction, int rawZ) {
   const juce::ScopedLock lock(touchLock);
   Touch t { col, row, instance->rawX(col, xFraction), instance->rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false, 0 };
+  t.rate = riseRate(strike);
+  t.landing = strikeLevel(strike);
   auto it = touches.find(touchKey(col, row));
   if (it != touches.end()) {
-    if (it->second.targetZ > 0) t.z = it->second.z;
+    if (it->second.targetZ > 0) {
+      t.z = it->second.z;
+      t.rising = it->second.rising;
+      t.landedScans = it->second.landedScans;
+      t.settled = it->second.settled;
+    }
     else t.liftFirst = true;
   }
   touches[touchKey(col, row)] = t;

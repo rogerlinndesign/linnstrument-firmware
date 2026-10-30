@@ -89,6 +89,12 @@ public:
 
     setup();
 
+    // a screen presses every cell alike, so the bias that evens out an instrument's sensor
+    // (Z_BIAS in ls_sensor.ino) would only make some cells weaker than others
+    for (byte r = 0; r < MAXROWS; ++r) {
+      for (byte c = 0; c < MAXCOLS; ++c) Z_BIAS[r][c] = Z_BIAS_MULTIPLIER;
+    }
+
     if (fresh) {
       controlButton = -1;
       setDisplayMode(displayNormal);

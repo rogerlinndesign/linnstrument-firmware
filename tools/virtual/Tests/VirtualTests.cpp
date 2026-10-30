@@ -638,6 +638,98 @@ void a_note_sent_on_a_splits_note_channel_lights_its_pads() {
   }
 }
 
+// the velocity of a press on a cell, struck that hard with that pressure to rise to, the cell
+// held so that the next one can be pressed at once
+int velocityOf(Engine& e, int col, int row, int strength, int pressure) {
+  e.setStrike(strength);
+  e.setPressure(pressure);
+  e.takeMidiOut();
+  e.press(col, row, 0.5f, 0.5f);
+  for (int i = 0; i < 200; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    for (auto& m : e.takeMidiOut()) if (m.size() == 3 && (m[0] & 0xf0) == 0x90 && m[2] > 0) return m[2];
+  }
+  return -1;
+}
+
+void a_strike_sets_the_velocity_whatever_the_pressure() {
+  auto& e = engine();
+  std::vector<int> light, firm;
+  int col = 2;
+  for (int strength : { 1, 4, 8, 12 }) {
+    light.push_back(velocityOf(e, col++, 3, strength, 300));
+    firm.push_back(velocityOf(e, col++, 3, strength, 1500));
+  }
+  for (int c = 2; c < col; ++c) e.release(c, 3);
+  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  e.setStrike(10);
+  e.setPressure(600);
+  // from the softest a touch can be to the hardest velocity there is, in even steps
+  CHECK(light == std::vector<int>({ 20, 46, 87, 127 }));
+  CHECK(firm == light);
+}
+
+void every_cell_strikes_alike() {
+  auto& e = engine();
+  int last = e.columnCount() - 1;
+  std::vector<std::pair<int, int>> cells { { 1, 0 }, { last, 0 }, { last / 2, 4 }, { 1, 7 }, { last, 7 } };
+  // one at a time, since the firmware takes the fourth corner of a rectangle for a phantom
+  std::vector<int> velocities;
+  for (auto [col, row] : cells) {
+    velocities.push_back(velocityOf(e, col, row, 6, 600));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(60));
+  }
+  e.setStrike(10);
+  for (int v : velocities) CHECK(v == velocities.front() && v > 0);
+}
+
+void letting_go_lowers_the_pressure_before_the_note_ends() {
+  auto& e = engine();
+  e.setPressure(1500);
+  e.press(5, 3, 0.5f, 0.5f);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  drained(e);
+  e.release(5, 3);
+  auto lifted = juce::Time::getMillisecondCounterHiRes();
+  std::vector<int> pressures;
+  double ended = -1;
+  for (int i = 0; i < 100 && ended < 0; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    for (auto& m : e.takeMidiOut()) {
+      int status = m[0] & 0xf0;
+      if (m.size() == 3 && status == 0xa0) pressures.push_back(m[2]);
+      if (m.size() == 2 && status == 0xd0) pressures.push_back(m[1]);
+      if (m.size() == 3 && (status == 0x80 || (status == 0x90 && m[2] == 0))) ended = juce::Time::getMillisecondCounterHiRes();
+    }
+  }
+  e.setPressure(600);
+  CHECK(ended - lifted >= 25);
+  // the firmware sends fewer pressures than scans, and a 0 just before the note off
+  CHECK(pressures.size() >= 3 && pressures.back() == 0);
+  for (size_t i = 1; i < pressures.size(); ++i) CHECK(pressures[i] < pressures[i - 1]);
+}
+
+void a_soft_press_rises_slowly_and_a_hard_one_at_once() {
+  auto& e = engine();
+  Engine::TouchView view;
+  e.setPressure(1500);
+  e.setStrike(1);
+  e.press(5, 3, 0.5f, 0.5f);
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  CHECK(e.touchAt(5, 3, view) && view.pressure > 0 && view.pressure < 0.4f * 1500 / 3000);
+  e.release(5, 3);
+  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  e.setStrike(12);
+  e.press(5, 3, 0.5f, 0.5f);
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  CHECK(e.touchAt(5, 3, view) && std::abs(view.pressure - 0.5f) < 0.02f);
+  e.release(5, 3);
+  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  e.setStrike(10);
+  e.setPressure(600);
+}
+
 void the_bridge_reports_the_tempo() {
   auto& e = engine();
   auto set = [&e](int bpm) {
@@ -843,6 +935,10 @@ Suite bridge("Firmware bridge", {
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
   { "the_engines_ports_are_listed_by_their_identifiers", the_engines_ports_are_listed_by_their_identifiers },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
+  { "a_strike_sets_the_velocity_whatever_the_pressure", a_strike_sets_the_velocity_whatever_the_pressure },
+  { "every_cell_strikes_alike", every_cell_strikes_alike },
+  { "letting_go_lowers_the_pressure_before_the_note_ends", letting_go_lowers_the_pressure_before_the_note_ends },
+  { "a_soft_press_rises_slowly_and_a_hard_one_at_once", a_soft_press_rises_slowly_and_a_hard_one_at_once },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },
   { "two_engines_run_their_own_firmware_side_by_side", two_engines_run_their_own_firmware_side_by_side },

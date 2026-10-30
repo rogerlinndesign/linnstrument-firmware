@@ -21,6 +21,7 @@ limitations under the License.
 #include <JuceHeader.h>
 
 #include <atomic>
+#include <cmath>
 #include <deque>
 #include <functional>
 #include <map>
@@ -61,7 +62,23 @@ public:
 
   // how hard touches press, which held touches without a pressure of their own follow at once
   void setPressure(int rawZ);
-  void setVelocityScans(int scans) { velocityScans = juce::jmax(1, scans); }
+  // how hard a press strikes, from 1 for the softest to 12 for the hardest, whatever pressure it
+  // then rises to
+  void setStrike(int strength) { strike = juce::jlimit(1, 12, strength); }
+  // the firmware takes its velocity samples right after each other when it first reads a touch,
+  // and here they all see the Z of that scan, so the velocity of a strike only depends on the
+  // level it lands at. The softest lands just over the touch threshold (DEFAULT_SENSOR_LO_Z) and
+  // the hardest gets a velocity of 127.
+  static double strikeLevel(int strength) { return 150.0 * std::pow(1100.0 / 150.0, (strength - 1) / 11.0); }
+  // the firmware's pass over the cells drifts against these scans, since it reads a new touch
+  // several times in a row, so a strike stays at its level for two scans to be sure that it's read
+  static constexpr int landingScans = 2;
+  // how fast a press rises towards a middling pressure of 1000, in raw Z per millisecond. On a
+  // LinnStrument 128, soft and medium presses took most of a second to get there and only hard
+  // strikes rose fast, in about 15 ms.
+  static double riseRate(int strength) { return 1000.0 / (800.0 * std::pow(15.0 / 800.0, std::pow((strength - 1) / 11.0, 3.0))); }
+  // a finger takes about 50 ms to leave, and its pressure drops faster towards the end
+  static constexpr double liftMillis = 50;
   void setFootSwitch(int which, bool down);
 
   // the running model's column count, readable from any thread
@@ -111,11 +128,18 @@ private:
     bool ownPressure;   // pressed with an explicit Z, which a move without Z keeps
     bool liftFirst;     // replaced a touch the firmware has not yet seen lifted
     int releaseIn;      // scans until it lets go, when it's the cell a slide is leaving
+    double rate = 0;    // how fast it rises, which comes from how hard it struck
+    double landing = 0; // the level it lands at in the first scan
+    double rising = 0;  // its pressure as it rises, before it's rounded to z
+    int landedScans = 0;
+    bool settled = false;
+    double lifted = -1; // how many milliseconds it's been letting go, or -1 while it's held
+    int liftedFrom = 0;
   };
 
   void run() override;
   void handleIncomingMidiMessage(juce::MidiInput*, const juce::MidiMessage& message) override;
-  int advanceTouches();
+  int advanceTouches(double millis);
   juce::File flashFile(int model) const;
   void saveFlash();
 
@@ -132,7 +156,7 @@ private:
   std::atomic<int> scansRun { 0 };
   std::atomic<bool> finishing { false };   // stopping, once the firmware's MIDI is out
   int pressure = 600;
-  int velocityScans = 3;
+  int strike = 10;
   juce::CriticalSection touchLock;
   std::map<int, Touch> touches;
   juce::MidiDataConcatenator concatenator { 2048 };

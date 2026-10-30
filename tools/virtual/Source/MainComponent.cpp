@@ -69,7 +69,7 @@ MainComponent::MainComponent(int model) {
   velocitySlider.setTooltip("How fast the mouse strikes: further right is a harder hit");
   velocitySlider.setHelpText(velocitySlider.getTooltip());
   velocityLabel.attachToComponent(&velocitySlider, true);
-  velocitySlider.onValueChange = [this] { engine.setVelocityScans(13 - (int) velocitySlider.getValue()); };
+  velocitySlider.onValueChange = [this] { engine.setStrike((int) velocitySlider.getValue()); };
   addAndMakeVisible(velocitySlider);
 
   for (auto* button : { &footLeft, &footRight }) {
@@ -95,7 +95,7 @@ MainComponent::MainComponent(int model) {
   hintLabel.setMinimumHorizontalScale(1.0f);
   addAndMakeVisible(hintLabel);
 
-  engine.setVelocityScans(3);
+  engine.setStrike((int) velocitySlider.getValue());
   startModel();
   fitWindowToInstrument();
   startTimerHz(4);
