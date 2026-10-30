@@ -17,10 +17,12 @@ limitations under the License.
 
 #include <JuceHeader.h>
 
+#include "Commands.h"
 #include "Engine.h"
 #include "Surface.h"
 
 class MainComponent : public juce::Component,
+                      public CommandTarget,
                       private juce::Timer {
 public:
   explicit MainComponent(int model);
@@ -30,10 +32,10 @@ public:
   void resized() override;
 
   // for the command interface in Commands.cpp
-  Engine& getEngine() { return engine; }
-  bool saveScreenshot(const juce::File& file, float scale = 2.0f);
-  void setModel(int model);
-  void setFootSwitch(int which, bool down);
+  Engine& getEngine() override { return engine; }
+  bool saveScreenshot(const juce::File& file, float scale = 2.0f) override;
+  void setModel(int model) override;
+  void setFootSwitch(int which, bool down) override;
 
 private:
   void timerCallback() override;

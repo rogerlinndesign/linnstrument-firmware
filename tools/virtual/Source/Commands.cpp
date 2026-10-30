@@ -16,7 +16,6 @@ limitations under the License.
 #include "Commands.h"
 
 #include "Firmware/FirmwareBridge.h"
-#include "MainComponent.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -30,11 +29,13 @@ const char* Commands::help() {
     "                          none: the pressure slider)\n"
     "move COL ROW X Y [Z]      move a touch inside its cell, keeping its pressure unless Z is given\n"
     "release COL ROW           lift a touch\n"
+    "slide COL ROW TOCOL [Y]   a held touch slides into the next cell of its row\n"
     "tap COL ROW [MS]          press and release after MS milliseconds (default 120, at least 20)\n"
     "foot left|right down|up   a foot switch\n"
     "leds                      the lights as \"ROW: c c c ...\" per row from the top, a color number per\n"
     "                          column, 0 off, 7 black (dark)\n"
     "status                    the instrument's status line\n"
+    "view                      what part of the instrument the window shows\n"
     "send BYTE [BYTE ...]      MIDI into the firmware, bytes in hex, like B0 14 05\n"
     "received [SECONDS]        the MIDI the firmware sent since the last received, one message per\n"
     "                          line in hex, after waiting up to SECONDS for a first one (default 0)\n"
@@ -47,7 +48,7 @@ const char* Commands::help() {
     "quit                      leave\n";
 }
 
-Commands::Commands(MainComponent& mainComponent, const juce::String& source) : main(mainComponent) {
+Commands::Commands(CommandTarget& mainComponent, const juce::String& source) : main(mainComponent) {
   std::unique_ptr<std::istream> in;
   if (source == "-") {
     fromStdin = true;
@@ -162,6 +163,10 @@ static bool cellArguments(const juce::StringArray& words, int columns, int& col,
 
 juce::String Commands::execute(const juce::StringArray& words) {
   const juce::String command = words[0].toLowerCase();
+  if (main.hasCommand(command)) {
+    auto own = onMessageThread([this, state = reader, words] { return state->stop ? juce::String("error: stopped") : main.runCommand(words); });
+    if (own.isNotEmpty()) return own;
+  }
   Engine& engine = main.getEngine();
   const int columns = engine.columnCount();
   int col = 0, row = 0;
@@ -175,6 +180,14 @@ juce::String Commands::execute(const juce::StringArray& words) {
         (words.size() > 5 && !number(words[5], 0, 4095, true, z))) return "error: X, Y and Z are numbers";
     if (command == "press") { engine.press(col, row, (float) x, (float) y, (int) z); return "ok"; }
     return engine.move(col, row, (float) x, (float) y, (int) z) ? "ok" : "error: no touch at " + juce::String(col) + " " + juce::String(row);
+  }
+  if (command == "slide") {
+    if (!cellArguments(words, columns, col, row, error)) return error;
+    int to = words.size() > 3 ? words[3].getIntValue() : 0;
+    double y = 0.5;
+    if (words.size() < 4 || to < 1 || to >= columns) return "error: slide needs COL ROW TOCOL [Y], TOCOL a playing column";
+    if (words.size() > 4 && !number(words[4], 0, 1, true, y)) return "error: Y is a number";
+    return engine.slide(col, row, to, (float) y) ? "ok" : "error: no touch at " + juce::String(col) + " " + juce::String(row) + " that can slide to " + juce::String(to);
   }
   if (command == "release") {
     if (!cellArguments(words, columns, col, row, error)) return error;
@@ -201,18 +214,23 @@ juce::String Commands::execute(const juce::StringArray& words) {
     return onMessageThread([this, state = reader, which, down] { if (state->stop) return juce::String("error: stopped"); main.setFootSwitch(which, down); return juce::String("ok"); });
   }
   if (command == "leds") {
-    return onMessageThread([] {
+    return onMessageThread([this, state = reader] {
+      if (state->stop) return juce::String("error: stopped");
+      auto& instance = main.getEngine().firmware();
       juce::String text;
-      for (int r = firmware::rows() - 1; r >= 0; --r) {
+      for (int r = instance.rows() - 1; r >= 0; --r) {
         text += juce::String(r) + ":";
-        for (int c = 0; c < firmware::columns(); ++c) {
-          firmware::Led led = firmware::led(c, r);
+        for (int c = 0; c < instance.columns(); ++c) {
+          firmware::Led led = instance.led(c, r);
           text += " " + juce::String(led.display == firmware::off ? 0 : led.color);
         }
         text += "\n";
       }
       return text + "ok";
     });
+  }
+  if (command == "view") {
+    return onMessageThread([this, state = reader] { return state->stop ? juce::String("error: stopped") : main.describeView() + "\nok"; });
   }
   if (command == "status") {
     return onMessageThread([this, state = reader] { return state->stop ? juce::String("error: stopped") : main.getEngine().status() + "\nok"; });
@@ -262,7 +280,7 @@ juce::String Commands::execute(const juce::StringArray& words) {
     return reader->stop ? "error: stopped" : "ok";
   }
   if (command == "help") {
-    return juce::String(help()) + "ok";
+    return onMessageThread([this, state = reader] { return state->stop ? juce::String("error: stopped") : juce::String(help()) + main.commandHelp() + "ok"; });
   }
   if (command == "quit") {
     juce::MessageManager::callAsync([] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); });

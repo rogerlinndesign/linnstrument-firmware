@@ -19,9 +19,12 @@ limitations under the License.
 
 #include <JuceHeader.h>
 
+#include <functional>
+#include <map>
 #include <set>
 
 #include "Engine.h"
+#include "TouchTracker.h"
 
 class Surface : public juce::Component,
                 private juce::Timer {
@@ -31,6 +34,14 @@ public:
 
   // width over height of the whole instrument for the current model
   float aspectRatio() const;
+
+  // the font of the control switches' printed labels
+  static juce::Font labelFontOfHeight(float height);
+  // a cell a finger pressed, after the engine has it
+  std::function<void(int col, int row)> onPress;
+
+  // the firmware the surface shows, its engine's
+  firmware::Instance& firmware() const { return engine.firmware(); }
 
   void paint(juce::Graphics& g) override;
   void resized() override;
@@ -45,19 +56,30 @@ public:
   // what a screen reader hears for the pad that has the keyboard focus
   juce::String describeFocusedCell() const;
 
-private:
-  struct Cell {
-    int col = -1, row = -1;
-    float xFraction = 0, yFraction = 0;
-    bool valid() const { return col >= 0; }
-  };
+  // the colour a firmware LED colour number lights a pad with
+  static juce::Colour ledColourFor(int color);
 
-  void timerCallback() override;
-  void toggleFocusedCell();
-  void moveFocus(int dCol, int dRow);
-  Cell cellAt(juce::Point<float> position) const;
-  juce::Rectangle<float> padBounds(int col, int row) const;
-  juce::Colour ledColour(int color) const;
+  using Cell = TouchTracker::Cell;
+  // the cell under a point, column 0 for the control switches, invalid outside them all
+  virtual Cell cellAt(juce::Point<float> position) const;
+  // where a pad, or in column 0 a control switch, is drawn; empty where the surface hides it
+  virtual juce::Rectangle<float> padBounds(int col, int row) const;
+  bool showsFocusRing() const { return hasKeyboardFocus(false) && keyboardNavigating; }
+
+protected:
+  // The whole instrument, drawn to fit: case, panel, pads and name. Another way of showing the
+  // pads overrides these: where everything goes, where a control switch and its label go (the
+  // label printed on the switch or above it), what's drawn behind and in front of the pads, and
+  // what happens when the keyboard moves the focus.
+  virtual void layOut();
+  virtual void controlSlot(int row, juce::Rectangle<float>& label, juce::Rectangle<float>& sw) const;
+  virtual bool labelsOnSwitches() const { return false; }
+  virtual float switchLabelHeight() const;
+  virtual void paintBehind(juce::Graphics& g);
+  virtual void paintInFront(juce::Graphics& g);
+  virtual void focusMoved(const Cell&) {}
+  // the label printed for a control switch, row 0 at the bottom
+  static const char* controlLabel(int row);
 
   Engine& engine;
   int columns = 26;
@@ -66,9 +88,20 @@ private:
   juce::Rectangle<float> padsArea;
   juce::Rectangle<float> panel;
   juce::Rectangle<float> steel;
-  Cell dragCell;
+
+private:
+  void timerCallback() override;
+  void toggleFocusedCell();
+  void moveFocus(int dCol, int dRow);
+  juce::Colour ledColour(int color) const { return ledColourFor(color); }
+  void paintCase(juce::Graphics& g);
+  void paintPads(juce::Graphics& g);
+  void paintBrand(juce::Graphics& g);
+
+  TouchTracker touches;
   Cell focusCell;
-  std::set<int> latched;
+  // the focus ring shows only while the keyboard moves it, never after a touch or a click
+  bool keyboardNavigating = false;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Surface)
 };

@@ -178,14 +178,17 @@ void MainComponent::resized() {
   auto area = getLocalBounds();
   auto top = area.removeFromTop(barHeight).reduced(24, 15);
   // what gives way, in order, when the window is narrower than the bar needs: the VIRTUAL tag,
-  // then the sliders down to 60, then the model menu down to 136
-  int sub = 82, slider = 130, model = 176;
-  int deficit = 138 + sub + model + 20 + 2 * slider + 70 + 16 + 66 + 28 + 74 + 8 + 74 - top.getWidth();
+  // the LinnStrument name (the panel carries it too), then the sliders down to 60, then the
+  // model menu down to 136
+  int brand = 138, sub = 82, slider = 130, model = 176;
+  int deficit = brand + sub + model + 20 + 2 * slider + 70 + 16 + 66 + 28 + 74 + 8 + 74 - top.getWidth();
   if (deficit > 0) { sub = 0; deficit -= 82; }
+  if (deficit > 0) { brand = 0; deficit -= 138; }
   if (deficit > 0) { int cut = juce::jmin(deficit, 2 * (130 - 60)); slider -= (cut + 1) / 2; deficit -= cut; }
   if (deficit > 0) { int cut = juce::jmin(deficit, 176 - 136); model -= cut; }
   subLabel.setVisible(sub > 0);
-  brandLabel.setBounds(top.removeFromLeft(138));
+  brandLabel.setVisible(brand > 0);
+  if (brand > 0) brandLabel.setBounds(top.removeFromLeft(brand));
   if (sub > 0) {
     subLabel.setBounds(top.removeFromLeft(70));
     top.removeFromLeft(12);

@@ -32,19 +32,11 @@ else()
 endif()
 
 set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-set(SUPPORT ${REPO}/tests/support)
-set(MERGED_DIR ${CMAKE_CURRENT_BINARY_DIR}/sketch)
-set(MERGED ${MERGED_DIR}/linnstrument-firmware.cpp)
-
-# the sketch becomes one C++ file the way the Arduino build and the desktop tests do it
-file(GLOB SKETCH_SOURCES CONFIGURE_DEPENDS ${REPO}/*.ino ${REPO}/*.h)
-add_custom_command(
-  OUTPUT ${MERGED}
-  COMMAND go run ./tools/linnstrument merge ${MERGED}
-  WORKING_DIRECTORY ${REPO}
-  DEPENDS ${SKETCH_SOURCES} ${REPO}/tools/linnstrument/test.go ${REPO}/tools/linnstrument/main.go
-  COMMENT "Merging the sketch into one file")
-add_custom_target(MergedSketch DEPENDS ${MERGED})
+# how many engines can run the firmware at once, each with a copy of its own (Firmware.cmake);
+# one until an AUv3 needs eight
+set(LINN_FIRMWARE_COPIES 1 CACHE STRING "Copies of the firmware compiled into the app")
+include(Firmware.cmake)
+linn_firmware(${REPO} ${LINN_FIRMWARE_COPIES})
 
 juce_add_gui_app(VirtualLinnStrument
   PRODUCT_NAME "Virtual LinnStrument"
@@ -69,27 +61,20 @@ juce_add_binary_data(VirtualLinnStrumentData SOURCES
   Resources/Fonts/Sarpanch-Black.ttf
   Resources/Fonts/Sarpanch-Bold.ttf)
 
-set(FIRMWARE_SOURCES Source/Firmware/FirmwareBridge.cpp ${SUPPORT}/arduino_mock.cpp)
 target_sources(VirtualLinnStrument PRIVATE
   Source/Main.cpp
   Source/MainComponent.cpp
   Source/Surface.cpp
+  Source/TouchTracker.cpp
   Source/Engine.cpp
   Source/Commands.cpp
   Source/LinnLookAndFeel.cpp
   ${FIRMWARE_SOURCES})
 
-# the firmware is compiled as the Arduino build would, with its warnings silenced, and only
-# these two files see the Arduino stand-ins, whose min and max macros must not reach JUCE
-set_source_files_properties(${FIRMWARE_SOURCES} PROPERTIES
-  COMPILE_OPTIONS "$<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>"
-  INCLUDE_DIRECTORIES "${SUPPORT};${MERGED_DIR};${REPO}"
-  OBJECT_DEPENDS ${MERGED})
-
 # a build from a release before 2.4.0, which has no text over MIDI (tools/virtual/build-release.sh)
 option(VIRTUAL_OLD_FIRMWARE "The sketch predates firmware 2.4.0" OFF)
 if(VIRTUAL_OLD_FIRMWARE)
-  target_compile_definitions(VirtualLinnStrument PRIVATE VIRTUAL_OLD_FIRMWARE)
+  set_property(SOURCE ${FIRMWARE_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS VIRTUAL_OLD_FIRMWARE)
 endif()
 
 target_compile_definitions(VirtualLinnStrument PRIVATE
@@ -99,6 +84,26 @@ target_compile_definitions(VirtualLinnStrument PRIVATE
   JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:VirtualLinnStrument,JUCE_VERSION>")
 
 target_link_libraries(VirtualLinnStrument PRIVATE
+  VirtualLinnStrumentData
+  juce::juce_gui_extra
+  juce::juce_audio_devices
+  juce::juce_recommended_config_flags
+  juce::juce_recommended_warning_flags)
+
+# the tests of the app's own code, see Tests/VirtualTests.cpp
+juce_add_console_app(VirtualTests PRODUCT_NAME "VirtualTests")
+juce_generate_juce_header(VirtualTests)
+add_dependencies(VirtualTests MergedSketch BuildInfo)
+target_sources(VirtualTests PRIVATE
+  Tests/VirtualTests.cpp
+  Source/Surface.cpp
+  Source/TouchTracker.cpp
+  Source/Engine.cpp
+  Source/LinnLookAndFeel.cpp
+  ${FIRMWARE_SOURCES})
+target_include_directories(VirtualTests PRIVATE Source ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo)
+target_compile_definitions(VirtualTests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+target_link_libraries(VirtualTests PRIVATE
   VirtualLinnStrumentData
   juce::juce_gui_extra
   juce::juce_audio_devices

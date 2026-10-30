@@ -26,12 +26,36 @@ limitations under the License.
 #include <memory>
 #include <thread>
 
-class MainComponent;
+#include "Engine.h"
+
+// what the commands drive, the main component of the app that runs them
+class CommandTarget {
+public:
+  virtual ~CommandTarget() = default;
+  virtual Engine& getEngine() = 0;
+  virtual bool saveScreenshot(const juce::File& file, float scale) = 0;
+  virtual void setModel(int model) = 0;
+  virtual void setFootSwitch(int which, bool down) = 0;
+  // what part of the instrument the window shows
+  virtual juce::String describeView() { return "the whole instrument"; }
+  // An app's own commands: the names it has, tried before the ones here, and each run on the
+  // message thread to its answer, ending with "ok" or an "error: ..." line, or empty to leave it to
+  // the command here of the same name. The help adds their lines, in the same format.
+  virtual bool hasCommand(const juce::String& name) {
+    juce::ignoreUnused(name);
+    return false;
+  }
+  virtual juce::String runCommand(const juce::StringArray& words) {
+    juce::ignoreUnused(words);
+    return {};
+  }
+  virtual juce::String commandHelp() { return {}; }
+};
 
 class Commands {
 public:
   // source is a file path, or "-" for stdin
-  Commands(MainComponent& main, const juce::String& source);
+  Commands(CommandTarget& main, const juce::String& source);
   ~Commands();
 
   static const char* help();
@@ -49,7 +73,7 @@ private:
   juce::String onMessageThread(std::function<juce::String()> action);
   void pause(int milliseconds);
 
-  MainComponent& main;
+  CommandTarget& main;
   bool fromStdin = false;
   std::shared_ptr<Reader> reader = std::make_shared<Reader>();
   std::thread thread;

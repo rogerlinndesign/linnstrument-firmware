@@ -19,20 +19,21 @@ limitations under the License.
 #include "BuildInfo.h"
 
 #include <chrono>
+#include <stdexcept>
 #include <thread>
 
-Engine* Engine::current = nullptr;
-
-Engine::Engine() : juce::Thread("Firmware") {}
+Engine::Engine() : juce::Thread("Firmware"), instance(firmware::acquire()) {
+  if (instance == nullptr) throw std::runtime_error("every copy of the firmware is in use");
+}
 
 Engine::~Engine() {
   stop();
+  firmware::release(instance);
 }
 
 void Engine::start(int wantedModel) {
   stop();
   model = wantedModel;
-  current = this;
 
   output = juce::MidiOutput::createNewDevice(portName());
   input = juce::MidiInput::createNewDevice(portName(), this);
@@ -45,16 +46,25 @@ void Engine::start(int wantedModel) {
     file.loadFileAsData(block);
     image.assign((const uint8_t*) block.getData(), (const uint8_t*) block.getData() + block.getSize());
   }
-  firmware::boot(model, image, serialSink);
-  columns = firmware::columns();
-  lastSavedFlash = firmware::flashImage();
+  instance->boot(model, image, [this](const uint8_t* data, size_t length) { serialSink(data, length); });
+  columns = instance->columns();
+  lastSavedFlash = instance->flashImage();
+  // after the boot's image is taken, so that the stop saves these settings
+  if (image.empty() && onFreshFlash) onFreshFlash();
+  // here, not in run(), which a stop right after this start could otherwise undo
+  finishing = false;
   startThread(juce::Thread::Priority::high);
 }
 
 void Engine::stop() {
   if (!isThreadRunning()) return;
-  signalThreadShouldExit();
-  waitForThreadToExit(2000);
+  // the queue outlives a boot, so what it holds would otherwise go out after the next one; the
+  // firmware's thread sends it, being the only one that may read it, then ends
+  finishing = true;
+  if (!waitForThreadToExit(1000)) {
+    signalThreadShouldExit();
+    waitForThreadToExit(2000);
+  }
   saveFlash();
   if (input != nullptr) input->stop();
   input.reset();
@@ -65,35 +75,59 @@ void Engine::stop() {
   midiOut.clear();
 }
 
+// The scan in slices with a pause after each, so that the firmware's continuous tasks, its MIDI
+// output among them, run spread over the scan as on the instrument instead of in one burst.
 void Engine::run() {
-  int scans = 0;
-  while (!threadShouldExit()) {
-    for (int i = 0; i < firmware::cellsPerScan(); ++i) {
-      firmware::loopOnce();
+  constexpr int slices = 8;
+  scansRun = 0;
+  // each scan starts where the last was due to end, so that one that ran late is made up, unless
+  // the engine fell far behind, as after the computer slept
+  auto start = std::chrono::steady_clock::now();
+  int held = 0;
+  // stopping, once the queued MIDI is out; stop() gives up on a queue that doesn't drain, as in
+  // serial mode, after a second
+  while (!threadShouldExit() && !(finishing && !instance->midiPending())) {
+    auto now = std::chrono::steady_clock::now();
+    if (now - start > std::chrono::milliseconds(20)) start = now;
+    int cells = instance->cellsPerScan();
+    double length = scanMicros(cells, held);
+    for (int slice = 0; slice < slices; ++slice) {
+      for (int i = slice * cells / slices; i < (slice + 1) * cells / slices; ++i) {
+        instance->loopOnce();
+      }
+      std::this_thread::sleep_until(start + std::chrono::microseconds((long long) (length * (slice + 1) / slices)));
     }
-    advanceTouches();
-    std::this_thread::sleep_for(std::chrono::microseconds(1500));
-    if (++scans % 2000 == 0) {
+    start += std::chrono::microseconds((long long) length);
+    held = advanceTouches();
+    if (++scansRun % 2000 == 0) {
       saveFlash();
     }
   }
 }
 
-// one step of every touch's pressure per scan, so the firmware measures a velocity from the rise
-void Engine::advanceTouches() {
+// one step of every touch's pressure per scan, so the firmware measures a velocity from the rise;
+// how many are held, which the next scan takes the time of
+int Engine::advanceTouches() {
   const juce::ScopedLock lock(touchLock);
+  int held = 0;
   for (auto it = touches.begin(); it != touches.end();) {
     Touch& t = it->second;
     if (t.targetZ == 0) {
-      firmware::setSensor(t.col, t.row, 0, 0, 0);
+      instance->setSensor(t.col, t.row, 0, 0, 0);
       it = touches.erase(it);
       continue;
     }
     // a press that replaced a lifting touch within one scan: the lift goes out first
     if (t.liftFirst) {
-      firmware::setSensor(t.col, t.row, 0, 0, 0);
+      instance->setSensor(t.col, t.row, 0, 0, 0);
       t.liftFirst = false;
       ++it;
+      continue;
+    }
+    if (t.releaseIn > 0 && --t.releaseIn == 0) {
+      t.targetZ = 0;
+      instance->setSensor(t.col, t.row, 0, 0, 0);
+      it = touches.erase(it);
       continue;
     }
     if (t.z < t.targetZ) {
@@ -102,9 +136,11 @@ void Engine::advanceTouches() {
     else {
       t.z = t.targetZ;
     }
-    firmware::setSensor(t.col, t.row, t.x, t.y, (uint16_t) t.z);
+    instance->setSensor(t.col, t.row, t.x, t.y, (uint16_t) t.z);
+    held += t.z > 0 ? 1 : 0;
     ++it;
   }
+  return held;
 }
 
 static int touchKey(int col, int row) { return col * 8 + row; }
@@ -112,7 +148,7 @@ static int touchKey(int col, int row) { return col * 8 + row; }
 // a press on a cell already down keeps its pressure, so the firmware sees no dip
 void Engine::press(int col, int row, float xFraction, float yFraction, int rawZ) {
   const juce::ScopedLock lock(touchLock);
-  Touch t { col, row, firmware::rawX(col, xFraction), firmware::rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false };
+  Touch t { col, row, instance->rawX(col, xFraction), instance->rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false, 0 };
   auto it = touches.find(touchKey(col, row));
   if (it != touches.end()) {
     if (it->second.targetZ > 0) t.z = it->second.z;
@@ -125,13 +161,53 @@ bool Engine::move(int col, int row, float xFraction, float yFraction, int rawZ) 
   const juce::ScopedLock lock(touchLock);
   auto it = touches.find(touchKey(col, row));
   if (it == touches.end() || it->second.targetZ == 0) return false;
-  it->second.x = firmware::rawX(col, xFraction);
-  it->second.y = firmware::rawY(row, yFraction);
+  it->second.x = instance->rawX(col, xFraction);
+  it->second.y = instance->rawY(row, yFraction);
   it->second.xFraction = xFraction;
   it->second.yFraction = yFraction;
   if (rawZ > 0) { it->second.targetZ = rawZ; it->second.ownPressure = true; }
   else if (!it->second.ownPressure) it->second.targetZ = pressure;
   return true;
+}
+
+// On the instrument a finger crossing into the next cell straddles both for a moment, and that is
+// how the firmware tells a slide from a new touch (potentialSlideTransferCandidate in
+// ls_handleTouches.ino): the cell it leaves is still down with the finger on their shared edge,
+// and the new one presses harder. So the old touch moves to that edge and eases off, the new one
+// starts there with the finger's pressure, and the old one lets go a few scans later.
+bool Engine::slide(int fromCol, int row, int toCol, float yFraction) {
+  const juce::ScopedLock lock(touchLock);
+  if (std::abs(toCol - fromCol) != 1 || fromCol < 1 || toCol < 1) return false;
+  auto it = touches.find(touchKey(fromCol, row));
+  if (it == touches.end() || it->second.targetZ == 0 || it->second.z == 0 || it->second.releaseIn > 0) return false;
+  auto existing = touches.find(touchKey(toCol, row));
+  if (existing != touches.end() && existing->second.targetZ > 0) return false;
+  Touch& from = it->second;
+  bool right = toCol > fromCol;
+  Touch to = from;
+  to.col = toCol;
+  to.xFraction = right ? 0.0f : 1.0f;
+  to.yFraction = yFraction;
+  to.x = instance->rawX(toCol, to.xFraction);
+  to.y = instance->rawY(row, yFraction);
+  // as a press does, a cell still lifting is let go of first, so that its note ends
+  to.liftFirst = existing != touches.end();
+  to.releaseIn = 0;
+  from.xFraction = right ? 1.0f : 0.0f;
+  from.x = instance->rawX(fromCol, from.xFraction);
+  from.targetZ = juce::jmax(1, to.targetZ * 2 / 3);
+  from.z = juce::jmin(from.z, from.targetZ);
+  from.releaseIn = slideScans;
+  touches[touchKey(toCol, row)] = to;
+  return true;
+}
+
+void Engine::setPressure(int rawZ) {
+  const juce::ScopedLock lock(touchLock);
+  pressure = rawZ;
+  for (auto& [key, t] : touches) {
+    if (!t.ownPressure && t.targetZ > 0 && t.releaseIn == 0) t.targetZ = rawZ;
+  }
 }
 
 bool Engine::release(int col, int row) {
@@ -159,38 +235,37 @@ bool Engine::touchAt(int col, int row, TouchView& view) const {
 }
 
 void Engine::setFootSwitch(int which, bool down) {
-  firmware::footSwitch(which, down);
+  instance->footSwitch(which, down);
 }
 
 juce::String Engine::status() const {
   if (!isThreadRunning()) return "Stopped";
-  juce::String text = "LinnStrument " + juce::String(firmware::model()) + ", firmware " + firmware::version() + ", commit " + VIRTUAL_COMMIT;
+  juce::String text = "LinnStrument " + juce::String(instance->model()) + ", firmware " + instance->version() + ", commit " + VIRTUAL_COMMIT;
   text += hasVirtualPorts() ? ", MIDI port \"" + portName() + "\"" : ", no virtual MIDI port on this platform";
-  if (!firmware::calibrated()) text += ", default calibration";
-  if (firmware::userFirmwareMode()) text += ", user firmware mode";
-  if (firmware::serialMode()) text += ", serial mode (no MIDI until OS Update is tapped again)";
+  if (!instance->calibrated()) text += ", default calibration";
+  if (instance->userFirmwareMode()) text += ", user firmware mode";
+  if (instance->serialMode()) text += ", serial mode (no MIDI until OS Update is tapped again)";
   return text;
 }
 
 void Engine::serialSink(const uint8_t* data, size_t length) {
-  if (current != nullptr) {
-    current->concatenator.pushMidiData(data, (int) length, juce::Time::getMillisecondCounterHiRes() * 0.001, (void*) nullptr, current->parser);
-  }
+  concatenator.pushMidiData(data, (int) length, juce::Time::getMillisecondCounterHiRes() * 0.001, (void*) nullptr, parser);
 }
 
 void Engine::OutputParser::handleIncomingMidiMessage(void*, const juce::MidiMessage& message) {
   if (engine.output != nullptr) engine.output->sendMessageNow(message);
+  if (engine.onMidiOut) engine.onMidiOut(message);
   const juce::ScopedLock lock(engine.outLock);
   if (engine.midiOut.size() >= keptMessages) engine.midiOut.pop_front();
   engine.midiOut.emplace_back(message.getRawData(), message.getRawData() + message.getRawDataSize());
 }
 
 void Engine::handleIncomingMidiMessage(juce::MidiInput*, const juce::MidiMessage& message) {
-  firmware::feedMidi(message.getRawData(), (size_t) message.getRawDataSize());
+  instance->feedMidi(message.getRawData(), (size_t) message.getRawDataSize());
 }
 
 void Engine::sendMidi(const uint8_t* data, size_t length) {
-  firmware::feedMidi(data, length);
+  instance->feedMidi(data, length);
 }
 
 std::vector<std::vector<uint8_t>> Engine::takeMidiOut() {
@@ -201,15 +276,19 @@ std::vector<std::vector<uint8_t>> Engine::takeMidiOut() {
 }
 
 juce::File Engine::flashFile(int forModel) const {
-  juce::File dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+  juce::File dir = flashFolder;
+  if (dir == juce::File()) {
+    dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
 #if JUCE_MAC
-  dir = dir.getChildFile("Application Support");
+    dir = dir.getChildFile("Application Support");
 #endif
-  return dir.getChildFile("Virtual LinnStrument").getChildFile("flash-" + juce::String(forModel) + ".bin");
+    dir = dir.getChildFile("Virtual LinnStrument");
+  }
+  return dir.getChildFile("flash-" + juce::String(forModel) + ".bin");
 }
 
 void Engine::saveFlash() {
-  std::vector<uint8_t> image = firmware::flashImage();
+  std::vector<uint8_t> image = instance->flashImage();
   if (image == lastSavedFlash) return;
   juce::File file = flashFile(model);
   file.getParentDirectory().createDirectory();

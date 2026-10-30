@@ -170,8 +170,10 @@ app=build/virtual/VirtualLinnStrument_artefacts/Release
 `--screenshot` writes the window to a PNG after `--after` seconds and quits,
 so a session that cannot see the screen still can. `--script FILE` (or `-` for
 stdin) reads text commands instead, the way to drive it from a terminal:
-`press COL ROW [X Y [Z]]`, `move`, `release`, `tap`, `foot`, `leds` (the
-lights as `ROW: c c c ...` lines from the top row down, 0 off, 7 black),
+`press COL ROW [X Y [Z]]`, `move`, `release`, `slide COL ROW TOCOL [Y]` (a
+held touch into the next cell of its row, as a finger slides), `tap`, `foot`,
+`leds` (the lights as `ROW: c c c ...` lines from the top row down, 0 off, 7
+black), `view` (what part of the instrument the window shows),
 `status`, `send BYTES` (MIDI into the firmware, in hex), `received [SECONDS]`
 (the MIDI it sent since the last call), `screenshot FILE [SCALE]`, `model`,
 `sleep SECONDS`, `quit`. Each answers with its output and `ok`. Touches made

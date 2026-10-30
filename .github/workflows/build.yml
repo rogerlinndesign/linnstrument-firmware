@@ -173,6 +173,28 @@ jobs:
           cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
           cmake --build build/virtual --config Release -j3
 
+      # its own code: the touches and slides, the engine's pace, the surface and the firmware bridge
+      - name: Run its tests
+        run: build/virtual/VirtualTests_artefacts/Release/VirtualTests
+
+      # two copies of the firmware in one program, as a plugin host with several instances needs:
+      # they must still link, and two engines must run side by side without sharing state
+      - name: Run its tests with two copies of the firmware
+        run: |
+          cmake -S tools/virtual -B build/virtual-copies -DCMAKE_BUILD_TYPE=Release -DLINN_FIRMWARE_COPIES=2 -DJUCE_PATH="$PWD/build/virtual/_deps/juce-src"
+          cmake --build build/virtual-copies --config Release --target VirtualTests -j3
+          build/virtual-copies/VirtualTests_artefacts/Release/VirtualTests
+
+      # the built app driven the way a script or an assistant drives it: a tap plays one note
+      - name: Drive it by script
+        run: |
+          app="build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument"
+          printf 'sleep 1\nview\nreceived\ntap 5 3 150\nsleep 0.3\nreceived 1\nquit\n' | "$app" --script - > build/script.txt
+          cat build/script.txt
+          grep -q '^the whole instrument$' build/script.txt
+          test "$(grep -c '^9[0-9A-F] [0-9A-F][0-9A-F] \([1-7][0-9A-F]\|0[1-9A-F]\)$' build/script.txt)" = 1
+          grep -q '^8[0-9A-F] ' build/script.txt
+
       - name: Screenshot it
         run: |
           "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app/Contents/MacOS/Virtual LinnStrument" --screenshot "build/virtual-linnstrument-$BUILD_NAME.png"

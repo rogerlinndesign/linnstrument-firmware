@@ -258,7 +258,9 @@ finger and has a virtual MIDI port, so that you can try a change without an
 instrument on the desk. Its README explains the CMake build, how
 `go run ./tools/linnstrument mcp` serves it to an AI assistant as an MCP
 server, and how `tools/virtual/build-release.sh TAG` builds it from an older
-firmware release.
+firmware release. Its own tests are in `tools/virtual/Tests/VirtualTests.cpp`,
+and `tools/virtual/mutate_tests.py [NAME]` proves they can fail by breaking
+each guarded line of its code in turn.
 
 What is safe and what is not
 ----------------------------

@@ -53,6 +53,13 @@ checkout, pass `-DJUCE_PATH=/path/to/JUCE` to the first command to use it. Every
 the sketch when a firmware file changed, so a firmware edit is just one `cmake --build` away from
 running in the window.
 
+The firmware keeps all of its state in globals, so each copy of it that runs at the same time is
+compiled into a namespace of its own (`Firmware.cmake`, `Source/Firmware/FirmwareInstance.inc`)
+and reached through `firmware::Instance` in `Source/Firmware/FirmwareBridge.h`. An `Engine` takes
+a free copy when it's made. The app needs one, and `-DLINN_FIRMWARE_COPIES=8` compiles eight, for
+plugin hosts that open several instances; each copy adds about 700 KB. The firmware's own sources
+stay as they are.
+
 Using it
 --------
 
@@ -99,11 +106,13 @@ Using it
                             (0 or none: the pressure slider)
   move COL ROW X Y [Z]      move a touch inside its cell, keeping its pressure unless Z is given
   release COL ROW           lift a touch
+  slide COL ROW TOCOL [Y]   a held touch slides into the next cell of its row
   tap COL ROW [MS]          press and release after MS milliseconds (default 120, at least 20)
   foot left|right down|up   a foot switch
   leds                      the lights as "ROW: c c c ..." per row from the top, a color number
                             per column, 0 off, 7 black (dark)
   status                    the instrument's status line
+  view                      what part of the instrument the window shows
   send BYTE [BYTE ...]      MIDI into the firmware, bytes in hex, like B0 14 05
   received [SECONDS]        the MIDI the firmware sent since the last received, one message per
                             line in hex, after waiting up to SECONDS for a first one (default 0)
@@ -115,6 +124,9 @@ Using it
   help                      this text
   quit                      leave
   ```
+
+  An app built on this code can add commands of its own through `CommandTarget::runCommand()`, and
+  `help` then lists them too.
 
   Commands run one after the other, so a `sleep` or a long `tap` holds everything written after
   it, `quit` included. The way out of a long one is `--after` or killing the process. A command
@@ -166,6 +178,24 @@ Using it
   `LINNSTRUMENT_DEVICE="Virtual LinnStrument" examples/shell/user_firmware_demo.sh`, which makes
   lights, text and a scroll appear in the window. Windows has no virtual ports. A loopMIDI pair
   is the workaround, but it isn't wired up yet.
+
+Tests
+-----
+
+`Tests/VirtualTests.cpp` tests the app's own code with JUCE's unit test framework: how fingers are
+tracked and slide into the next cell, the engine's pace, the surface and the firmware bridge. The
+slide tests drive the real firmware and read the MIDI it sends, in real time, at the instrument's
+own scan rate, which takes most of the twelve seconds they run in. They keep their settings in a
+folder of their own, never the app's. They build with the app:
+
+```
+cmake --build build/virtual --config Release --target VirtualTests
+build/virtual/VirtualTests_artefacts/Release/VirtualTests [NAME]
+```
+
+`tools/virtual/mutate_tests.py [NAME]` proves that they can fail: it breaks each guarded line of
+the app's code in turn, rebuilds, checks that the test it belongs to fails, and restores the
+file. GitHub Actions runs the tests and drives the built app by script on every push.
 
 What it cannot do
 -----------------
