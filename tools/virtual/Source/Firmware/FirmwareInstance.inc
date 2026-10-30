@@ -158,6 +158,23 @@ public:
   }
   bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
+  std::vector<int> noteChannels(int split) override {
+    auto& s = Split[split];
+    switch (s.midiMode) {
+      case oneChannel: return { s.midiChanMain };
+      case channelPerNote:
+        for (int c = 0; c < 16; ++c) {
+          if (s.midiChanSet[c]) return { c + 1 };
+        }
+        return {};
+      case channelPerRow: {
+        std::vector<int> channels;
+        for (int row = 0; row < NUMROWS; ++row) channels.push_back((s.midiChanPerRow - 1 + row) % 16 + 1);
+        return channels;
+      }
+    }
+    return {};
+  }
   int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }
 
   bool midiPending() override { return !midiOutQueue.empty(); }

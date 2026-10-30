@@ -25,6 +25,7 @@ limitations under the License.
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <set>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -596,6 +597,47 @@ void the_bridge_reports_the_bend_range() {
 }
 
 // NRPN 238 sets the tempo, as an editor would
+void a_note_sent_on_a_splits_note_channel_lights_its_pads() {
+  auto& e = engine();
+  auto lights = [&e] {
+    std::vector<int> colours;
+    for (int col = 1; col < e.columnCount(); ++col)
+      for (int row = 0; row < 8; ++row) colours.push_back(e.firmware().led(col, row).color);
+    return colours;
+  };
+  int reference = -1;
+  auto rowsLit = [&](const std::vector<int>& before) {
+    std::set<int> rows;
+    auto now = lights();
+    for (size_t i = 0; i < now.size(); ++i) {
+      if (now[i] != before[i]) rows.insert((int) i % 8);
+    }
+    return (int) rows.size();
+  };
+  // ending on one channel, the default, for the tests after
+  for (int mode : { 1, 2, 0 }) {
+    // the left split's MIDI mode, NRPN 0
+    uint8_t set[] = { 0xB0, 99, 0, 0xB0, 98, 0, 0xB0, 6, 0, 0xB0, 38, (uint8_t) mode, 0xB0, 101, 127, 0xB0, 100, 127 };
+    e.sendMidi(set, sizeof(set));
+    drained(e);
+    auto before = lights();
+    auto channels = e.firmware().noteChannels(0);
+    CHECK(!channels.empty());
+    for (int channel : channels) {
+      uint8_t on[] = { (uint8_t) (0x90 | (channel - 1)), 60, 100 };
+      e.sendMidi(on, sizeof(on));
+    }
+    // as many rows as channel per note lights, where it's every possible pad
+    CHECK(waitFor([&] { return rowsLit(before) >= juce::jmax(2, reference); }));
+    if (reference < 0) reference = rowsLit(before);
+    for (int channel : channels) {
+      uint8_t off[] = { (uint8_t) (0x80 | (channel - 1)), 60, 0 };
+      e.sendMidi(off, sizeof(off));
+    }
+    CHECK(waitFor([&] { return lights() == before; }));
+  }
+}
+
 void the_bridge_reports_the_tempo() {
   auto& e = engine();
   auto set = [&e](int bpm) {
@@ -795,6 +837,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reports_a_settings_screen", the_bridge_reports_a_settings_screen },
   { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
+  { "a_note_sent_on_a_splits_note_channel_lights_its_pads", a_note_sent_on_a_splits_note_channel_lights_its_pads },
   { "every_unit_is_calibrated", every_unit_is_calibrated },
   { "the_nameplate_is_the_panels", the_nameplate_is_the_panels },
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },

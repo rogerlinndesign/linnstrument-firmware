@@ -74,6 +74,9 @@ public:
   virtual bool sequencerNoteSelected() = 0;
   // the left split's pitch bend range in semitones
   virtual int bendRange() = 0;
+  // the channels, 1 to 16, that a note sent in on lights every pad of in a split: the one it takes
+  // notes on, or each row's channel in channel per row, where the channel picks the row
+  virtual std::vector<int> noteChannels(int split) = 0;
   // the tempo in beats per minute that the arpeggiator and the sequencer play at, tapped, set over
   // MIDI or followed from a MIDI clock
   virtual int tempo() = 0;
