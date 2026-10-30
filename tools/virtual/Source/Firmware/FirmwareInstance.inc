@@ -95,6 +95,26 @@ public:
       updateDisplay();
       storeSettings();
     }
+
+    // touches reach the firmware through rawX() and rawY(), which place them by the default
+    // calibration, so that calibration is exact for any surface this runs on; marked as a
+    // completed one is (ls_calibration.ino), the CALIBRATE cell lights green as on a calibrated
+    // instrument, and a flash saved before keeps it on every later boot
+    if (!Device.calibrated) {
+      initializeCalibrationData();
+      // the 128's default right edge lies left of its last column's centre, which a later boot's
+      // check (validateAndHealCalibrationData) rejects; the edge goes to the end of the sensor's
+      // range instead, which only straightens the right half of that column
+      for (byte row = 0; row < CALROWNUM; ++row) {
+        if (Device.calRows[NUMCOLS][row].fxdMeasuredX <= Device.calRows[NUMCOLS - 1][row].fxdMeasuredX) {
+          Device.calRows[NUMCOLS][row].fxdMeasuredX = FXD_MAKE(4095);
+        }
+      }
+      Device.calCrc = calculateCalibrationCRC();
+      Device.calCrcCalculated = true;
+      Device.calibrated = true;
+      storeSettings();
+    }
   }
 
   void loopOnce() override {
@@ -107,6 +127,13 @@ public:
 
   int model() override { return LINNMODEL; }
   bool calibrated() override { return Device.calibrated; }
+  // the firmware's own boot check, run on a copy, so that nothing it heals changes the unit
+  bool calibrationHolds() override {
+    DeviceSettings saved = Device;
+    bool holds = validateAndHealCalibrationData();
+    Device = saved;
+    return holds;
+  }
   int columns() override { return NUMCOLS; }
   int rows() override { return NUMROWS; }
   bool userFirmwareMode() override { return userFirmwareActive; }

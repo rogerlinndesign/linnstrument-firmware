@@ -61,6 +61,8 @@ public:
 
   virtual int model() = 0;
   virtual bool calibrated() = 0;
+  // whether a later boot keeps the calibration, by the check the firmware runs on its saved one
+  virtual bool calibrationHolds() = 0;
   virtual int columns() = 0;
   virtual int rows() = 0;
   virtual bool userFirmwareMode() = 0;

@@ -209,11 +209,14 @@ What it cannot do
   touches in a column and no phantom touches for the firmware to reject.
 * **No multi-touch with a mouse,** beyond holding touches with shift-click, right-click or
   Space. A script or an assistant can hold several touches at once.
-* **No calibration.** It needs real sensor readings, so the firmware runs on its default
-  calibration.
-* **Different timing.** The app scans the whole surface, then pauses for 1.5 ms, on the
-  computer's clock. The scan rate, and anything that depends on it, doesn't match the instrument,
-  so timing and latency have to be judged on hardware.
+* **Its own calibration.** Calibrating needs real sensor readings, but a touch here lands exactly
+  where the firmware's default calibration expects it, so every unit is marked calibrated with that
+  data and its CALIBRATE cell is green. Being calibrated, the firmware also rejects a new touch whose
+  position lies far outside its cell, which a touch here never does.
+* **Different timing.** Each scan takes as long as the instrument's, 27 µs a cell and 0.58 ms more
+  for each held touch as measured on a LinnStrument 200, on the computer's clock. The computer runs
+  the firmware itself much faster in between, so latency and anything that depends on the
+  firmware's own speed have to be judged on hardware.
 * **One MIDI port.** All MIDI goes through the virtual port, whether the settings choose USB or
   DIN.
 * **No serial mode.** Tapping OS Update switches the firmware to it, and with no serial port

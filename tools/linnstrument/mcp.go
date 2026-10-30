@@ -287,7 +287,7 @@ func mcpTools() []mcpTool {
 		{Name: "leds", Description: "The lights of every cell as one line per row, the top row first: \"ROW: c c c ...\" with a color number per column from the control column at 0. Colors: 0 off, 1 red, 2 yellow, 3 green, 4 cyan, 5 blue, 6 magenta, 7 black, 8 white, 9 orange, 10 lime, 11 pink.",
 			InputSchema: schema(nil, ""),
 			run:         simple(func(map[string]any) (string, error) { return "leds", nil })},
-		{Name: "status", Description: "The instrument's status line: model, firmware version, the virtual MIDI port, calibration, user firmware mode and serial mode.",
+		{Name: "status", Description: "The instrument's status line: model, firmware version, the virtual MIDI port, user firmware mode and serial mode.",
 			InputSchema: schema(nil, ""),
 			run:         simple(func(map[string]any) (string, error) { return "status", nil })},
 		{Name: "screenshot", Description: "A picture of the app's window: the lights, the touches and the control column.",

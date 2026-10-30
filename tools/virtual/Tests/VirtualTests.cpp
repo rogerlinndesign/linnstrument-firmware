@@ -528,6 +528,27 @@ void the_bridge_reports_the_sequencer_and_its_settings() {
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
 }
 
+// a screen's touches land where the default calibration puts them, so every unit counts as
+// calibrated, its CALIBRATE cell in Global Settings lit green
+void every_unit_is_calibrated() {
+  auto& e = engine();
+  CHECK(e.firmware().calibrated());
+  // the shared engine is a 128, whose default calibration a later boot would otherwise reject
+  CHECK(e.firmware().calibrationHolds());
+  auto tap = [&e](int row) {
+    e.press(0, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(0, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  tap(0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::globalScreen; }));
+  CHECK(e.firmware().led(16, 3).color == 3);
+  tap(0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
 void the_bridge_reports_the_bend_range() {
   engine();
   CHECK(engine().firmware().bendRange() == 2);
@@ -727,6 +748,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reports_a_settings_screen", the_bridge_reports_a_settings_screen },
   { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
+  { "every_unit_is_calibrated", every_unit_is_calibrated },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },

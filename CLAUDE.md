@@ -200,7 +200,7 @@ JUCE 9.0.4 and takes a few minutes, and later builds re-merge the sketch only
 when a firmware file changed. `tools/virtual/README.md` has the details and
 the limits: its touches are idealised and its timing isn't the instrument's,
 so it settles lights, screens and MIDI but never feel, velocity or latency,
-and it has no calibration and no serial mode.
+and it has no serial mode; its calibration is the default one, marked done.
 
 ## Flashing and talking to a connected instrument
 

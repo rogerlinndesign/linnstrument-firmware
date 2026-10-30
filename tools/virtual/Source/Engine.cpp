@@ -242,7 +242,6 @@ juce::String Engine::status() const {
   if (!isThreadRunning()) return "Stopped";
   juce::String text = "LinnStrument " + juce::String(instance->model()) + ", firmware " + instance->version() + ", commit " + VIRTUAL_COMMIT;
   text += hasVirtualPorts() ? ", MIDI port \"" + portName() + "\"" : ", no virtual MIDI port on this platform";
-  if (!instance->calibrated()) text += ", default calibration";
   if (instance->userFirmwareMode()) text += ", user firmware mode";
   if (instance->serialMode()) text += ", serial mode (no MIDI until OS Update is tapped again)";
   return text;
