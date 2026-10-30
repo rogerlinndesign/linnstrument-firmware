@@ -29,6 +29,12 @@ limitations under the License.
 class Surface : public juce::Component,
                 private juce::Timer {
 public:
+  // the name, its rule and its line as the front panel prints them, white on transparent for
+  // tinting (Resources/Nameplate, make_nameplate.py), and the panel's grey
+  static juce::Image nameplate();
+  // the name alone, in the same lettering, for a toolbar
+  static juce::Image name();
+  static inline const juce::Colour nameplateGrey { 0xffcecec9 };
   explicit Surface(Engine& engine);
   ~Surface() override;
 

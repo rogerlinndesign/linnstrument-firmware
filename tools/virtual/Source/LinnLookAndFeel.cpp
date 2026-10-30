@@ -66,18 +66,24 @@ juce::Font LinnLookAndFeel::getPopupMenuFont() {
 void LinnLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour&,
                                            bool highlighted, bool down) {
   auto area = button.getLocalBounds().toFloat().reduced(0.5f);
+  // a button joined to another keeps its corners square on that side, so that the two read as one
+  bool left = button.isConnectedOnLeft(), right = button.isConnectedOnRight();
+  bool top = button.isConnectedOnTop(), bottom = button.isConnectedOnBottom();
+  juce::Path shape;
+  shape.addRoundedRectangle(area.getX(), area.getY(), area.getWidth(), area.getHeight(), 4.0f, 4.0f,
+                            !(left || top), !(right || top), !(left || bottom), !(right || bottom));
   bool on = button.getToggleState();
   if (on) {
     g.setColour(down ? linn::accent.darker(0.2f) : highlighted ? linn::accent2 : linn::accent);
-    g.fillRoundedRectangle(area, 4.0f);
+    g.fillPath(shape);
     return;
   }
   if (down) {
     g.setColour(juce::Colour(0x22ffffff));
-    g.fillRoundedRectangle(area, 4.0f);
+    g.fillPath(shape);
   }
   g.setColour(highlighted ? linn::muted : linn::line);
-  g.drawRoundedRectangle(area, 4.0f, 1.0f);
+  g.strokePath(shape, juce::PathStrokeType(1.0f));
 }
 
 void LinnLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool, int, int, int, int, juce::ComboBox& box) {

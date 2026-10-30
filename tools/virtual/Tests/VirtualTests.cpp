@@ -549,6 +549,16 @@ void every_unit_is_calibrated() {
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
 }
 
+// the name as the panel prints it, with its rule and line under it, far longer than high
+void the_nameplate_is_the_panels() {
+  auto plate = Surface::nameplate(), alone = Surface::name();
+  CHECK(plate.isValid() && alone.isValid());
+  CHECK(plate.getWidth() > 6 * plate.getHeight());
+  // the name alone is as wide and only as high as the name
+  CHECK(alone.getWidth() == plate.getWidth());
+  CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
+}
+
 void the_bridge_reports_the_bend_range() {
   engine();
   CHECK(engine().firmware().bendRange() == 2);
@@ -749,6 +759,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
   { "every_unit_is_calibrated", every_unit_is_calibrated },
+  { "the_nameplate_is_the_panels", the_nameplate_is_the_panels },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },

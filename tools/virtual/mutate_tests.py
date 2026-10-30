@@ -46,6 +46,8 @@ M = [
  ('Firmware/FirmwareInstance.inc', '    int x = first + (col - 1) * width + (int)((fraction - 0.5f) * width);', '    int x = first + (col - 1) * width + (int)(fraction * width);', 'glides_from_one_note'),
  ('Engine.cpp', '    if (!t.ownPressure && t.targetZ > 0 && t.releaseIn == 0) t.targetZ = rawZ;', '', 'already_held'),
  ('Firmware/FirmwareInstance.inc', '  bool showingSettings() override { return displayMode != displayNormal; }', '  bool showingSettings() override { return false; }', 'settings_screen'),
+ ('Surface.cpp', '  return plate;\n}\n\njuce::Image Surface::name()', '  return {};\n}\n\njuce::Image Surface::name()', 'nameplate_is_the_panels'),
+ ('Surface.cpp', '  return alone;', '  return nameplate();', 'nameplate_is_the_panels'),
  ('Firmware/FirmwareInstance.inc', '          Device.calRows[NUMCOLS][row].fxdMeasuredX = FXD_MAKE(4095);', '', 'every_unit_is_calibrated'),
  ('Firmware/FirmwareInstance.inc', '      Device.calibrated = true;\n      storeSettings();\n    }\n  }', '      storeSettings();\n    }\n  }', 'every_unit_is_calibrated'),
  ('Firmware/FirmwareInstance.inc', '  int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }', '  int tempo() override { return 120; }', 'reports_the_tempo'),

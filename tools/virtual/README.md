@@ -45,10 +45,12 @@ and you can start it with:
 open "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.app"
 ```
 
-Its type is Mulish, the typeface of rogerlinndesign.com. The name and line printed on the panel
-are set in Sarpanch Black and Sarpanch Bold narrowed, the open typeface nearest the instrument's
-Eurostile Bold Extended and Bold Condensed. All of these are bundled from `Resources/Fonts` under
-the SIL Open Font License, and the icon is the LinnStrument Updater's. If you already have a JUCE
+Its type is Mulish, the typeface of rogerlinndesign.com, bundled from `Resources/Fonts` under the
+SIL Open Font License. The name, rule and line the panel prints at the instrument's right end are
+an image, `Resources/Nameplate/Nameplate.png` (and `Name.png`, the name alone), which
+`make_nameplate.py --font EUROSTILE.otf` draws
+in the panel's lettering, Eurostile, measured off a photo of the panel; the font only draws the
+image and is not in the repository. The icon is the LinnStrument Updater's. If you already have a JUCE
 checkout, pass `-DJUCE_PATH=/path/to/JUCE` to the first command to use it. Every build re-merges
 the sketch when a firmware file changed, so a firmware edit is just one `cmake --build` away from
 running in the window.

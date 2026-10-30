@@ -76,6 +76,9 @@ MainComponent::MainComponent(int model) {
     button->setClickingTogglesState(true);
     addAndMakeVisible(button);
   }
+  // one pair, as the two pedals are
+  footLeft.setConnectedEdges(juce::Button::ConnectedOnRight);
+  footRight.setConnectedEdges(juce::Button::ConnectedOnLeft);
   footLeft.setTitle("Left foot switch");
   footLeft.setTooltip("The left foot switch, the arpeggiator by default");
   footLeft.setHelpText(footLeft.getTooltip());
@@ -196,7 +199,6 @@ void MainComponent::resized() {
   modelBox.setBounds(top.removeFromLeft(model));
   top.removeFromLeft(20);
   footRight.setBounds(top.removeFromRight(74));
-  top.removeFromRight(8);
   footLeft.setBounds(top.removeFromRight(74));
   top.removeFromRight(28);
   velocitySlider.setBounds(top.removeFromRight(slider));

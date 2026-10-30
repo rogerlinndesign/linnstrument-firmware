@@ -58,8 +58,8 @@ target_include_directories(VirtualLinnStrument PRIVATE ${CMAKE_CURRENT_BINARY_DI
 juce_add_binary_data(VirtualLinnStrumentData SOURCES
   Resources/Fonts/Mulish-Bold.ttf
   Resources/Fonts/Mulish-Regular.ttf
-  Resources/Fonts/Sarpanch-Black.ttf
-  Resources/Fonts/Sarpanch-Bold.ttf)
+  Resources/Nameplate/Nameplate.png
+  Resources/Nameplate/Name.png)
 
 target_sources(VirtualLinnStrument PRIVATE
   Source/Main.cpp

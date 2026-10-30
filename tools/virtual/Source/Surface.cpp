@@ -52,16 +52,6 @@ juce::Typeface::Ptr boldTypeface() {
   return nullptr;
 }
 
-// the squared type of the printed name and its line: Eurostile Bold Extended and Bold Condensed
-// on the instrument, Sarpanch Black and Sarpanch Bold narrowed to the name's length here
-juce::Typeface::Ptr brandTypeface() {
-  static juce::Typeface::Ptr brand = juce::Typeface::createSystemTypefaceFor(BinaryData::SarpanchBlack_ttf, BinaryData::SarpanchBlack_ttfSize);
-  return brand;
-}
-juce::Typeface::Ptr lineTypeface() {
-  static juce::Typeface::Ptr line = juce::Typeface::createSystemTypefaceFor(BinaryData::SarpanchBold_ttf, BinaryData::SarpanchBold_ttfSize);
-  return line;
-}
 
 }
 
@@ -275,27 +265,27 @@ void Surface::paintPads(juce::Graphics& g) {
   }
 }
 
+juce::Image Surface::nameplate() {
+  static juce::Image plate = juce::ImageCache::getFromMemory(BinaryData::Nameplate_png, BinaryData::Nameplate_pngSize);
+  return plate;
+}
+
+juce::Image Surface::name() {
+  static juce::Image alone = juce::ImageCache::getFromMemory(BinaryData::Name_png, BinaryData::Name_pngSize);
+  return alone;
+}
+
 void Surface::paintBrand(juce::Graphics& g) {
-  // the name and its line, printed sideways at the right end in the instrument's proportions:
-  // the name runs nearly the height of the plate, the line a quarter of its size and as long
+  // the name, its rule and its line as the panel prints them, sideways at the right end, as long
+  // as the plate allows
   g.saveState();
   juce::Rectangle<float> brand(padsArea.getRight() + gap, padsArea.getY(), steel.getRight() - padsArea.getRight() - gap, padsArea.getHeight());
   g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, brand.getCentreX(), brand.getCentreY()));
   juce::Rectangle<float> turned(brand.getCentreX() - brand.getHeight() / 2, brand.getCentreY() - brand.getWidth() / 2, brand.getHeight(), brand.getWidth());
-  juce::String name = columns == 17 ? "LinnStrument 128" : "LinnStrument";
-  juce::Font nameFont(juce::FontOptions(brandTypeface()).withHeight(100.0f));
-  float nameHeight = juce::jmax(8.0f, juce::jmin(turned.getHeight() * 0.66f, 100.0f * turned.getWidth() * 0.9f / juce::GlyphArrangement::getStringWidth(nameFont, name)));
-  nameFont = nameFont.withHeight(nameHeight);
-  const juce::String line = "Music Performance Keyboard with 3D Note Expression";
-  juce::Font lineFont(juce::FontOptions(lineTypeface()).withHeight(nameHeight * 0.27f));
-  lineFont = lineFont.withHorizontalScale(juce::jlimit(0.5f, 1.0f, juce::GlyphArrangement::getStringWidth(nameFont, name) / juce::GlyphArrangement::getStringWidth(lineFont, line)));
-  auto block = turned.withSizeKeepingCentre(turned.getWidth(), nameHeight * 0.95f + lineFont.getHeight());
-  g.setFont(nameFont);
-  g.setColour(juce::Colours::white);
-  g.drawText(name, block.removeFromTop(nameHeight * 0.95f), juce::Justification::centred);
-  g.setFont(lineFont);
-  g.setColour(juce::Colour(0xffd0d0d0));
-  g.drawText(line, block, juce::Justification::centredTop);
+  auto plate = nameplate();
+  float scale = juce::jmin(turned.getWidth() * 0.9f / (float) plate.getWidth(), turned.getHeight() * 0.85f / (float) plate.getHeight());
+  g.setColour(nameplateGrey);
+  g.drawImage(plate, turned.withSizeKeepingCentre((float) plate.getWidth() * scale, (float) plate.getHeight() * scale), juce::RectanglePlacement::stretchToFit, true);
   g.restoreState();
 }
 
