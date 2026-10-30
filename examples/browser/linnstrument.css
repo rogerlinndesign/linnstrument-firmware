@@ -21,7 +21,7 @@ limitations under the License.
   --fg: #fff; --text: #d9d9d9; --muted: #b9b9b9; --dim: #8e8e8e;
   --accent: #0082f3; --accent-2: #3898ec; --cherry: #c2641f; --cherry-2: #7a3d17;
   --ok: #4fd36f; --warn: #ffb020; --bad: #ff3b30;
-  --steel: #121212; --pad: #dadad6; --plate: #b6b6b1; --touch: #111;
+  --steel: #121212; --pad: #c4c4c0; --plate: #9d9d9a; --touch: #111;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
