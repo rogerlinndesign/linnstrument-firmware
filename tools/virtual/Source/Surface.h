@@ -80,6 +80,9 @@ protected:
   virtual void focusMoved(const Cell&) {}
   // the label printed for a control switch, row 0 at the bottom
   static const char* controlLabel(int row);
+  // what a control switch is labelled with now, its printed label unless a subclass names what
+  // the switch does on the screen shown
+  virtual juce::String switchLabel(int row) const { return controlLabel(row); }
 
   Engine& engine;
   int columns = 26;

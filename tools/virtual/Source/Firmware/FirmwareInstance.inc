@@ -112,11 +112,24 @@ public:
   bool userFirmwareMode() override { return userFirmwareActive; }
   bool serialMode() override { return Device.serialMode; }
   bool showingSettings() override { return displayMode != displayNormal; }
-  firmware::SettingsScreen settingsScreen() override {
-    if (displayMode == displayPerSplit) return firmware::perSplitScreen;
-    if (displayMode == displayGlobal || displayMode == displayGlobalWithTempo) return firmware::globalScreen;
-    return firmware::noSettingsScreen;
+  firmware::Screen screen() override {
+    switch (displayMode) {
+      case displayNormal: return Split[Global.currentPerSplit].sequencer && !userFirmwareActive ? firmware::sequencerScreen : firmware::noScreen;
+      case displayPerSplit: return firmware::perSplitScreen;
+      case displayGlobal: case displayGlobalWithTempo: return firmware::globalScreen;
+      case displaySequencerProjects: return firmware::sequencerProjectsScreen;
+      case displaySequencerDrum0107: return firmware::sequencerDrums1Screen;
+      case displaySequencerDrum0814: return firmware::sequencerDrums2Screen;
+      case displaySequencerColors: return firmware::sequencerColorsScreen;
+      case displayPreset: return firmware::presetScreen;
+      case displayVolume: return firmware::volumeScreen;
+      case displayOctaveTranspose: return firmware::octaveTransposeScreen;
+      case displaySplitPoint: return firmware::splitPointScreen;
+      case displayCustomLedsEditor: return firmware::customLightsScreen;
+      default: return firmware::noScreen;
+    }
   }
+  bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
 
   bool midiPending() override { return !midiOutQueue.empty(); }

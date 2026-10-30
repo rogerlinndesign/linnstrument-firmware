@@ -271,7 +271,7 @@ void Surface::paintPads(juce::Graphics& g) {
     juce::Rectangle<float> label, sw;
     controlSlot(row, label, sw);
     if (sw.isEmpty()) continue;
-    g.drawFittedText(controlLabels[row], label.toNearestInt(), onSwitches ? juce::Justification::centred : juce::Justification::centredBottom, 2, 1.0f);
+    g.drawFittedText(switchLabel(row), label.toNearestInt(), onSwitches ? juce::Justification::centred : juce::Justification::centredBottom, 2, 1.0f);
   }
 }
 

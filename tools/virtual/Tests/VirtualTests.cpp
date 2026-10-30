@@ -479,14 +479,53 @@ void the_bridge_reports_which_settings_screen_is_up() {
   // puts the instrument to sleep
   std::this_thread::sleep_for(std::chrono::milliseconds(400));
   CHECK(!e.firmware().showingSettings());
-  CHECK(e.firmware().settingsScreen() == firmware::noSettingsScreen);
+  CHECK(e.firmware().screen() == firmware::noScreen);
   tap(7);
-  CHECK(waitFor([&e] { return e.firmware().settingsScreen() == firmware::perSplitScreen; }));
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::perSplitScreen; }));
   tap(7);
   tap(0);
-  CHECK(waitFor([&e] { return e.firmware().settingsScreen() == firmware::globalScreen; }));
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::globalScreen; }));
   tap(0);
-  CHECK(waitFor([&e] { return e.firmware().settingsScreen() == firmware::noSettingsScreen; }));
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+  tap(6);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::presetScreen; }));
+  tap(6);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
+// the sequencer has no screen of its own in the firmware: it takes over the playing display
+void the_bridge_reports_the_sequencer_and_its_settings() {
+  auto& e = engine();
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  // Per-Split Settings, then SEQUENCER in the Special column, then back to the playing display
+  tap(0, 7);
+  tap(14, 4);
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerScreen; }));
+  CHECK(!e.firmware().showingSettings());
+  CHECK(!e.firmware().sequencerNoteSelected());
+  // a note put on the grid is selected, for its faders
+  tap(1, 3);
+  CHECK(waitFor([&e] { return e.firmware().sequencerNoteSelected(); }));
+  tap(9, 3);
+  CHECK(waitFor([&e] { return !e.firmware().sequencerNoteSelected(); }));
+  // Switch 1 opens the sequencer's settings on its projects page
+  tap(0, 3);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerProjectsScreen; }));
+  tap(0, 3);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerScreen; }));
+  // the note taken out again and the sequencer off, for the tests that follow
+  tap(1, 3);
+  tap(0, 7);
+  tap(14, 4);
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
 }
 
 void the_bridge_reports_the_bend_range() {
@@ -672,6 +711,7 @@ Suite expression("Expression", {
 
 Suite bridge("Firmware bridge", {
   { "the_bridge_reports_a_settings_screen", the_bridge_reports_a_settings_screen },
+  { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },

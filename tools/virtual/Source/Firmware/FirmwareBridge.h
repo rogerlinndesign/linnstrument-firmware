@@ -28,8 +28,13 @@ namespace firmware {
 
 enum Display { off = 0, on = 1, fastPulse = 2, slowPulse = 3, focusPulse = 4 };
 
-// the settings screens whose cells the front panel labels, or neither
-enum SettingsScreen { noSettingsScreen, perSplitScreen, globalScreen };
+// the screens whose cells have a fixed meaning that an app can name, or none: the playing display,
+// a value being slid, and anything else; apps may rely on the order, so new ones go at the end
+enum Screen {
+  noScreen, perSplitScreen, globalScreen, sequencerScreen, sequencerProjectsScreen, sequencerDrums1Screen,
+  sequencerDrums2Screen, sequencerColorsScreen, presetScreen, volumeScreen, octaveTransposeScreen, splitPointScreen,
+  customLightsScreen
+};
 
 struct Led {
   uint8_t color;
@@ -62,7 +67,9 @@ public:
   virtual bool serialMode() = 0;
   // a settings screen or anything else that is not the playing display, which uses every cell
   virtual bool showingSettings() = 0;
-  virtual SettingsScreen settingsScreen() = 0;
+  virtual Screen screen() = 0;
+  // on the sequencer screen, whether a note is selected, which puts its faders on the surface
+  virtual bool sequencerNoteSelected() = 0;
   // the left split's pitch bend range in semitones
   virtual int bendRange() = 0;
   // MIDI the firmware has queued and not yet sent
