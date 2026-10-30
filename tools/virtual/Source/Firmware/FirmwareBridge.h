@@ -72,6 +72,9 @@ public:
   virtual bool sequencerNoteSelected() = 0;
   // the left split's pitch bend range in semitones
   virtual int bendRange() = 0;
+  // the tempo in beats per minute that the arpeggiator and the sequencer play at, tapped, set over
+  // MIDI or followed from a MIDI clock
+  virtual int tempo() = 0;
   // MIDI the firmware has queued and not yet sent
   virtual bool midiPending() = 0;
 

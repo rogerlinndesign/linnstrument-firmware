@@ -131,6 +131,7 @@ public:
   }
   bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
+  int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }
 
   bool midiPending() override { return !midiOutQueue.empty(); }
 

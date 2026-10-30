@@ -46,6 +46,7 @@ M = [
  ('Firmware/FirmwareInstance.inc', '    int x = first + (col - 1) * width + (int)((fraction - 0.5f) * width);', '    int x = first + (col - 1) * width + (int)(fraction * width);', 'glides_from_one_note'),
  ('Engine.cpp', '    if (!t.ownPressure && t.targetZ > 0 && t.releaseIn == 0) t.targetZ = rawZ;', '', 'already_held'),
  ('Firmware/FirmwareInstance.inc', '  bool showingSettings() override { return displayMode != displayNormal; }', '  bool showingSettings() override { return false; }', 'settings_screen'),
+ ('Firmware/FirmwareInstance.inc', '  int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }', '  int tempo() override { return 120; }', 'reports_the_tempo'),
  ('Firmware/FirmwareInstance.inc', '  int bendRange() override { return getBendRange(LEFT); }', '  int bendRange() override { return 12; }', 'bend_range'),
  ('Engine.cpp', '  if (image.empty() && onFreshFlash) onFreshFlash();', '  if (onFreshFlash) onFreshFlash();', 'fresh_flash'),
  ('Engine.cpp', '  finishing = true;\n', '', 'fresh_flash'),

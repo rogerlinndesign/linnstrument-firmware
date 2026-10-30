@@ -533,6 +533,20 @@ void the_bridge_reports_the_bend_range() {
   CHECK(engine().firmware().bendRange() == 2);
 }
 
+// NRPN 238 sets the tempo, as an editor would
+void the_bridge_reports_the_tempo() {
+  auto& e = engine();
+  auto set = [&e](int bpm) {
+    uint8_t m[] = { 0xB0, 99, 1, 0xB0, 98, 238 - 128, 0xB0, 6, (uint8_t) (bpm >> 7), 0xB0, 38, (uint8_t) (bpm & 127),
+                    0xB0, 101, 127, 0xB0, 100, 127 };
+    e.sendMidi(m, sizeof(m));
+  };
+  set(97);
+  CHECK(waitFor([&e] { return e.firmware().tempo() == 97; }));
+  set(120);
+  CHECK(waitFor([&e] { return e.firmware().tempo() == 120; }));
+}
+
 void a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without() {
   auto& e = engine();
   int calls = 0;
@@ -713,6 +727,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reports_a_settings_screen", the_bridge_reports_a_settings_screen },
   { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
+  { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },
   { "two_engines_run_their_own_firmware_side_by_side", two_engines_run_their_own_firmware_side_by_side },
