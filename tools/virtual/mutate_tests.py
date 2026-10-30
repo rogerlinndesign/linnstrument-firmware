@@ -59,6 +59,8 @@ M = [
  ('Engine.cpp', '  if (instance == nullptr) throw std::runtime_error("every copy of the firmware is in use");', '', 'handed_to_one_engine'),
  ('Engine.h', '  static constexpr double microsPerCell = 27.16, microsPerTouch = 580;', '  static constexpr double microsPerCell = 27.16, microsPerTouch = 0;', 'as_long_as_on_the_instrument'),
  ('Engine.cpp', '      std::this_thread::sleep_until(start + std::chrono::microseconds((long long) (length * (slice + 1) / slices)));', '      std::this_thread::sleep_for(std::chrono::microseconds(1500 / slices));', 'scans_at_the_instruments_rate'),
+ ('Engine.cpp', '    double length = scanMicros(cells, held);', '    double length = scanMicros(cells, held) * 0.85;', 'scans_at_the_instruments_rate'),
+ ('Engine.cpp', '    double length = scanMicros(cells, held);', '    double length = scanMicros(cells, held) * 1.2;', 'scans_at_the_instruments_rate'),
  ('Firmware/FirmwareInstance.inc', '      case displayPerSplit: return firmware::perSplitScreen;', '      case displayPerSplit: return firmware::globalScreen;', 'which_settings_screen'),
  ('Firmware/FirmwareInstance.inc', '      case displayPreset: return firmware::presetScreen;', '', 'which_settings_screen'),
  ('Firmware/FirmwareInstance.inc', '      case displayNormal: return Split[Global.currentPerSplit].sequencer && !userFirmwareActive ? firmware::sequencerScreen : firmware::noScreen;', '      case displayNormal: return firmware::noScreen;', 'sequencer_and_its_settings'),
