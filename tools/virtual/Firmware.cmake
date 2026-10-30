@@ -8,9 +8,12 @@ function(linn_firmware REPO COUNT)
   set(merged_dir ${CMAKE_CURRENT_BINARY_DIR}/sketch)
   set(merged ${merged_dir}/linnstrument-firmware.cpp)
   file(GLOB sketch CONFIGURE_DEPENDS ${REPO}/*.ino ${REPO}/*.h)
+  # by its full path, found here in the shell's PATH, since Xcode runs build steps with a PATH of
+  # its own that leaves out Homebrew's and Go's installers
+  find_program(LINN_GO go REQUIRED)
   add_custom_command(
     OUTPUT ${merged}
-    COMMAND go run ./tools/linnstrument merge ${merged}
+    COMMAND ${LINN_GO} run ./tools/linnstrument merge ${merged}
     WORKING_DIRECTORY ${REPO}
     DEPENDS ${sketch} ${REPO}/tools/linnstrument/test.go ${REPO}/tools/linnstrument/main.go
     COMMENT "Merging the sketch into one file")
