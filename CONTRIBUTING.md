@@ -38,10 +38,15 @@ stay until you decide to push them:
 
 1. Install the tools once ("What to install"): the Xcode Command Line Tools
    with `xcode-select --install`, on Apple silicon Rosetta with
-   `softwareupdate --install-rosetta`, then with Homebrew
+   `softwareupdate --install-rosetta`, then Homebrew with the one-line
+   command on brew.sh, which takes a few minutes and asks for your password.
+   When it's done, run the commands it prints under "Next steps", which make
+   the terminal find `brew`. With Homebrew in place,
    `brew install go arduino-cli cmake` and
-   `arduino-cli core install arduino:sam@1.6.12`. Install Claude Code from
-   claude.ai/code.
+   `arduino-cli core install arduino:sam@1.6.12` install the rest. Then install
+   the `claude` command with `brew install --cask claude-code`. Note that the
+   Claude desktop app doesn't add it, so you need this even when you already
+   have the app.
 2. Clone the repository into a folder named `linnstrument-firmware` and
    create a branch for your change ("Getting the code").
 3. In that folder, `go run ./tools/linnstrument test` and
@@ -108,16 +113,19 @@ own computer, here's what you need, roughly in this order:
 * **Git and a GitHub account.** GitHub Desktop covers branches and pushing.
   The branch dropdown on your fork's GitHub page creates a branch with
   nothing installed.
-* **Claude Code**, if you want an assistant. The installers are at
-  claude.ai/code. You start the terminal program by typing `claude` in this
-  folder, while the VS Code extension opens the folder instead. Both read
-  `CLAUDE.md` on their own.
+* **Claude Code**, if you want an assistant. The terminal program installs
+  with `brew install --cask claude-code`, or with
+  `curl -fsSL https://claude.ai/install.sh | bash`, which keeps itself up to
+  date, and you start it by typing `claude` in this folder. The Claude desktop
+  app doesn't install that command. The VS Code extension opens the folder
+  instead. Both read `CLAUDE.md` on their own, and `claude doctor` explains an
+  install that doesn't work.
 * **Go 1.25 or later** (go.dev/dl) and **arduino-cli** (arduino.github.io)
   each come as a single installer. After that, run this once:
-  `arduino-cli core install arduino:sam@1.6.12`. On a Mac with Homebrew,
-  `brew install go arduino-cli cmake` installs both, and CMake too. If you
-  build in the Arduino IDE instead you need neither, but the tests still need
-  Go.
+  `arduino-cli core install arduino:sam@1.6.12`. On a Mac with Homebrew
+  (brew.sh), `brew install go arduino-cli cmake` installs both, and CMake
+  too. If you build in the Arduino IDE instead you need neither, but the tests
+  still need Go.
 * **Without Go**, you can use the prebuilt tool that every green Actions run
   attaches. It does `backup`, `restore`, `flash`, `update` and `serve`. Unzip
   `linnstrument-tool-macos` or `linnstrument-tool-linux-windows`, followed by
