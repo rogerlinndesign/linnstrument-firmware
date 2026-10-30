@@ -36,6 +36,9 @@ const juce::Colour cherry { 0xffc2641f };
 class LinnLookAndFeel : public juce::LookAndFeel_V4 {
 public:
   LinnLookAndFeel();
+  ~LinnLookAndFeel() override {
+    if (boldFace() == bold) boldFace() = nullptr;
+  }
 
   juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override;
   juce::Font getLabelFont(juce::Label&) override;
@@ -48,6 +51,22 @@ public:
   void drawLinearSlider(juce::Graphics&, int x, int y, int width, int height, float sliderPos,
                         float minSliderPos, float maxSliderPos, juce::Slider::SliderStyle, juce::Slider&) override;
 
+  // Mulish Bold, for text painted rather than drawn by the look and feel, where asking for a bold
+  // style would give the regular face
+  static juce::Font boldFont(float height);
+
   juce::Typeface::Ptr regular;
   juce::Typeface::Ptr bold;
+
+private:
+  // inline, so that code painting text needs no more than this header
+  static juce::Typeface::Ptr& boldFace() {
+    static juce::Typeface::Ptr face;
+    return face;
+  }
 };
+
+inline juce::Font LinnLookAndFeel::boldFont(float height) {
+  if (boldFace() != nullptr) return juce::Font(juce::FontOptions(boldFace()).withHeight(height));
+  return juce::Font(juce::FontOptions(height, juce::Font::bold));
+}

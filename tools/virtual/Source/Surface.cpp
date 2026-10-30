@@ -47,12 +47,6 @@ float heightUnits() {
   return 8 + 7 * gapUnits + 2 * marginUnits + 2 * woodUnits;
 }
 
-juce::Typeface::Ptr boldTypeface() {
-  if (auto* lf = dynamic_cast<LinnLookAndFeel*>(&juce::LookAndFeel::getDefaultLookAndFeel())) return lf->bold;
-  return nullptr;
-}
-
-
 }
 
 Surface::Surface(Engine& e) : engine(e) {
@@ -127,7 +121,7 @@ Surface::Cell Surface::cellAt(juce::Point<float> p) const {
 }
 
 juce::Font Surface::labelFontOfHeight(float height) {
-  return juce::Font(juce::FontOptions(boldTypeface()).withHeight(height).withKerningFactor(0.04f));
+  return LinnLookAndFeel::boldFont(height).withExtraKerningFactor(0.04f);
 }
 
 juce::Colour Surface::ledColourFor(int color) {

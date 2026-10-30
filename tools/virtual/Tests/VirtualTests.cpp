@@ -559,6 +559,13 @@ void the_nameplate_is_the_panels() {
   CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
 }
 
+void painted_bold_text_is_mulish_bold() {
+  auto* lf = dynamic_cast<LinnLookAndFeel*>(&juce::LookAndFeel::getDefaultLookAndFeel());
+  CHECK(lf != nullptr);
+  CHECK(LinnLookAndFeel::boldFont(13).getTypefacePtr() == lf->bold);
+  CHECK(Surface::labelFontOfHeight(13).getTypefacePtr() == lf->bold);
+}
+
 void the_bridge_reports_the_bend_range() {
   engine();
   CHECK(engine().firmware().bendRange() == 2);
@@ -760,6 +767,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
   { "every_unit_is_calibrated", every_unit_is_calibrated },
   { "the_nameplate_is_the_panels", the_nameplate_is_the_panels },
+  { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },

@@ -19,6 +19,7 @@ LinnLookAndFeel::LinnLookAndFeel() {
   regular = juce::Typeface::createSystemTypefaceFor(BinaryData::MulishRegular_ttf, BinaryData::MulishRegular_ttfSize);
   bold = juce::Typeface::createSystemTypefaceFor(BinaryData::MulishBold_ttf, BinaryData::MulishBold_ttfSize);
   setDefaultSansSerifTypeface(regular);
+  boldFace() = bold;
 
   auto scheme = getDarkColourScheme();
   scheme.setUIColour(ColourScheme::windowBackground, linn::black);

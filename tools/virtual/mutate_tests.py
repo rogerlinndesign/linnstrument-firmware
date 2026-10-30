@@ -36,6 +36,7 @@ M = [
  ('TouchTracker.cpp', 'if (other != source && held.col == cell.col && held.row == cell.row) return true;', 'if (false) return true;', 'sliding_off_a_shared'),
  ('TouchTracker.cpp', '    press(cell);\n    Cell left = from;\n    from = cell;\n    latched.erase(left.col * 8 + left.row);\n    lift(source, left);', '    Cell left = from;\n    from = cell;\n    latched.erase(left.col * 8 + left.row);\n    lift(source, left);\n    press(cell);', 'a_slide_presses'),
  ('TouchTracker.cpp', '  if (latch) latched.insert(key);', '', 'latched_cell_stays_down'),
+ ('LinnLookAndFeel.cpp', '  boldFace() = bold;\n', '', 'painted_bold_text_is_mulish_bold'),
  ('TouchTracker.cpp', '    latched.insert(key);\n    press(cell);', '    press(cell);', 'keyboard_toggles'),
  ('Surface.cpp', '  grabKeyboardFocus();\n  keyboardNavigating = false;', '  grabKeyboardFocus();', 'focus_ring'),
  ('Engine.cpp', '    if (t.releaseIn > 0 && --t.releaseIn == 0) {', '    if (false) {', 'bends_the_same_note'),
