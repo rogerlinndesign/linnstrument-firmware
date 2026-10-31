@@ -99,6 +99,9 @@ public:
 
   virtual void feedMidi(const uint8_t* data, size_t length) = 0;
   virtual void footSwitch(int which, bool down) = 0;
+  // whether a foot switch's assignment stays on until switched off, as sustain or the arpeggiator
+  // do, rather than acting once, as an octave or a preset change does
+  virtual bool footSwitchLatches(int which) = 0;
 
   virtual std::vector<uint8_t> flashImage() = 0;
   virtual size_t flashSize() = 0;

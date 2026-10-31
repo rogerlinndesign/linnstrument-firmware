@@ -243,6 +243,10 @@ public:
     host::setPin(which == 0 ? FOOT_SW_LEFT : FOOT_SW_RIGHT, down ? HIGH : LOW);
   }
 
+  bool footSwitchLatches(int which) override {
+    return isStatefulSwitchAssignment(Global.switchAssignment[which == 0 ? SWITCH_FOOT_L : SWITCH_FOOT_R]);
+  }
+
   std::vector<uint8_t> flashImage() override {
     return std::vector<uint8_t>(dueFlashStorage.storage, dueFlashStorage.storage + LINN_FAKE_FLASH_SIZE);
   }

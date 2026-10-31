@@ -596,6 +596,20 @@ void the_bridge_reports_the_bend_range() {
   CHECK(engine().firmware().bendRange() == 2);
 }
 
+// NRPN 230 assigns the left foot switch, 231 the right
+void the_bridge_reports_which_foot_switches_latch() {
+  auto& e = engine();
+  // the defaults: the arpeggiator on the left and sustain on the right
+  CHECK(e.firmware().footSwitchLatches(0) && e.firmware().footSwitchLatches(1));
+  // octave up, which acts once
+  nrpn(e, 230, 1);
+  CHECK(waitFor([&] { return !e.firmware().footSwitchLatches(0); }));
+  CHECK(e.firmware().footSwitchLatches(1));
+  // back to the arpeggiator, for the tests after
+  nrpn(e, 230, 4);
+  CHECK(waitFor([&] { return e.firmware().footSwitchLatches(0); }));
+}
+
 // NRPN 238 sets the tempo, as an editor would
 void a_note_sent_on_a_splits_note_channel_lights_its_pads() {
   auto& e = engine();
@@ -960,6 +974,7 @@ Suite bridge("Firmware bridge", {
   { "painted_bold_text_is_mulish_bold", painted_bold_text_is_mulish_bold },
   { "the_engines_ports_are_listed_by_their_identifiers", the_engines_ports_are_listed_by_their_identifiers },
   { "the_bridge_reports_the_tempo", the_bridge_reports_the_tempo },
+  { "the_bridge_reports_which_foot_switches_latch", the_bridge_reports_which_foot_switches_latch },
   { "lifted_sensor_limits_let_a_fourth_touch_into_a_column", lifted_sensor_limits_let_a_fourth_touch_into_a_column },
   { "a_strike_sets_the_velocity_whatever_the_pressure", a_strike_sets_the_velocity_whatever_the_pressure },
   { "every_cell_strikes_alike", every_cell_strikes_alike },
