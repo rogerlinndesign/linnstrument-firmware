@@ -1,6 +1,8 @@
 Virtual LinnStrument
 ====================
 
+![The Virtual LinnStrument as a LinnStrument 200, with three notes held](screenshot.png)
+
 The Virtual LinnStrument is the LinnStrument firmware running on your computer, behind a window
 that shows its lights and turns the mouse into a finger, with a virtual MIDI port named "Virtual
 LinnStrument". It's the real firmware, not an imitation. The same `.ino` files are merged into
@@ -11,8 +13,6 @@ turns into, the NRPNs, the settings screens, User Firmware Mode, the lights and 
 simulated is everything around it: the touches come from the mouse, a script or an assistant
 instead of a sensor, and the lights are drawn instead of lit. This makes it the quick way to
 develop against the instrument without having one on your desk.
-
-![The Virtual LinnStrument as a LinnStrument 200, with three notes held](screenshot.png)
 
 What it's for
 -------------
