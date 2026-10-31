@@ -12,6 +12,8 @@ simulated is everything around it: the touches come from the mouse, a script or 
 instead of a sensor, and the lights are drawn instead of lit. This makes it the quick way to
 develop against the instrument without having one on your desk.
 
+![The Virtual LinnStrument as a LinnStrument 200, with three notes held](screenshot.png)
+
 What it's for
 -------------
 
