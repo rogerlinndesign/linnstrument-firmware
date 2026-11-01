@@ -259,14 +259,16 @@ void Surface::paintPads(juce::Graphics& g) {
   }
 }
 
-juce::Image Surface::nameplate() {
-  static juce::Image plate = juce::ImageCache::getFromMemory(BinaryData::Nameplate_png, BinaryData::Nameplate_pngSize);
-  return plate;
+juce::Image Surface::nameplate(int model) {
+  static juce::Image plate128 = juce::ImageCache::getFromMemory(BinaryData::Nameplate128_png, BinaryData::Nameplate128_pngSize);
+  static juce::Image plate200 = juce::ImageCache::getFromMemory(BinaryData::Nameplate200_png, BinaryData::Nameplate200_pngSize);
+  return model == 128 ? plate128 : plate200;
 }
 
-juce::Image Surface::name() {
-  static juce::Image alone = juce::ImageCache::getFromMemory(BinaryData::Name_png, BinaryData::Name_pngSize);
-  return alone;
+juce::Image Surface::name(int model) {
+  static juce::Image alone128 = juce::ImageCache::getFromMemory(BinaryData::Name128_png, BinaryData::Name128_pngSize);
+  static juce::Image alone200 = juce::ImageCache::getFromMemory(BinaryData::Name200_png, BinaryData::Name200_pngSize);
+  return model == 128 ? alone128 : alone200;
 }
 
 void Surface::paintBrand(juce::Graphics& g) {
@@ -276,7 +278,7 @@ void Surface::paintBrand(juce::Graphics& g) {
   juce::Rectangle<float> brand(padsArea.getRight() + gap, padsArea.getY(), steel.getRight() - padsArea.getRight() - gap, padsArea.getHeight());
   g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, brand.getCentreX(), brand.getCentreY()));
   juce::Rectangle<float> turned(brand.getCentreX() - brand.getHeight() / 2, brand.getCentreY() - brand.getWidth() / 2, brand.getHeight(), brand.getWidth());
-  auto plate = nameplate();
+  auto plate = nameplate(columns == 17 ? 128 : 200);
   float scale = juce::jmin(turned.getWidth() * 0.9f / (float) plate.getWidth(), turned.getHeight() * 0.85f / (float) plate.getHeight());
   g.setColour(nameplateGrey);
   g.drawImage(plate, turned.withSizeKeepingCentre((float) plate.getWidth() * scale, (float) plate.getHeight() * scale), juce::RectanglePlacement::stretchToFit, true);

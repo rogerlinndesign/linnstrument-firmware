@@ -555,14 +555,20 @@ void every_unit_is_calibrated() {
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
 }
 
-// the name as the panel prints it, with its rule and line under it, far longer than high
+// the name as each model's panel prints it, with its rule and line under it, far longer than high
 void the_nameplate_is_the_panels() {
-  auto plate = Surface::nameplate(), alone = Surface::name();
-  CHECK(plate.isValid() && alone.isValid());
-  CHECK(plate.getWidth() > 6 * plate.getHeight());
-  // the name alone is as wide and only as high as the name
-  CHECK(alone.getWidth() == plate.getWidth());
-  CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
+  for (int model : { 128, 200 }) {
+    auto plate = Surface::nameplate(model), alone = Surface::name(model);
+    CHECK(plate.isValid() && alone.isValid());
+    CHECK(plate.getWidth() > 6 * plate.getHeight());
+    // the name alone is as wide and only as high as the name
+    CHECK(alone.getWidth() == plate.getWidth());
+    CHECK(alone.getHeight() < plate.getHeight() * 2 / 3);
+  }
+  // the 128's name carries its number, so it's longer for its height
+  auto aspect = [](const juce::Image& image) { return (float) image.getWidth() / (float) image.getHeight(); };
+  CHECK(aspect(Surface::name(128)) > aspect(Surface::name(200)) * 1.15f);
+  CHECK(aspect(Surface::nameplate(128)) > aspect(Surface::nameplate(200)) * 1.1f);
 }
 
 void the_engines_ports_are_listed_by_their_identifiers() {

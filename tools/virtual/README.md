@@ -49,10 +49,10 @@ open "build/virtual/VirtualLinnStrument_artefacts/Release/Virtual LinnStrument.a
 
 Its type is Mulish, the typeface of rogerlinndesign.com, bundled from `Resources/Fonts` under the
 SIL Open Font License. The name, rule and line the panel prints at the instrument's right end are
-an image, `Resources/Nameplate/Nameplate.png` (and `Name.png`, the name alone), which
-`make_nameplate.py --font EUROSTILE.otf` draws
-in the panel's lettering, Eurostile, measured off a photo of the panel; the font only draws the
-image and is not in the repository. The icon is the LinnStrument Updater's. If you already have a JUCE
+images, `Resources/Nameplate/Nameplate128.png` and `Nameplate200.png` (and `Name128.png` and
+`Name200.png`, the name alone), which `make_nameplate.py LOGO_128.pdf LOGO_200.pdf` draws from
+Roger Linn Design's outlines of each model's logo; the PDFs only draw the images and are not in the
+repository. The icon is the LinnStrument Updater's. If you already have a JUCE
 checkout, pass `-DJUCE_PATH=/path/to/JUCE` to the first command to use it. Every build re-merges
 the sketch when a firmware file changed, so a firmware edit is just one `cmake --build` away from
 running in the window.
