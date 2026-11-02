@@ -18,7 +18,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
 
-set(JUCE_VERSION_TAG 9.0.4)
+set(JUCE_VERSION_TAG 9.0.5)
 set(JUCE_PATH "" CACHE PATH "A local JUCE checkout to use instead of fetching ${JUCE_VERSION_TAG}")
 if(JUCE_PATH)
   add_subdirectory(${JUCE_PATH} juce)

@@ -32,7 +32,7 @@ Building
 --------
 
 You need CMake 3.22 or later, a C++17 compiler (Xcode's on macOS) and Go for the sketch merge.
-The first time, you also need git and an internet connection to fetch JUCE 9.0.4:
+The first time, you also need git and an internet connection to fetch JUCE 9.0.5:
 
 ```
 cmake -S tools/virtual -B build/virtual -DCMAKE_BUILD_TYPE=Release
