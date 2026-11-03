@@ -339,6 +339,65 @@ void a_slide_glides_from_one_note_to_the_next() {
   drained(e);
 }
 
+// the two cells a finger is across add up to about what the one had, however fast it goes
+void a_slide_keeps_the_pressure_steady() {
+  auto& e = engine();
+  auto pressure = [](const std::vector<uint8_t>& m) {
+    return (m[0] & 0xf0) == 0xd0 ? (int) m[1] : (m[0] & 0xf0) == 0xa0 ? (int) m[2] : -1;
+  };
+  auto lift = [&e](int col) {
+    e.release(col, 3);
+    std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    e.takeMidiOut();
+  };
+  for (int z : { 600, 900 }) {
+    // the firmware reads the two cells in a different order at each crossing, some add up high and some low
+    for (int col : { 6, 8 }) {
+      e.press(col, 3, 0.9f, 0.5f, z);
+      int steady = -1;
+      for (auto& m : drained(e)) if (pressure(m) >= 0) steady = pressure(m);
+      CHECK(steady > 0);
+      CHECK(e.slide(col, 3, col + 1, 0.5f));
+      auto during = drained(e);
+      CHECK(noteOns(during) == 0);
+      int low = steady, high = steady;
+      for (auto& m : during) {
+        if (pressure(m) < 0) continue;
+        low = juce::jmin(low, pressure(m));
+        high = juce::jmax(high, pressure(m));
+      }
+      expect(high - steady <= steady * 17 / 100 && steady - low <= steady * 22 / 100, "at " + juce::String(z) + " " + juce::String(steady) + " went " + juce::String(low) + " to " + juce::String(high));
+      lift(col + 1);
+    }
+    // a fast swipe starts each slide before the last has finished
+    e.press(5, 3, 0.9f, 0.5f, z);
+    drained(e);
+    for (int col = 5; col < 8; ++col) {
+      CHECK(e.slide(col, 3, col + 1, 0.5f));
+      // across the pad as a finger goes, the firmware takes a slide only from a cell at its edge
+      for (float x : { 0.3f, 0.6f, 0.9f }) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+        e.move(col + 1, 3, x, 0.5f);
+      }
+    }
+    auto swiped = drained(e);
+    CHECK(noteOns(swiped) == 0);
+    for (auto& m : swiped) CHECK(pressure(m) != 0);
+    lift(8);
+  }
+  // easing off during a slide can't take what's still moving over below nothing
+  e.press(8, 3, 0.9f, 0.5f, 900);
+  drained(e);
+  CHECK(e.slide(8, 3, 9, 0.5f));
+  CHECK(e.move(9, 3, 0.1f, 0.5f, 130));
+  for (int i = 0; i < 200; ++i) {
+    Engine::TouchView view;
+    CHECK(e.touchAt(9, 3, view) && view.pressure > 0);
+    std::this_thread::sleep_for(std::chrono::microseconds(200));
+  }
+  lift(9);
+}
+
 void a_slide_into_the_next_cell_bends_the_same_note() {
   auto& e = engine();
   e.takeMidiOut();
@@ -958,6 +1017,7 @@ Suite fingers("Fingers", {
 });
 
 Suite slides("Slides through the firmware", {
+  { "a_slide_keeps_the_pressure_steady", a_slide_keeps_the_pressure_steady },
   { "a_slide_into_the_next_cell_bends_the_same_note", a_slide_into_the_next_cell_bends_the_same_note },
   { "the_pitch_follows_the_finger_across_a_pad", the_pitch_follows_the_finger_across_a_pad },
   { "a_slide_glides_from_one_note_to_the_next", a_slide_glides_from_one_note_to_the_next },

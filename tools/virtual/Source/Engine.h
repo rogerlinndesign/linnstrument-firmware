@@ -51,6 +51,9 @@ public:
   bool slide(int fromCol, int row, int toCol, float yFraction);
   // the scans after a slide until the cell left behind lets go, both cells down in all but the last
   static constexpr int slideScans = 4;
+  // how many scans the cell a slide enters is ahead of the one it leaves, since the firmware adds what
+  // it last read of the other one
+  static constexpr int slideLead = 1;
   bool release(int col, int row);
   bool isTouched(int col, int row) const;
 
@@ -132,6 +135,8 @@ private:
     bool ownPressure;   // pressed with an explicit Z, which a move without Z keeps
     bool liftFirst;     // replaced a touch the firmware has not yet seen lifted
     int releaseIn;      // scans until it lets go, when it's the cell a slide is leaving
+    int shared = 0;     // the pressure a slide moves from one cell to the next
+    int sharedIn = 0;   // scans until the cell a slide is entering has it all
     int strike = 10;    // how hard it struck, which sets how fast it rises
     double landing = 0; // the level it lands at in the first scan
     double rising = 0;  // its pressure as it rises, before it's rounded to z

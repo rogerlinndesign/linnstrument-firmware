@@ -32,6 +32,10 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
+ ('Engine.cpp', '    if (t.releaseIn > 0) t.z = t.shared * t.releaseIn / slideScans;', '    if (t.releaseIn > 0) {}', 'keeps_the_pressure_steady'),
+ ('Engine.cpp', 't.z = juce::jmax(1, t.z - t.shared * juce::jmax(0, --t.sharedIn - slideLead) / slideScans);', '--t.sharedIn;', 'keeps_the_pressure_steady'),
+ ('Engine.cpp', 't.z = juce::jmax(1, t.z - t.shared * juce::jmax(0, --t.sharedIn - slideLead) / slideScans);', 't.z -= t.shared * juce::jmax(0, --t.sharedIn - slideLead) / slideScans;', 'keeps_the_pressure_steady'),
+ ('Engine.h', 'static constexpr int slideLead = 1;', 'static constexpr int slideLead = 0;', 'keeps_the_pressure_steady'),
  ('TouchTracker.cpp', 'if (other != source && held.col == cell.col && held.row == cell.row) return true;', 'if (false) return true;', 'stays_down_while_another'),
  ('TouchTracker.cpp', 'if (other != source && held.col == cell.col && held.row == cell.row) return true;', 'if (false) return true;', 'sliding_off_a_shared'),
  ('TouchTracker.cpp', '    press(cell);\n    Cell left = from;\n    from = cell;\n    latched.erase(left.col * 8 + left.row);\n    lift(source, left);', '    Cell left = from;\n    from = cell;\n    latched.erase(left.col * 8 + left.row);\n    lift(source, left);\n    press(cell);', 'a_slide_presses'),

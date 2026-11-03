@@ -169,6 +169,9 @@ int Engine::advanceTouches(double millis) {
     }
     if (t.settled && std::abs(target - t.rising) < 1) t.rising = target;
     t.z = juce::roundToInt(t.rising);
+    // a finger crossing into the next cell moves its pressure over, which the firmware adds back up
+    if (t.releaseIn > 0) t.z = t.shared * t.releaseIn / slideScans;
+    else if (t.sharedIn > 0) t.z = juce::jmax(1, t.z - t.shared * juce::jmax(0, --t.sharedIn - slideLead) / slideScans);
     instance->setSensor(t.col, t.row, t.x, t.y, (uint16_t) t.z);
     held += t.z > 0 ? 1 : 0;
     ++it;
@@ -233,10 +236,10 @@ bool Engine::slide(int fromCol, int row, int toCol, float yFraction) {
   // as a press does, a cell still lifting is let go of first, so that its note ends
   to.liftFirst = existing != touches.end();
   to.releaseIn = 0;
+  to.shared = from.shared = juce::roundToInt(from.rising);
+  to.sharedIn = slideScans;
   from.xFraction = right ? 1.0f : 0.0f;
   from.x = instance->rawX(fromCol, from.xFraction);
-  from.targetZ = juce::jmax(1, to.targetZ * 2 / 3);
-  from.z = juce::jmin(from.z, from.targetZ);
   from.releaseIn = slideScans;
   touches[touchKey(toCol, row)] = to;
   return true;
