@@ -966,6 +966,7 @@ void the_focus_ring_shows_only_while_the_keyboard_moves_it() {
   Whole l;
   window.addAndMakeVisible(l.surface);
   window.addToDesktop(0);
+  window.setAlpha(0.0f);
   window.setVisible(true);
   l.surface.grabKeyboardFocus();
   l.surface.keyPressed(juce::KeyPress(juce::KeyPress::rightKey));
