@@ -162,6 +162,7 @@ public:
       default: return firmware::noScreen;
     }
   }
+  bool cellHeld(int col, int row) override { return cell(col, row).touched != untouchedCell; }
   bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
   void liftSensorLimits(bool lifted) override { sensorLimitsLifted = lifted; }

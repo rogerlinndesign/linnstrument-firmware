@@ -439,6 +439,47 @@ void a_slide_into_a_cell_still_lifting_ends_its_note() {
   drained(e);
 }
 
+// a quick double tap, as a finger on glass makes it, each tap and the gap between them shorter
+// than a finger takes to lift and the firmware to let go of a switch: the second tap closes the
+// per-split screen the first opened
+void a_quick_double_tap_on_a_switch_opens_and_closes_its_screen() {
+  auto& e = engine();
+  // within half a second of its start, the firmware takes a toggle for the end of a hold
+  waitFor([&e] { return e.scanCount() * Engine::scanMicros(e.firmware().cellsPerScan(), 0) > 600000; });
+  auto tap = [&e] {
+    e.press(0, 7, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    e.release(0, 7);
+  };
+  tap();
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  CHECK(e.firmware().showingSettings());
+  tap();
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  CHECK(!e.firmware().showingSettings());
+  // two taps so short and close that the second is let go of before the firmware has let go of the
+  // first
+  auto flick = [&e] {
+    e.press(0, 7, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    e.release(0, 7);
+  };
+  flick();
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  flick();
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  CHECK(!e.firmware().showingSettings());
+  // and three of those at a fast human pace, ten a second, open it again
+  for (int i = 0; i < 3; ++i) {
+    flick();
+    std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  CHECK(e.firmware().showingSettings());
+  tap();
+  CHECK(waitFor([&e] { return !e.firmware().showingSettings(); }));
+}
+
 void a_slide_stays_among_the_pads() {
   auto& e = engine();
   // held long enough to press, so that only the column keeps them from sliding
@@ -1024,6 +1065,7 @@ Suite slides("Slides through the firmware", {
   { "a_slide_glides_from_one_note_to_the_next", a_slide_glides_from_one_note_to_the_next },
   { "lifting_and_pressing_the_next_cell_starts_a_new_note", lifting_and_pressing_the_next_cell_starts_a_new_note },
   { "a_slide_into_a_cell_still_lifting_ends_its_note", a_slide_into_a_cell_still_lifting_ends_its_note },
+  { "a_quick_double_tap_on_a_switch_opens_and_closes_its_screen", a_quick_double_tap_on_a_switch_opens_and_closes_its_screen },
   { "a_slide_stays_among_the_pads", a_slide_stays_among_the_pads },
 });
 

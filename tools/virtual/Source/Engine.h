@@ -86,6 +86,9 @@ public:
   }
   // a finger takes about 50 ms to leave, and its pressure drops faster towards the end
   static constexpr double liftMillis = 50;
+  // the longest a press waits for the firmware to let go of the cell first, the sixteen scans a
+  // cell takes while the sequencer is edited with time to spare
+  static constexpr double liftWaitMillis = 150;
   void setFootSwitch(int which, bool down);
 
   // the running model's column count, readable from any thread
@@ -133,7 +136,7 @@ private:
     int z;
     float xFraction, yFraction;
     bool ownPressure;   // pressed with an explicit Z, which a move without Z keeps
-    bool liftFirst;     // replaced a touch the firmware has not yet seen lifted
+    bool liftFirst;     // pressed where the firmware may not yet have let go of a touch before
     int releaseIn;      // scans until it lets go, when it's the cell a slide is leaving
     int shared = 0;     // the pressure a slide moves from one cell to the next
     int sharedIn = 0;   // scans until the cell a slide is entering has it all
@@ -144,6 +147,8 @@ private:
     bool settled = false;
     double lifted = -1; // how many milliseconds it's been letting go, or -1 while it's held
     int liftedFrom = 0;
+    double liftWaited = 0; // how long a press has waited for the firmware to let go of the cell
+    bool releaseSeen = false; // let go of while it waited, so it lets go once the firmware has it
   };
 
   void run() override;

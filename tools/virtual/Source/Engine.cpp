@@ -132,12 +132,27 @@ int Engine::advanceTouches(double millis) {
       ++it;
       continue;
     }
-    // a press that replaced a lifting touch within one scan: the lift goes out first
+    // a new press on a cell the firmware still holds, lifting or lifted: the lift goes out first,
+    // for as long as the firmware takes to let go of the cell, or a quick second tap would only
+    // carry on the first
     if (t.liftFirst) {
-      instance->setSensor(t.col, t.row, 0, 0, 0);
+      if (instance->cellHeld(t.col, t.row) && t.liftWaited <= liftWaitMillis) {
+        instance->setSensor(t.col, t.row, 0, 0, 0);
+        t.liftWaited += millis;
+        ++it;
+        continue;
+      }
       t.liftFirst = false;
-      ++it;
-      continue;
+    }
+    // a tap quicker than the firmware takes to let go of the one before still reaches it
+    if (t.releaseSeen) {
+      t.liftWaited += millis;
+      if (instance->cellHeld(t.col, t.row) || t.liftWaited > 2 * liftWaitMillis) {
+        t.releaseSeen = false;
+        t.targetZ = 0;
+        ++it;
+        continue;
+      }
     }
     if (t.releaseIn > 0 && --t.releaseIn == 0) {
       t.targetZ = 0;
@@ -187,15 +202,17 @@ void Engine::press(int col, int row, float xFraction, float yFraction, int rawZ)
   Touch t { col, row, instance->rawX(col, xFraction), instance->rawY(row, yFraction), rawZ > 0 ? rawZ : pressure, 0, xFraction, yFraction, rawZ > 0, false, 0 };
   t.strike = strike;
   t.landing = strikeLevel(strike);
+  t.liftFirst = true;
   auto it = touches.find(touchKey(col, row));
   if (it != touches.end()) {
-    if (it->second.targetZ > 0) {
+    if (it->second.liftFirst) t.liftWaited = it->second.liftWaited;
+    else if (it->second.targetZ > 0) {
+      t.liftFirst = false;
       t.z = it->second.z;
       t.rising = it->second.rising;
       t.landedScans = it->second.landedScans;
       t.settled = it->second.settled;
     }
-    else t.liftFirst = true;
   }
   touches[touchKey(col, row)] = t;
 }
@@ -235,6 +252,7 @@ bool Engine::slide(int fromCol, int row, int toCol, float yFraction) {
   to.y = instance->rawY(row, yFraction);
   // as a press does, a cell still lifting is let go of first, so that its note ends
   to.liftFirst = existing != touches.end();
+  to.liftWaited = 0;
   to.releaseIn = 0;
   to.shared = from.shared = juce::roundToInt(from.rising);
   to.sharedIn = slideScans;
@@ -256,15 +274,16 @@ void Engine::setPressure(int rawZ) {
 bool Engine::release(int col, int row) {
   const juce::ScopedLock lock(touchLock);
   auto it = touches.find(touchKey(col, row));
-  if (it == touches.end() || it->second.targetZ == 0) return false;
-  it->second.targetZ = 0;
+  if (it == touches.end() || it->second.targetZ == 0 || it->second.releaseSeen) return false;
+  if (it->second.liftFirst) it->second.releaseSeen = true;
+  else it->second.targetZ = 0;
   return true;
 }
 
 bool Engine::isTouched(int col, int row) const {
   const juce::ScopedLock lock(touchLock);
   auto it = touches.find(touchKey(col, row));
-  return it != touches.end() && it->second.targetZ > 0;
+  return it != touches.end() && it->second.targetZ > 0 && !it->second.releaseSeen;
 }
 
 bool Engine::touchAt(int col, int row, TouchView& view) const {

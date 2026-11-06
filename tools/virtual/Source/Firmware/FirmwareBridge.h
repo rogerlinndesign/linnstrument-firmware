@@ -96,6 +96,10 @@ public:
   virtual uint16_t rawY(int row, float fraction) = 0;
   // Z is 0 for no touch; several hundred is a normal touch, a few thousand is firm.
   virtual void setSensor(int col, int row, uint16_t x, uint16_t y, uint16_t z) = 0;
+  // whether the firmware still takes a cell as touched, until it has let go of it, which takes a
+  // control switch, visited every eight scans, two visits without a touch, and a note at least
+  // 35 ms from its start
+  virtual bool cellHeld(int col, int row) = 0;
 
   virtual void feedMidi(const uint8_t* data, size_t length) = 0;
   virtual void footSwitch(int which, bool down) = 0;
