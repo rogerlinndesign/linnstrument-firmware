@@ -157,3 +157,46 @@ TEST(playing_disabling_x_stops_pitch_bend) {
     CHECK((out[i] & 0xF0) != 0xE0);
   }
 }
+
+TEST(phantom_cleanup_after_two_releases_restores_remaining_x_guard) {
+  for (byte model : {128, 200}) {
+    linn::reset(model);
+    fixedVelocity(77);
+    Split[LEFT].pitchCorrectQuantize = false;
+    Split[LEFT].pitchCorrectHold = pitchCorrectHoldOff;
+    int x2 = FXD_TO_INT(calculateDefaultMeasuredX(2));
+    int x6 = FXD_TO_INT(calculateDefaultMeasuredX(6));
+    linn::press(2, 2, x2, 2000, 900);
+    linn::press(6, 2, x6, 2000, 900);
+    linn::press(2, 5, x2, 2000, 900);
+    CHECK_EQ(notesIn(sent()).size(), 3);
+    CHECK(cell(2, 2).hasNote());
+    CHECK(cell(6, 2).hasNote());
+    CHECK(cell(2, 5).hasNote());
+    // Exercise the legacy rejection directly; mock inputs have no crosstalk.
+    linn::touch(6, 5, 100);
+    linn::select(6, 5);
+    CHECK(isPhantomTouchContextual());
+    cellTouched(untouchedCell);
+    CHECK(!cell(6, 5).hasNote());
+    linn::release(2, 5);
+    linn::release(6, 2);
+    CHECK_EQ(notesIn(sent()).size(), 2);
+    CHECK(cell(2, 2).hasNote());
+    CHECK(!cell(2, 5).hasNote());
+    CHECK(!cell(6, 2).hasNote());
+    linn::select(2, 2);
+    // A controlled calibrated step exercises the real X guard.
+    sensorCell->shouldRefreshX = false;
+    sensorCell->currentCalibratedX = FXD_TO_INT(sensorCell->fxdInitialReferenceX()) + ROGUE_SWEEP_X_THRESHOLD + 1;
+    sensorCell->lastMovedX = 0;
+    CHECK_EQ(handleXExpression(), ROGUE_SWEEP_X_THRESHOLD + 1);
+    CHECK(!sensorCell->hasPhantoms());
+    CHECK(sensorCell->hasRogueSweepX());
+    CHECK(sensorCell->hasUsableX());
+    linn::release(2, 2);
+    CHECK_EQ(notesIn(sent()).size(), 1);
+    CHECK(!cell(2, 2).hasNote());
+    CHECK_EQ(noteTouchMapping[LEFT].noteCount, 0);
+  }
+}

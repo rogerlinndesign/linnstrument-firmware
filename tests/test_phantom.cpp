@@ -96,3 +96,37 @@ TEST(phantom_fourth_corner_of_three_sounding_notes_does_not_sound) {
   linn::press(9, 5, 2000, 2000, 900);
   CHECK_EQ(phantomNoteOns(), 1);
 }
+
+TEST(phantom_cleanup_all_corners_and_singleton_preserve_unrelated_cell) {
+  for (byte model : {128, 200}) {
+    for (bool singleton : {false, true}) {
+      const byte col1 = 2, col2 = singleton ? 2 : 6;
+      const byte row1 = 2, row2 = singleton ? 2 : 5;
+      const byte cols[] = {col1, col2, col1, col2};
+      const byte rows[] = {row1, row1, row2, row2};
+      for (int caller = 0; caller < (singleton ? 1 : 4); ++caller) {
+        linn::reset(model);
+        for (int i = 0; i < 4; ++i) {
+          cell(cols[i], rows[i]).setPhantoms(col1, col2, row1, row2);
+          cell(cols[i], rows[i]).rogueSweepX = true;
+        }
+        cell(0, 0).setPhantoms(9, 11, 1, 3);
+        cell(cols[caller], rows[caller]).clearAllPhantoms();
+        for (int i = 0; i < 4; ++i) {
+          TouchInfo& touch = cell(cols[i], rows[i]);
+          CHECK(!touch.hasPhantoms());
+          CHECK_EQ(touch.phantomCol1, 0);
+          CHECK_EQ(touch.phantomCol2, 0);
+          CHECK_EQ(touch.phantomRow1, 0);
+          CHECK_EQ(touch.phantomRow2, 0);
+          CHECK(touch.hasUsableX());
+        }
+        CHECK(cell(0, 0).hasPhantoms());
+        CHECK_EQ(cell(0, 0).phantomCol1, 9);
+        CHECK_EQ(cell(0, 0).phantomCol2, 11);
+        CHECK_EQ(cell(0, 0).phantomRow1, 1);
+        CHECK_EQ(cell(0, 0).phantomRow2, 3);
+      }
+    }
+  }
+}
