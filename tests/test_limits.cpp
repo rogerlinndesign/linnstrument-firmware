@@ -27,12 +27,42 @@ static int limitNoteOns() {
   return n;
 }
 
-TEST(limits_take_three_touches_in_a_column_unless_lifted) {
+TEST(limits_allow_straight_columns_and_release_only_the_lifted_note) {
+  for (int model : { 128, 200 }) {
+    linn::reset(model);
+    byte col = NUMCOLS - 1;
+    for (byte row = 1; row <= 5; ++row) linn::press(col, row, 2000, 2000, 600);
+    CHECK_EQ(limitNoteOns(), 5);
+    for (byte row = 1; row <= 5; ++row) linn::scan(col - 1, row);
+    linn::release(col, 3);
+    for (byte row = 1; row <= 5; ++row) {
+      CHECK_EQ(cell(col, row).hasNote(), row != 3);
+      CHECK(!cell(col - 1, row).hasNote());
+    }
+    CHECK_EQ(limitNoteOns(), 0);
+
+    // One real neighbor, then a weaker fourth corner in that same neighboring column.
+    linn::press(col - 1, 1, 2000, 2000, 600);
+    CHECK_EQ(limitNoteOns(), 1);
+    linn::press(col - 1, 2, 2000, 2000, 400);
+    CHECK_EQ(limitNoteOns(), 0);
+    CHECK(!cell(col - 1, 2).hasNote());
+  }
+}
+
+TEST(limits_cap_columns_on_shared_rows_and_outside_normal_play_unless_lifted) {
   for (bool lifted : { false, true }) {
-    linn::reset();
-    sensorLimitsLifted = lifted;
-    for (byte row = 1; row <= 4; ++row) linn::press(5, row, 2000, 2000, 600);
-    CHECK_EQ(limitNoteOns(), lifted ? 4 : 3);
+    for (int mode = 0; mode < 4; ++mode) {
+      linn::reset();
+      sensorLimitsLifted = lifted;
+      for (byte row = 1; row <= 3; ++row) linn::press(5, row, 2000, 2000, 600);
+      if (mode == 0) linn::press(9, 4, 2000, 2000, 600);
+      if (mode == 1) displayMode = displayVolume;
+      if (mode == 2) userFirmwareActive = true;
+      if (mode == 3) controlModeActive = true;
+      linn::press(5, 4, 2000, 2000, 600);
+      CHECK_EQ(cell(5, 4).touched == ignoredCell, !lifted);
+    }
   }
 }
 

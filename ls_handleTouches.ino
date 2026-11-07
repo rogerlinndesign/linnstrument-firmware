@@ -469,8 +469,10 @@ boolean handleNewTouch() {
         else if (potentialSlideTransferCandidate(sensorCol+1)) {
           handleSlideTransferCandidate(sensorCol+1);
         }
-        // only allow a certain number of touches in a single column to prevent cross talk
-        else if (!sensorLimitsLifted && countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
+        // A straight stack has no alternate contact path into an otherwise empty row.
+        else if (!sensorLimitsLifted && countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN &&
+                 (displayMode != displayNormal || userFirmwareActive || controlModeActive ||
+                  colsInRowsTouched[sensorRow] != (int32_t)(1UL << sensorCol))) {
           cellTouched(ignoredCell);
         }
         // this is really a new touch without any relationship to an ongoing slide
