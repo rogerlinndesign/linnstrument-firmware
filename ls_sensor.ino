@@ -148,6 +148,50 @@ const short READZ_DELAY_SENSOR = 15;
 const short READZ_DELAY_SENSORINITIAL = 14;
 const short READZ_SETTLING_PRESSURE_THRESHOLD = 80;
 
+// These reads leave TouchInfo and its cached X/Y/Z expression samples untouched.
+static uint16_t readRectangleAdc(byte col, byte row, byte axis) {
+  selectSensorCell(col, row, axis);
+  delayUsec(axis == READ_Z ? READZ_DELAY_SENSOR :
+            axis == READ_X ? READX_MAX_DELAY : READY_MAX_DELAY);
+  return spiAnalogRead();
+}
+
+static rectangleCircuit::Verdict rectangleAxis(byte col, byte row, byte otherCol, byte otherRow, byte axis,
+                                              uint16_t za, uint16_t zb, uint16_t openZ) {
+  // With one contact on the driven strip, both sense lines float to that one
+  // contact's potential. Bracket the second reading to detect a moving finger.
+  int a = readRectangleAdc(col, row, axis);
+  int b = readRectangleAdc(otherCol, otherRow, axis);
+  int c = readRectangleAdc(col, row, axis);
+  return rectangleCircuit::compareTapVoltages(a, b, c, za, zb, openZ);
+}
+
+rectangleCircuit::Verdict measureRectangleContact(byte col, byte row, byte otherCol, byte otherRow) {
+  using namespace rectangleCircuit;
+  uint16_t d = 4095 - readRectangleAdc(otherCol, otherRow, READ_Z);
+  uint16_t k = 4095 - readRectangleAdc(col, otherRow, READ_Z);
+  uint16_t r = 4095 - readRectangleAdc(otherCol, row, READ_Z);
+  uint16_t z = 4095 - readRectangleAdc(col, row, READ_Z);
+  // Keep the lower bound on the three path resistances during a monotone
+  // attack or release. A surface scan's cached corner values can be much older.
+  uint16_t r2 = 4095 - readRectangleAdc(otherCol, row, READ_Z);
+  uint16_t k2 = 4095 - readRectangleAdc(col, otherRow, READ_Z);
+  uint16_t d2 = 4095 - readRectangleAdc(otherCol, otherRow, READ_Z);
+  r = max(r, r2); k = max(k, k2); d = max(d, d2);
+  if (classify(measure(z, r, k, d), stripBounds(col, otherCol, row, otherRow, NUMCOLS)) == present)
+    return present;
+
+  byte idleRow = 0;
+  while (idleRow < NUMROWS && (idleRow == row || idleRow == otherRow || colsInRowsTouched[idleRow])) ++idleRow;
+  if (idleRow == NUMROWS) return inconclusive;
+  uint16_t openZ = 4095 - readRectangleAdc(col, idleRow, READ_Z);
+  Verdict x = rectangleAxis(col, row, otherCol, row, READ_X, z, r, openZ);
+  if (x == present) return present;
+  Verdict y = rectangleAxis(col, row, col, otherRow, READ_Y, z, k, openZ);
+  if (y == present) return present;
+  return x == absent && y == absent ? absent : inconclusive;
+}
+
 inline short applyRawZBias(short rawZ) {
   // apply the bias for each column, we also raise the baseline values to make the highest points just as sensitive and the lowest ones more sensitive
   return rawZ = (rawZ * Z_BIAS_MULTIPLIER) / Z_BIAS[sensorRow][sensorCol];
