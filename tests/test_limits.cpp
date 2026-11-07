@@ -36,15 +36,15 @@ TEST(limits_take_three_touches_in_a_column_unless_lifted) {
   }
 }
 
-TEST(limits_silence_the_fourth_corner_of_a_rectangle_unless_lifted) {
+TEST(limits_reject_an_unresolved_rectangle_unless_lifted) {
   for (bool lifted : { false, true }) {
     linn::reset();
     sensorLimitsLifted = lifted;
-    linn::press(2, 2, 2000, 2000, 400);
-    linn::press(6, 2, 2000, 2000, 400);
-    linn::press(2, 5, 2000, 2000, 400);
+    linn::press(2, 2, 2000, 2000, 900);
+    linn::press(6, 2, 2000, 2000, 900);
+    linn::press(2, 5, 2000, 2000, 900);
     CHECK_EQ(limitNoteOns(), 3);
-    linn::press(6, 5, 2000, 2000, 900);
+    linn::press(6, 5, 0, 0, 352);
     CHECK_EQ(limitNoteOns(), lifted ? 1 : 0);
   }
 }

@@ -208,6 +208,28 @@ void transferToSameRowCell(byte col) {
   }
 }
 
+rectangleCircuit::Verdict measureRectangleContact(byte col, byte row, byte otherCol, byte otherRow);
+
+static rectangleCircuit::Verdict rectangleContact() {
+  using namespace rectangleCircuit;
+  if (cellsTouched < 4 || displayMode != displayNormal || sensorCol == 0 ||
+      controlModeActive || userFirmwareActive) return inconclusive;
+
+  // The three-contact series path is valid only for an isolated two-row,
+  // two-column component. Other fingers on unrelated strips are harmless.
+  uint32_t rows = rowsInColsTouched[sensorCol];
+  uint32_t cols = colsInRowsTouched[sensorRow];
+  uint32_t otherRows = rows & ~(1UL << sensorRow);
+  uint32_t otherCols = cols & ~(1UL << sensorCol);
+  if (!otherRows || (otherRows & (otherRows - 1)) ||
+      !otherCols || (otherCols & (otherCols - 1)) || (otherCols & 1)) return inconclusive;
+  byte otherRow = __builtin_ctz(otherRows);
+  byte otherCol = __builtin_ctz(otherCols);
+  if (rowsInColsTouched[otherCol] != rows || colsInRowsTouched[otherRow] != cols)
+    return inconclusive;
+  return measureRectangleContact(sensorCol, sensorRow, otherCol, otherRow);
+}
+
 boolean isPhantomTouchIndividual() {
   // when the device is calibrated we fully rely on the plausability of the X readings to determine
   // if a touch is a phantom touch or not
@@ -768,8 +790,10 @@ boolean handleXYZupdate() {
     case velocityCalculating:
       return true;
 
-    case velocityNew:
-      if (!sensorLimitsLifted && (isPhantomTouchIndividual() || isPhantomTouchContextual())) {
+    case velocityNew: {
+      rectangleCircuit::Verdict contact = sensorLimitsLifted ? rectangleCircuit::present : rectangleContact();
+      if (contact == rectangleCircuit::absent ||
+          (contact == rectangleCircuit::inconclusive && (isPhantomTouchIndividual() || isPhantomTouchContextual()))) {
         cellTouched(untouchedCell);
         return false;
       }
@@ -777,8 +801,16 @@ boolean handleXYZupdate() {
       // mark this as a valid new velocity and process it as such further down the method
       newVelocity = true;
       break;
+    }
 
     case velocityCalculated:
+      // Releasing one of four fingers can leave the open corner above the
+      // normal Z-release threshold. Use the usual debounced Note Off path.
+      if (!sensorLimitsLifted && sensorCell->hasNote() && sensorCell->isPastDebounceDelay() &&
+          rectangleContact() == rectangleCircuit::absent) {
+        handleTouchRelease();
+        return false;
+      }
       // velocity has been calculated, no need to short-circuit anymore and we can continue
       // with the main touch logic
       break;
