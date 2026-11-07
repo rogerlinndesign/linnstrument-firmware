@@ -152,3 +152,83 @@ TEST(phantom_circuit_uses_pressure_when_position_is_unavailable) {
              state ? rectangleCircuit::present : rectangleCircuit::inconclusive);
   }
 }
+
+// Two diamonds centred six columns apart. Their top/bottom pads are an isolated
+// rectangle; the four middle pads use different columns. This independent
+// nodal fixture has 14k/15.2k strips, an 8.2k pull-up, 82 ohm switch leads,
+// 8.2Mohm ADC leakage and contact conductance 10 in pull-up units. In the
+// four-contact frame, X is pulled over one pad inward despite every contact
+// being real. Values are simulated X,Y,inverted Z, not hardware captures.
+static const byte discoveryCols[] = {6,12,6,12,5,7,11,13};
+static const byte discoveryRows[] = {2,2,4,4,3,3,3,3};
+static void discoveryReset() {
+  linn::reset(128);
+  Device.calibrated = true;
+  Global.velocitySensitivity = velocityFixed;
+  Global.valueForFixedVelocity = 77;
+  Global.rowOffset = 12;
+  // Match the forward circuit's calibration exactly.
+  for (byte col = 1; col < NUMCOLS; ++col) {
+    for (byte row = 0; row < CALROWNUM; ++row) {
+      Device.calRows[col][row].fxdMeasuredX = (int64_t(FXD_FROM_INT(1))*4095*(2*col+1))/(2*17);
+      Device.calRows[col][row].fxdRatio = FXD_DIV(FXD_CALX_FULL_UNIT, (int64_t(FXD_FROM_INT(1))*4095)/17);
+    }
+    host::setSensor(col, 0, 0, 0, 4);
+  }
+  for (int i = 4; i < 8; ++i)
+    host::setSensor(discoveryCols[i], discoveryRows[i], 4095*(2*discoveryCols[i]+1)/(2*17), 2000, 900);
+}
+
+static void discoveryFrame(bool fourth) {
+  const uint16_t readings[2][4][3] = {
+    {{1570,1287,2142},{2997,1287,2224},{1570,2298,2080},{1568,1285,1290}},
+    {{1879,1506,2264},{2734,1473,2318},{1916,2054,2226},{2697,2086,2273}}
+  };
+  for (int i = 0; i < 4; ++i)
+    host::setSensor(discoveryCols[i], discoveryRows[i], readings[fourth][i][0],
+                    readings[fourth][i][1], readings[fourth][i][2]);
+}
+
+static void discoveryScan(bool reverse) {
+  for (int pass = 0; pass < 30; ++pass) {
+    for (int n = 0; n < 8; ++n) {
+      int i = reverse && n < 4 ? 3-n : n;
+      // Complete the velocity short circuit before scanning another pad.
+      for (int sample = 0; sample < 2*VELOCITY_TOTAL_SAMPLES; ++sample)
+        linn::scan(discoveryCols[i], discoveryRows[i]);
+    }
+  }
+}
+
+TEST(phantom_discovery_retries_rejected_corners_without_admitting_the_ghost) {
+  for (bool reverse : {false, true}) {
+    discoveryReset();
+    int previous = -1;
+    for (int state : {1,0,1,1,0}) {
+      discoveryFrame(state);
+      discoveryScan(reverse);
+      for (int i = 0; i < 8; ++i)
+        CHECK_EQ(cell(discoveryCols[i], discoveryRows[i]).hasNote(), i != 3 || state != 0);
+      int off = 0;
+      CHECK_EQ(phantomNoteOns(&off), previous == -1 ? 8 : state > previous ? 1 : 0);
+      CHECK_EQ(off, previous > state ? 1 : 0);
+      previous = state;
+    }
+  }
+}
+
+TEST(phantom_discovery_requires_sampled_isolated_sensor_state) {
+  discoveryReset();
+  discoveryFrame(true);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // unread cache
+  discoveryScan(false);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::present);
+  cell(6, 4).shouldRefreshZ = true;
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // pending sample
+  cell(6, 4).shouldRefreshZ = false;
+  linn::press(6, 6, 1566, 2000, 900);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // another strip
+}

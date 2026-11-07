@@ -146,3 +146,5 @@ limits_keep_the_settings_switches_away_from_a_playing_hand_unless_lifted	ls_hand
 limits_hold_back_the_pitch_of_a_light_touch_sharing_a_column_unless_lifted	ls_handleTouches.ino	  if ((sensorLimitsLifted || countTouchesInColumn() < 2 ||	  if ((countTouchesInColumn() < 2 ||
 phantom_circuit_detects_fourth_touch_and_release_on_both_models	ls_handleTouches.ino	rectangleContact() == rectangleCircuit::absent) {	false) {
 phantom_circuit_uses_pressure_when_position_is_unavailable	ls_sensor.ino	if (classify(measure(z, r, k, d), stripBounds(col, otherCol, row, otherRow, NUMCOLS)) == present)	if (false)
+phantom_discovery_retries_rejected_corners_without_admitting_the_ghost	ls_handleTouches.ino	return !sample.shouldRefreshZ && sample.currentRawZ &&	return sample.hasNote() && !sample.shouldRefreshZ && sample.currentRawZ &&
+phantom_discovery_requires_sampled_isolated_sensor_state	ls_handleTouches.ino	return !sample.shouldRefreshZ && sample.currentRawZ &&	return sample.currentRawZ &&

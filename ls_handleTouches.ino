@@ -210,22 +210,42 @@ void transferToSameRowCell(byte col) {
 
 rectangleCircuit::Verdict measureRectangleContact(byte col, byte row, byte otherCol, byte otherRow);
 
+// These are last-read sensor occupancy flags, not accepted musical touches.
+// A pending/unread sample cannot supply evidence. Ghost signals are included;
+// the settled circuit measurement still decides whether a contact is real.
+static boolean rectangleSampleActive(byte col, byte row) {
+  TouchInfo& sample = cell(col, row);
+  return !sample.shouldRefreshZ && sample.currentRawZ &&
+         (sample.featherTouch || sample.velocityZ || sample.pressureZ);
+}
+
+static uint32_t rectangleRows(byte col) {
+  uint32_t rows = 0;
+  for (byte row = 0; row < NUMROWS; ++row)
+    if (rectangleSampleActive(col, row)) rows |= 1UL << row;
+  return rows;
+}
+
+static uint32_t rectangleCols(byte row) {
+  uint32_t cols = 0;
+  for (byte col = 0; col < NUMCOLS; ++col)
+    if (rectangleSampleActive(col, row)) cols |= 1UL << col;
+  return cols;
+}
+
 static rectangleCircuit::Verdict rectangleContact() {
   using namespace rectangleCircuit;
-  if (cellsTouched < 4 || displayMode != displayNormal || sensorCol == 0 ||
+  if (displayMode != displayNormal || sensorCol == 0 ||
       controlModeActive || userFirmwareActive) return inconclusive;
-
-  // The three-contact series path is valid only for an isolated two-row,
-  // two-column component. Other fingers on unrelated strips are harmless.
-  uint32_t rows = rowsInColsTouched[sensorCol];
-  uint32_t cols = colsInRowsTouched[sensorRow];
+  uint32_t rows = rectangleRows(sensorCol);
+  uint32_t cols = rectangleCols(sensorRow);
   uint32_t otherRows = rows & ~(1UL << sensorRow);
   uint32_t otherCols = cols & ~(1UL << sensorCol);
   if (!otherRows || (otherRows & (otherRows - 1)) ||
       !otherCols || (otherCols & (otherCols - 1)) || (otherCols & 1)) return inconclusive;
   byte otherRow = __builtin_ctz(otherRows);
   byte otherCol = __builtin_ctz(otherCols);
-  if (rowsInColsTouched[otherCol] != rows || colsInRowsTouched[otherRow] != cols)
+  if (rectangleRows(otherCol) != rows || rectangleCols(otherRow) != cols)
     return inconclusive;
   return measureRectangleContact(sensorCol, sensorRow, otherCol, otherRow);
 }
