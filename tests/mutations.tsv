@@ -145,3 +145,5 @@ limits_cap_columns_on_shared_rows_and_outside_normal_play_unless_lifted	ls_handl
 limits_silence_the_fourth_corner_of_a_rectangle_unless_lifted	ls_handleTouches.ino	if (!sensorLimitsLifted && (isPhantomTouchIndividual() || isPhantomTouchContextual())) {	if ((isPhantomTouchIndividual() || isPhantomTouchContextual())) {
 limits_keep_the_settings_switches_away_from_a_playing_hand_unless_lifted	ls_handleTouches.ino	      if (!sensorLimitsLifted &&\n          sensorRow != SWITCH_1_ROW &&	      if (sensorRow != SWITCH_1_ROW &&
 limits_hold_back_the_pitch_of_a_light_touch_sharing_a_column_unless_lifted	ls_handleTouches.ino	  if ((sensorLimitsLifted || countTouchesInColumn() < 2 ||	  if ((countTouchesInColumn() < 2 ||
+column_retry_transfers_without_repress_or_extra_notes	linnstrument-firmware.ino	(sensorCell->columnLimited && displayMode == displayNormal &&	(false && displayMode == displayNormal &&
+column_retry_admits_after_the_old_pad_releases	linnstrument-firmware.ino	(sensorCell->columnLimited && displayMode == displayNormal &&	(false && displayMode == displayNormal &&

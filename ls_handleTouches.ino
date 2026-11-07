@@ -21,6 +21,7 @@ void cellTouched(TouchState state) {
   cellTouched(sensorCol, sensorRow, state);
 };
 void cellTouched(byte col, byte row, TouchState state) {
+  cell(col, row).columnLimited = false;
   // turn on the bit that correspond to the column and row of this cell,
   // this allows us to very quickly find other touched cells and detect
   // phantom key presses without having to evaluate every cell on the board
@@ -474,6 +475,10 @@ boolean handleNewTouch() {
                  (displayMode != displayNormal || userFirmwareActive || controlModeActive ||
                   colsInRowsTouched[sensorRow] != (int32_t)(1UL << sensorCol))) {
           cellTouched(ignoredCell);
+          // Retain the occupancy masks while allowing changing slide evidence
+          // to be reconsidered. Other ignored touches keep their usual lifetime.
+          sensorCell->columnLimited = displayMode == displayNormal &&
+            !controlModeActive && !userFirmwareActive;
         }
         // this is really a new touch without any relationship to an ongoing slide
         // however, it could be the low row and in certain situations it doesn't allow new touches

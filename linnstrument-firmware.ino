@@ -374,6 +374,7 @@ int :3;
   byte velocity:7;                           // velocity from 0 to 127
   boolean shouldRefreshZ:1;                  // indicate whether it's necessary to refresh Z
   byte velocityZ:7;                          // the Z value with velocity sensitivity
+  boolean columnLimited:1;                   // ignored by the column cap, eligible for a later handoff
 };
 TouchInfo touchInfo[MAXCOLS][MAXROWS];       // store as much touch information instances as there are cells
 
@@ -1453,7 +1454,10 @@ inline void modeLoopPerformance() {
 
     boolean canShortCircuit = false;
 
-    if (previousTouch != touchedCell && previousTouch != ignoredCell &&
+    if (previousTouch != touchedCell &&
+        (previousTouch != ignoredCell ||
+         (sensorCell->columnLimited && displayMode == displayNormal &&
+          !controlModeActive && !userFirmwareActive)) &&
         sensorCell->isMeaningfulTouch()) {                                       // if touched now but not before, it's a new touch
       canShortCircuit = handleNewTouch();
     }

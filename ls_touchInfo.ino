@@ -614,6 +614,7 @@ void TouchInfo::clearMusicalData() {
 }
 
 void TouchInfo::clearSensorData() {
+  columnLimited = false;
   initialX = INVALID_DATA;
   initialColumn = -1;
   quantizationOffsetX = 0;
