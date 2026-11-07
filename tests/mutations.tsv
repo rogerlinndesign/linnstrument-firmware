@@ -69,7 +69,7 @@ nrpn_ignores_out_of_range_values	ls_midi.ino	    case 246:\n      if (inRange(va
 nrpn_sets_left_handed_operation	ls_midi.ino	        Device.otherHanded = value;	        Device.otherHanded = !value;
 phantom_firmest_fourth_corner_is_real	ls_touchInfo.ino	  return hasNote() || currentRawZ > other;	  return true;
 phantom_needs_a_complete_rectangle	ls_handleTouches.ino	        if (rowsInColsTouched[touchedCol] & (int32_t)(1 << touchedRow)) {	        if (true) {
-phantom_fourth_corner_of_three_sounding_notes_does_not_sound	ls_handleTouches.ino	      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {	      if (false) {
+phantom_inconclusive_fourth_corner_falls_back_to_three_sounding_notes	ls_handleTouches.ino	(contact == rectangleCircuit::inconclusive && (isPhantomTouchIndividual() || isPhantomTouchContextual()))	false
 playing_moving_a_finger_sends_pitch_bend	ls_handleTouches.ino	        int pitch = valueX;	        int pitch = -valueX;
 serial_command_without_handshake_is_ignored	ls_serial.ino	  if (waitingForCommands) {	  if (true) {
 upgrade_copies_the_current_version_as_is	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (false) {
@@ -141,6 +141,10 @@ ufm_repeat_press_at_the_same_spot_sends_its_values_again	ls_handleTouches.ino	  
 midi_queue_drops_whole_messages_when_full_instead_of_lapping_itself	ls_midi.ino	  if (!midiOutQueue.hasRoom(4)) {	  if (false) {
 midi_through_forwards_a_sysex_and_nothing_after_it	ls_midi.ino	    while (!sysexOutQueue.empty() && Serial.availableForWrite()) {	    while (Serial.availableForWrite()) {
 limits_take_three_touches_in_a_column_unless_lifted	ls_handleTouches.ino	else if (!sensorLimitsLifted && countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {	else if (countTouchesInColumn() > MAX_TOUCHES_IN_COLUMN) {
-limits_silence_the_fourth_corner_of_a_rectangle_unless_lifted	ls_handleTouches.ino	if (!sensorLimitsLifted && (isPhantomTouchIndividual() || isPhantomTouchContextual())) {	if ((isPhantomTouchIndividual() || isPhantomTouchContextual())) {
+limits_reject_an_unresolved_rectangle_unless_lifted	ls_handleTouches.ino	sensorLimitsLifted ? rectangleCircuit::present : rectangleContact()	rectangleContact()
 limits_keep_the_settings_switches_away_from_a_playing_hand_unless_lifted	ls_handleTouches.ino	      if (!sensorLimitsLifted &&\n          sensorRow != SWITCH_1_ROW &&	      if (sensorRow != SWITCH_1_ROW &&
 limits_hold_back_the_pitch_of_a_light_touch_sharing_a_column_unless_lifted	ls_handleTouches.ino	  if ((sensorLimitsLifted || countTouchesInColumn() < 2 ||	  if ((countTouchesInColumn() < 2 ||
+phantom_circuit_detects_fourth_touch_and_release_on_both_models	ls_handleTouches.ino	rectangleContact() == rectangleCircuit::absent) {	false) {
+phantom_circuit_uses_pressure_when_position_is_unavailable	ls_sensor.ino	if (classify(measure(z, r, k, d), stripBounds(col, otherCol, row, otherRow, NUMCOLS)) == present)	if (false)
+phantom_discovery_retries_rejected_corners_without_admitting_the_ghost	ls_handleTouches.ino	return !sample.shouldRefreshZ && sample.currentRawZ &&	return sample.hasNote() && !sample.shouldRefreshZ && sample.currentRawZ &&
+phantom_discovery_requires_sampled_isolated_sensor_state	ls_handleTouches.ino	return !sample.shouldRefreshZ && sample.currentRawZ &&	return sample.currentRawZ &&

@@ -69,30 +69,166 @@ TEST(phantom_corner_with_a_note_counts_as_firm) {
   CHECK(isPhantomTouchContextual());
 }
 
-static int phantomNoteOns() {
+static int phantomNoteOns(int* noteOffs = nullptr) {
   linn::drainMidi();
   std::vector<uint8_t> out = host::serialOutput();
   host::clearSerialOutput();
   int n = 0;
+  if (noteOffs) *noteOffs = 0;
   for (size_t i = 0; i < out.size(); ++i) {
     if ((out[i] & 0xF0) == 0x90) ++n;
+    if (noteOffs && (out[i] & 0xF0) == 0x80) ++*noteOffs;
   }
   return n;
 }
 
-// the same geometry through real scans: three sounding corners make the fourth a phantom
-// whatever its pressure, since a corner with a note counts as firm, while a press anywhere
-// else still sounds
-TEST(phantom_fourth_corner_of_three_sounding_notes_does_not_sound) {
+// Unusable position readings fall back to the original phantom rule.
+TEST(phantom_inconclusive_fourth_corner_falls_back_to_three_sounding_notes) {
   linn::reset();
   Global.velocitySensitivity = velocityFixed;
   Global.valueForFixedVelocity = 77;
-  linn::press(2, 2, 2000, 2000, 400);
-  linn::press(6, 2, 2000, 2000, 400);
-  linn::press(2, 5, 2000, 2000, 400);
+  linn::press(2, 2, 2000, 2000, 900);
+  linn::press(6, 2, 2000, 2000, 900);
+  linn::press(2, 5, 2000, 2000, 900);
   CHECK_EQ(phantomNoteOns(), 3);
-  linn::press(6, 5, 2000, 2000, 900);
+  linn::press(6, 5, 0, 0, 352);
   CHECK_EQ(phantomNoteOns(), 0);
   linn::press(9, 5, 2000, 2000, 900);
   CHECK_EQ(phantomNoteOns(), 1);
+}
+
+
+// Independent nodal solution for 14k row strips, 15.2k column strips, an
+// 8.2k pull-up and 82 ohm switch leads, with contacts at pad centers.
+// Conductances in pull-up units are .18, .55, 1.1 and either 0 or .035.
+// The open corner still carries pressure well above the release threshold.
+TEST(phantom_circuit_detects_fourth_touch_and_release_on_both_models) {
+  const uint16_t fixture[2][2][4][3] = {
+    {{{1571,1288,556}, {2047,1288,1121}, {1571,2301,1474}, {1571,1288,381}},
+     {{1644,1442,631}, {2022,1343,1156}, {1586,2269,1494}, {1686,1532,479}}},
+    {{{1036,1288,562}, {1347,1288,1136}, {1036,2301,1519}, {1036,1288,386}},
+     {{1083,1441,638}, {1330,1343,1173}, {1045,2270,1538}, {1110,1530,485}}}
+  };
+  const byte cols[] = {6,8,6,8}, rows[] = {2,2,4,4};
+  for (int model = 0; model < 2; ++model) {
+    linn::reset(model == 0 ? 128 : 200);
+    Global.velocitySensitivity = velocityFixed;
+    Global.valueForFixedVelocity = 77;
+    for (int i = 0; i < 3; ++i) {
+      const uint16_t* pad = fixture[model][0][i];
+      linn::press(cols[i], rows[i], pad[0], pad[1], pad[2]);
+    }
+    CHECK_EQ(phantomNoteOns(), 3);
+    int previous = 0;
+    for (int state : {0, 1, 1, 0}) {
+      for (int i = 0; i < 4; ++i) {
+        const uint16_t* pad = fixture[model][state][i];
+        host::setSensor(cols[i], rows[i], pad[0], pad[1], pad[2]);
+      }
+      host::advanceMicros(100000);
+      for (int scan = 0; scan < 2 * VELOCITY_TOTAL_SAMPLES; ++scan) linn::scan(8, 4);
+      CHECK_EQ(cell(8, 4).hasNote(), state == 1);
+      int noteOffs = 0;
+      CHECK_EQ(phantomNoteOns(&noteOffs), state > previous ? 1 : 0);
+      CHECK_EQ(noteOffs, previous > state ? 1 : 0);
+      for (int i = 0; i < 3; ++i) CHECK(cell(cols[i], rows[i]).hasNote());
+      previous = state;
+    }
+  }
+}
+
+// Same circuit as above, conductances .08, .09, .10 and 0 or .30.
+// A strong fourth is distinguishable by Z even if no idle row is available
+// for a reference voltage. An ambiguous three-finger shape takes the fallback.
+TEST(phantom_circuit_uses_pressure_when_position_is_unavailable) {
+  linn::reset();
+  const byte cols[] = {6,8,6,8}, rows[] = {2,2,4,4};
+  const uint16_t z[2][4] = {{288,318,347,114}, {409,431,453,848}};
+  for (byte row = 0; row < NUMROWS; ++row)
+    if (row != 2 && row != 4) linn::touch(12, row, 500);
+  for (int state : {0, 1}) {
+    for (int i = 0; i < 4; ++i) host::setSensor(cols[i], rows[i], 0, 0, z[state][i]);
+    CHECK_EQ(measureRectangleContact(8, 4, 6, 2),
+             state ? rectangleCircuit::present : rectangleCircuit::inconclusive);
+  }
+}
+
+// Two diamonds centred six columns apart. Their top/bottom pads are an isolated
+// rectangle; the four middle pads use different columns. This independent
+// nodal fixture has 14k/15.2k strips, an 8.2k pull-up, 82 ohm switch leads,
+// 8.2Mohm ADC leakage and contact conductance 10 in pull-up units. In the
+// four-contact frame, X is pulled over one pad inward despite every contact
+// being real. Values are simulated X,Y,inverted Z, not hardware captures.
+static const byte discoveryCols[] = {6,12,6,12,5,7,11,13};
+static const byte discoveryRows[] = {2,2,4,4,3,3,3,3};
+static void discoveryReset() {
+  linn::reset(128);
+  Device.calibrated = true;
+  Global.velocitySensitivity = velocityFixed;
+  Global.valueForFixedVelocity = 77;
+  Global.rowOffset = 12;
+  // Match the forward circuit's calibration exactly.
+  for (byte col = 1; col < NUMCOLS; ++col) {
+    for (byte row = 0; row < CALROWNUM; ++row) {
+      Device.calRows[col][row].fxdMeasuredX = (int64_t(FXD_FROM_INT(1))*4095*(2*col+1))/(2*17);
+      Device.calRows[col][row].fxdRatio = FXD_DIV(FXD_CALX_FULL_UNIT, (int64_t(FXD_FROM_INT(1))*4095)/17);
+    }
+    host::setSensor(col, 0, 0, 0, 4);
+  }
+  for (int i = 4; i < 8; ++i)
+    host::setSensor(discoveryCols[i], discoveryRows[i], 4095*(2*discoveryCols[i]+1)/(2*17), 2000, 900);
+}
+
+static void discoveryFrame(bool fourth) {
+  const uint16_t readings[2][4][3] = {
+    {{1570,1287,2142},{2997,1287,2224},{1570,2298,2080},{1568,1285,1290}},
+    {{1879,1506,2264},{2734,1473,2318},{1916,2054,2226},{2697,2086,2273}}
+  };
+  for (int i = 0; i < 4; ++i)
+    host::setSensor(discoveryCols[i], discoveryRows[i], readings[fourth][i][0],
+                    readings[fourth][i][1], readings[fourth][i][2]);
+}
+
+static void discoveryScan(bool reverse) {
+  for (int pass = 0; pass < 30; ++pass) {
+    for (int n = 0; n < 8; ++n) {
+      int i = reverse && n < 4 ? 3-n : n;
+      // Complete the velocity short circuit before scanning another pad.
+      for (int sample = 0; sample < 2*VELOCITY_TOTAL_SAMPLES; ++sample)
+        linn::scan(discoveryCols[i], discoveryRows[i]);
+    }
+  }
+}
+
+TEST(phantom_discovery_retries_rejected_corners_without_admitting_the_ghost) {
+  for (bool reverse : {false, true}) {
+    discoveryReset();
+    int previous = -1;
+    for (int state : {1,0,1,1,0}) {
+      discoveryFrame(state);
+      discoveryScan(reverse);
+      for (int i = 0; i < 8; ++i)
+        CHECK_EQ(cell(discoveryCols[i], discoveryRows[i]).hasNote(), i != 3 || state != 0);
+      int off = 0;
+      CHECK_EQ(phantomNoteOns(&off), previous == -1 ? 8 : state > previous ? 1 : 0);
+      CHECK_EQ(off, previous > state ? 1 : 0);
+      previous = state;
+    }
+  }
+}
+
+TEST(phantom_discovery_requires_sampled_isolated_sensor_state) {
+  discoveryReset();
+  discoveryFrame(true);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // unread cache
+  discoveryScan(false);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::present);
+  cell(6, 4).shouldRefreshZ = true;
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // pending sample
+  cell(6, 4).shouldRefreshZ = false;
+  linn::press(6, 6, 1566, 2000, 900);
+  linn::select(12, 2);
+  CHECK_EQ(rectangleContact(), rectangleCircuit::inconclusive); // another strip
 }
