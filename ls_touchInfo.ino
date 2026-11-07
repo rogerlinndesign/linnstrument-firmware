@@ -566,10 +566,13 @@ boolean TouchInfo::hasNote() {
 
 void TouchInfo::clearAllPhantoms() {
   if (hasPhantoms()) {
-    cell(phantomCol1, phantomRow1).clearPhantoms();
-    cell(phantomCol2, phantomRow1).clearPhantoms();
-    cell(phantomCol1, phantomRow2).clearPhantoms();
-    cell(phantomCol2, phantomRow2).clearPhantoms();
+    // Clearing this cell also clears its coordinates, so retain all four first.
+    const byte col1 = phantomCol1, col2 = phantomCol2;
+    const byte row1 = phantomRow1, row2 = phantomRow2;
+    cell(col1, row1).clearPhantoms();
+    cell(col2, row1).clearPhantoms();
+    cell(col1, row2).clearPhantoms();
+    cell(col2, row2).clearPhantoms();
   }
 }
 
