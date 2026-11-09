@@ -28,7 +28,7 @@ test("the generated table holds every NRPN of midi.md but the query itself", () 
   assert.equal(table.parameters.filter((p) => p.group === "Split Left").length, 67);
   assert.equal(table.parameters.filter((p) => p.group === "Split Right").length, 67);
   assert.equal(table.tables.color.length, 12);
-  assert.equal(table.tables.switchAssignment.length, 18);
+  assert.equal(table.tables.switchAssignment.length, 20);
   assert.equal(table.tables.touchAnimation.length, 15);
 });
 
@@ -60,6 +60,8 @@ test("the value tables feed the color, animation and switch parameters within th
   assert.equal(by[32].options[0].label, "as set in Note Lights settings");
   assert.equal(by[61].options.length, 15);
   assert.equal(by[228].options[17].label, "Sequencer Mute");
+  assert.equal(by[228].max, 19);
+  assert.equal(by[228].options[19].label, "Transpose Up");
 });
 
 test("a query is NRPN 299 with the parameter as its value, a write adds the null RPN", () => {

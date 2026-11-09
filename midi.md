@@ -240,10 +240,10 @@ words, and the named values are written as `n: label` pairs in parentheses.
 | 225  | 0-1   | Global Accent Note Light A# (0: Off, 1: On)
 | 226  | 0-1   | Global Accent Note Light B (0: Off, 1: On)
 | 227  | 0-13  | Global Row Offset (only supports, 0: No overlap, 3 4 5 6 7 12: Intervals, 13: Guitar, 127: 0 offset)
-| 228  | 0-17  | Global Switch 1 Assignment, see the switch assignment values below
-| 229  | 0-17  | Global Switch 2 Assignment, see the switch assignment values below
-| 230  | 0-17  | Global Foot Left Assignment, see the switch assignment values below
-| 231  | 0-17  | Global Foot Right Assignment, see the switch assignment values below
+| 228  | 0-19  | Global Switch 1 Assignment, see the switch assignment values below
+| 229  | 0-19  | Global Switch 2 Assignment, see the switch assignment values below
+| 230  | 0-19  | Global Foot Left Assignment, see the switch assignment values below
+| 231  | 0-19  | Global Foot Right Assignment, see the switch assignment values below
 | 232  | 0-3   | Global Velocity Sensitivity (0: Low, 1: Medium, 2: High, 3: Fixed)
 | 233  | 0-2   | Global Pressure Sensitivity (0: Low, 1: Medium, 2: High)
 | 234  | 0-1   | Device MIDI I/O (0: MIDI Jacks, 1: USB)
@@ -352,4 +352,6 @@ Switch Assignment Values
 | 15    | Sequencer Next
 | 16    | Send MIDI Clock
 | 17    | Sequencer Mute
+| 18    | Transpose Down
+| 19    | Transpose Up
 
