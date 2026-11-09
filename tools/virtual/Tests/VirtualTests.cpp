@@ -1165,7 +1165,15 @@ void a_flash_kept_in_memory_keeps_the_tempo_it_plays_at() {
   for (int beat = 0; beat < 10 && std::abs(e.firmware().tempo() - 120) < 10; ++beat) clockAt(e, 100, 24, false);
   const uint8_t halt[] = { 0xfc };
   e.sendMidi(halt, 1);
+  // the engine takes its MIDI in on its own pace, so the ticks still on their way and the stop can
+  // move the tempo after this: it's read once it holds still
   int tempo = e.firmware().tempo();
+  for (int wait = 0; wait < 40; ++wait) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    int now = e.firmware().tempo();
+    if (now == tempo && wait >= 2) break;
+    tempo = now;
+  }
   CHECK(std::abs(tempo - 120) >= 10);
   e.stop();
   e.start(128);
