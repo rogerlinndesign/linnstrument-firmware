@@ -87,6 +87,8 @@ public:
   virtual int tempo() = 0;
   // MIDI the firmware has queued and not yet sent
   virtual bool midiPending() = 0;
+  // MIDI fed to the firmware that it hasn't read yet
+  virtual bool midiInPending() = 0;
 
   virtual Led led(int col, int row) = 0;
   virtual bool pulseOn(int display) = 0;
@@ -108,6 +110,16 @@ public:
   virtual bool footSwitchLatches(int which) = 0;
 
   virtual std::vector<uint8_t> flashImage() = 0;
+  // the flash as the firmware would store it now, with the settings it plays with, which it only
+  // stores on leaving a settings screen and the like; the flash itself when they're what it holds
+  virtual std::vector<uint8_t> liveFlashImage() = 0;
+  // the settings' size and where in the flash they're kept, which a firmware with another layout
+  // has others of
+  virtual size_t settingsSize() = 0;
+  virtual size_t settingsOffset() = 0;
+  // settings of another layout converted, as the Updater's restore does, into a firmware booted
+  // fresh; false when they can't be, which leaves the defaults
+  virtual bool upgradeSettings(const std::vector<uint8_t>& settings) = 0;
   virtual size_t flashSize() = 0;
   virtual const char* version() = 0;
 };

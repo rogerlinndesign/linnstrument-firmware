@@ -33,7 +33,7 @@ endif()
 
 set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 # how many engines can run the firmware at once, each with a copy of its own (Firmware.cmake);
-# one until an AUv3 needs eight
+# one unless more are asked for
 set(LINN_FIRMWARE_COPIES 1 CACHE STRING "Copies of the firmware compiled into the app")
 include(Firmware.cmake)
 linn_firmware(${REPO} ${LINN_FIRMWARE_COPIES})

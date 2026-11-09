@@ -61,8 +61,17 @@ The firmware keeps all of its state in globals, so each copy of it that runs at 
 compiled into a namespace of its own (`Firmware.cmake`, `Source/Firmware/FirmwareInstance.inc`)
 and reached through `firmware::Instance` in `Source/Firmware/FirmwareBridge.h`. An `Engine` takes
 a free copy when it's made. The app needs one, and `-DLINN_FIRMWARE_COPIES=8` compiles eight, for
-plugin hosts that open several instances; each copy adds about 700 KB. The firmware's own sources
-stay as they are.
+programs that run several engines at once; each copy adds about 700 KB. A copy booted again for
+another engine starts with the MIDI clock, the tempo and the selected NRPN and RPN a power up has,
+as the other globals that `setup()` never sets. An engine can open no virtual port
+(`virtualPorts`) and keep its flash in memory for the program that made it (`flashInFile`, `bootFlash`,
+`currentFlash()`). That flash holds the settings the firmware plays with, written in as
+`storeSettings()` would, since it only stores them on leaving a settings screen; a fresh flash
+whose settings are still its starting ones (`onFreshFlash`, read before anything else comes in)
+stays fresh. A flash saved by a firmware that kept its settings in another layout
+(`bootSettingsSize`, `bootSettingsOffset`) gives only its settings, converted as the Updater's
+restore converts them (`upgradeConfigurationSettings()`), into a fresh flash. The firmware's own
+sources stay as they are.
 
 Using it
 --------

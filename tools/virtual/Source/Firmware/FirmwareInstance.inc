@@ -69,6 +69,21 @@ public:
     midiCellRowCC = 0;
     controlModeActive = false;
     controlButton = -1;
+    // nor the MIDI clock, which a copy booted for another engine would otherwise still
+    // follow, waiting for ticks that never come
+    midiClockStatus = midiClockOff;
+    lastMidiClockTime = 0;
+    midiClockMessageCount = 0;
+    initialMidiClockMessageCount = 0;
+    receivedSongPositionPointer = false;
+    // and the parameter a data entry would change, which another engine's MIDI selected
+    lastRpnMsb = 127;
+    lastRpnLsb = 127;
+    lastNrpnMsb = 127;
+    lastNrpnLsb = 127;
+    // and the tempo a power up starts with, which a fresh flash writes into every project
+    fxd4CurrentTempo = FXD4_FROM_INT(120);
+    fxd4MidiTempoAverage = fxd4CurrentTempo;
 
     host::reset();
     host::useRealClock(true);
@@ -186,6 +201,7 @@ public:
   int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }
 
   bool midiPending() override { return !midiOutQueue.empty(); }
+  bool midiInPending() override { return Serial.available() > 0; }
 
   // OSVersion ends and OSVersionBuild starts with the dot the instrument's screen puts between them
   const char* version() override {
@@ -250,6 +266,31 @@ public:
 
   std::vector<uint8_t> flashImage() override {
     return std::vector<uint8_t>(dueFlashStorage.storage, dueFlashStorage.storage + LINN_FAKE_FLASH_SIZE);
+  }
+
+  // what writeSettingsToFlash() and storeSettings() would write, into a copy
+  std::vector<uint8_t> liveFlashImage() override {
+    std::vector<uint8_t> image = flashImage();
+    std::vector<uint8_t> live((const uint8_t*)&config, (const uint8_t*)&config + sizeof(Configuration));
+    unsigned short tempo = FXD4_TO_INT(fxd4CurrentTempo);
+    memcpy(live.data() + offsetof(Configuration, project) + offsetof(SequencerProject, tempo), &tempo, sizeof(tempo));
+    byte marker = image[SETTINGS_OFFSET];
+    uint8_t* slots = image.data() + SETTINGS_OFFSET + sizeof(unsigned long);
+    if (memcmp(slots + (marker == 0 ? 0 : sizeof(Configuration)), live.data(), sizeof(Configuration)) == 0) return image;
+    memcpy(slots + (marker == 0 ? sizeof(Configuration) : 0), live.data(), sizeof(Configuration));
+    image[SETTINGS_OFFSET] = marker == 0 ? 1 : 0;
+    return image;
+  }
+
+  size_t settingsSize() override { return sizeof(Configuration); }
+  size_t settingsOffset() override { return SETTINGS_OFFSET; }
+
+  bool upgradeSettings(const std::vector<uint8_t>& settings) override {
+    std::vector<uint8_t> copy(settings);
+    if (copy.empty() || !upgradeConfigurationSettings((int32_t)copy.size(), copy.data())) return false;
+    applyConfiguration();
+    storeSettings();
+    return true;
   }
 
   size_t flashSize() override {

@@ -105,6 +105,21 @@ public:
   std::function<void()> onFreshFlash;
   // where each model's flash is saved, the app's data folder unless set before start()
   juce::File flashFolder;
+  // an engine whose MIDI and settings the program that made it carries has no virtual port and no
+  // flash file: set before start(), it then boots with bootFlash, a fresh flash when that's
+  // empty, and keeps the flash there when it stops
+  bool virtualPorts = true;
+  bool flashInFile = true;
+  std::vector<uint8_t> bootFlash;
+  // the size and the place of the settings in bootFlash when a firmware with another layout saved
+  // it, or 0 for this one's; only its settings are then taken, converted
+  size_t bootSettingsSize = 0, bootSettingsOffset = 0;
+  // the same, from a thread other than the one that asks for currentFlash()
+  void setBootFlash(const std::vector<uint8_t>& image, size_t settingsSize = 0, size_t settingsOffset = 0);
+  // the flash a later boot would start from, from any thread, taken between two of the firmware's
+  // loops while it runs; without a file, with the settings the firmware plays with whether it
+  // stored them or not, and empty while a fresh flash has only its starting settings
+  std::vector<uint8_t> currentFlash();
 
   juce::String portName() const { return "Virtual LinnStrument"; }
   // the ports this engine plays out of and listens on, as the lists of MIDI inputs and outputs name
@@ -180,6 +195,15 @@ private:
   juce::CriticalSection outLock;
   std::deque<std::vector<uint8_t>> midiOut;
   std::vector<uint8_t> lastSavedFlash;
+  bool booted = false;
+  std::vector<uint8_t> bootedFrom;
+  std::vector<uint8_t> keptFlash();
+  // a fresh flash with its starting settings
+  std::vector<uint8_t> freshLive;
+  std::atomic<bool> flashWanted { false };
+  juce::CriticalSection flashLock;
+  juce::WaitableEvent flashTaken;
+  std::vector<uint8_t> takenFlash;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Engine)
 };

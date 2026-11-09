@@ -177,7 +177,7 @@ jobs:
       - name: Run its tests
         run: build/virtual/VirtualTests_artefacts/Release/VirtualTests
 
-      # two copies of the firmware in one program, as a plugin host with several instances needs:
+      # two copies of the firmware in one program, as a program running several engines at once needs:
       # they must still link, and two engines must run side by side without sharing state
       - name: Run its tests with two copies of the firmware
         run: |
