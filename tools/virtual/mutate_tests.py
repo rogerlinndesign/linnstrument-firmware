@@ -119,6 +119,7 @@ M = [
  ('Engine.cpp', '  if (image.empty() && !upgraded && onFreshFlash) onFreshFlash();', '  if (image.empty() && onFreshFlash) onFreshFlash();', 'another_layout'),
  ('Engine.cpp', '    bootSettingsSize = bootSettingsOffset = 0;\n', '', 'another_layout'),
  ('Engine.cpp', '  if (image.empty() && !upgraded && !flashInFile) {', '  if (image.empty() && !flashInFile) {', 'another_layout'),
+ ('Surface.cpp', '  return juce::Colour(0xff111111);', '  return juce::Colour(0xff2a2a2a);', 'reads_on_every_light'),
  ('Engine.cpp', '  else if (virtualPorts) text +=', '  else text +=', 'engine_without_ports'),
  ('Engine.cpp', '  return flashInFile ? instance->flashImage() : keptFlash();', '  return flashInFile ? instance->flashImage() : bootFlash;', 'whole_and_prompt'),
 ]

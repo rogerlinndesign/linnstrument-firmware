@@ -124,6 +124,10 @@ juce::Font Surface::labelFontOfHeight(float height) {
   return LinnLookAndFeel::boldFont(height).withExtraKerningFactor(0.04f);
 }
 
+juce::Colour Surface::switchInk() {
+  return juce::Colour(0xff111111);
+}
+
 juce::Colour Surface::ledColourFor(int color) {
   switch (color) {
     case 1: return juce::Colour(0xffff4a3d);
@@ -250,7 +254,7 @@ void Surface::paintPads(juce::Graphics& g) {
   // the printed label of each control switch, above it or, where the surface has it so, on it
   bool onSwitches = labelsOnSwitches();
   g.setFont(labelFontOfHeight(switchLabelHeight()));
-  g.setColour(onSwitches ? juce::Colour(0xff2a2a2a) : juce::Colour(0xffe6e6e6));
+  g.setColour(onSwitches ? switchInk() : juce::Colour(0xffe6e6e6));
   for (int row = 0; row < 8; ++row) {
     juce::Rectangle<float> label, sw;
     controlSlot(row, label, sw);

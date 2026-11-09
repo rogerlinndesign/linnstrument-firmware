@@ -64,6 +64,8 @@ public:
 
   // the colour a firmware LED colour number lights a pad with
   static juce::Colour ledColourFor(int color);
+  // the ink of a label printed on a switch, dark enough to read on its light in every colour
+  static juce::Colour switchInk();
 
   using Cell = TouchTracker::Cell;
   // the cell under a point, column 0 for the control switches, invalid outside them all

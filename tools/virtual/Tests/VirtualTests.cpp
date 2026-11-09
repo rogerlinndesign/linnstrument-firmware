@@ -572,6 +572,20 @@ void each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time() {
 }
 
 // Per-Split and Global Settings, and neither once Per-Split Settings is closed again
+// a label printed on a switch reads on its light in every colour the firmware gives it, at the
+// contrast small text needs (WCAG's 4.5:1)
+void a_switch_label_reads_on_every_light() {
+  auto luminance = [](juce::Colour c) {
+    auto part = [](juce::uint8 v) { double x = v / 255.0; return x <= 0.03928 ? x / 12.92 : std::pow((x + 0.055) / 1.055, 2.4); };
+    return 0.2126 * part(c.getRed()) + 0.7152 * part(c.getGreen()) + 0.0722 * part(c.getBlue());
+  };
+  double ink = luminance(Surface::switchInk());
+  for (int color : { 1, 2, 3, 4, 5, 6, 8, 9, 10, 11 }) {
+    double light = luminance(Surface::ledColourFor(color));
+    CHECK((juce::jmax(light, ink) + 0.05) / (juce::jmin(light, ink) + 0.05) >= 4.5);
+  }
+}
+
 void the_bridge_reports_which_settings_screen_is_up() {
   auto& e = engine();
   auto tap = [&e](int row) {
@@ -1331,6 +1345,7 @@ Suite bridge("Firmware bridge", {
   { "letting_go_lowers_the_pressure_before_the_note_ends", letting_go_lowers_the_pressure_before_the_note_ends },
   { "a_soft_press_rises_slowly_and_a_hard_one_at_once", a_soft_press_rises_slowly_and_a_hard_one_at_once },
   { "the_bridge_reports_which_settings_screen_is_up", the_bridge_reports_which_settings_screen_is_up },
+  { "a_switch_label_reads_on_every_light", a_switch_label_reads_on_every_light },
   { "each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time", each_copy_of_the_firmware_is_handed_to_one_engine_at_a_time },
   { "two_engines_run_their_own_firmware_side_by_side", two_engines_run_their_own_firmware_side_by_side },
   { "a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without", a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without },
