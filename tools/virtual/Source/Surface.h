@@ -74,6 +74,9 @@ public:
   virtual juce::Rectangle<float> padBounds(int col, int row) const;
   bool showsFocusRing() const { return hasKeyboardFocus(false) && keyboardNavigating; }
 
+  // the rounding of the control switches' corners, the pads' own unless they are drawn apart from them
+  virtual float switchCorner() const { return padSize * 0.09f; }
+
 protected:
   // The whole instrument, drawn to fit: case, panel, pads and name. Another way of showing the
   // pads overrides these: where everything goes, where a control switch and its label go (the

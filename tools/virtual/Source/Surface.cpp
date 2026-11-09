@@ -209,12 +209,13 @@ void Surface::paintPads(juce::Graphics& g) {
     for (int row = 0; row < 8; ++row) {
       auto pad = padBounds(col, row);
       if (pad.isEmpty()) continue;
+      float rounding = col == 0 ? switchCorner() : radius;
       firmware::Led led = engine.firmware().led(col, row);
       bool lit = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
       juce::Colour colour = lit ? ledColour(led.color) : juce::Colours::transparentBlack;
 
       g.setColour(padGrey);
-      g.fillRoundedRectangle(pad, radius);
+      g.fillRoundedRectangle(pad, rounding);
       if (lit) {
         // the same light as the console's: white hot centre, the colour, fading into the grey
         juce::ColourGradient glow(juce::Colours::white, pad.getCentreX(), pad.getCentreY(),
@@ -223,19 +224,19 @@ void Surface::paintPads(juce::Graphics& g) {
         glow.addColour(0.6, colour.interpolatedWith(padGrey, 0.45f));
         glow.addColour(0.85, padGrey);
         g.setGradientFill(glow);
-        g.fillRoundedRectangle(pad, radius);
+        g.fillRoundedRectangle(pad, rounding);
       }
       g.setColour(juce::Colour(0x4cffffff));
-      g.drawLine(pad.getX() + radius, pad.getBottom() - 0.5f, pad.getRight() - radius, pad.getBottom() - 0.5f, 1.0f);
+      g.drawLine(pad.getX() + rounding, pad.getBottom() - 0.5f, pad.getRight() - rounding, pad.getBottom() - 0.5f, 1.0f);
       if (col == 0) {
         g.setColour(juce::Colour(0x2e000000));
-        g.drawRoundedRectangle(pad.reduced(0.5f), radius, 1.0f);
+        g.drawRoundedRectangle(pad.reduced(0.5f), rounding, 1.0f);
       }
 
       Engine::TouchView touch;
       if (engine.touchAt(col, row, touch)) {
         g.setColour(juce::Colour(0x99000000));
-        g.drawRoundedRectangle(pad.reduced(2.0f), radius * 0.8f, 2.0f);
+        g.drawRoundedRectangle(pad.reduced(2.0f), rounding * 0.8f, 2.0f);
         // the fingertip, flattening as it presses harder
         float r = padSize * (0.11f + 0.16f * touch.pressure);
         float cx = pad.getX() + touch.xFraction * pad.getWidth(), cy = pad.getBottom() - touch.yFraction * pad.getHeight();
@@ -248,7 +249,7 @@ void Surface::paintPads(juce::Graphics& g) {
   }
   if (showsFocusRing() && focusCell.valid() && focusCell.col < columns && !padBounds(focusCell.col, focusCell.row).isEmpty()) {
     g.setColour(linn::accent);
-    g.drawRoundedRectangle(padBounds(focusCell.col, focusCell.row).expanded(1.5f), radius * 1.2f, 3.0f);
+    g.drawRoundedRectangle(padBounds(focusCell.col, focusCell.row).expanded(1.5f), (focusCell.col == 0 ? switchCorner() : radius) * 1.2f, 3.0f);
   }
 
   // the printed label of each control switch, above it or, where the surface has it so, on it
