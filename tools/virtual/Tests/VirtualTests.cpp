@@ -971,8 +971,18 @@ void an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files() {
   nrpn(e, 19, 24);
   const uint8_t store[] = { 0xb0, 23, 0 };
   e.sendMidi(store, sizeof(store));
-  std::vector<uint8_t> running;
-  CHECK(waitFor([&] { running = e.currentFlash(); return running.size() == firmware::flashSize(); }));
+  // read once the firmware has taken the store in, which a busy machine's engine may not have yet:
+  // it answers a query sent after the store only once it has
+  e.takeMidiOut();
+  nrpn(e, 299, 19);
+  bool answered = false;
+  CHECK(waitFor([&] {
+    for (auto& m : e.takeMidiOut()) answered = answered || (m.size() == 3 && (m[0] & 0xf0) == 0xb0 && m[1] == 98 && m[2] == 19);
+    return answered;
+  }));
+  CHECK(e.firmware().bendRange() == 24);
+  std::vector<uint8_t> running = e.currentFlash();
+  CHECK(running.size() == firmware::flashSize());
   e.stop();
   CHECK(e.bootFlash == running);
   CHECK(e.currentFlash() == running);
