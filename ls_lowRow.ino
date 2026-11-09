@@ -35,6 +35,13 @@ boolean lowRowCCXYZActive[NUMSPLITS];
 short lowRowInitialColumn[NUMSPLITS];
 short lastRestrikeColumn[NUMSPLITS];
 
+// slide smoothing state (used when Global.lowRowSlideFix is on)
+short lowRowSlideLastCol[NUMSPLITS];       // column active on last scan, to detect cell transitions
+short lowRowSlideCumulativeX[NUMSPLITS];   // accumulated X offset to bridge calibration gaps at cell handoffs
+short lowRowSlideLastSentX[NUMSPLITS];     // last X value output, used to compute correction at next handoff
+unsigned long lowRowSlideCellTransMs[NUMSPLITS]; // millis() of the most recent cell transition (for Y/Z gating)
+#define LOWROW_YZ_GATE_MS  20              // milliseconds to suppress Y/Z output after a cell transition
+
 inline boolean isLowRow() {
   if (sensorRow != 0) return false;
   if (Split[sensorSplit].lowRowMode == lowRowNormal) return false;
@@ -56,6 +63,10 @@ void initializeLowRowState() {
     lowRowCCXYZActive[split] = false;
     lowRowInitialColumn[split] = -1;
     lastRestrikeColumn[split] = 0;
+    lowRowSlideLastCol[split] = -1;
+    lowRowSlideCumulativeX[split] = 0;
+    lowRowSlideLastSentX[split] = 0;
+    lowRowSlideCellTransMs[split] = 0;
   }
 }
 
@@ -151,8 +162,23 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
           byte lowCol, highCol;
           getSplitBoundaries(sensorSplit, lowCol, highCol);
 
-          short xDelta = constrain((sensorCell->calibratedX() - sensorCell->initialX) >> 3, 0, 127);
+          short rawXDelta = constrain((sensorCell->calibratedX() - sensorCell->initialX) >> 3, 0, 127);
           short xPosition = calculateFaderValue(sensorCell->calibratedX(), faderLeft, faderLength);
+
+          // X continuity correction: when lowRowSlideFix is enabled and operating in
+          // delta (non-fader) mode, bridge calibration gaps at cell handoff boundaries
+          // so the output never jumps backward when the finger crosses to a new column.
+          short xDelta = rawXDelta;
+          if (Global.lowRowSlideFix) {
+            if (lowRowSlideLastCol[sensorSplit] != sensorCol) {
+              // cell transition: compute an additive offset so output resumes from last sent value
+              lowRowSlideCumulativeX[sensorSplit] = lowRowSlideLastSentX[sensorSplit] - rawXDelta;
+              lowRowSlideCellTransMs[sensorSplit] = millis();
+              lowRowSlideLastCol[sensorSplit] = sensorCol;
+            }
+            xDelta = constrain(rawXDelta + lowRowSlideCumulativeX[sensorSplit], 0, 127);
+            lowRowSlideLastSentX[sensorSplit] = xDelta;
+          }
 
           switch (Split[sensorSplit].lowRowMode)
           {
@@ -210,14 +236,25 @@ void handleLowRowState(boolean newVelocity, short pitchBend, short timbre, byte 
             }
             case lowRowCCXYZ:
             {
-              if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
+              // Y/Z gating: suppress Y and Z for LOWROW_YZ_GATE_MS after a cell transition
+              // to avoid spurious jumps while the finger straddles two sensors
+              boolean inTransition = Global.lowRowSlideFix &&
+                                     (millis() - lowRowSlideCellTransMs[sensorSplit]) < LOWROW_YZ_GATE_MS;
+
+              short xOut;
+              if (Split[sensorSplit].lowRowXYZAbsoluteX) {
+                xOut = calculateFaderValue(sensorCell->calibratedX(), lowCol, highCol - lowCol);
+              }
+              else if (Split[sensorSplit].lowRowCCXYZBehavior == lowRowCCFader) {
                 if (faderLength > 0) {
-                  sendLowRowCCXYZ(xPosition, timbre, pressure);
+                  sendLowRowCCXYZ(xPosition, inTransition ? SHRT_MAX : timbre, inTransition ? SHRT_MAX : pressure);
                 }
+                break;
               }
               else {
-                sendLowRowCCXYZ(xDelta, timbre, pressure);
+                xOut = xDelta;
               }
+              sendLowRowCCXYZ(xOut, inTransition ? SHRT_MAX : timbre, inTransition ? SHRT_MAX : pressure);
               break;
             }
           }
@@ -291,7 +328,9 @@ void sendLowRowCCXYZ(unsigned short x, short y, short z) {
     preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowY, y, false);
   }
 
-  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowZ, z, false);
+  if (z != SHRT_MAX) {
+    preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRowZ, z, false);
+  }
 }
 
 void handleLowRowRestrike() {
@@ -357,11 +396,17 @@ void lowRowStart() {
       break;
     case lowRowCCX:
       lowRowCCXActive[sensorSplit] = true;
+      lowRowSlideLastCol[sensorSplit] = sensorCol;
+      lowRowSlideCumulativeX[sensorSplit] = 0;
+      lowRowSlideLastSentX[sensorSplit] = 0;
       preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRow);
       startLowRowContinuousExpression();
       break;
     case lowRowCCXYZ:
       lowRowCCXYZActive[sensorSplit] = true;
+      lowRowSlideLastCol[sensorSplit] = sensorCol;
+      lowRowSlideCumulativeX[sensorSplit] = 0;
+      lowRowSlideLastSentX[sensorSplit] = 0;
       preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowX);
       preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowY);
       preResetLastMidiCC(sensorSplit, Split[sensorSplit].ccForLowRowZ);

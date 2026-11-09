@@ -41,16 +41,25 @@ void handleFaderTouch(boolean newVelocity, byte faderLeft, byte faderLength) {
 
     short value = -1;
 
-    // when the fader only spans one cell, it acts as a toggle
+    // when the fader only spans one cell, use pressure/Y as the value source.
+    // The value only updates while the finger is in the left 60% of the pad (X < 60%).
+    // Once the finger rolls right past 60% the last value is held, so you can release
+    // without the value dropping back to zero.
     if (faderLength == 0) {
-      if (newVelocity) {
-        if (ccFaderValues[sensorSplit][ccForFader] > 0) {
-          value = 0;
-        }
-        else {
-          value = 127;
+      // 60% of one cell width in calibratedX units (cell width = FXD_TO_INT(FXD_CALX_FULL_UNIT) = 170)
+      const short kSingleFaderHoldThreshold = 102;
+      short cellOffset = sensorCell->calibratedX() - FXD_TO_INT(Device.calRows[sensorCol][0].fxdReferenceX);
+      if (cellOffset < kSingleFaderHoldThreshold) {
+        if (Split[sensorSplit].faderSingleColumnUseY) {
+          // Y axis: currentCalibratedY is already refreshed by handleYExpression()
+          value = sensorCell->currentCalibratedY;
+        } else {
+          // Z axis: fxdPrevPressure is already smoothed by handleZExpression()
+          value = scale1016to127(FXD_TO_INT(sensorCell->fxdPrevPressure), true);
         }
       }
+      // when cellOffset >= threshold, value stays -1 and nothing is sent — the
+      // last-sent value persists in ccFaderValues until the finger moves back left
     }
     // otherwise it's a real fader and we calculate the value based on its position
     else {
