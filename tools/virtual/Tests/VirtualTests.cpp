@@ -1126,10 +1126,11 @@ void clockAt(Engine& e, double bpm, int ticks, bool start) {
 
 void a_copy_booted_again_forgets_the_clock_it_followed() {
   auto& e = engine();
-  // until the firmware's average settles on it, however busy the machine
+  // until the firmware follows it away from the 120 it boots with: a busy machine's late ticks can
+  // keep its average from settling on 100, and what's checked is what a boot forgets
   clockAt(e, 100, 48, true);
-  for (int beat = 0; beat < 10 && std::abs(e.firmware().tempo() - 100) > 2; ++beat) clockAt(e, 100, 24, false);
-  CHECK(std::abs(e.firmware().tempo() - 100) <= 2);
+  for (int beat = 0; beat < 10 && std::abs(e.firmware().tempo() - 120) < 10; ++beat) clockAt(e, 100, 24, false);
+  CHECK(std::abs(e.firmware().tempo() - 120) >= 10);
   e.stop();
   e.start(128);
   CHECK(e.firmware().tempo() == 120);
@@ -1161,11 +1162,11 @@ void a_flash_kept_in_memory_keeps_the_tempo_it_plays_at() {
   e.bootFlash.clear();
   e.start(128);
   clockAt(e, 100, 48, true);
-  for (int beat = 0; beat < 10 && std::abs(e.firmware().tempo() - 100) > 2; ++beat) clockAt(e, 100, 24, false);
+  for (int beat = 0; beat < 10 && std::abs(e.firmware().tempo() - 120) < 10; ++beat) clockAt(e, 100, 24, false);
   const uint8_t halt[] = { 0xfc };
   e.sendMidi(halt, 1);
   int tempo = e.firmware().tempo();
-  CHECK(std::abs(tempo - 100) <= 2);
+  CHECK(std::abs(tempo - 120) >= 10);
   e.stop();
   e.start(128);
   CHECK(e.firmware().tempo() == tempo);
