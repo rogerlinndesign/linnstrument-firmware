@@ -197,10 +197,42 @@ void Surface::paintCase(juce::Graphics& g) {
 
 }
 
+void Surface::setDarkMaterial(bool on) {
+  if (on == dark) return;
+  dark = on;
+  repaint();
+}
+
+void Surface::paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float rounding, juce::Colour lit) {
+  if (lit.isTransparent()) {
+    g.setGradientFill(juce::ColourGradient(darkPadTop, 0, pad.getY(), darkPadFoot, 0, pad.getBottom(), false));
+    g.fillRoundedRectangle(pad, rounding);
+  }
+  else {
+    // the LED under the silicone: a white hot centre, its colour, fading into the dark
+    float reach = juce::jmax(pad.getWidth(), pad.getHeight()) * 0.72f;
+    juce::ColourGradient glow(juce::Colours::white, pad.getCentreX(), pad.getCentreY(), darkPadFoot, pad.getCentreX() + reach, pad.getCentreY(), true);
+    glow.addColour(0.06, juce::Colours::white.interpolatedWith(lit, 0.25f));
+    glow.addColour(0.3, lit);
+    glow.addColour(0.72, lit.interpolatedWith(darkPadFoot, 0.55f));
+    g.setGradientFill(glow);
+    g.fillRoundedRectangle(pad, rounding);
+  }
+  // the light along its top edge, the shade along its foot, as a raised pad catches them
+  g.setColour(juce::Colour(0x14ffffff));
+  g.drawLine(pad.getX() + rounding, pad.getY() + 0.75f, pad.getRight() - rounding, pad.getY() + 0.75f, 1.0f);
+  g.setColour(juce::Colour(0x59000000));
+  g.drawLine(pad.getX() + rounding, pad.getBottom() - 0.75f, pad.getRight() - rounding, pad.getBottom() - 0.75f, 1.5f);
+}
+
 void Surface::paintPads(juce::Graphics& g) {
-  // the plate the pads are raised out of
+  // the plate the pads are raised out of; in the dark material its rim around a dark face
   g.setColour(plateGrey);
   g.fillRoundedRectangle(padsArea.expanded(gap), padSize * 0.08f);
+  if (dark) {
+    g.setColour(darkFace);
+    g.fillRoundedRectangle(padsArea.expanded(gap * 0.45f), padSize * 0.07f);
+  }
 
   // the pads: grey plastic with the LED lighting the whole pad from below
   float radius = padCorner();
@@ -213,9 +245,12 @@ void Surface::paintPads(juce::Graphics& g) {
       bool lit = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
       juce::Colour colour = lit ? ledColour(led.color) : juce::Colours::transparentBlack;
 
+      if (dark) paintDarkPad(g, pad, rounding, colour);
+      else {
       g.setColour(padGrey);
       g.fillRoundedRectangle(pad, rounding);
-      if (lit) {
+      }
+      if (lit && !dark) {
         // the same light as the console's: white hot centre, the colour, fading into the grey
         juce::ColourGradient glow(juce::Colours::white, pad.getCentreX(), pad.getCentreY(),
                                   padGrey, pad.getCentreX() + padSize * 0.707f, pad.getCentreY(), true);
@@ -225,9 +260,11 @@ void Surface::paintPads(juce::Graphics& g) {
         g.setGradientFill(glow);
         g.fillRoundedRectangle(pad, rounding);
       }
-      g.setColour(juce::Colour(0x4cffffff));
-      g.drawLine(pad.getX() + rounding, pad.getBottom() - 0.5f, pad.getRight() - rounding, pad.getBottom() - 0.5f, 1.0f);
-      if (col == 0) {
+      if (!dark) {
+        g.setColour(juce::Colour(0x4cffffff));
+        g.drawLine(pad.getX() + rounding, pad.getBottom() - 0.5f, pad.getRight() - rounding, pad.getBottom() - 0.5f, 1.0f);
+      }
+      if (col == 0 && !dark) {
         g.setColour(juce::Colour(0x2e000000));
         g.drawRoundedRectangle(pad.reduced(0.5f), rounding, 1.0f);
       }
@@ -259,6 +296,12 @@ void Surface::paintPads(juce::Graphics& g) {
     juce::Rectangle<float> label, sw;
     controlSlot(row, label, sw);
     if (sw.isEmpty()) continue;
+    // on the dark material light on an unlit switch, dark on its light
+    if (dark && onSwitches) {
+      auto led = engine.firmware().led(0, row);
+      bool on = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
+      g.setColour(on ? switchInk() : juce::Colour(0xffe6e5e1));
+    }
     g.drawFittedText(switchLabel(row), label.toNearestInt(), onSwitches ? juce::Justification::centred : juce::Justification::centredBottom, 2, 1.0f);
   }
 }

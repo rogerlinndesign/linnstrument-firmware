@@ -37,6 +37,15 @@ public:
   static inline const juce::Colour nameplateGrey { 0xffcecec9 };
   // an unlit pad's grey plastic
   static inline const juce::Colour padGrey { 0xffc4c4c0 };
+  // the dark material: the face inside the plate's rim, an unlit pad's dark silicone top and foot,
+  // and a cell with no function, a recess with no pad
+  static inline const juce::Colour darkFace { 0xff121211 }, darkPadTop { 0xff2e2d2b }, darkPadFoot { 0xff222120 }, darkRecess { 0xff0b0b0a };
+  // the pads and the switches in one dark silicone, the LEDs glowing through it, inside the plate's
+  // rim; or the instrument's grey plastic, as it is
+  void setDarkMaterial(bool dark);
+  bool darkMaterial() const { return dark; }
+  // a pad of the dark material, lit by a colour where it isn't transparent
+  static void paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float rounding, juce::Colour lit);
   explicit Surface(Engine& engine);
   ~Surface() override;
 
@@ -120,6 +129,7 @@ private:
   Cell focusCell;
   // the focus ring shows only while the keyboard moves it, never after a touch or a click
   bool keyboardNavigating = false;
+  bool dark = false;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Surface)
 };
