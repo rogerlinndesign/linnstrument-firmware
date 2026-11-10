@@ -1585,25 +1585,34 @@ void the_focus_ring_shows_only_while_the_keyboard_moves_it() {
 // JUCE's own test framework: one suite per part of the app; filter, when set, keeps only the
 // tests whose name contains it
 juce::String filter;
+// --shard K/N: every Nth test from the Kth, counted across the suites, so that N of these run side
+// by side share the tests out
+int shard = 0, shards = 1, counted = 0;
 
 class Suite : public juce::UnitTest {
 public:
   Suite(const juce::String& name, std::vector<Case> list) : juce::UnitTest(name, "Virtual LinnStrument"), cases(std::move(list)) {}
   int matching() const {
     int n = 0;
-    for (auto& c : cases) n += juce::String(c.name).contains(filter) ? 1 : 0;
+    for (size_t i = 0; i < cases.size(); ++i) n += wanted(i) ? 1 : 0;
     return n;
   }
   void runTest() override {
     current = this;
-    for (auto& c : cases) {
-      if (!juce::String(c.name).contains(filter)) continue;
+    for (size_t i = 0; i < cases.size(); ++i) {
+      auto& c = cases[i];
+      if (!wanted(i)) continue;
       beginTest(juce::String(c.name).replace("_", " "));
       c.run();
     }
   }
 
+  // the first of its tests' places among all of them
+  int first = 0;
+  int size() const { return (int) cases.size(); }
+
 private:
+  bool wanted(size_t i) const { return juce::String(cases[i].name).contains(filter) && (first + (int) i) % shards == shard; }
   std::vector<Case> cases;
 };
 
@@ -1686,20 +1695,38 @@ Suite pace("The instrument's pace", {
 
 }
 
-// runs every test, or with NAME only those whose name contains it, and fails on any failure
+// runs every test, or with NAME only those whose name contains it, or with --shard K/N its share,
+// and fails on any failure
 int main(int argc, char* argv[]) {
   juce::ScopedJuceInitialiser_GUI gui;
   LinnLookAndFeel lookAndFeel;
   juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
-  filter = argc > 1 ? argv[1] : "";
+  for (int i = 1; i < argc; ++i) {
+    juce::String arg(argv[i]);
+    if (arg == "--shard" && i + 1 < argc) {
+      juce::String part(argv[++i]);
+      shard = part.upToFirstOccurrenceOf("/", false, false).getIntValue();
+      shards = juce::jmax(1, part.fromFirstOccurrenceOf("/", false, false).getIntValue());
+    }
+    else filter = arg;
+  }
   juce::Array<juce::UnitTest*> chosen;
   int tests = 0;
+  for (auto* suite : { &fingers, &slides, &expression, &bridge, &pace, &surface }) {
+    suite->first = counted;
+    counted += suite->size();
+  }
   for (auto* suite : { &fingers, &slides, &expression, &bridge, &pace, &surface }) {
     if (suite->matching() == 0) continue;
     chosen.add(suite);
     tests += suite->matching();
   }
   if (chosen.isEmpty()) {
+    // a shard with nothing left to it has nothing to fail
+    if (shards > 1 && filter.isEmpty()) {
+      std::cout << "0 tests, 0 failed checks" << std::endl;
+      return 0;
+    }
     std::cout << "no test name contains " << filter << std::endl;
     return 1;
   }
