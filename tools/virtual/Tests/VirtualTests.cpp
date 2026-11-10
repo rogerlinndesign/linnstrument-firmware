@@ -912,6 +912,9 @@ void the_bridge_reads_and_edits_the_sequencers_notes() {
   nrpn(e, 35, 4);
   CHECK(waitFor([&f] { return f.screen() == firmware::sequencerScreen; }));
   int s = f.sequencerShown();
+  // from a known start, whatever the tests before left: stopped, Scales, nothing selected
+  e.onFirmware([s](firmware::Instance& i) { i.playSequencer(s, false); i.setSequencerView(s, 1); i.selectSequencerNote(s, -1, -1); });
+  CHECK(waitFor([&f, s] { auto st = f.sequencerState(s); return !st.running && st.view == 1 && st.selectedStep == -1; }));
   auto state = f.sequencerState(s);
   CHECK(s == f.shownSplit() && state.on && !state.running && state.view == 1 && state.selectedStep == -1);
   CHECK(f.sequencerPatterns() == 4 && f.sequencerSteps() == 32 && f.sequencerNotesPerStep() == 4 && f.sequencerStepsShown() == (f.model() == 200 ? 16 : 8));
@@ -1160,7 +1163,8 @@ void the_bridge_loads_saves_and_stores_projects() {
   bool slotsValid = true;
   for (int slot = 0; slot < 16; ++slot) slotsValid = slotsValid && f.sequencerProjectValid(f.storedProject(slot));
   CHECK(slotsValid && f.sequencerProjectValid(f.currentProject()) && !f.sequencerProjectValid({ 1, 2, 3 }));
-  e.onFirmware([s](firmware::Instance& i) { i.addSequencerNote(s, 0, 60, 1, 99, 0); i.setNrpn(238, 140); });
+  // on an empty pattern, whatever the tests before left on it
+  e.onFirmware([s](firmware::Instance& i) { i.clearSequencerPattern(s, i.sequencerState(s).pattern); i.addSequencerNote(s, 0, 60, 1, 99, 0); i.setNrpn(238, 140); });
   CHECK(waitFor([&f] { return f.tempo() == 140; }));
   auto played = f.currentProject();
   CHECK(f.projectTempo(played) == 140 && f.projectStep(played, s, f.sequencerState(s).pattern, 0)[0].note == 60);
