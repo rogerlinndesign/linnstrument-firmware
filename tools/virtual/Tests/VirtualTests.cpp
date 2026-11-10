@@ -232,6 +232,75 @@ void the_bridge_reports_a_settings_screen() {
   CHECK(waitFor([] { return !engine().firmware().showingSettings(); }));
 }
 
+void nrpn(Engine& e, int parameter, int value);
+
+// the split a screen shows, a program sent in, the volume slid on its screen, and the small font
+void the_bridge_reads_a_screens_values_and_the_small_font() {
+  auto& e = engine();
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  auto channels = e.firmware().noteChannels(0);
+  CHECK(!channels.empty());
+  const uint8_t change[] = { (uint8_t) (0xc0 | (channels[0] - 1)), 41 };
+  e.sendMidi(change, sizeof(change));
+  CHECK(waitFor([&e] { return e.firmware().program(0) == 42; }));
+  tap(0, 5);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::volumeScreen; }));
+  tap(16, 7);
+  CHECK(waitFor([&e] { return e.firmware().shownSplit() == 1; }));
+  tap(15, 7);
+  CHECK(waitFor([&e] { return e.firmware().shownSplit() == 0; }));
+  for (int col : { 1, e.firmware().columns() - 1 }) {
+    tap(col, 3);
+    CHECK(waitFor([&e, col] { return col == 1 ? e.firmware().volume(0) < 10 : e.firmware().volume(0) > 117; }));
+  }
+  tap(0, 5);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+  auto one = e.firmware().smallGlyph('1');
+  CHECK(one.width == 2 && one.rows.size() == 8);
+  const std::vector<std::string> drawn { "  ", " 0", "00", " 0", " 0", " 0", " 0", "  " };
+  CHECK(one.rows == drawn);
+  CHECK(e.firmware().smallGlyph('A').width > 0);
+  CHECK(e.firmware().smallGlyph('\x01').rows.empty());
+  // the colours a split and the global screens draw in, which the firmware sets over NRPN for a split
+  nrpn(e, 30, 9);
+  CHECK(waitFor([&e] { return e.firmware().mainColor(0) == 9; }));
+  nrpn(e, 30, 3);
+  CHECK(waitFor([&e] { return e.firmware().mainColor(0) == 3; }));
+  CHECK(e.firmware().settingsColor() == 5);
+}
+
+// a settings cell held times its hold as the firmware's handlers do, and stops when it acts: a
+// second on Per-Split Settings' MIDI MODE opens nothing but resets the split's MIDI settings
+void the_bridge_times_a_hold_as_the_firmware_does() {
+  auto& e = engine();
+  using Hold = firmware::Instance::Hold;
+  CHECK(e.firmware().holdDelay(Hold::sensor) == 300 && e.firmware().holdDelay(Hold::controlSwitch) == 500);
+  CHECK(e.firmware().holdDelay(Hold::confirm) == 800 && e.firmware().holdDelay(Hold::edit) == 1000);
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  CHECK(e.firmware().heldMillis(1, 7) == -1);
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::perSplitScreen; }));
+  e.press(1, 7, 0.5f, 0.5f);
+  CHECK(waitFor([&e] { return e.firmware().heldMillis(1, 7) >= 200; }));
+  int early = e.firmware().heldMillis(1, 7);
+  CHECK(early < 900);
+  CHECK(waitFor([&e] { return e.firmware().heldMillis(1, 7) == -1; }));
+  e.release(1, 7);
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
 std::vector<std::vector<uint8_t>> drained(Engine& e) {
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
   return e.takeMidiOut();
@@ -289,6 +358,226 @@ void configureMpe(Engine& e) {
     uint8_t m[] = { status, 101, 0, status, 100, 6, status, 6, 7, status, 38, 0, status, 101, 127, status, 100, 127 };
     e.sendMidi(m, sizeof(m));
   }
+}
+
+// a change made on the firmware's thread sets the bend range as the firmware's own screen does,
+// telling MPE synths of it, and holding ±24 for a second opens that screen
+void the_engine_sets_the_bend_range_as_its_screen_does() {
+  auto& e = engine();
+  configureMpe(e);
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  int before = e.firmware().bendRangeOf(0);
+  e.takeMidiOut();
+  e.onFirmware([](firmware::Instance& f) { f.setBendRange(0, 36); });
+  CHECK(waitFor([&e] { return e.firmware().bendRangeOf(0) == 36; }));
+  bool announced = false;
+  CHECK(waitFor([&] {
+    for (auto& m : e.takeMidiOut()) announced = announced || (m.size() == 3 && (m[0] & 0xf0) == 0xb0 && m[1] == 6 && m[2] == 36);
+    return announced;
+  }));
+  e.onFirmware([](firmware::Instance& f) { f.setBendRange(0, 97); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  CHECK(e.firmware().bendRangeOf(0) == 36);
+  auto tap = [&e](int col, int row, int millis) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(millis));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  CHECK(e.firmware().valueScreen() == firmware::Instance::ValueScreen::none);
+  tap(0, 7, 150);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::perSplitScreen; }));
+  tap(7, 4, 1300);
+  CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::bendRange; }));
+  // back to the grid as on the instrument: the split shown tapped again
+  tap(15 + e.firmware().shownSplit(), 7, 150);
+  CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::none && e.firmware().screen() == firmware::perSplitScreen; }));
+  tap(0, 7, 150);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+  e.onFirmware([before](firmware::Instance& f) { f.setBendRange(0, before); });
+  CHECK(waitFor([&e, before] { return e.firmware().bendRangeOf(0) == before; }));
+}
+
+// what the firmware answers an NRPN query (299) with, on the output of the engine
+int askNrpn(Engine& e, int parameter) {
+  e.takeMidiOut();
+  nrpn(e, 299, parameter);
+  int value = firmware::Instance::nrpnUnknown, at = -1, msb = 0;
+  waitFor([&] {
+    for (auto& m : e.takeMidiOut()) {
+      if (m.size() != 3 || (m[0] & 0xf0) != 0xb0) continue;
+      if (m[1] == 99) at = m[2] << 7;
+      else if (m[1] == 98 && at >= 0) at |= m[2];
+      else if (m[1] == 6) msb = m[2];
+      else if (m[1] == 38 && at == parameter) value = (msb << 7) | m[2];
+    }
+    return value != firmware::Instance::nrpnUnknown;
+  });
+  return value;
+}
+
+// a driver reads every setting as the firmware reports it and sets it as an NRPN does
+void the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do() {
+  auto& e = engine();
+  const int parameters[] = { 19, 24, 25, 26, 27, 28, 29, 39, 54, 55, 56, 57, 58, 59, 119, 125, 139, 154, 158, 159,
+                             227, 228, 229, 230, 231, 232, 239, 240, 241, 242, 249, 250, 251, 253,
+                             255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270 };
+  // away from the defaults, so that a read of the wrong field shows
+  const int changes[][2] = { { 25, 11 }, { 54, 7 }, { 158, 1 }, { 55, 99 }, { 59, 33 }, { 125, 2 }, { 154, 21 }, { 228, 9 }, { 230, 13 },
+                             { 229, 10 }, { 231, 12 }, { 239, 1 }, { 242, 1 }, { 255, 60 }, { 256, 61 }, { 257, 62 }, { 258, 63 },
+                             { 249, 5 }, { 250, 120 }, { 251, 77 }, { 253, 20 }, { 259, 66 }, { 262, 67 }, { 263, 31 }, { 270, 70 } };
+  std::vector<int> before;
+  for (auto& c : changes) before.push_back(e.firmware().nrpn(c[0]));
+  for (auto& c : changes) {
+    int p = c[0], v = c[1];
+    e.onFirmware([p, v](firmware::Instance& f) { f.setNrpn(p, v); });
+  }
+  CHECK(waitFor([&e] { return e.firmware().nrpn(270) == 70; }));
+  for (auto& c : changes) CHECK(e.firmware().nrpn(c[0]) == c[1]);
+  for (int p : parameters) {
+    int asked = askNrpn(e, p), read = e.firmware().nrpn(p);
+    CHECK(asked == read);
+    if (asked != read) std::cout << "NRPN " << p << ": the firmware answers " << asked << ", the bridge reads " << read << std::endl;
+  }
+  // out of range, as the firmware's checks have it, nothing changes
+  e.onFirmware([](firmware::Instance& f) { f.setNrpn(54, 128); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  CHECK(e.firmware().nrpn(54) == 7);
+  CHECK(e.firmware().nrpn(1000) == firmware::Instance::nrpnUnknown && e.firmware().nrpn(327) == firmware::Instance::nrpnUnknown);
+  for (size_t i = 0; i < before.size(); ++i) {
+    int p = changes[i][0], v = before[i];
+    e.onFirmware([p, v](firmware::Instance& f) { f.setNrpn(p, v); });
+  }
+  CHECK(waitFor([&] { return e.firmware().nrpn(270) == before.back(); }));
+  // Per-Split Settings' CC1 cell makes Y CC 1 while its stored CC stays 74, which a query answers as 1
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::perSplitScreen; }));
+  int split = e.firmware().shownSplit(), ccForY = split == 0 ? 25 : 125;
+  tap(9, 6);
+  CHECK(askNrpn(e, ccForY) == 1 && e.firmware().nrpn(ccForY) == 1);
+  tap(9, 5);
+  CHECK(waitFor([&] { return e.firmware().nrpn(ccForY) == 74; }));
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+  // Global Settings' SELECT SW, column 7, a row for each switch
+  tap(0, 0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::globalScreen; }));
+  for (int row : { 3, 1 }) {
+    tap(7, row);
+    CHECK(waitFor([&e, row] { return e.firmware().selectedSwitch() == row; }));
+  }
+  tap(7, 0);
+  tap(0, 0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
+// a switch set by its index as the Global Settings grid sets it, both pedals included, the same
+// assignment again switching it off
+void the_bridge_assigns_the_switches_as_the_grid_does() {
+  auto& e = engine();
+  int before[5], both[5], sustain[5], cc65[5];
+  for (int i = 0; i < 5; ++i) {
+    before[i] = e.firmware().switchAssignment(i);
+    both[i] = e.firmware().switchBothSplits(i);
+    sustain[i] = e.firmware().switchCC(i, true);
+    cc65[i] = e.firmware().switchCC(i, false);
+  }
+  e.onFirmware([](firmware::Instance& f) { f.assignSwitch(4, 9); f.setSwitchBothSplits(4, true); f.setSwitchCC(4, true, 70); f.setSwitchCC(4, false, 71); f.setSwitchCC(4, true, 128); });
+  CHECK(waitFor([&e] { return e.firmware().switchCC(4, false) == 71; }));
+  CHECK(e.firmware().switchAssignment(4) == 9 && e.firmware().switchBothSplits(4) && e.firmware().switchCC(4, true) == 70);
+  CHECK(e.firmware().switchAssignment(0) == before[0] && !e.firmware().switchBothSplits(0) && e.firmware().switchCC(0, true) == sustain[0]);
+  e.onFirmware([](firmware::Instance& f) { f.assignSwitch(4, 9); });
+  CHECK(waitFor([&e] { return e.firmware().switchAssignment(4) == 255; }));
+  e.onFirmware([](firmware::Instance& f) { f.assignSwitch(4, 20); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  CHECK(e.firmware().switchAssignment(4) == 255);
+  e.onFirmware([&before, &both, &sustain, &cc65](firmware::Instance& f) {
+    for (int i = 0; i < 5; ++i) {
+      int now = f.switchAssignment(i);
+      if (before[i] == 255 && now != 255) f.assignSwitch(i, now);
+      else if (now != before[i]) f.assignSwitch(i, before[i]);
+      f.setSwitchBothSplits(i, both[i]);
+      f.setSwitchCC(i, true, sustain[i]);
+      f.setSwitchCC(i, false, cc65[i]);
+    }
+  });
+  CHECK(waitFor([&] { return e.firmware().switchAssignment(3) == before[3] && e.firmware().switchCC(4, false) == cc65[4]; }));
+}
+
+// the sequencer's drum pages, opened from its settings, set the notes its drum rows play
+void the_bridge_reads_and_sets_the_drum_notes() {
+  auto& e = engine();
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  int special = e.firmware().nrpn(35);
+  nrpn(e, 35, 4);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerScreen; }));
+  int split = e.firmware().shownSplit();
+  CHECK(e.firmware().drumNote(split, 0) == 36 && e.firmware().drumNote(split, 2) == 37 && e.firmware().drumNote(split, 9) == 50);
+  tap(0, 3);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerProjectsScreen; }));
+  CHECK(e.firmware().valueScreen() == firmware::Instance::ValueScreen::none);
+  for (int page : { 7, 8 }) {
+    tap(page, 0);
+    CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::drumNotes; }));
+  }
+  e.onFirmware([split](firmware::Instance& f) { f.setDrumNote(split, 2, 40); f.setDrumNote(split, 3, 128); f.setDrumNote(split, 14, 41); });
+  CHECK(waitFor([&e, split] { return e.firmware().drumNote(split, 2) == 40; }));
+  CHECK(e.firmware().drumNote(split, 3) == 42);
+  e.onFirmware([split](firmware::Instance& f) { f.setDrumNote(split, 2, 37); });
+  CHECK(waitFor([&e, split] { return e.firmware().drumNote(split, 2) == 37; }));
+  tap(0, 3);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerScreen; }));
+  nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
+// an audience message's cell held for a second edits it; set one with the characters the instrument
+// can show, up to 30; one shown scrolls across the surface while the firmware animates
+void the_bridge_edits_and_shows_the_audience_messages() {
+  auto& e = engine();
+  auto tap = [&e](int col, int row, int millis) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(millis));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  // the big font's M reaches a row higher than the small font's, and only it has lower case
+  auto big = e.firmware().bigGlyph('M');
+  const std::vector<std::string> bigM { "     ", "0   0", "00 00", "0 0 0", "0   0", "0   0", "0   0", "     " };
+  CHECK(big.rows == bigM && e.firmware().bigGlyph('m').width > 0 && e.firmware().bigGlyph('\x01').rows.empty());
+  std::string before = e.firmware().audienceMessage(4);
+  tap(0, 0, 150);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::globalScreen; }));
+  tap(5, 7, 1300);
+  CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::audienceMessage; }));
+  CHECK(e.firmware().audienceMessageEdited() == 4 && e.firmware().audienceMessage(4) == before);
+  e.onFirmware([](firmware::Instance& f) { f.setAudienceMessage(4, "HELLO\x01 TOKYO\xc3\xa9"); f.setAudienceMessage(6, std::string(40, 'X')); });
+  CHECK(waitFor([&e] { return e.firmware().audienceMessage(4) == "HELLO TOKYO"; }));
+  CHECK(e.firmware().audienceMessage(6) == std::string(30, 'X'));
+  e.onFirmware([](firmware::Instance& f) { f.setAudienceMessage(6, ""); });
+  e.onFirmware([](firmware::Instance& f) { f.showAudienceMessage(4); });
+  CHECK(waitFor([&e] { return e.firmware().animating(); }));
+  // a column every 40 ms, a few seconds for a short message, more on a busy machine
+  bool ended = false;
+  for (int i = 0; i < 6 && !ended; ++i) ended = waitFor([&e] { return !e.firmware().animating(); });
+  CHECK(ended);
+  // leaving the screen as the settings button does keeps it
+  tap(0, 0, 150);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+  CHECK(e.firmware().audienceMessage(4) == "HELLO TOKYO" && e.firmware().audienceMessage(6).empty());
+  e.onFirmware([before](firmware::Instance& f) { f.setAudienceMessage(4, before); });
+  CHECK(waitFor([&e, before] { return e.firmware().audienceMessage(4) == before; }));
 }
 
 // pitch quantize pulls a resting finger to the middle of its pad, so it's off to see raw positions
@@ -1369,6 +1658,13 @@ Suite bridge("Firmware bridge", {
   { "two_engines_run_their_own_firmware_side_by_side", two_engines_run_their_own_firmware_side_by_side },
   { "a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without", a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without },
   { "an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files", an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files },
+  { "the_bridge_reads_a_screens_values_and_the_small_font", the_bridge_reads_a_screens_values_and_the_small_font },
+  { "the_bridge_times_a_hold_as_the_firmware_does", the_bridge_times_a_hold_as_the_firmware_does },
+  { "the_engine_sets_the_bend_range_as_its_screen_does", the_engine_sets_the_bend_range_as_its_screen_does },
+  { "the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do", the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do },
+  { "the_bridge_assigns_the_switches_as_the_grid_does", the_bridge_assigns_the_switches_as_the_grid_does },
+  { "the_bridge_reads_and_sets_the_drum_notes", the_bridge_reads_and_sets_the_drum_notes },
+  { "the_bridge_edits_and_shows_the_audience_messages", the_bridge_edits_and_shows_the_audience_messages },
   { "a_copy_booted_again_forgets_the_clock_it_followed", a_copy_booted_again_forgets_the_clock_it_followed },
   { "a_flash_kept_in_memory_keeps_the_tempo_it_plays_at", a_flash_kept_in_memory_keeps_the_tempo_it_plays_at },
   { "a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored", a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored },

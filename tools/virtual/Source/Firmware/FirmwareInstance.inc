@@ -178,8 +178,165 @@ public:
     }
   }
   bool cellHeld(int col, int row) override { return cell(col, row).touched != untouchedCell; }
+  int heldMillis(int col, int row) override {
+    auto& held = cell(col, row);
+    if (held.touched == untouchedCell || held.lastTouch == 0) return -1;
+    return (int) calcTimeDelta(millis(), held.lastTouch);
+  }
+  int holdDelay(Hold hold) override {
+    switch (hold) {
+      case Hold::sensor: return SENSOR_HOLD_DELAY;
+      case Hold::controlSwitch: return SWITCH_HOLD_DELAY;
+      case Hold::confirm: return CONFIRM_HOLD_DELAY;
+      case Hold::edit: return EDIT_MODE_HOLD_DELAY;
+    }
+    return 0;
+  }
   bool sequencerNoteSelected() override { return seqState[Global.currentPerSplit].hasFocusEvent(); }
   int bendRange() override { return getBendRange(LEFT); }
+  ValueScreen valueScreen() override {
+    switch (displayMode) {
+      case displayBendRange: return ValueScreen::bendRange;
+      case displayLimitsForY: return ValueScreen::limitsForY;
+      case displayCCForY: return ValueScreen::ccForY;
+      case displayInitialForRelativeY: return ValueScreen::initialForRelativeY;
+      case displayLimitsForZ: return ValueScreen::limitsForZ;
+      case displayCCForZ: return ValueScreen::ccForZ;
+      case displayRowOffset: return ValueScreen::rowOffset;
+      case displayGuitarTuning: return ValueScreen::guitarTuning;
+      case displayCCForSwitchSustain: return ValueScreen::ccForSwitchSustain;
+      case displayCCForSwitchCC65: return ValueScreen::ccForSwitchCC65;
+      case displayCustomSwitchAssignment: return ValueScreen::switchAssignment;
+      case displayLimitsForVelocity: return ValueScreen::limitsForVelocity;
+      case displayValueForFixedVelocity: return ValueScreen::valueForFixedVelocity;
+      case displaySequencerDrum0107: case displaySequencerDrum0814: return ValueScreen::drumNotes;
+      case displayEditAudienceMessage: return ValueScreen::audienceMessage;
+      default: return ValueScreen::none;
+    }
+  }
+  int bendRangeOf(int split) override { return getBendRange(split); }
+  // as sendNrpnParameter() in ls_midi.ino reads them
+  int nrpn(int parameter) override {
+    int split = LEFT, p = parameter;
+    if (p >= 100 && p < 200) {
+      p -= 100;
+      split = RIGHT;
+    }
+    switch (p) {
+      case 19: return getBendRange(split);
+      case 24: return Split[split].sendY;
+      case 25: return Split[split].expressionForY == timbreCC1 ? 1 : Split[split].customCCForY;
+      case 26: return Split[split].relativeY;
+      case 27: return Split[split].sendZ;
+      case 28: return Split[split].expressionForZ;
+      case 29: return Split[split].customCCForZ;
+      case 39: return Split[split].expressionForY;
+      case 54: return Split[split].minForY;
+      case 55: return Split[split].maxForY;
+      case 56: return Split[split].minForZ;
+      case 57: return Split[split].maxForZ;
+      case 58: return Split[split].ccForZ14Bit;
+      case 59: return Split[split].initialRelativeY;
+    }
+    if (split == RIGHT) return firmware::Instance::nrpnUnknown;
+    switch (p) {
+      case 227: return Global.rowOffset;
+      case 228: return Global.switchAssignment[SWITCH_SWITCH_1];
+      case 229: return Global.switchAssignment[SWITCH_SWITCH_2];
+      case 230: return Global.switchAssignment[SWITCH_FOOT_L];
+      case 231: return Global.switchAssignment[SWITCH_FOOT_R];
+      case 232: return Global.velocitySensitivity;
+      case 239: return Global.switchBothSplits[3];
+      case 240: return Global.switchBothSplits[2];
+      case 241: return Global.switchBothSplits[0];
+      case 242: return Global.switchBothSplits[1];
+      case 249: return Global.minForVelocity;
+      case 250: return Global.maxForVelocity;
+      case 251: return Global.valueForFixedVelocity;
+      case 253: return Global.customRowOffset == -17 ? 33 : Global.customRowOffset + 16;
+      case 255: return Global.ccForSwitchCC65[SWITCH_FOOT_L];
+      case 256: return Global.ccForSwitchCC65[SWITCH_FOOT_R];
+      case 257: return Global.ccForSwitchCC65[SWITCH_SWITCH_1];
+      case 258: return Global.ccForSwitchCC65[SWITCH_SWITCH_2];
+      case 259: return Global.ccForSwitchSustain[SWITCH_FOOT_L];
+      case 260: return Global.ccForSwitchSustain[SWITCH_FOOT_R];
+      case 261: return Global.ccForSwitchSustain[SWITCH_SWITCH_1];
+      case 262: return Global.ccForSwitchSustain[SWITCH_SWITCH_2];
+    }
+    if (p >= 263 && p <= 270) return Global.guitarTuning[p - 263];
+    return firmware::Instance::nrpnUnknown;
+  }
+  int selectedSwitch() override { return switchSelect; }
+  int switchAssignment(int which) override { return which >= 0 && which < 5 ? Global.switchAssignment[which] : ASSIGNED_DISABLED; }
+  void assignSwitch(int which, int assignment) override {
+    if (which < 0 || which >= 5 || !inRange(assignment, ASSIGNED_OCTAVE_DOWN, MAX_ASSIGNED)) return;
+    // as the grid and the custom assignment screen do, which remembers one past tap tempo
+    if (assignment >= ASSIGNED_TAP_TEMPO) Global.customSwitchAssignment[which] = assignment;
+    Global.setSwitchAssignment(which, assignment, true);
+    updateDisplay();
+  }
+  bool switchBothSplits(int which) override { return which >= 0 && which < 5 && Global.switchBothSplits[which]; }
+  void setSwitchBothSplits(int which, bool both) override {
+    if (which < 0 || which >= 5) return;
+    Global.switchBothSplits[which] = both;
+    updateDisplay();
+  }
+  int switchCC(int which, bool sustain) override {
+    if (which < 0 || which >= 5) return 0;
+    return sustain ? Global.ccForSwitchSustain[which] : Global.ccForSwitchCC65[which];
+  }
+  void setSwitchCC(int which, bool sustain, int cc) override {
+    if (which < 0 || which >= 5 || !inRange(cc, 0, 127)) return;
+    (sustain ? Global.ccForSwitchSustain : Global.ccForSwitchCC65)[which] = cc;
+    updateDisplay();
+  }
+  std::string audienceMessage(int message) override {
+    if (message < 0 || message >= 16) return {};
+    std::string text(Device.audienceMessages[message]);
+    while (!text.empty() && text.back() == ' ') text.pop_back();
+    return text;
+  }
+  int audienceMessageEdited() override { return audienceMessageToEdit; }
+  void setAudienceMessage(int message, const std::string& text) override {
+    if (message < 0 || message >= 16) return;
+    // made whole first and copied in once, so that a read from another thread meets no half of it
+    std::string kept;
+    for (char c : text)
+      if (c >= ' ' && c <= '~') kept += c;
+    char made[31] = {};
+    int length = (int) kept.copy(made, 30);
+    // as the edit screen keeps the message it edits, every one of its 30 places filled
+    bool edited = displayMode == displayEditAudienceMessage && message == audienceMessageToEdit;
+    if (edited) {
+      for (int ch = length; ch < 30; ++ch) made[ch] = ' ';
+    }
+    memcpy(Device.audienceMessages[message], made, sizeof(made));
+    if (edited) audienceMessageLength = font_width_string(Device.audienceMessages[message], &bigFont) - NUMCOLS;
+    updateDisplay();
+  }
+  void showAudienceMessage(int message) override {
+    if (message < 0 || message >= 16) return;
+    clearDisplay();
+    big_scroll_text_flipped(Device.audienceMessages[message], Split[LEFT].colorMain);
+    updateDisplay();
+  }
+  bool animating() override { return animationActive; }
+  int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[drum]; }
+  void setDrumNote(int split, int drum, int note) override {
+    if (drum < 0 || drum >= 14 || !inRange(note, 0, 127)) return;
+    Project.sequencer[split].seqDrumNotes[drum] = note;
+    updateDisplay();
+  }
+  void setNrpn(int parameter, int value) override {
+    if (parameter == 299) return;
+    receivedNrpn(parameter, value, Split[parameter >= 100 && parameter < 200 ? RIGHT : LEFT].midiChanMain);
+  }
+  void setBendRange(int split, int semitones) override {
+    if (!inRange(semitones, 1, 96)) return;
+    applyBendRange(Split[split], semitones);
+    midiSendMpePitchBendRange(split);
+    updateDisplay();
+  }
   void liftSensorLimits(bool lifted) override { sensorLimitsLifted = lifted; }
   std::vector<int> noteChannels(int split) override {
     auto& s = Split[split];
@@ -199,6 +356,22 @@ public:
     return {};
   }
   int tempo() override { return FXD4_TO_INT(fxd4CurrentTempo); }
+  int shownSplit() override { return Global.currentPerSplit; }
+  int program(int split) override { return midiPreset[split] + 1; }
+  int volume(int split) override { return ccFaderValues[split][7]; }
+  int mainColor(int split) override { return Split[split].colorMain; }
+  int settingsColor() override { return globalColor; }
+  Glyph glyphOf(struct Font& font, char c) {
+    Glyph glyph;
+    const char* at = c != 0 ? strchr(font.chars, c) : nullptr;
+    if (at == nullptr) return glyph;
+    Character* character = font.data[at - font.chars];
+    glyph.width = character->width;
+    for (int row = 0; row < font.height; ++row) glyph.rows.emplace_back(character->data + row * character->width, character->width);
+    return glyph;
+  }
+  Glyph smallGlyph(char c) override { return glyphOf(smallFont, c); }
+  Glyph bigGlyph(char c) override { return glyphOf(bigFont, c); }
 
   bool midiPending() override { return !midiOutQueue.empty(); }
   bool midiInPending() override { return Serial.available() > 0; }

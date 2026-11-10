@@ -35,6 +35,8 @@ public:
   // the name alone, as the plate prints it, for a toolbar
   static juce::Image name(int model);
   static inline const juce::Colour nameplateGrey { 0xffcecec9 };
+  // an unlit pad's grey plastic
+  static inline const juce::Colour padGrey { 0xffc4c4c0 };
   explicit Surface(Engine& engine);
   ~Surface() override;
 
@@ -74,8 +76,10 @@ public:
   virtual juce::Rectangle<float> padBounds(int col, int row) const;
   bool showsFocusRing() const { return hasKeyboardFocus(false) && keyboardNavigating; }
 
-  // the rounding of the control switches' corners, the pads' own unless they are drawn apart from them
-  virtual float switchCorner() const { return padSize * 0.09f; }
+  // the rounding of a pad's corners, and of the control switches', the pads' own unless they are drawn
+  // apart from them
+  float padCorner() const { return padSize * 0.09f; }
+  virtual float switchCorner() const { return padCorner(); }
 
 protected:
   // The whole instrument, drawn to fit: case, panel, pads and name. Another way of showing the

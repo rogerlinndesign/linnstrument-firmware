@@ -97,6 +97,9 @@ public:
   // MIDI into the firmware as if it came in on the virtual port, and the MIDI it sent since the
   // last call (the newest keptMessages are kept), for a driver without a MIDI port of its own
   void sendMidi(const uint8_t* data, size_t length);
+  // a change to make in the firmware, made on its own thread between two of its loops, in the order
+  // asked, as its own touch handlers would make it; from any thread
+  void onFirmware(std::function<void(firmware::Instance&)> change);
   std::vector<std::vector<uint8_t>> takeMidiOut();
   static constexpr size_t keptMessages = 4096;
   // every message the firmware sends, on the firmware's thread; set it before start()
@@ -202,6 +205,8 @@ private:
   std::vector<uint8_t> freshLive;
   std::atomic<bool> flashWanted { false };
   juce::CriticalSection flashLock;
+  juce::CriticalSection changesLock;
+  std::vector<std::function<void(firmware::Instance&)>> changes;
   juce::WaitableEvent flashTaken;
   std::vector<uint8_t> takenFlash;
 

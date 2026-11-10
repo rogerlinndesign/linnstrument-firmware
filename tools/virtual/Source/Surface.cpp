@@ -34,7 +34,6 @@ const float switchWidthUnits = 0.78f;
 const float switchHeightUnits = 0.42f;
 // the silicone a mid grey and its grooves darker, as Roger Linn Design's pictures of the surface
 // draw them, so that a white LED shows against an unlit pad
-const juce::Colour padGrey(0xffc4c4c0);
 const juce::Colour plateGrey(0xff9d9d9a);
 const char* const colourNames[12] = { "off", "red", "yellow", "green", "cyan", "blue", "magenta", "off", "white", "orange", "lime", "pink" };
 
@@ -204,7 +203,7 @@ void Surface::paintPads(juce::Graphics& g) {
   g.fillRoundedRectangle(padsArea.expanded(gap), padSize * 0.08f);
 
   // the pads: grey plastic with the LED lighting the whole pad from below
-  float radius = padSize * 0.09f;
+  float radius = padCorner();
   for (int col = 0; col < columns; ++col) {
     for (int row = 0; row < 8; ++row) {
       auto pad = padBounds(col, row);

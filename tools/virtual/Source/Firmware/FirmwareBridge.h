@@ -22,6 +22,7 @@ limitations under the License.
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace firmware {
@@ -74,6 +75,47 @@ public:
   virtual bool sequencerNoteSelected() = 0;
   // the left split's pitch bend range in semitones
   virtual int bendRange() = 0;
+  // the value screen a held settings cell has opened in place of the settings, none on any other
+  enum class ValueScreen { none, bendRange, limitsForY, ccForY, initialForRelativeY, limitsForZ, ccForZ, rowOffset, guitarTuning,
+                           ccForSwitchSustain, ccForSwitchCC65, switchAssignment, limitsForVelocity, valueForFixedVelocity, drumNotes,
+                           audienceMessage };
+  virtual ValueScreen valueScreen() = 0;
+  // a split's bend range, 1 to 96 semitones, and setting it as the firmware's bend range screen does
+  // on release, telling MPE synths of it in the same way
+  virtual int bendRangeOf(int split) = 0;
+  virtual void setBendRange(int split, int semitones) = 0;
+  // a setting by its NRPN number (midi.md), its value as the firmware reports it to an NRPN query, for
+  // the per-split expression and global settings listed in nrpn(), and setting it as an NRPN received
+  // does, range checks included;
+  // nrpnUnknown for another
+  static constexpr int nrpnUnknown = -1000000;
+  virtual int nrpn(int parameter) = 0;
+  virtual void setNrpn(int parameter, int value) = 0;
+  // the switch Global Settings' SELECT SW shows: 0 the left pedal, 1 the right one, 2 Switch 2,
+  // 3 Switch 1, 4 both pedals
+  virtual int selectedSwitch() = 0;
+  // a switch by that index, both pedals included, which no NRPN reaches: its assignment, set as the
+  // Global Settings grid sets it (the state of the one it had let go of, and the same one again
+  // switching it off); whether it acts on both splits; the CC its Sustain or CC 65 sends
+  virtual int switchAssignment(int which) = 0;
+  virtual void assignSwitch(int which, int assignment) = 0;
+  virtual bool switchBothSplits(int which) = 0;
+  virtual void setSwitchBothSplits(int which, bool both) = 0;
+  virtual int switchCC(int which, bool sustain) = 0;
+  virtual void setSwitchCC(int which, bool sustain, int cc) = 0;
+  // the note a split's sequencer plays for each of its 14 drum rows, from 0, and setting it as the
+  // sequencer's drum screens do
+  virtual int drumNote(int split, int drum) = 0;
+  virtual void setDrumNote(int split, int drum, int note) = 0;
+  // the 16 audience messages, without the spaces the edit screen pads one with; the one that screen
+  // edits, from 0; setting one, up to 30 of the characters from space to ~, padded again where it's
+  // the one the screen edits; and scrolling one across the surface for the audience, as a tap on its
+  // cell in Global Settings does, while which the firmware is animating
+  virtual std::string audienceMessage(int message) = 0;
+  virtual int audienceMessageEdited() = 0;
+  virtual void setAudienceMessage(int message, const std::string& text) = 0;
+  virtual void showAudienceMessage(int message) = 0;
+  virtual bool animating() = 0;
   // lifts the limits that guard against an instrument's sensor, for a touch screen that has none
   // of its cross talk or phantom touches: more than three touches in a column, the fourth corner
   // of a rectangle, the settings switches while notes are held and the pitch of light touches
@@ -85,6 +127,23 @@ public:
   // the tempo in beats per minute that the arpeggiator and the sequencer play at, tapped, set over
   // MIDI or followed from a MIDI clock
   virtual int tempo() = 0;
+  // the split the settings screens show and change, 0 the left one
+  virtual int shownSplit() = 0;
+  // a split's program, 1 to 128, and its MIDI volume (CC 7), 0 to 127
+  virtual int program(int split) = 0;
+  virtual int volume(int split) = 0;
+  // a split's main colour and the colour the global screens draw in, as the firmware's colour codes
+  virtual int mainColor(int split) = 0;
+  virtual int settingsColor() = 0;
+  // a character of the firmware's small font, the one its value screens show numbers in: its rows top
+  // first, a non-space for each lit dot; no rows for a character the font lacks
+  struct Glyph {
+    int width = 0;
+    std::vector<std::string> rows;
+  };
+  virtual Glyph smallGlyph(char c) = 0;
+  // the same of the big font, the one the audience messages scroll in
+  virtual Glyph bigGlyph(char c) = 0;
   // MIDI the firmware has queued and not yet sent
   virtual bool midiPending() = 0;
   // MIDI fed to the firmware that it hasn't read yet
@@ -102,6 +161,12 @@ public:
   // control switch, visited every eight scans, two visits without a touch, and a note at least
   // 35 ms from its start
   virtual bool cellHeld(int col, int row) = 0;
+  // how long the firmware has timed a cell's hold, in milliseconds from its touch, as its hold
+  // handlers do; -1 for a cell not held or whose hold the firmware has acted on and stopped timing
+  virtual int heldMillis(int col, int row) = 0;
+  // how long the firmware waits for each kind of hold before it acts
+  enum class Hold { sensor, controlSwitch, confirm, edit };
+  virtual int holdDelay(Hold hold) = 0;
 
   virtual void feedMidi(const uint8_t* data, size_t length) = 0;
   virtual void footSwitch(int which, bool down) = 0;

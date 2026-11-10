@@ -103,6 +103,11 @@ void Engine::stop() {
   midiOut.clear();
 }
 
+void Engine::onFirmware(std::function<void(firmware::Instance&)> change) {
+  const juce::ScopedLock lock(changesLock);
+  changes.push_back(std::move(change));
+}
+
 // The scan in slices with a pause after each, so that the firmware's continuous tasks, its MIDI
 // output among them, run spread over the scan as on the instrument instead of in one burst.
 void Engine::run() {
@@ -127,6 +132,12 @@ void Engine::run() {
     }
     start += std::chrono::microseconds((long long) length);
     held = advanceTouches(length / 1000.0);
+    std::vector<std::function<void(firmware::Instance&)>> due;
+    {
+      const juce::ScopedLock lock(changesLock);
+      due.swap(changes);
+    }
+    for (auto& change : due) change(*instance);
     if (flashWanted.exchange(false)) {
       takenFlash = flashInFile ? instance->flashImage() : keptFlash();
       flashTaken.signal();
