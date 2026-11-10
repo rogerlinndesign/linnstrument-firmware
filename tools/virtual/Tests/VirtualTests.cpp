@@ -419,13 +419,13 @@ int askNrpn(Engine& e, int parameter) {
 // a driver reads every setting as the firmware reports it and sets it as an NRPN does
 void the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do() {
   auto& e = engine();
-  const int parameters[] = { 19, 24, 25, 26, 27, 28, 29, 39, 54, 55, 56, 57, 58, 59, 119, 125, 139, 154, 158, 159,
+  const int parameters[] = { 19, 20, 24, 25, 26, 27, 28, 29, 39, 54, 55, 56, 57, 58, 59, 119, 125, 120, 139, 154, 158, 159,
                              227, 228, 229, 230, 231, 232, 239, 240, 241, 242, 249, 250, 251, 253,
                              255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270 };
   // away from the defaults, so that a read of the wrong field shows
   const int changes[][2] = { { 25, 11 }, { 54, 7 }, { 158, 1 }, { 55, 99 }, { 59, 33 }, { 125, 2 }, { 154, 21 }, { 228, 9 }, { 230, 13 },
                              { 229, 10 }, { 231, 12 }, { 239, 1 }, { 242, 1 }, { 255, 60 }, { 256, 61 }, { 257, 62 }, { 258, 63 },
-                             { 249, 5 }, { 250, 120 }, { 251, 77 }, { 253, 20 }, { 259, 66 }, { 262, 67 }, { 263, 31 }, { 270, 70 } };
+                             { 249, 5 }, { 250, 120 }, { 251, 77 }, { 253, 20 }, { 259, 66 }, { 262, 67 }, { 263, 31 }, { 120, 0 }, { 270, 70 } };
   std::vector<int> before;
   for (auto& c : changes) before.push_back(e.firmware().nrpn(c[0]));
   for (auto& c : changes) {
@@ -900,6 +900,347 @@ void the_bridge_reports_which_settings_screen_is_up() {
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::presetScreen; }));
   tap(6);
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
+// the sequencer's notes read and changed as its own touches change them: a new note in the first
+// empty place and selected, the oldest let go when the step is full, a quick tap's removal moving
+// the rest up, values kept in their ranges, a step cleared and copied, and the steps bar lit to match
+void the_bridge_reads_and_edits_the_sequencers_notes() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  int special = f.nrpn(35);
+  nrpn(e, 35, 4);
+  CHECK(waitFor([&f] { return f.screen() == firmware::sequencerScreen; }));
+  int s = f.sequencerShown();
+  auto state = f.sequencerState(s);
+  CHECK(s == f.shownSplit() && state.on && !state.running && state.view == 1 && state.selectedStep == -1);
+  CHECK(f.sequencerPatterns() == 4 && f.sequencerSteps() == 32 && f.sequencerNotesPerStep() == 4 && f.sequencerStepsShown() == (f.model() == 200 ? 16 : 8));
+  auto lengths = f.sequencerLengths();
+  CHECK(lengths.size() == 17 && lengths.front() == 1 && lengths[7] == 12 && lengths.back() == 96);
+  int p = state.pattern, size = f.sequencerPattern(s, p).stepSize;
+  auto colours = f.sequencerColours(s);
+  CHECK(f.led(3, 0).color == colours.empty);
+  e.onFirmware([s](firmware::Instance& i) { i.addSequencerNote(s, 2, 60, 3, 100, 70); });
+  CHECK(waitFor([&f, s, p] { return f.sequencerStep(s, p, 2)[0].used; }));
+  auto notes = f.sequencerStep(s, p, 2);
+  CHECK(notes[0].note == 60 && notes[0].velocity == 100 && notes[0].length == size && notes[0].timbre == 70 && notes[0].row == 3 && notes[0].fineTune == 0);
+  CHECK(!notes[1].used);
+  // never a second of the same note on the same row, as a touch on it would take it away instead,
+  // and never on the row the steps are on
+  auto asked = std::make_shared<std::atomic<bool>>(false);
+  e.onFirmware([s, asked](firmware::Instance& i) { i.addSequencerNote(s, 2, 60, 3, 50, 0); i.addSequencerNote(s, 2, 61, 0, 50, 0); asked->store(true); });
+  CHECK(waitFor([asked] { return asked->load(); }) && !f.sequencerStep(s, p, 2)[1].used && f.sequencerStep(s, p, 2)[0].velocity == 100);
+  state = f.sequencerState(s);
+  CHECK(state.selectedStep == 2 && state.selectedNote == 0 && f.sequencerNoteSelected());
+  CHECK(waitFor([&f, colours] { return f.led(3, 0).color == colours.withNotes; }));
+  // four more: the fifth lets the oldest go and takes the last place, selected
+  e.onFirmware([s](firmware::Instance& i) {
+    for (int n : { 62, 64, 65, 67 }) i.addSequencerNote(s, 2, n, 4, 300, 200);
+  });
+  CHECK(waitFor([&f, s, p] { return f.sequencerStep(s, p, 2)[3].note == 67; }));
+  notes = f.sequencerStep(s, p, 2);
+  CHECK(notes[0].note == 62 && notes[1].note == 64 && notes[2].note == 65 && notes[3].note == 67);
+  CHECK(notes[3].velocity == 127 && notes[3].timbre == 127 && f.sequencerState(s).selectedNote == 3);
+  // values within their ranges, and only the lengths the firmware offers
+  e.onFirmware([s](firmware::Instance& i) {
+    using V = firmware::Instance::NoteValue;
+    i.setSequencerNoteValue(s, 2, 1, V::velocity, 0);
+    i.setSequencerNoteValue(s, 2, 1, V::fineTune, -80);
+    i.setSequencerNoteValue(s, 2, 1, V::timbre, 33);
+    i.setSequencerNoteValue(s, 2, 1, V::length, 13);
+    i.setSequencerNoteValue(s, 2, 2, V::length, 18);
+  });
+  CHECK(waitFor([&f, s, p] { return f.sequencerStep(s, p, 2)[2].length == 18; }));
+  notes = f.sequencerStep(s, p, 2);
+  CHECK(notes[1].velocity == 1 && notes[1].fineTune == -50 && notes[1].timbre == 33 && notes[1].length == size);
+  // a note let go of moves the rest up; selecting none, a step, then a note
+  e.onFirmware([s](firmware::Instance& i) { i.removeSequencerNote(s, 2, 1); i.selectSequencerNote(s, -1, -1); });
+  CHECK(waitFor([&f, s, p] { return !f.sequencerStep(s, p, 2)[3].used; }));
+  notes = f.sequencerStep(s, p, 2);
+  CHECK(notes[0].note == 62 && notes[1].note == 65 && notes[2].note == 67 && f.sequencerState(s).selectedStep == -1);
+  e.onFirmware([s](firmware::Instance& i) { i.selectSequencerNote(s, 2, 1); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).selectedNote == 1; }));
+  // copied onto step 5, then step 2 cleared
+  e.onFirmware([s](firmware::Instance& i) { i.copySequencerStep(s, 2, 5); i.clearSequencerStep(s, 2); });
+  CHECK(waitFor([&f, s, p] { return !f.sequencerStep(s, p, 2)[0].used; }));
+  notes = f.sequencerStep(s, p, 5);
+  CHECK(notes[0].note == 62 && notes[2].note == 67 && !notes[3].used);
+  CHECK(f.sequencerState(s).selectedNote == -1 && waitFor([&f, colours] { return f.led(3, 0).color == colours.empty; }));
+  e.onFirmware([s](firmware::Instance& i) { i.clearSequencerStep(s, 5); i.selectSequencerNote(s, -1, -1); });
+  CHECK(waitFor([&f, s, p] { return !f.sequencerStep(s, p, 5)[0].used; }));
+  // a note sounded for a moment as a picked note sounds, its own end after it, and none for a note
+  // out of range
+  drained(e);
+  // a split transposed a fifth up, which the preview leaves out, as the note picked is the note heard
+  nrpn(e, 37 + 100 * s, 14);
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  e.onFirmware([s](firmware::Instance& i) { i.previewSequencerNote(s, 38, 96); i.previewSequencerNote(s, 128, 96); });
+  std::vector<std::vector<uint8_t>> heard;
+  int on = -1, off = -1;
+  auto judge = [&] {
+    on = off = -1;
+    for (size_t m = 0; m < heard.size(); ++m) {
+      auto& msg = heard[m];
+      if (msg.size() != 3) continue;
+      if ((msg[0] & 0xf0) == 0x90 && msg[2] > 0) on = on < 0 && msg[1] == 38 && msg[2] == 96 ? (int) m : 1000;
+      else if (((msg[0] & 0xf0) == 0x80 || (msg[0] & 0xf0) == 0x90) && msg[1] == 38) off = (int) m;
+    }
+  };
+  waitFor([&] {
+    for (auto& msg : e.takeMidiOut()) heard.push_back(msg);
+    judge();
+    return off > on && on >= 0;
+  });
+  // whatever the queue still held behind them
+  for (auto& msg : drained(e)) heard.push_back(msg);
+  judge();
+  nrpn(e, 37 + 100 * s, 7);
+  // a pad above the highest note has none: rows sixteen semitones apart, the octave's own offset
+  // replaced by a custom one
+  int rowOffset = f.nrpn(227), custom = f.nrpn(253);
+  nrpn(e, 253, 32);
+  nrpn(e, 227, 12);
+  CHECK(waitFor([&f] { return f.nrpn(227) == 12 && f.nrpn(253) == 32; }));
+  CHECK(f.padNote(s, 1, 7) == -1 && f.padNote(s, 1, 0) >= 0);
+  nrpn(e, 227, rowOffset);
+  nrpn(e, 253, custom);
+  CHECK(waitFor([&f, rowOffset, custom] { return f.nrpn(227) == rowOffset && f.nrpn(253) == custom; }));
+  CHECK(on >= 0 && on < 1000 && off > on);
+  nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
+  CHECK(waitFor([&f] { return f.screen() == firmware::noScreen; }));
+}
+
+// the patterns and their settings as the pattern selector, the step size cells, the navigation and
+// the muter set them, a pattern's data kept and given back, and the rows' notes per view
+void the_bridge_sets_the_sequencers_patterns_and_settings() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  int special = f.nrpn(35);
+  nrpn(e, 35, 4);
+  CHECK(waitFor([&f] { return f.screen() == firmware::sequencerScreen; }));
+  int s = f.sequencerShown(), first = f.sequencerState(s).pattern, other = (first + 1) % 4;
+  auto kept = f.sequencerPatternData(s, other);
+  CHECK(!kept.empty());
+  // scales from the scale's notes, drums from the drum notes
+  CHECK(f.sequencerRowNote(s, 0) == 48 && f.sequencerRowNote(s, 1) == 50 && f.sequencerRowNote(s, 7) == 60 && f.sequencerRowNote(s, 14) == -1);
+  e.onFirmware([s](firmware::Instance& i) { i.setSequencerView(s, 2); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).view == 2; }));
+  CHECK(f.sequencerRowNote(s, 0) == f.drumNote(s, 0) && f.sequencerRowNote(s, 6) == f.drumNote(s, 6));
+  e.onFirmware([s](firmware::Instance& i) { i.showSequencerPage(s, 0, 7); });
+  // the rows counted from the bottom of all of them whichever are shown
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).rowOffset == 7; }) && f.sequencerRowNote(s, 0) == f.drumNote(s, 0) && f.sequencerRowNote(s, 13) == f.drumNote(s, 13));
+  // the notes view selects the first step, as the view cells do
+  e.onFirmware([s](firmware::Instance& i) { i.showSequencerPage(s, 0, 0); i.setSequencerView(s, 0); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).view == 0; }) && f.sequencerState(s).selectedStep == 0 && f.sequencerRowNote(s, 0) == -1);
+  e.onFirmware([s](firmware::Instance& i) { i.setSequencerView(s, 1); i.selectSequencerNote(s, -1, -1); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).view == 1; }));
+  // the second page, only at a page's first step
+  int shown = f.sequencerStepsShown();
+  // only at a page's first step
+  auto settled = std::make_shared<std::atomic<bool>>(false);
+  e.onFirmware([s, shown, settled](firmware::Instance& i) { i.showSequencerPage(s, shown + 1, 0); settled->store(true); });
+  CHECK(waitFor([settled] { return settled->load(); }) && f.sequencerState(s).pageStart == 0);
+  e.onFirmware([s, shown](firmware::Instance& i) { i.showSequencerPage(s, shown, 0); });
+  CHECK(waitFor([&f, s, shown] { return f.sequencerState(s).pageStart == shown; }));
+  e.onFirmware([s](firmware::Instance& i) { i.showSequencerPage(s, 0, 0); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).pageStart == 0; }));
+  // a note on the other pattern, chosen while stopped at once, copied to the other split, cleared
+  e.onFirmware([s, other](firmware::Instance& i) { i.selectSequencerPattern(s, other); i.addSequencerNote(s, 0, 50, 1, 90, 0); });
+  CHECK(waitFor([&f, s, other] { return f.sequencerState(s).pattern == other && f.sequencerStep(s, other, 0)[0].used; }));
+  auto otherKept = f.sequencerPatternData(1 - s, 3);
+  e.onFirmware([s, other](firmware::Instance& i) { i.copySequencerPattern(s, other, 1 - s, 3); });
+  CHECK(waitFor([&f, s] { return f.sequencerStep(1 - s, 3, 0)[0].note == 50; }));
+  // its settings: step size with swing, a dotted size without, direction, loop and length
+  e.onFirmware([s](firmware::Instance& i) {
+    i.setSequencerStepSize(s, 6, true);
+    i.setSequencerDirection(s, 2);
+    i.setSequencerLoopPage(s, true);
+    i.setSequencerLength(s, 5);
+    i.setSequencerLength(s, 33);
+    i.setSequencerStepSize(s, 7, false);
+  });
+  CHECK(waitFor([&f, s, other] { return f.sequencerPattern(s, other).length == 5; }));
+  auto settings = f.sequencerPattern(s, other);
+  CHECK(settings.stepSize == 6 && settings.swing && settings.direction == 2 && settings.loopPage);
+  e.onFirmware([s](firmware::Instance& i) { i.setSequencerStepSize(s, 18, true); });
+  CHECK(waitFor([&f, s, other] { return f.sequencerPattern(s, other).stepSize == 18; }) && !f.sequencerPattern(s, other).swing);
+  // muted and running, as the muter and Play/Stop do, and a pattern chosen while running waits
+  e.onFirmware([s](firmware::Instance& i) { i.muteSequencer(s, true); i.playSequencer(s, true); });
+  // once its first step has played, before which a pattern chosen takes over at once
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).running && f.sequencerState(s).muted && f.sequencerState(s).position >= 0; }));
+  e.onFirmware([s, first](firmware::Instance& i) { i.selectSequencerPattern(s, first); });
+  CHECK(waitFor([&f, s, first] { return f.sequencerState(s).nextPattern == first; }) && f.sequencerState(s).pattern == other);
+  // where it plays next, as Switch 2 held with a step moves it, going forward
+  // the step it plays next is the one moved to, not the one after where it was
+  auto from = std::make_shared<std::atomic<int>>(-2);
+  e.onFirmware([s, from](firmware::Instance& i) {
+    i.setSequencerDirection(s, 0);
+    int at = i.sequencerState(s).position, to = (at + 3) % 5;
+    i.moveSequencerPlayhead(s, to);
+    from->store(at * 10 + to);
+  });
+  CHECK(waitFor([from] { return from->load() >= 0; }));
+  int was = from->load() / 10, to = from->load() % 10;
+  CHECK(waitFor([&f, s, was] { return f.sequencerState(s).position != was; }) && f.sequencerState(s).position == to && f.sequencerState(s).forward);
+  e.onFirmware([s](firmware::Instance& i) { i.playSequencer(s, false); i.muteSequencer(s, false); });
+  CHECK(waitFor([&f, s] { return !f.sequencerState(s).running && !f.sequencerState(s).muted; }));
+  // asked for what it already is, it stays so
+  auto asked = std::make_shared<std::atomic<bool>>(false);
+  e.onFirmware([s, asked](firmware::Instance& i) { i.muteSequencer(s, false); i.playSequencer(s, false); asked->store(true); });
+  CHECK(waitFor([asked] { return asked->load(); }) && !f.sequencerState(s).muted && !f.sequencerState(s).running);
+  // the data given back as it was, and the copy cleared
+  e.onFirmware([s, other, kept](firmware::Instance& i) { i.setSequencerPatternData(s, other, kept); i.clearSequencerPattern(1 - s, 3); });
+  CHECK(waitFor([&f, s, other, kept] { return f.sequencerPatternData(s, other) == kept; }));
+  CHECK(waitFor([&f, s] { return !f.sequencerStep(1 - s, 3, 0)[0].used; }));
+  e.onFirmware([s, otherKept](firmware::Instance& i) { i.setSequencerPatternData(1 - s, 3, otherKept); });
+  CHECK(waitFor([&f, s, otherKept] { return f.sequencerPatternData(1 - s, 3) == otherKept; }));
+  e.onFirmware([s, first](firmware::Instance& i) { i.selectSequencerPattern(s, first); });
+  CHECK(waitFor([&f, s, first] { return f.sequencerState(s).pattern == first; }));
+  // the other split shown, as a tap on SPLIT shows it, which has no sequencer on, then this one again
+  e.onFirmware([s](firmware::Instance& i) { i.showSequencerSplit(1 - s); });
+  CHECK(waitFor([&f, s] { return f.shownSplit() == 1 - s; }) && f.sequencerShown() == -1);
+  e.onFirmware([s](firmware::Instance& i) { i.showSequencerSplit(s); });
+  CHECK(waitFor([&f, s] { return f.sequencerShown() == s; }));
+  nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
+  CHECK(waitFor([&f] { return f.screen() == firmware::noScreen; }));
+}
+
+// a tap through the bridge timed as the Tap Tempo switch times it, the tempo shown at once on Global
+// Settings, as the switch shows it
+void the_bridge_taps_the_tempo_as_its_switch_does() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  int before = f.tempo();
+  auto tapCell = [&e](int row) {
+    e.press(0, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(0, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  std::this_thread::sleep_for(std::chrono::milliseconds(400));
+  tapCell(0);
+  CHECK(waitFor([&f] { return f.screen() == firmware::globalScreen; }));
+  auto lights = [&f] {
+    std::vector<int> all;
+    for (int col = 0; col < f.columns(); ++col)
+      for (int row = 0; row < 8; ++row) all.push_back(f.led(col, row).color * 16 + f.led(col, row).display);
+    return all;
+  };
+  e.onFirmware([](firmware::Instance& i) { i.setNrpn(238, 60); });
+  CHECK(waitFor([&f] { return f.tempo() == 60; }));
+  auto shown = lights();
+  for (int k = 0; k < 3; ++k) {
+    e.onFirmware([](firmware::Instance& i) { i.tapTempo(); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  }
+  CHECK(f.tempo() > 80 && lights() != shown);
+  e.onFirmware([before](firmware::Instance& i) { i.setNrpn(238, before); });
+  CHECK(waitFor([&f, before] { return f.tempo() == before; }));
+  tapCell(0);
+  CHECK(waitFor([&f] { return f.screen() == firmware::noScreen; }));
+}
+
+// the projects in the flash as the projects screen loads and saves them: the one played saved with
+// its tempo, loaded back with both sequencers stopped, another project stored in a slot with its
+// own tempo leaving the one played alone, and the one played given back with the slot it came from
+void the_bridge_loads_saves_and_stores_projects() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  int special = f.nrpn(35);
+  nrpn(e, 35, 4);
+  CHECK(waitFor([&f] { return f.screen() == firmware::sequencerScreen; }));
+  // none loaded, whatever an earlier test left
+  e.onFirmware([](firmware::Instance& i) { i.restoreSequencerProject(i.currentProject(), -1); });
+  CHECK(waitFor([&f] { return f.loadedProject() == -1; }));
+  int s = f.sequencerShown(), loaded = f.loadedProject(), tempo = f.tempo();
+  CHECK(f.sequencerProjects() == 16);
+  auto kept5 = f.storedProject(5), kept6 = f.storedProject(6);
+  CHECK(!kept5.empty());
+  // every slot as the firmware keeps it taken, never bytes it couldn't have stored
+  bool slotsValid = true;
+  for (int slot = 0; slot < 16; ++slot) slotsValid = slotsValid && f.sequencerProjectValid(f.storedProject(slot));
+  CHECK(slotsValid && f.sequencerProjectValid(f.currentProject()) && !f.sequencerProjectValid({ 1, 2, 3 }));
+  e.onFirmware([s](firmware::Instance& i) { i.addSequencerNote(s, 0, 60, 1, 99, 0); i.setNrpn(238, 140); });
+  CHECK(waitFor([&f] { return f.tempo() == 140; }));
+  auto played = f.currentProject();
+  CHECK(f.projectTempo(played) == 140 && f.projectStep(played, s, f.sequencerState(s).pattern, 0)[0].note == 60);
+  CHECK(f.projectPattern(played, s, 0).length == f.sequencerPattern(s, 0).length);
+  // a project with a pattern longer than the firmware's steps, a step size it doesn't have, a note
+  // on the steps' row or no tempo refused, the one played and the slot left as they were
+  {
+    size_t patternSize = f.sequencerPatternData(0, 0).size(), steps = (size_t) (f.sequencerSteps() * f.sequencerNotesPerStep() * 6);
+    size_t pattern = (size_t) s * (played.size() / 2 & ~(size_t) 3) + (size_t) f.sequencerState(s).pattern * patternSize;
+    auto bad = [&](std::function<void(std::vector<uint8_t>&)> spoil, std::function<bool(const std::vector<uint8_t>&)> spoilt) {
+      auto blob = played;
+      spoil(blob);
+      CHECK(spoilt(blob) && !f.sequencerProjectValid(blob));
+      return blob;
+    };
+    auto longer = bad([&](std::vector<uint8_t>& b) { b[pattern + steps + 10] = 40; }, [&](const std::vector<uint8_t>& b) { return f.projectPattern(b, s, f.sequencerState(s).pattern).length == 40; });
+    auto sizeless = bad([&](std::vector<uint8_t>& b) { b[pattern + steps] = 0; }, [&](const std::vector<uint8_t>& b) { return f.projectPattern(b, s, f.sequencerState(s).pattern).stepSize == 0; });
+    auto lowRow = bad([&](std::vector<uint8_t>& b) { b[pattern] &= 0xfe; b[pattern + 1] = 0; b[pattern + 2] &= 0x7f; }, [&](const std::vector<uint8_t>& b) { return f.projectStep(b, s, f.sequencerState(s).pattern, 0)[0].length == 0; });
+    // a note on the low row taken, which Notes view's painting can move it to
+    auto onLowRow = played;
+    onLowRow[pattern + 4] &= 0xfe;
+    onLowRow[pattern + 5] &= 0x3f;
+    CHECK(f.projectStep(onLowRow, s, f.sequencerState(s).pattern, 0)[0].row == 0 && f.sequencerProjectValid(onLowRow));
+    // the tempo's two bytes, wherever the padding puts them near the end
+    size_t at = played.size() - 2;
+    while (at > played.size() - 8 && !(played[at] == 140 && played[at + 1] == 0)) --at;
+    auto still = bad([&](std::vector<uint8_t>& b) { b[at] = b[at + 1] = 0; }, [&](const std::vector<uint8_t>& b) { return f.projectTempo(b) == 0; });
+    // a tempo taps or a MIDI clock took past the settings' 360 taken
+    auto fast = played;
+    fast[at] = (uint8_t) (365 & 0xff);
+    fast[at + 1] = (uint8_t) (365 >> 8);
+    CHECK(f.projectTempo(fast) == 365 && f.sequencerProjectValid(fast));
+    // the left split's first drum note, after its four patterns
+    bad([&](std::vector<uint8_t>& b) { b[4 * patternSize] = 200; }, [](const std::vector<uint8_t>&) { return true; });
+    auto data = f.sequencerPatternData(s, f.sequencerState(s).pattern), longPattern = data;
+    longPattern[steps + 10] = 40;
+    auto kept0 = f.storedProject(0);
+    e.onFirmware([longer, sizeless, lowRow, still, longPattern, s](firmware::Instance& i) {
+      i.storeSequencerProject(0, longer);
+      i.restoreSequencerProject(sizeless, 3);
+      i.restoreSequencerProject(lowRow, 3);
+      i.restoreSequencerProject(still, 3);
+      i.setSequencerPatternData(s, i.sequencerState(s).pattern, longPattern);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    CHECK(f.storedProject(0) == kept0 && f.currentProject() == played && f.loadedProject() == -1 && f.sequencerPatternData(s, f.sequencerState(s).pattern) == data);
+  }
+  // saved, then changed, then loaded back
+  e.onFirmware([](firmware::Instance& i) { i.saveSequencerProject(5); });
+  CHECK(waitFor([&f, played] { return f.storedProject(5) == played; }) && f.loadedProject() == loaded);
+  e.onFirmware([s](firmware::Instance& i) { i.clearSequencerPattern(s, i.sequencerState(s).pattern); i.setNrpn(238, 100); i.playSequencer(s, true); });
+  CHECK(waitFor([&f, s] { return f.tempo() == 100 && f.sequencerState(s).running; }));
+  auto other = f.currentProject();
+  e.onFirmware([](firmware::Instance& i) { i.loadSequencerProject(5); });
+  CHECK(waitFor([&f] { return f.loadedProject() == 5 && f.tempo() == 140; }));
+  CHECK(f.settingsVersion() == 17);
+  CHECK(f.currentProject() == played && !f.sequencerState(s).running);
+  // another project stored with its own tempo, the one played left as it was
+  e.onFirmware([other](firmware::Instance& i) { i.storeSequencerProject(6, other); });
+  CHECK(waitFor([&f, other] { return f.storedProject(6) == other; }) && f.projectTempo(f.storedProject(6)) == 100);
+  CHECK(f.currentProject() == played && f.tempo() == 140);
+  // a note selected let go of where the project loaded has none in its place, so that the step's
+  // faders never make one of nothing
+  int shownPattern = f.sequencerState(s).pattern;
+  e.onFirmware([s](firmware::Instance& i) { i.selectSequencerNote(s, 0, 0); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).selectedNote == 0; }));
+  e.onFirmware([](firmware::Instance& i) { i.loadSequencerProject(6); });
+  CHECK(waitFor([&f] { return f.loadedProject() == 6; }) && f.sequencerState(s).selectedNote == -1 && f.sequencerState(s).selectedStep == -1 && f.sequencerState(s).pattern == shownPattern);
+  e.onFirmware([played](firmware::Instance& i) { i.restoreSequencerProject(played, 5); });
+  CHECK(waitFor([&f, played] { return f.currentProject() == played; }));
+  e.onFirmware([s](firmware::Instance& i) { i.selectSequencerNote(s, 0, 0); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).selectedNote == 0; }));
+  // the one played before the load given back, with the slot it came from
+  e.onFirmware([other, loaded](firmware::Instance& i) { i.restoreSequencerProject(other, loaded); });
+  CHECK(waitFor([&f, other] { return f.currentProject() == other; }) && f.loadedProject() == loaded && f.tempo() == 100 && f.sequencerState(s).selectedNote == -1 && f.sequencerState(s).selectedStep == -1);
+  // the slots and the tempo as they were
+  e.onFirmware([kept5, kept6, tempo](firmware::Instance& i) { i.storeSequencerProject(5, kept5); i.storeSequencerProject(6, kept6); i.setNrpn(238, tempo); });
+  CHECK(waitFor([&f, kept5, kept6] { return f.storedProject(5) == kept5 && f.storedProject(6) == kept6; }));
+  nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
+  CHECK(waitFor([&f] { return f.screen() == firmware::noScreen; }));
 }
 
 // the sequencer has no screen of its own in the firmware: it takes over the playing display
@@ -1648,6 +1989,10 @@ Suite expression("Expression", {
 Suite bridge("Firmware bridge", {
   { "the_bridge_reports_a_settings_screen", the_bridge_reports_a_settings_screen },
   { "the_bridge_reports_the_sequencer_and_its_settings", the_bridge_reports_the_sequencer_and_its_settings },
+  { "the_bridge_reads_and_edits_the_sequencers_notes", the_bridge_reads_and_edits_the_sequencers_notes },
+  { "the_bridge_sets_the_sequencers_patterns_and_settings", the_bridge_sets_the_sequencers_patterns_and_settings },
+  { "the_bridge_loads_saves_and_stores_projects", the_bridge_loads_saves_and_stores_projects },
+  { "the_bridge_taps_the_tempo_as_its_switch_does", the_bridge_taps_the_tempo_as_its_switch_does },
   { "the_bridge_reports_the_bend_range", the_bridge_reports_the_bend_range },
   { "a_note_sent_on_a_splits_note_channel_lights_its_pads", a_note_sent_on_a_splits_note_channel_lights_its_pads },
   { "every_unit_is_calibrated", every_unit_is_calibrated },

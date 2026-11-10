@@ -127,6 +127,10 @@ public:
   // the tempo in beats per minute that the arpeggiator and the sequencer play at, tapped, set over
   // MIDI or followed from a MIDI clock
   virtual int tempo() = 0;
+  // a tap of the tempo, timed as a switch assigned to Tap Tempo times it; and whether the firmware
+  // follows a MIDI clock coming in, whose tempo it then plays at
+  virtual void tapTempo() = 0;
+  virtual bool followsMidiClock() = 0;
   // the split the settings screens show and change, 0 the left one
   virtual int shownSplit() = 0;
   // a split's program, 1 to 128, and its MIDI volume (CC 7), 0 to 127
@@ -173,6 +177,125 @@ public:
   // whether a foot switch's assignment stays on until switched off, as sustain or the arpeggiator
   // do, rather than acting once, as an octave or a preset change does
   virtual bool footSwitchLatches(int which) = 0;
+
+  // The step sequencer, one per split, read as it is and changed as its own screen changes it.
+  // Every change runs on the firmware's thread, between two of its loops.
+  // its sizes: patterns per split, steps per pattern, notes per step, and steps the surface shows
+  // at once (16 on a 200, 8 on a 128), which is one page
+  virtual int sequencerPatterns() = 0;
+  virtual int sequencerSteps() = 0;
+  virtual int sequencerNotesPerStep() = 0;
+  virtual int sequencerStepsShown() = 0;
+  // a note of a step: its MIDI note, velocity 1 to 127, length in 96ths of a whole note (one of
+  // sequencerLengths()), fine tune in cents, -50 to 50, timbre 0 to 127, and the row it was entered
+  // on, which together with its note tells it apart; none where the place is empty
+  struct SequencerNote {
+    bool used = false;
+    int note = 0, velocity = 0, length = 0, fineTune = 0, timbre = 0, row = 0;
+  };
+  // the 17 lengths a note can have, shortest first, in 96ths
+  virtual std::vector<int> sequencerLengths() = 0;
+  // a pattern's settings: its step size in 96ths (6 a sixteenth, 12 an eighth, 24 a quarter, with
+  // their dotted and triplet sizes), swing, direction (0 forward, 1 back, 2 ping-pong), looping the
+  // page shown, and its length, 1 to 32 steps
+  struct SequencerPattern {
+    int stepSize = 0, direction = 0, length = 0;
+    bool swing = false, loopPage = false;
+  };
+  virtual SequencerPattern sequencerPattern(int split, int pattern) = 0;
+  // a step's notes in their places, as many as sequencerNotesPerStep()
+  virtual std::vector<SequencerNote> sequencerStep(int split, int pattern, int step) = 0;
+  // a split's sequencer as it plays and shows: on its screen at all, running, muted, the pattern
+  // playing and the one queued after it (-1 for none), the step playing (-1 before the first),
+  // the first step of the page and the first row shown, the view (0 notes, 1 scales, 2 drums), the
+  // step and note selected (-1 for none), and whether ping-pong is going forward
+  struct SequencerState {
+    bool on = false, running = false, muted = false, forward = true;
+    int pattern = 0, nextPattern = -1, position = -1, pageStart = 0, rowOffset = 0, view = 0;
+    int selectedStep = -1, selectedNote = -1;
+  };
+  virtual SequencerState sequencerState(int split) = 0;
+  // the split whose sequencer the surface shows, or -1; and showing a split's, as a tap on SPLIT
+  // switches between them
+  virtual int sequencerShown() = 0;
+  virtual void showSequencerSplit(int split) = 0;
+  // the note a row of Scales or Drums plays, counted from the bottom of all fourteen whichever the
+  // surface shows; -1 for none
+  virtual int sequencerRowNote(int split, int row) = 0;
+  // the note a pad of a split plays, as Notes view's pads enter them; -1 for none
+  virtual int padNote(int split, int col, int row) = 0;
+  // the colours the sequencer draws a split in, as the firmware's colour codes: its main and accent
+  // colours, the playing step's, and a step's on the steps bar while empty, with notes and past the end
+  struct SequencerColours {
+    int main = 0, accent = 0, played = 0, lowRow = 0, empty = 0, withNotes = 0, beyond = 0;
+  };
+  virtual SequencerColours sequencerColours(int split) = 0;
+  // a new note on a step of the pattern playing, where the firmware's own touch puts one: in the
+  // first empty place, or in the last with the oldest let go when the step is full, then selected;
+  // its velocity and timbre given, its length the pattern's step size; none where the step has that
+  // note on that row already, rows from 1. The step's notes are edited, selected and the view
+  // changed only while the split's sequencer is the one shown, as on the instrument
+  virtual void addSequencerNote(int split, int step, int note, int row, int velocity, int timbre) = 0;
+  // a step's note let go of, those after it moving up a place, as a quick tap on it does
+  virtual void removeSequencerNote(int split, int step, int place) = 0;
+  // a note selected, which plays it while the sequencer is stopped and not muted, or a step with
+  // none of its notes (place -1); nothing selected for step -1
+  virtual void selectSequencerNote(int split, int step, int place) = 0;
+  // a note's values changed, each within its range
+  enum class NoteValue { velocity, length, fineTune, timbre };
+  virtual void setSequencerNoteValue(int split, int step, int place, NoteValue what, int value) = 0;
+  // a note heard as the firmware lets a selected note be heard, while the sequencer is stopped and
+  // not muted, through the split's own channels, for the length of a step
+  virtual void previewSequencerNote(int split, int note, int velocity) = 0;
+  // as the steps bar's Clear and Copy do with a step, on the pattern playing
+  virtual void clearSequencerStep(int split, int step) = 0;
+  virtual void copySequencerStep(int split, int from, int to) = 0;
+  // as the pattern selector does: a pattern chosen, cleared, or copied over another's
+  virtual void selectSequencerPattern(int split, int pattern) = 0;
+  virtual void clearSequencerPattern(int split, int pattern) = 0;
+  virtual void copySequencerPattern(int fromSplit, int from, int toSplit, int to) = 0;
+  // the pattern playing's step size and swing, set as its step size cells set them, a running
+  // sequencer's next step realigned to the new size as they realign it; its direction, its loop of
+  // the page shown and its length
+  virtual void setSequencerStepSize(int split, int stepSize, bool swing) = 0;
+  virtual void setSequencerDirection(int split, int direction) = 0;
+  virtual void setSequencerLoopPage(int split, bool loop) = 0;
+  virtual void setSequencerLength(int split, int length) = 0;
+  // the view, as the view cells choose it; the page and the first row shown, as the navigation
+  // cells move them
+  virtual void setSequencerView(int split, int view) = 0;
+  virtual void showSequencerPage(int split, int pageStart, int rowOffset) = 0;
+  // muting a split's sequencer and starting or stopping it, as the muter and Play/Stop do; moving
+  // where it plays next, as a step tapped with Switch 2 held does
+  virtual void muteSequencer(int split, bool muted) = 0;
+  virtual void playSequencer(int split, bool running) = 0;
+  virtual void moveSequencerPlayhead(int split, int step) = 0;
+  // the sixteen projects the flash keeps: one as loading it would read it, the one played now (its
+  // tempo the one playing), and the one last loaded, -1 before any; loading one and saving the one played over one,
+  // as the projects screen's tap and hold do, both sequencers stopping; another project stored in a
+  // slot as it is, its own tempo kept; and the one played given back with the slot it was loaded
+  // from, as it was before a load
+  virtual int sequencerProjects() = 0;
+  virtual std::vector<uint8_t> storedProject(int slot) = 0;
+  virtual std::vector<uint8_t> currentProject() = 0;
+  virtual int loadedProject() = 0;
+  // the settings' layout, as a backup names it
+  virtual int settingsVersion() = 0;
+  // whether a project's bytes hold only what the firmware could have stored, which the edits that
+  // take a project or a pattern in insist on
+  virtual bool sequencerProjectValid(const std::vector<uint8_t>& project) = 0;
+  virtual void loadSequencerProject(int slot) = 0;
+  virtual void saveSequencerProject(int slot) = 0;
+  virtual void storeSequencerProject(int slot, const std::vector<uint8_t>& project) = 0;
+  virtual void restoreSequencerProject(const std::vector<uint8_t>& project, int loaded) = 0;
+  // a project's contents read as the firmware reads them: a pattern's settings and a step's notes,
+  // and its tempo
+  virtual SequencerPattern projectPattern(const std::vector<uint8_t>& project, int split, int pattern) = 0;
+  virtual std::vector<SequencerNote> projectStep(const std::vector<uint8_t>& project, int split, int pattern, int step) = 0;
+  virtual int projectTempo(const std::vector<uint8_t>& project) = 0;
+  // a pattern as the flash keeps it, to keep and give back as it was
+  virtual std::vector<uint8_t> sequencerPatternData(int split, int pattern) = 0;
+  virtual void setSequencerPatternData(int split, int pattern, const std::vector<uint8_t>& data) = 0;
 
   virtual std::vector<uint8_t> flashImage() = 0;
   // the flash as the firmware would store it now, with the settings it plays with, which it only

@@ -224,6 +224,7 @@ public:
     }
     switch (p) {
       case 19: return getBendRange(split);
+      case 20: return Split[split].sendX;
       case 24: return Split[split].sendY;
       case 25: return Split[split].expressionForY == timbreCC1 ? 1 : Split[split].customCCForY;
       case 26: return Split[split].relativeY;
@@ -455,6 +456,466 @@ public:
     return image;
   }
 
+  // as a switch assigned to it taps
+  void tapTempo() override {
+    if (isSyncedToMidiClock()) return;
+    tapTempoPress();
+    if (displayMode == displayGlobalWithTempo) updateDisplay();
+  }
+  bool followsMidiClock() override { return isSyncedToMidiClock(); }
+  int sequencerPatterns() override { return MAX_SEQUENCER_PATTERNS; }
+  int sequencerSteps() override { return MAX_SEQUENCER_STEPS; }
+  int sequencerNotesPerStep() override { return MAX_SEQUENCER_STEP_EVENTS; }
+  int sequencerStepsShown() override { return SEQ_EVENTS_WIDTH; }
+  std::vector<int> sequencerLengths() override {
+    return std::vector<int>(seqDurationEditPanelChoices, seqDurationEditPanelChoices + SEQ_DURATION_EDIT_PANEL_COUNT);
+  }
+  firmware::Instance::SequencerPattern sequencerPattern(int split, int pattern) override {
+    firmware::Instance::SequencerPattern read;
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1)) return read;
+    ::LINN_INSTANCE::SequencerPattern& p = Project.sequencer[split].patterns[pattern];
+    read.stepSize = p.stepSize;
+    read.swing = p.swing;
+    read.direction = p.sequencerDirection;
+    read.loopPage = p.loopScreen;
+    read.length = p.length;
+    return read;
+  }
+  std::vector<SequencerNote> sequencerStep(int split, int pattern, int step) override {
+    std::vector<SequencerNote> notes(MAX_SEQUENCER_STEP_EVENTS);
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1) || !inRange(step, 0, MAX_SEQUENCER_STEPS - 1)) return notes;
+    StepData& data = Project.sequencer[split].patterns[pattern].steps[step];
+    for (int e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      StepEvent& event = data.events[e];
+      if (!event.hasData()) continue;
+      notes[e] = { true, event.getNote(), event.getVelocity(), event.getDuration(), event.getPitchOffset(), event.getTimbre(), event.getRow() };
+    }
+    return notes;
+  }
+  SequencerState sequencerState(int split) override {
+    SequencerState read;
+    if (!validSplit(split)) return read;
+    StepSequencerState& state = seqState[split];
+    read.on = Split[split].sequencer;
+    read.running = state.isRunning();
+    read.muted = state.muted;
+    read.pattern = state.currentPattern;
+    read.nextPattern = state.nextPattern;
+    read.position = state.currentPosition;
+    read.pageStart = state.positionOffset;
+    read.rowOffset = state.rowOffset;
+    read.view = Split[split].sequencerView;
+    read.forward = state.advancingForward;
+    for (int s = 0; s < MAX_SEQUENCER_STEPS; ++s) {
+      if (!state.steps[s].focused) continue;
+      read.selectedStep = s;
+      for (int e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+        if (state.steps[s].events[e].focused) read.selectedNote = e;
+      }
+      break;
+    }
+    return read;
+  }
+  int sequencerShown() override {
+    for (int s = 0; s < NUMSPLITS; ++s) {
+      if (isVisibleSequencerForSplit(s)) return s;
+    }
+    return -1;
+  }
+  void showSequencerSplit(int split) override {
+    if (!validSplit(split) || Global.currentPerSplit == split) return;
+    Global.currentPerSplit = split;
+    setDisplayMode(displayNormal);
+    updateDisplay();
+  }
+  // as getRowNoteNum() finds it, from the bottom row of all rather than the first one shown
+  int sequencerRowNote(int split, int row) override {
+    if (!validSplit(split) || !inRange(row, 0, 13)) return -1;
+    switch (Split[split].sequencerView) {
+      case sequencerScales: {
+        int found = -1;
+        for (int i = 0; i < 128; ++i) {
+          if (((Global.mainNotes[Global.activeNotes] >> (i % 12)) & 1) || ((Global.accentNotes[Global.activeNotes] >> (i % 12)) & 1)) found += 1;
+          if (found == row) return min(max(i + 48, 0), 127);
+        }
+        return -1;
+      }
+      case sequencerDrums:
+        return Project.sequencer[split].seqDrumNotes[row];
+      default:
+        return -1;
+    }
+  }
+  int padNote(int split, int col, int row) override {
+    if (!validSplit(split) || !inRange(col, 1, NUMCOLS - 1) || !inRange(row, 0, NUMROWS - 1)) return -1;
+    int note = getNoteNumber(split, col, row);
+    return inRange(note, 0, 127) ? note : -1;
+  }
+  SequencerColours sequencerColours(int split) override {
+    SequencerColours read;
+    if (!validSplit(split)) return read;
+    read.main = Split[split].colorMain;
+    read.accent = Split[split].colorAccent;
+    read.played = Split[split].colorPlayed;
+    read.lowRow = Split[split].colorLowRow;
+    read.empty = Split[split].colorSequencerEmpty;
+    read.withNotes = Split[split].colorSequencerEvent;
+    read.beyond = Split[split].colorSequencerDisabled;
+    return read;
+  }
+  // as handleStepEditingTouch() adds one, with what its touch would have given it
+  void addSequencerNote(int split, int step, int note, int row, int velocity, int timbre) override {
+    if (!sequencerEditable(split, step) || !inRange(note, 0, 127) || !inRange(row, 1, NUMROWS - 1)) return;
+    StepSequencerState& state = seqState[split];
+    StepData& data = state.getCurrentPatternStep(step);
+    StepDataState& stepState = state.getStepState(step);
+    for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      if (data.events[e].hasData() && data.events[e].getNote() == note && data.events[e].getRow() == row) return;
+    }
+    velocity = constrain(velocity, 1, 127);
+    timbre = constrain(timbre, 0, 127);
+    for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      if (!data.events[e].hasData()) {
+        data.events[e].setNewEvent(note, velocity, state.getCurrentPattern().stepSize, timbre, row);
+        state.changeFocus(step, e);
+        return;
+      }
+    }
+    if (data.events[0].hasData()) {
+      stepState.events[0].reset();
+      data.events[0].clear();
+    }
+    for (byte e = 1; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      data.events[e - 1] = data.events[e];
+      stepState.events[e - 1] = stepState.events[e];
+      data.events[e].clear();
+      stepState.events[e].reset();
+    }
+    byte last = MAX_SEQUENCER_STEP_EVENTS - 1;
+    data.events[last].setNewEvent(note, velocity, state.getCurrentPattern().stepSize, timbre, row);
+    state.changeFocus(step, last);
+    paintIfShown(split);
+  }
+  // as handleStepEditingRelease() lets one go
+  void removeSequencerNote(int split, int step, int place) override {
+    if (!sequencerEditable(split, step) || !inRange(place, 0, MAX_SEQUENCER_STEP_EVENTS - 1)) return;
+    StepSequencerState& state = seqState[split];
+    StepData& data = state.getCurrentPatternStep(step);
+    StepDataState& stepState = state.getStepState(step);
+    if (!data.events[place].hasData()) return;
+    data.events[place].clear();
+    if (stepState.events[place].focused) state.focusedEvent = false;
+    stepState.events[place].reset();
+    for (byte e = place + 1; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      data.events[e - 1] = data.events[e];
+      stepState.events[e - 1] = stepState.events[e];
+      data.events[e].clear();
+      stepState.events[e].reset();
+    }
+    paintIfShown(split);
+  }
+  void selectSequencerNote(int split, int step, int place) override {
+    if (!validSplit(split) || !isVisibleSequencerForSplit(split)) return;
+    StepSequencerState& state = seqState[split];
+    if (step < 0) {
+      state.clearFocusState();
+      return;
+    }
+    if (!inRange(step, 0, MAX_SEQUENCER_STEPS - 1) || !inRange(place, -1, MAX_SEQUENCER_STEP_EVENTS - 1)) return;
+    if (place >= 0 && !state.getCurrentPatternStep(step).events[place].hasData()) return;
+    state.changeFocus(step, place);
+  }
+  void setSequencerNoteValue(int split, int step, int place, NoteValue what, int value) override {
+    if (!sequencerEditable(split, step) || !inRange(place, 0, MAX_SEQUENCER_STEP_EVENTS - 1)) return;
+    StepEvent& event = seqState[split].getCurrentPatternStep(step).events[place];
+    if (!event.hasData()) return;
+    switch (what) {
+      case NoteValue::velocity: event.setVelocity(constrain(value, 1, 127)); break;
+      case NoteValue::fineTune: event.setPitchOffset(constrain(value, -50, 50)); break;
+      case NoteValue::timbre: event.setTimbre(constrain(value, 0, 127)); break;
+      case NoteValue::length:
+        for (byte i = 0; i < SEQ_DURATION_EDIT_PANEL_COUNT; ++i) {
+          if (seqDurationEditPanelChoices[i] == value) event.setDuration(value);
+        }
+        break;
+    }
+    paintIfShown(split);
+  }
+  // as setEventFocus() previews a note
+  void previewSequencerNote(int split, int note, int velocity) override {
+    if (!validSplit(split) || !Split[split].sequencer || !inRange(note, 0, 127)) return;
+    StepSequencerState& state = seqState[split];
+    if (state.running || state.muted) return;
+    // sent as the note given, which sendNoteOn() transposes outside Drums view
+    if (Split[split].sequencerView != sequencerDrums) note -= Split[split].transposePitch + Split[split].transposeOctave;
+    if (!inRange(note, 0, 127)) return;
+    StepEvent event;
+    event.setNewEvent(note, constrain(velocity, 1, 127), state.getCurrentPattern().stepSize, 64, 1);
+    state.previewEvent.sendNoteOn(event, split);
+  }
+  // as handleSequencerLowRowTouch() clears and copies with Clear or Copy held
+  void clearSequencerStep(int split, int step) override {
+    if (!sequencerEditable(split, step)) return;
+    StepSequencerState& state = seqState[split];
+    state.getCurrentPatternStep(step).clear();
+    for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) state.steps[step].events[e].focused = false;
+    state.updateFocusState();
+    paintIfShown(split);
+  }
+  void copySequencerStep(int split, int from, int to) override {
+    if (!sequencerEditable(split, from) || !inRange(to, 0, MAX_SEQUENCER_STEPS - 1) || from == to) return;
+    StepSequencerState& state = seqState[split];
+    StepData& source = state.getCurrentPatternStep(from);
+    StepData& target = state.getCurrentPatternStep(to);
+    for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      target.events[e] = source.events[e];
+      state.steps[to].events[e].focused = false;
+    }
+    state.updateFocusState();
+    paintIfShown(split);
+  }
+  // as handleSequencerPatternTouch() selects, clears and copies
+  void selectSequencerPattern(int split, int pattern) override {
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1)) return;
+    seqState[split].selectPattern(pattern);
+  }
+  void clearSequencerPattern(int split, int pattern) override {
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1)) return;
+    Project.sequencer[split].patterns[pattern].clear();
+    if (isVisibleSequencerForSplit(split) && seqState[split].currentPattern == pattern) {
+      seqState[split].clearEventsFocus();
+      seqState[split].paintSequencer();
+    }
+  }
+  void copySequencerPattern(int fromSplit, int from, int toSplit, int to) override {
+    if (!validSplit(fromSplit) || !validSplit(toSplit) || !inRange(from, 0, MAX_SEQUENCER_PATTERNS - 1) ||
+        !inRange(to, 0, MAX_SEQUENCER_PATTERNS - 1) || (fromSplit == toSplit && from == to)) return;
+    Project.sequencer[toSplit].patterns[to] = Project.sequencer[fromSplit].patterns[from];
+    if (isVisibleSequencerForSplit(toSplit) && seqState[toSplit].currentPattern == to) {
+      seqState[toSplit].clearEventsFocus();
+    }
+    paintIfShown(toSplit);
+  }
+  // as handleSequencerStepSizeRelease() sets them, realigning a running sequencer the same way
+  void setSequencerStepSize(int split, int stepSize, bool swing) override {
+    if (!validSplit(split) || !Split[split].sequencer) return;
+    switch (stepSize) {
+      case StepSixteenth: case StepEighth: case StepFourth: break;
+      case StepSixteenthTriplet: case StepEighthTriplet: case StepFourthTriplet:
+      case StepSixteenthDotted: case StepEighthDotted: case StepFourthDotted: swing = false; break;
+      default: return;
+    }
+    StepSequencerState& state = seqState[split];
+    ::LINN_INSTANCE::SequencerPattern& pattern = state.getCurrentPattern();
+    const SequencerStepSize currentStepSize = pattern.stepSize;
+    SequencerStepSize newStepSize = (SequencerStepSize)stepSize;
+    if (newStepSize == currentStepSize && swing == (bool)pattern.swing) return;
+    if (state.isRunning()) {
+      short currentPositionTicks = state.currentPosition * currentStepSize + (currentStepSize - state.ticksUntilNextStep);
+      short newRemaining = (currentPositionTicks % newStepSize);
+      if (newRemaining == 0) {
+        state.ticksUntilNextStep = 0;
+      }
+      else {
+        state.ticksUntilNextStep = ((currentPositionTicks / newStepSize) + 1) * newStepSize - currentPositionTicks;
+      }
+    }
+    pattern.stepSize = newStepSize;
+    pattern.swing = swing;
+    paintIfShown(split);
+  }
+  void setSequencerDirection(int split, int direction) override {
+    if (!validSplit(split) || !Split[split].sequencer || !inRange(direction, 0, 2)) return;
+    seqState[split].getCurrentPattern().sequencerDirection = (SequencerDirection)direction;
+    paintIfShown(split);
+  }
+  void setSequencerLoopPage(int split, bool loop) override {
+    if (!validSplit(split) || !Split[split].sequencer) return;
+    seqState[split].getCurrentPattern().loopScreen = loop;
+    paintIfShown(split);
+  }
+  // as Switch 1 held with a step on the steps bar sets it
+  void setSequencerLength(int split, int length) override {
+    if (!validSplit(split) || !Split[split].sequencer || !inRange(length, 1, MAX_SEQUENCER_STEPS)) return;
+    seqState[split].getCurrentPattern().length = length;
+    paintIfShown(split);
+  }
+  // as handleSequencerViewModeRelease() and autoSelectFirstStepForNotesView() change it
+  void setSequencerView(int split, int view) override {
+    if (!validSplit(split) || !isVisibleSequencerForSplit(split) || !inRange(view, 0, 2) || view == Split[split].sequencerView) return;
+    StepSequencerState& state = seqState[split];
+    if (Split[split].sequencerView == sequencerNotes) {
+      for (byte s = 0; s < MAX_SEQUENCER_STEPS; ++s) {
+        for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) state.getStepState(s).events[e].unhighlightCell();
+      }
+    }
+    Split[split].sequencerView = (SequencerView)view;
+    paintIfShown(split);
+    if (view == sequencerNotes && !state.hasFocus() && !state.isBeingTurnedOff) state.changeFocus(0, -1);
+  }
+  // as handleSequencerNavigationTouch() moves them, to the first step of a page and row 0 or 7
+  void showSequencerPage(int split, int pageStart, int rowOffset) override {
+    if (!validSplit(split) || !Split[split].sequencer) return;
+    if (pageStart < 0 || pageStart >= MAX_SEQUENCER_STEPS || pageStart % SEQ_EVENTS_WIDTH != 0) return;
+    if (rowOffset != 0 && rowOffset != 7) return;
+    StepSequencerState& state = seqState[split];
+    if (Split[split].sequencerView == sequencerNotes) rowOffset = state.rowOffset;
+    if (state.positionOffset == pageStart && state.rowOffset == rowOffset) return;
+    state.positionOffset = pageStart;
+    state.rowOffset = rowOffset;
+    paintIfShown(split);
+  }
+  void muteSequencer(int split, bool muted) override {
+    if (validSplit(split) && seqState[split].muted != muted) sequencerToggleMute(split);
+  }
+  void playSequencer(int split, bool running) override {
+    if (validSplit(split) && Split[split].sequencer && seqState[split].isRunning() != running) sequencerTogglePlay(split);
+  }
+  int sequencerProjects() override { return MAX_PROJECTS; }
+  // as loadProject() reads it
+  std::vector<uint8_t> storedProject(int slot) override {
+    if (!inRange(slot, 0, MAX_PROJECTS - 1)) return {};
+    byte marker = dueFlashStorage.read(PROJECTS_OFFSET);
+    byte prjIndex = dueFlashStorage.read(PROJECT_INDEX_OFFSET(marker, slot));
+    uint32_t projectOffset = PROJECTS_OFFSET + PROJECTS_MARKERS_SIZE + prjIndex * SINGLE_PROJECT_SIZE;
+    auto* stored = (const uint8_t*) dueFlashStorage.readAddress(projectOffset);
+    return std::vector<uint8_t>(stored, stored + sizeof(SequencerProject));
+  }
+  // with the tempo playing, as writeProjectToFlashRaw() stores it
+  std::vector<uint8_t> currentProject() override {
+    SequencerProject copy = Project;
+    copy.tempo = FXD4_TO_INT(fxd4CurrentTempo);
+    auto* p = (const uint8_t*) &copy;
+    return std::vector<uint8_t>(p, p + sizeof(SequencerProject));
+  }
+  int loadedProject() override { return Device.lastLoadedProject; }
+  int settingsVersion() override { return Device.version; }
+  // as handleSequencerProjectsRelease() loads one
+  void loadSequencerProject(int slot) override {
+    if (!inRange(slot, 0, MAX_PROJECTS - 1)) return;
+    sequencersTurnOff(true);
+    Device.lastLoadedProject = slot;
+    loadProject(slot);
+    // nothing of another project's selected, as a pattern starting lets go of the last one's
+    seqState[LEFT].clearAllFocus();
+    seqState[RIGHT].clearAllFocus();
+    updateDisplay();
+  }
+  // as handleSequencerProjectsHold() saves one
+  void saveSequencerProject(int slot) override {
+    if (!inRange(slot, 0, MAX_PROJECTS - 1)) return;
+    sequencersTurnOff(true);
+    writeProjectToFlash(slot);
+    updateDisplay();
+  }
+  // the project given stored through writeProjectToFlash(), which stores the one played with the
+  // tempo playing, so both stand in for it while it does and are put back after
+  void storeSequencerProject(int slot, const std::vector<uint8_t>& project) override {
+    if (!inRange(slot, 0, MAX_PROJECTS - 1) || !sequencerProjectValid(project)) return;
+    sequencersTurnOff(true);
+    SequencerProject played = Project;
+    int32_t tempo = fxd4CurrentTempo;
+    memcpy(&Project, project.data(), sizeof(SequencerProject));
+    fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
+    writeProjectToFlash(slot);
+    Project = played;
+    fxd4CurrentTempo = tempo;
+    updateDisplay();
+  }
+  // as loadProject() takes one in
+  void restoreSequencerProject(const std::vector<uint8_t>& project, int loaded) override {
+    if (!sequencerProjectValid(project) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;
+    sequencersTurnOff(true);
+    memcpy(&Project, project.data(), sizeof(SequencerProject));
+    fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);
+    Device.lastLoadedProject = loaded;
+    seqState[LEFT].clearAllFocus();
+    seqState[RIGHT].clearAllFocus();
+    updateDisplay();
+  }
+  // what the firmware itself could have stored: a file or a caller hands in any bytes of the size
+  bool sequencerProjectValid(const std::vector<uint8_t>& project) override {
+    if (project.size() != sizeof(SequencerProject)) return false;
+    SequencerProject copy;
+    memcpy(&copy, project.data(), sizeof(SequencerProject));
+    // any tempo but none, which the clock divides by: taps and a MIDI clock go past the 360 a setting
+    // reaches, and a project saved keeps the tempo playing
+    if (copy.tempo == 0) return false;
+    for (byte s = 0; s < MAX_SEQUENCERS; ++s) {
+      for (byte p = 0; p < MAX_SEQUENCER_PATTERNS; ++p)
+        if (!patternValid(copy.sequencer[s].patterns[p])) return false;
+      for (byte d = 0; d < SEQ_DRUM_NOTES; ++d)
+        if (copy.sequencer[s].seqDrumNotes[d] > 127) return false;
+    }
+    return true;
+  }
+  firmware::Instance::SequencerPattern projectPattern(const std::vector<uint8_t>& project, int split, int pattern) override {
+    firmware::Instance::SequencerPattern read;
+    if (project.size() != sizeof(SequencerProject) || !validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1)) return read;
+    SequencerProject copy;
+    memcpy(&copy, project.data(), sizeof(SequencerProject));
+    ::LINN_INSTANCE::SequencerPattern& p = copy.sequencer[split].patterns[pattern];
+    read.stepSize = p.stepSize;
+    read.swing = p.swing;
+    read.direction = p.sequencerDirection;
+    read.loopPage = p.loopScreen;
+    read.length = p.length;
+    return read;
+  }
+  std::vector<SequencerNote> projectStep(const std::vector<uint8_t>& project, int split, int pattern, int step) override {
+    std::vector<SequencerNote> notes(MAX_SEQUENCER_STEP_EVENTS);
+    if (project.size() != sizeof(SequencerProject) || !validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1) ||
+        !inRange(step, 0, MAX_SEQUENCER_STEPS - 1)) return notes;
+    SequencerProject copy;
+    memcpy(&copy, project.data(), sizeof(SequencerProject));
+    StepData& data = copy.sequencer[split].patterns[pattern].steps[step];
+    for (int e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+      StepEvent& event = data.events[e];
+      if (!event.hasData()) continue;
+      notes[e] = { true, event.getNote(), event.getVelocity(), event.getDuration(), event.getPitchOffset(), event.getTimbre(), event.getRow() };
+    }
+    return notes;
+  }
+  int projectTempo(const std::vector<uint8_t>& project) override {
+    if (project.size() != sizeof(SequencerProject)) return 0;
+    SequencerProject copy;
+    memcpy(&copy, project.data(), sizeof(SequencerProject));
+    return copy.tempo;
+  }
+  // as handleSequencerLowRowTouch() does with Switch 2 held
+  void moveSequencerPlayhead(int split, int step) override {
+    if (!sequencerEditable(split, step)) return;
+    seqState[split].nextPosition = step;
+    seqState[split].switch2Waiting = false;
+  }
+  std::vector<uint8_t> sequencerPatternData(int split, int pattern) override {
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1)) return {};
+    auto* p = (const uint8_t*)&Project.sequencer[split].patterns[pattern];
+    return std::vector<uint8_t>(p, p + sizeof(::LINN_INSTANCE::SequencerPattern));
+  }
+  void setSequencerPatternData(int split, int pattern, const std::vector<uint8_t>& data) override {
+    if (!validSplit(split) || !inRange(pattern, 0, MAX_SEQUENCER_PATTERNS - 1) || data.size() != sizeof(::LINN_INSTANCE::SequencerPattern)) return;
+    ::LINN_INSTANCE::SequencerPattern given;
+    memcpy((uint8_t*)&given, data.data(), data.size());
+    if (!patternValid(given)) return;
+    StepSequencerState& state = seqState[split];
+    const SequencerStepSize currentStepSize = Project.sequencer[split].patterns[pattern].stepSize;
+    memcpy((uint8_t*)&Project.sequencer[split].patterns[pattern], data.data(), data.size());
+    SequencerStepSize newStepSize = Project.sequencer[split].patterns[pattern].stepSize;
+    if (state.currentPattern == pattern && state.isRunning() && newStepSize != currentStepSize) {
+      short currentPositionTicks = state.currentPosition * currentStepSize + (currentStepSize - state.ticksUntilNextStep);
+      short newRemaining = (currentPositionTicks % newStepSize);
+      if (newRemaining == 0) {
+        state.ticksUntilNextStep = 0;
+      }
+      else {
+        state.ticksUntilNextStep = ((currentPositionTicks / newStepSize) + 1) * newStepSize - currentPositionTicks;
+      }
+    }
+    if (state.currentPattern == pattern) dropEmptyFocus(split);
+    paintIfShown(split);
+  }
+
   size_t settingsSize() override { return sizeof(Configuration); }
   size_t settingsOffset() override { return SETTINGS_OFFSET; }
 
@@ -471,6 +932,35 @@ public:
   }
 
 private:
+  static bool validSplit(int split) { return split == LEFT || split == RIGHT; }
+  static bool sequencerEditable(int split, int step) {
+    return validSplit(split) && isVisibleSequencerForSplit(split) && step >= 0 && step < MAX_SEQUENCER_STEPS;
+  }
+  // a note selected stays so where its place still holds one, as it does after the firmware's own
+  // edits, and the step faders never edit an empty place into a note
+  static void dropEmptyFocus(int split) {
+    byte step;
+    StepEvent* focused = seqState[split].getFocusEvent(step);
+    if (focused != NULL && !focused->hasData()) seqState[split].clearEventsFocus();
+  }
+  static bool patternValid(::LINN_INSTANCE::SequencerPattern& p) {
+    switch (p.stepSize) {
+      case StepSixteenthTriplet: case StepSixteenth: case StepEighthTriplet: case StepSixteenthDotted: case StepEighth:
+      case StepFourthTriplet: case StepEighthDotted: case StepFourth: case StepFourthDotted: break;
+      default: return false;
+    }
+    if (!inRange(p.sequencerDirection, sequencerForward, sequencerPingPong) || !inRange(p.length, 1, MAX_SEQUENCER_STEPS)) return false;
+    for (byte s = 0; s < MAX_SEQUENCER_STEPS; ++s)
+      for (byte e = 0; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {
+        StepEvent& event = p.steps[s].events[e];
+        // any row, as Notes view's painting moves a note to the row of its pad, the low row included
+        if (event.hasData() && event.getDuration() == 0) return false;
+      }
+    return true;
+  }
+  static void paintIfShown(int split) {
+    if (isVisibleSequencerForSplit(split)) seqState[split].paintSequencer();
+  }
   static void sendSerial(const uint8_t* data, size_t length) {
     if (serialSink) serialSink(data, length);
   }

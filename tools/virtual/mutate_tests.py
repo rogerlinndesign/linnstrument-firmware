@@ -32,6 +32,62 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
+ ('Firmware/FirmwareInstance.inc', '    fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);\n    writeProjectToFlash(slot);', '    writeProjectToFlash(slot);', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    Project = played;\n    fxd4CurrentTempo = tempo;', '    fxd4CurrentTempo = tempo;', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    Device.lastLoadedProject = slot;\n    loadProject(slot);', '    loadProject(slot);', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    if (!sequencerProjectValid(project) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;', '    if (!sequencerProjectValid(project) || !inRange(loaded, 0, MAX_PROJECTS - 1)) return;', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    Device.lastLoadedProject = loaded;\n', '', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    copy.tempo = FXD4_TO_INT(fxd4CurrentTempo);\n', '', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '    sequencersTurnOff(true);\n    Device.lastLoadedProject = slot;', '    Device.lastLoadedProject = slot;', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '      if (data.events[e].hasData() && data.events[e].getNote() == note && data.events[e].getRow() == row) return;', '      if (false) return;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    if (!sequencerEditable(split, step) || !inRange(note, 0, 127) || !inRange(row, 1, NUMROWS - 1)) return;', '    if (!sequencerEditable(split, step) || !inRange(note, 0, 127) || !inRange(row, 0, NUMROWS - 1)) return;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '        state.changeFocus(step, e);\n        return;', '        return;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    data.events[last].setNewEvent(note, velocity, state.getCurrentPattern().stepSize, timbre, row);', '    data.events[0].setNewEvent(note, velocity, state.getCurrentPattern().stepSize, timbre, row);', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    velocity = constrain(velocity, 1, 127);\n', '', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    for (byte e = place + 1; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {\n      data.events[e - 1] = data.events[e];', '    for (byte e = MAX_SEQUENCER_STEP_EVENTS; e < MAX_SEQUENCER_STEP_EVENTS; ++e) {\n      data.events[e - 1] = data.events[e];', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '      case NoteValue::fineTune: event.setPitchOffset(constrain(value, -50, 50)); break;', '      case NoteValue::fineTune: event.setPitchOffset(value); break;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '          if (seqDurationEditPanelChoices[i] == value) event.setDuration(value);', '          event.setDuration(value);', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    state.getCurrentPatternStep(step).clear();\n', '', 'sequencers_notes'),
+('Firmware/FirmwareInstance.inc', '    if (!validSplit(split) || !Split[split].sequencer || !inRange(note, 0, 127)) return;', '    if (!validSplit(split) || !Split[split].sequencer) return;', 'sequencers_notes'),
+('Firmware/FirmwareInstance.inc', '    state.previewEvent.sendNoteOn(event, split);\n', '', 'sequencers_notes'),
+('Firmware/FirmwareInstance.inc', '      case 20: return Split[split].sendX;', '      case 20: return Split[split].sendY;', 'panels_settings_as_nrpns'),
+('Firmware/FirmwareInstance.inc', '    if (displayMode == displayGlobalWithTempo) updateDisplay();\n', '', 'taps_the_tempo'),
+('Firmware/FirmwareInstance.inc', '    return inRange(note, 0, 127) ? note : -1;', '    return note;', 'sequencers_notes'),
+('Firmware/FirmwareInstance.inc', '    if (Split[split].sequencerView != sequencerDrums) note -= Split[split].transposePitch + Split[split].transposeOctave;\n', '', 'sequencers_notes'),
+('Firmware/FirmwareInstance.inc', '    seqState[LEFT].clearAllFocus();\n    seqState[RIGHT].clearAllFocus();\n    updateDisplay();\n  }\n  // as handleSequencerProjectsHold() saves one', '    updateDisplay();\n  }\n  // as handleSequencerProjectsHold() saves one', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '    Device.lastLoadedProject = loaded;\n    seqState[LEFT].clearAllFocus();\n    seqState[RIGHT].clearAllFocus();', '    Device.lastLoadedProject = loaded;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '    if (copy.tempo == 0) return false;', '    if (false) return false;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '    if (copy.tempo == 0) return false;', '    if (!inRange(copy.tempo, 1, 360)) return false;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '        if (copy.sequencer[s].seqDrumNotes[d] > 127) return false;', '        if (copy.sequencer[s].seqDrumNotes[d] > 255) return false;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '      default: return false;', '      default: break;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '!inRange(p.length, 1, MAX_SEQUENCER_STEPS)', '!inRange(p.length, 1, 255)', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '        if (event.hasData() && event.getDuration() == 0) return false;', '        if (false) return false;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '    if (!patternValid(given)) return;\n', '', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '!inRange(slot, 0, MAX_PROJECTS - 1) || !sequencerProjectValid(project)', '!inRange(slot, 0, MAX_PROJECTS - 1) || project.size() != sizeof(SequencerProject)', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '    if (!sequencerProjectValid(project) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;', '    if (project.size() != sizeof(SequencerProject) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', '  int settingsVersion() override { return Device.version; }', '  int settingsVersion() override { return Device.version - 1; }', 'loads_saves'),
+ ('Firmware/FirmwareInstance.inc', '      target.events[e] = source.events[e];\n      state.steps[to].events[e].focused = false;', '      state.steps[to].events[e].focused = false;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    if (isVisibleSequencerForSplit(split)) seqState[split].paintSequencer();', '    if (false) seqState[split].paintSequencer();', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '      read.selectedStep = s;\n', '', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    read.withNotes = Split[split].colorSequencerEvent;', '    read.withNotes = Split[split].colorSequencerEmpty;', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '    return std::vector<int>(seqDurationEditPanelChoices, seqDurationEditPanelChoices + SEQ_DURATION_EDIT_PANEL_COUNT);', '    return std::vector<int>(seqDurationEditPanelChoices, seqDurationEditPanelChoices + SEQ_DURATION_EDIT_PANEL_COUNT - 1);', 'sequencers_notes'),
+ ('Firmware/FirmwareInstance.inc', '          if (found == row) return min(max(i + 48, 0), 127);', '          if (found == row + 1) return min(max(i + 48, 0), 127);', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '        return Project.sequencer[split].seqDrumNotes[row];', '        return Project.sequencer[split].seqDrumNotes[row % 7];', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    if (!validSplit(split) || !inRange(row, 0, 13)) return -1;', '    if (!validSplit(split)) return -1;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    seqState[split].nextPosition = step;\n', '', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    read.forward = state.advancingForward;', '    read.forward = false;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    Global.currentPerSplit = split;\n    setDisplayMode(displayNormal);', '    setDisplayMode(displayNormal);', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    if (view == sequencerNotes && !state.hasFocus() && !state.isBeingTurnedOff) state.changeFocus(0, -1);', '', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    if (pageStart < 0 || pageStart >= MAX_SEQUENCER_STEPS || pageStart % SEQ_EVENTS_WIDTH != 0) return;', '    if (pageStart < 0 || pageStart >= MAX_SEQUENCER_STEPS) return;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    Project.sequencer[toSplit].patterns[to] = Project.sequencer[fromSplit].patterns[from];', '    Project.sequencer[toSplit].patterns[from] = Project.sequencer[fromSplit].patterns[from];', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '      case StepSixteenthDotted: case StepEighthDotted: case StepFourthDotted: swing = false; break;', '      case StepSixteenthDotted: case StepEighthDotted: case StepFourthDotted: break;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '      default: return;\n    }\n    StepSequencerState& state = seqState[split];', '    }\n    StepSequencerState& state = seqState[split];', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    if (!validSplit(split) || !Split[split].sequencer || !inRange(length, 1, MAX_SEQUENCER_STEPS)) return;', '    if (!validSplit(split) || !Split[split].sequencer) return;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    if (validSplit(split) && seqState[split].muted != muted) sequencerToggleMute(split);', '    if (validSplit(split)) sequencerToggleMute(split);', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    memcpy((uint8_t*)&Project.sequencer[split].patterns[pattern], data.data(), data.size());\n', '', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    seqState[split].getCurrentPattern().loopScreen = loop;', '    seqState[split].getCurrentPattern().loopScreen = false;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    seqState[split].getCurrentPattern().sequencerDirection = (SequencerDirection)direction;', '    seqState[split].getCurrentPattern().sequencerDirection = sequencerForward;', 'sequencers_patterns'),
+ ('Firmware/FirmwareInstance.inc', '    Project.sequencer[split].patterns[pattern].clear();\n    if (isVisibleSequencerForSplit(split) && seqState[split].currentPattern == pattern) {', '    if (isVisibleSequencerForSplit(split) && seqState[split].currentPattern == pattern) {', 'sequencers_patterns'),
  ('Firmware/FirmwareInstance.inc', '  int mainColor(int split) override { return Split[split].colorMain; }', '  int mainColor(int split) override { return Split[split].colorAccent; }', 'values_and_the_small_font'),
  ('Firmware/FirmwareInstance.inc', '  int settingsColor() override { return globalColor; }', '  int settingsColor() override { return 3; }', 'values_and_the_small_font'),
  ('Firmware/FirmwareInstance.inc', '    if (held.touched == untouchedCell || held.lastTouch == 0) return -1;', '    if (held.touched == untouchedCell) return -1;', 'times_a_hold'),
@@ -175,7 +231,7 @@ for f, old, new, test, *mark in M:
         open(path, 'w').write(text.replace(old, new))
         b = build(copies)
         if b.returncode != 0:
-            print(f'BUILD FAILED  {test}'); bad += 1; continue
+            print(f'BUILD FAILED  {test}  {f}: {old.strip().splitlines()[0][:70]}'); bad += 1; continue
         try:
             r = subprocess.run([build_dir(copies) + '/VirtualTests_artefacts/Release/VirtualTests', test], capture_output=True, text=True, timeout=120)
         except subprocess.TimeoutExpired:
@@ -183,7 +239,7 @@ for f, old, new, test, *mark in M:
         # caught only by a failed check, never by a crash, which proves nothing about the test
         failed = re.search(r'(\d+) failed checks', r.stdout)
         ok = failed is not None and int(failed[1]) > 0
-        print(('caught      ' if ok else 'SURVIVED    ') + test)
+        print(('caught      ' if ok else 'SURVIVED    ') + test + ('' if ok else f'  {f}: {old.strip().splitlines()[0][:70]}'))
         bad += 0 if ok else 1
     finally:
         time.sleep(1.1)
