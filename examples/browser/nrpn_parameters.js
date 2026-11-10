@@ -1077,10 +1077,10 @@ limitations under the License.
           },
           {
             "value": 2,
-            "label": "CC defined in #25"
+            "label": "CC defined in #25; a query answers 3 for it unless that CC is 1"
           }
         ],
-        "description": "Split Left MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #25)"
+        "description": "Split Left MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #25; a query answers 3 for it unless that CC is 1)"
       },
       {
         "number": 40,
@@ -2480,10 +2480,10 @@ limitations under the License.
           },
           {
             "value": 2,
-            "label": "CC defined in #125"
+            "label": "CC defined in #125; a query answers 3 for it unless that CC is 1"
           }
         ],
-        "description": "Split Right MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #125)"
+        "description": "Split Right MIDI Expression For Y (0: Poly Aftertouch, 1: Channel Aftertouch, 2: CC defined in #125; a query answers 3 for it unless that CC is 1)"
       },
       {
         "number": 140,
