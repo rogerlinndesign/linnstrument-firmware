@@ -116,6 +116,9 @@ protected:
   // what a control switch is labelled with now, its printed label unless a subclass names what
   // the switch does on the screen shown
   virtual juce::String switchLabel(int row) const { return controlLabel(row); }
+  // a setting a switch shows under its label, such as what it's assigned, in a quieter type; none
+  // where it has none
+  virtual juce::String switchValue(int) const { return {}; }
 
   Engine& engine;
   int columns = 26;
