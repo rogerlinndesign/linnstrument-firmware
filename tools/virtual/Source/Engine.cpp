@@ -142,9 +142,9 @@ void Engine::run() {
       takenFlash = flashInFile ? instance->flashImage() : keptFlash();
       flashTaken.signal();
     }
-    if (++scansRun % 2000 == 0) {
-      saveFlash();
-    }
+    bool wanted = saveWanted.exchange(false);
+    if (++scansRun % 2000 == 0 || wanted) saveFlash();
+    if (wanted) saved.signal();
   }
 }
 
@@ -422,9 +422,20 @@ std::vector<uint8_t> Engine::keptFlash() {
   return bootedFrom.empty() && live == freshLive ? std::vector<uint8_t>() : live;
 }
 
+void Engine::saveNow() {
+  if (isThreadRunning()) {
+    saved.reset();
+    saveWanted = true;
+    for (int waited = 0; waited < 1000 && isThreadRunning(); waited += 5)
+      if (saved.wait(5)) return;
+    saveWanted = false;
+  }
+  if (booted && !isThreadRunning()) saveFlash();
+}
+
 void Engine::saveFlash() {
   if (!flashInFile) return;
-  std::vector<uint8_t> image = instance->flashImage();
+  std::vector<uint8_t> image = saveLive ? instance->liveFlashImage() : instance->flashImage();
   if (image == lastSavedFlash) return;
   juce::File file = flashFile(model);
   file.getParentDirectory().createDirectory();

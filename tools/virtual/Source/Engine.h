@@ -113,6 +113,11 @@ public:
   // empty, and keeps the flash there when it stops
   bool virtualPorts = true;
   bool flashInFile = true;
+  // a flash file saved with the settings the firmware plays with, stored or not, not only those it
+  // stored, which it doesn't while a sequencer plays; set before start()
+  bool saveLive = false;
+  // the flash file saved now, from any thread, as it is when the engine stops
+  void saveNow();
   std::vector<uint8_t> bootFlash;
   // the size and the place of the settings in bootFlash when a firmware with another layout saved
   // it, or 0 for this one's; only its settings are then taken, converted
@@ -198,6 +203,8 @@ private:
   juce::CriticalSection outLock;
   std::deque<std::vector<uint8_t>> midiOut;
   std::vector<uint8_t> lastSavedFlash;
+  std::atomic<bool> saveWanted { false };
+  juce::WaitableEvent saved;
   bool booted = false;
   std::vector<uint8_t> bootedFrom;
   std::vector<uint8_t> keptFlash();

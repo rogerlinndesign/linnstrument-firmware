@@ -1765,6 +1765,35 @@ void an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files() {
   CHECK(e.firmware().bendRange() == 2);
 }
 
+// a flash file saved with what the firmware plays with, which it hasn't stored, as while a
+// sequencer runs, at once when asked and when the engine stops
+void a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored() {
+  auto& e = engine();
+  e.stop();
+  testFlash().deleteRecursively();
+  e.saveLive = true;
+  e.start(128);
+  nrpn(e, 19, 24);
+  CHECK(waitFor([&e] { return e.firmware().bendRange() == 24; }));
+  e.saveNow();
+  juce::MemoryBlock saved;
+  CHECK(testFlash().getChildFile("flash-128.bin").loadFileAsData(saved));
+  nrpn(e, 19, 12);
+  CHECK(waitFor([&e] { return e.firmware().bendRange() == 12; }));
+  e.stop();
+  e.saveLive = false;
+  e.start(128);
+  CHECK(e.firmware().bendRange() == 12);
+  e.stop();
+  juce::MemoryBlock block = saved;
+  testFlash().getChildFile("flash-128.bin").replaceWithData(block.getData(), block.getSize());
+  e.start(128);
+  CHECK(e.firmware().bendRange() == 24);
+  e.stop();
+  testFlash().deleteRecursively();
+  e.start(128);
+}
+
 // the flash taken while the instrument plays with settings it hasn't stored, as one
 // changed over MIDI is until a settings screen is left
 void a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored() {
@@ -2157,6 +2186,7 @@ Suite bridge("Firmware bridge", {
   { "a_copy_booted_again_forgets_the_clock_it_followed", a_copy_booted_again_forgets_the_clock_it_followed },
   { "a_flash_kept_in_memory_keeps_the_tempo_it_plays_at", a_flash_kept_in_memory_keeps_the_tempo_it_plays_at },
   { "a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored", a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored },
+  { "a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored", a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored },
   { "a_boot_flash_of_another_layout_gives_its_settings_converted", a_boot_flash_of_another_layout_gives_its_settings_converted },
   { "a_flash_kept_in_memory_is_whole_and_prompt_while_the_engine_starts_and_stops", a_flash_kept_in_memory_is_whole_and_prompt_while_the_engine_starts_and_stops },
 });
