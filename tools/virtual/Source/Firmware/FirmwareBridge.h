@@ -304,6 +304,8 @@ public:
   // where it plays next, as a step tapped with Switch 2 held does
   virtual void muteSequencer(int split, bool muted) = 0;
   virtual void playSequencer(int split, bool running) = 0;
+  // every note of both splits let go, as Global Settings' all notes off cell does with the split on
+  virtual void allNotesOff() = 0;
   virtual void moveSequencerPlayhead(int split, int step) = 0;
   // the sixteen projects the flash keeps: one as loading it would read it, the one played now (its
   // tempo the one playing), and the one last loaded, -1 before any; loading one and saving the one played over one,

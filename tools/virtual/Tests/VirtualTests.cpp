@@ -292,6 +292,24 @@ void the_bridge_reads_each_splits_special_feature() {
   }
 }
 
+// all notes off sent for both splits, whichever shows: their last note let go on every one of their
+// channels, as midiSendAllNotesOff() ends
+void the_bridge_lets_go_of_every_note_of_both_splits() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  e.takeMidiOut();
+  std::set<int> wanted, heard;
+  for (int split : { 0, 1 })
+    for (int c : f.splitMidi(split).channels()) wanted.insert(c);
+  e.onFirmware([](firmware::Instance& i) { i.allNotesOff(); });
+  CHECK(waitFor([&] {
+    for (auto& m : e.takeMidiOut())
+      if (m.size() == 3 && (m[0] & 0xf0) == 0x80 && m[1] == 127) heard.insert((m[0] & 0x0f) + 1);
+    return std::includes(heard.begin(), heard.end(), wanted.begin(), wanted.end());
+  }));
+  CHECK(wanted.size() >= 2);
+}
+
 // Notes view's chosen step's notes lit in the played colour, and only its: a step chosen after another
 // leaves the other's pads as the playing surface lights them, as the instrument's own choosing does
 void the_bridge_lights_only_the_chosen_steps_notes_in_notes_view() {
@@ -2240,6 +2258,7 @@ Suite pace("The instrument's pace", {
   { "a_scan_takes_as_long_as_on_the_instrument", a_scan_takes_as_long_as_on_the_instrument },
   { "the_engine_scans_at_the_instruments_rate", the_engine_scans_at_the_instruments_rate },
   { "the_bridge_reads_each_splits_special_feature", the_bridge_reads_each_splits_special_feature },
+  { "the_bridge_lets_go_of_every_note_of_both_splits", the_bridge_lets_go_of_every_note_of_both_splits },
 });
 
 

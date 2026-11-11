@@ -822,6 +822,10 @@ public:
   void playSequencer(int split, bool running) override {
     if (validSplit(split) && Split[split].sequencer && seqState[split].isRunning() != running) sequencerTogglePlay(split);
   }
+  void allNotesOff() override {
+    midiSendAllNotesOff(LEFT);
+    midiSendAllNotesOff(RIGHT);
+  }
   int sequencerProjects() override { return MAX_PROJECTS; }
   // as loadProject() reads it
   std::vector<uint8_t> storedProject(int slot) override {
