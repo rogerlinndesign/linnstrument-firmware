@@ -32,6 +32,9 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
+ ('Surface.cpp', '  if (state == lastShown) return false;\n', '', 'idle_surface_isnt_repainted'),
+ ('Surface.cpp', '      state.push_back((uint32_t) led.color | (uint32_t) (lit ? 0x100 : 0));', '      state.push_back(0);', 'idle_surface_isnt_repainted'),
+ ('Surface.cpp', '      if (engine.touchAt(col, row, touch))\n', '      if (false)\n', 'idle_surface_isnt_repainted'),
  ('Firmware/FirmwareInstance.inc', '    if (userFirmwareActive) changeUserFirmwareMode(false);\n    if (Device.serialMode) {', '    if (Device.serialMode) {', 'back_to_midi'),
  ('Firmware/FirmwareInstance.inc', '      switchSerialMode(false);\n      storeSettings();\n    }\n    updateDisplay();', '      storeSettings();\n    }\n    updateDisplay();', 'back_to_midi'),
  ('Engine.cpp', '  std::vector<uint8_t> image = saveLive ? instance->liveFlashImage() : instance->flashImage();', '  std::vector<uint8_t> image = instance->flashImage();', 'flash_file_saved_live'),

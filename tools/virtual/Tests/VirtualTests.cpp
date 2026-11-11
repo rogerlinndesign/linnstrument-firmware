@@ -2056,6 +2056,30 @@ void a_touch_lands_on_the_pad_under_it() {
   }
 }
 
+// an idle surface left as it is between timer ticks, repainted once a light or a touch changes
+void an_idle_surface_isnt_repainted() {
+  Whole l;
+  l.surface.repaintIfChanged();
+  CHECK(!l.surface.repaintIfChanged());
+  engine().press(5, 3, 0.5f, 0.5f);
+  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
+  // a held finger moving, its light as it was, once its pressure has settled
+  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged(); }));
+  engine().move(5, 3, 0.8f, 0.5f);
+  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
+  engine().release(5, 3);
+  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
+  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged(); }));
+  // a light sent over MIDI
+  const uint8_t light[] = { 0xb0, 20, 5, 0xb0, 21, 2, 0xb0, 22, 1 };
+  engine().sendMidi(light, sizeof(light));
+  CHECK(waitFor([] { return engine().firmware().led(5, 2).color == 1; }));
+  CHECK(l.surface.repaintIfChanged());
+  const uint8_t off[] = { 0xb0, 20, 5, 0xb0, 21, 2, 0xb0, 22, 0 };
+  engine().sendMidi(off, sizeof(off));
+  CHECK(waitFor([] { return engine().firmware().led(5, 2).color == 0; }));
+}
+
 juce::MouseEvent mouseAt(Surface& surface, juce::Point<float> at) {
   auto mouse = juce::Desktop::getInstance().getMainMouseSource();
   return juce::MouseEvent(mouse, at, {}, juce::MouseInputSource::defaultPressure, 0, 0, 0, 0, &surface, &surface,
@@ -2207,6 +2231,7 @@ Suite bridge("Firmware bridge", {
 
 Suite surface("The surface", {
   { "a_touch_lands_on_the_pad_under_it", a_touch_lands_on_the_pad_under_it },
+  { "an_idle_surface_isnt_repainted", an_idle_surface_isnt_repainted },
   { "a_press_is_told_after_the_engine_has_it", a_press_is_told_after_the_engine_has_it },
   { "the_focus_ring_shows_only_while_the_keyboard_moves_it", the_focus_ring_shows_only_while_the_keyboard_moves_it },
 });

@@ -75,6 +75,8 @@ float Surface::aspectRatio() const {
 void Surface::resized() {
   columns = engine.firmware().columns();
   layOut();
+  // called on its own too, as a change of layout that keeps the bounds is, which the timer leaves
+  repaint();
 }
 
 void Surface::layOut() {
@@ -377,8 +379,43 @@ void Surface::paintBrand(juce::Graphics& g) {
   g.restoreState();
 }
 
-void Surface::timerCallback() {
+std::vector<uint32_t> Surface::shownState() const {
+  auto& f = engine.firmware();
+  std::vector<uint32_t> state;
+  state.reserve(2 * 8 * (size_t) columns + 64);
+  state.push_back((uint32_t) columns);
+  state.push_back((uint32_t) f.screen());
+  for (int split = 0; split < 2; ++split) {
+    state.push_back((uint32_t) f.mainColor(split));
+    auto faders = f.ccFaders(split);
+    state.push_back((uint32_t) (faders.shown ? 1 : 0) | (uint32_t) (faders.left << 8) | (uint32_t) (faders.length << 16));
+    for (int value : faders.values) state.push_back((uint32_t) value);
+  }
+  for (int col = 0; col < columns; ++col) {
+    for (int row = 0; row < 8; ++row) {
+      auto led = f.led(col, row);
+      bool lit = led.color != 0 && led.color != 7 && f.pulseOn(led.display);
+      state.push_back((uint32_t) led.color | (uint32_t) (lit ? 0x100 : 0));
+      Engine::TouchView touch;
+      if (engine.touchAt(col, row, touch))
+        state.push_back(0x80000000u | (uint32_t) (touch.xFraction * 1023) | (uint32_t) (touch.yFraction * 1023) << 10 | (uint32_t) (touch.pressure * 1023) << 20);
+      else state.push_back(0);
+    }
+  }
+  for (int row = 0; row < 8; ++row) state.push_back((uint32_t) switchLabel(row).hashCode());
+  return state;
+}
+
+bool Surface::repaintIfChanged() {
+  auto state = shownState();
+  if (state == lastShown) return false;
+  lastShown = std::move(state);
   repaint();
+  return true;
+}
+
+void Surface::timerCallback() {
+  repaintIfChanged();
 }
 
 void Surface::mouseDown(const juce::MouseEvent& e) {
