@@ -209,20 +209,20 @@ void Surface::paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float 
     g.fillRoundedRectangle(pad, rounding);
   }
   else {
-    // the LED under the silicone: a white hot centre, its colour, fading into the dark
+    // the LED under the silicone: a paler shade of its colour at the centre, as coloured silicone
+    // lit from below shows it, its colour, fading into the dark
     float reach = juce::jmax(pad.getWidth(), pad.getHeight()) * 0.72f;
-    juce::ColourGradient glow(juce::Colours::white, pad.getCentreX(), pad.getCentreY(), darkPadFoot, pad.getCentreX() + reach, pad.getCentreY(), true);
-    glow.addColour(0.06, juce::Colours::white.interpolatedWith(lit, 0.25f));
+    auto centre = lit.withAlpha(1.0f).interpolatedWith(juce::Colours::white, 0.45f).withAlpha(lit.getFloatAlpha());
+    juce::ColourGradient glow(centre, pad.getCentreX(), pad.getCentreY(), darkPadFoot, pad.getCentreX() + reach, pad.getCentreY(), true);
+    glow.addColour(0.06, centre.interpolatedWith(lit, 0.25f));
     glow.addColour(0.3, lit);
     glow.addColour(0.72, lit.interpolatedWith(darkPadFoot, 0.55f));
     g.setGradientFill(glow);
     g.fillRoundedRectangle(pad, rounding);
   }
-  // the light along its top edge, the shade along its foot, as a raised pad catches them
+  // the light along its top edge, as a raised pad catches it; its foot left to the pad's own shading
   g.setColour(juce::Colour(0x14ffffff));
   g.drawLine(pad.getX() + rounding, pad.getY() + 0.75f, pad.getRight() - rounding, pad.getY() + 0.75f, 1.0f);
-  g.setColour(juce::Colour(0x59000000));
-  g.drawLine(pad.getX() + rounding, pad.getBottom() - 0.75f, pad.getRight() - rounding, pad.getBottom() - 0.75f, 1.5f);
 }
 
 void Surface::paintPads(juce::Graphics& g) {
@@ -236,14 +236,41 @@ void Surface::paintPads(juce::Graphics& g) {
 
   // the pads: grey plastic with the LED lighting the whole pad from below
   float radius = padCorner();
+  // in the dark material, CC faders lit as far as their values reach, the cell a value ends in partly
+  firmware::Instance::Faders faders[2];
+  if (dark && engine.firmware().screen() == firmware::noScreen)
+    for (int split = 0; split < 2; ++split) faders[split] = engine.firmware().ccFaders(split);
+  auto faderOf = [&](int col, int row) {
+    for (int split = 0; split < 2; ++split) {
+      auto& f = faders[split];
+      if (f.shown && f.length > 0 && col >= f.left && col <= f.left + f.length && f.values[row] >= 0) return split;
+    }
+    return -1;
+  };
   for (int col = 0; col < columns; ++col) {
+    // the pads, never the switches, within the dark face, so that one on its way in never crosses
+    // the rim
+    if (col == 1 && dark) {
+      g.saveState();
+      juce::Path face;
+      face.addRoundedRectangle(padsArea.expanded(gap * 0.45f), padSize * 0.07f);
+      g.reduceClipRegion(face);
+    }
     for (int row = 0; row < 8; ++row) {
       auto pad = padBounds(col, row);
       if (pad.isEmpty()) continue;
+      // none where what's drawn over the surface covers it anyway
+      if (col > 0 && hidden && hidden(col, row)) continue;
       float rounding = col == 0 ? switchCorner() : radius;
       firmware::Led led = engine.firmware().led(col, row);
       bool lit = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
       juce::Colour colour = lit ? ledColour(led.color) : juce::Colours::transparentBlack;
+      if (int split = col > 0 ? faderOf(col, row) : -1; split >= 0) {
+        auto& f = faders[split];
+        float level = (float) f.values[row] / 127.0f * (float) f.length;
+        float part = juce::jlimit(0.0f, 1.0f, level - (float) (col - f.left) + 1);
+        colour = part > 0 ? ledColour(engine.firmware().mainColor(split)).withMultipliedAlpha(part) : juce::Colours::transparentBlack;
+      }
 
       if (dark) paintDarkPad(g, pad, rounding, colour);
       else {
@@ -283,6 +310,24 @@ void Surface::paintPads(juce::Graphics& g) {
       }
     }
   }
+  // each fader's value marked where it ends, the pad's height, from a pad of its row that shows
+  for (int split = 0; split < 2; ++split) {
+    auto& f = faders[split];
+    if (!f.shown || f.length <= 0) continue;
+    for (int row = 0; row < 8; ++row) {
+      if (f.values[row] < 0) continue;
+      float level = (float) f.values[row] / 127.0f * (float) f.length;
+      for (int col = f.left; col <= f.left + f.length; ++col) {
+        auto pad = padBounds(col, row);
+        if (pad.isEmpty()) continue;
+        float x = pad.getCentreX() + (level - (float) (col - f.left)) * (padSize + gap);
+        g.setColour(juce::Colours::white);
+        g.fillRoundedRectangle(juce::Rectangle<float>(juce::jmax(2.0f, padSize * 0.06f), pad.getHeight()).withCentre({ x, pad.getCentreY() }), 1.0f);
+        break;
+      }
+    }
+  }
+  if (dark && columns > 1) g.restoreState();
   if (showsFocusRing() && focusCell.valid() && focusCell.col < columns && !padBounds(focusCell.col, focusCell.row).isEmpty()) {
     g.setColour(linn::accent);
     g.drawRoundedRectangle(padBounds(focusCell.col, focusCell.row).expanded(1.5f), (focusCell.col == 0 ? switchCorner() : radius) * 1.2f, 3.0f);

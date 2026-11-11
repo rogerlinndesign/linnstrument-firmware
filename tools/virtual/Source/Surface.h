@@ -46,6 +46,8 @@ public:
   bool darkMaterial() const { return dark; }
   // a pad of the dark material, lit by a colour where it isn't transparent
   static void paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float rounding, juce::Colour lit);
+  // the cells something drawn over the surface covers, whose pads it then leaves undrawn
+  std::function<bool(int col, int row)> hidden;
   explicit Surface(Engine& engine);
   ~Surface() override;
 
