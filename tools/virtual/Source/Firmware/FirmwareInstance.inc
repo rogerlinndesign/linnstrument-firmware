@@ -158,6 +158,7 @@ public:
   int columns() override { return NUMCOLS; }
   int rows() override { return NUMROWS; }
   bool userFirmwareMode() override { return userFirmwareActive; }
+  bool scaleSelectShown() override { return lightSettings == LIGHTS_ACTIVE; }
   bool serialMode() override { return Device.serialMode; }
   bool showingSettings() override { return displayMode != displayNormal; }
   firmware::Screen screen() override {
@@ -211,6 +212,7 @@ public:
       case displayValueForFixedVelocity: return ValueScreen::valueForFixedVelocity;
       case displaySequencerDrum0107: case displaySequencerDrum0814: return ValueScreen::drumNotes;
       case displayEditAudienceMessage: return ValueScreen::audienceMessage;
+      case displaySequencerColors: return ValueScreen::sequencerColours;
       default: return ValueScreen::none;
     }
   }
@@ -339,6 +341,22 @@ public:
     updateDisplay();
   }
   void liftSensorLimits(bool lifted) override { sensorLimitsLifted = lifted; }
+  SplitMidi splitMidi(int split) override {
+    SplitMidi read;
+    if (!validSplit(split)) return read;
+    auto& s = Split[split];
+    read.splitOn = Global.splitActive;
+    read.mode = s.midiMode;
+    read.main = s.midiChanMain;
+    read.mainSends = s.midiChanMainEnabled;
+    read.bendRange = getBendRange(split);
+    if (s.midiMode == channelPerNote)
+      for (int c = 0; c < 16; ++c)
+        if (s.midiChanSet[c]) read.noteChannels.push_back(c + 1);
+    if (s.midiMode == channelPerRow)
+      for (int row = 0; row < NUMROWS; ++row) read.noteChannels.push_back((s.midiChanPerRow - 1 + row) % 16 + 1);
+    return read;
+  }
   std::vector<int> noteChannels(int split) override {
     auto& s = Split[split];
     switch (s.midiMode) {
@@ -360,6 +378,19 @@ public:
   int shownSplit() override { return Global.currentPerSplit; }
   int program(int split) override { return midiPreset[split] + 1; }
   int volume(int split) override { return ccFaderValues[split][7]; }
+  Faders ccFaders(int split) override {
+    Faders faders;
+    faders.shown = Split[split].ccFaders && !userFirmwareActive;
+    byte left, length;
+    determineFaderBoundaries(split, left, length);
+    faders.left = left;
+    faders.length = length;
+    for (int row = 0; row < 8; ++row) {
+      unsigned short cc = Split[split].ccForFader[row];
+      faders.values[row] = cc > 128 ? -1 : ccFaderValues[split][cc];
+    }
+    return faders;
+  }
   int mainColor(int split) override { return Split[split].colorMain; }
   int settingsColor() override { return globalColor; }
   Glyph glyphOf(struct Font& font, char c) {
@@ -563,6 +594,13 @@ public:
     read.beyond = Split[split].colorSequencerDisabled;
     return read;
   }
+  void setSequencerColour(int split, int which, int colour) override {
+    if (!validSplit(split) || !inRange(colour, COLOR_RED, COLOR_PINK) || colour == COLOR_BLACK) return;
+    byte* colours[] = { &Split[split].colorSequencerEmpty, &Split[split].colorSequencerEvent, &Split[split].colorSequencerDisabled };
+    if (which < 0 || which > 2) return;
+    *colours[which] = colour;
+    updateDisplay();
+  }
   // as handleStepEditingTouch() adds one, with what its touch would have given it
   void addSequencerNote(int split, int step, int note, int row, int velocity, int timbre) override {
     if (!sequencerEditable(split, step) || !inRange(note, 0, 127) || !inRange(row, 1, NUMROWS - 1)) return;
@@ -624,6 +662,9 @@ public:
     if (!inRange(step, 0, MAX_SEQUENCER_STEPS - 1) || !inRange(place, -1, MAX_SEQUENCER_STEP_EVENTS - 1)) return;
     if (place >= 0 && !state.getCurrentPatternStep(step).events[place].hasData()) return;
     state.changeFocus(step, place);
+    // the whole sequencer painted again, as cycleFocus() does, or Notes view would keep the step
+    // chosen before lit as the chosen one too
+    state.paintSequencer();
   }
   void setSequencerNoteValue(int split, int step, int place, NoteValue what, int value) override {
     if (!sequencerEditable(split, step) || !inRange(place, 0, MAX_SEQUENCER_STEP_EVENTS - 1)) return;

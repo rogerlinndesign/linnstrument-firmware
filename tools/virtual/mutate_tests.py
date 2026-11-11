@@ -32,6 +32,10 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
+ ('Firmware/FirmwareInstance.inc', '  bool scaleSelectShown() override { return lightSettings == LIGHTS_ACTIVE; }', '  bool scaleSelectShown() override { return false; }', 'scale_select'),
+ ('Firmware/FirmwareInstance.inc', '    state.changeFocus(step, place);\n    // the whole sequencer painted again, as cycleFocus() does, or Notes view would keep the step\n    // chosen before lit as the chosen one too\n    state.paintSequencer();\n', '    state.changeFocus(step, place);\n', 'notes_view'),
+ ('Firmware/FirmwareInstance.inc', '    faders.shown = Split[split].ccFaders && !userFirmwareActive;', '    faders.shown = !userFirmwareActive;', 'cc_faders'),
+ ('Firmware/FirmwareInstance.inc', '      faders.values[row] = cc > 128 ? -1 : ccFaderValues[split][cc];', '      faders.values[row] = cc > 128 ? -1 : ccFaderValues[split][row];', 'cc_faders'),
  ('Firmware/FirmwareInstance.inc', '    fxd4CurrentTempo = FXD4_FROM_INT(Project.tempo);\n    writeProjectToFlash(slot);', '    writeProjectToFlash(slot);', 'loads_saves'),
  ('Firmware/FirmwareInstance.inc', '    Project = played;\n    fxd4CurrentTempo = tempo;', '    fxd4CurrentTempo = tempo;', 'loads_saves'),
  ('Firmware/FirmwareInstance.inc', '    Device.lastLoadedProject = slot;\n    loadProject(slot);', '    loadProject(slot);', 'loads_saves'),
@@ -107,6 +111,13 @@ M = [
  ('Firmware/FirmwareInstance.inc', '  int selectedSwitch() override { return switchSelect; }', '  int selectedSwitch() override { return 3; }', 'panels_settings_as_nrpns'),
  ('Firmware/FirmwareInstance.inc', '      case displaySequencerDrum0107: case displaySequencerDrum0814: return ValueScreen::drumNotes;', '      case displaySequencerDrum0107: return ValueScreen::drumNotes;', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '    if (drum < 0 || drum >= 14 || !inRange(note, 0, 127)) return;\n', '', 'the_drum_notes'),
+ ('Firmware/FirmwareInstance.inc', '        if (s.midiChanSet[c]) read.noteChannels.push_back(c + 1);\n', '', 'note_sent_on_a_splits'),
+ ('Firmware/FirmwareInstance.inc', '      for (int row = 0; row < NUMROWS; ++row) read.noteChannels.push_back((s.midiChanPerRow - 1 + row) % 16 + 1);', '      read.noteChannels.push_back(s.midiChanPerRow);', 'note_sent_on_a_splits'),
+ ('Firmware/FirmwareInstance.inc', '    read.mode = s.midiMode;', '    read.mode = 0;', 'note_sent_on_a_splits'),
+ ('Firmware/FirmwareInstance.inc', '    read.splitOn = Global.splitActive;', '    read.splitOn = false;', 'note_sent_on_a_splits'),
+ ('Firmware/FirmwareInstance.inc', '      case displaySequencerColors: return ValueScreen::sequencerColours;\n', '', 'the_drum_notes'),
+ ('Firmware/FirmwareInstance.inc', '    if (!validSplit(split) || !inRange(colour, COLOR_RED, COLOR_PINK) || colour == COLOR_BLACK) return;', '    if (!validSplit(split) || !inRange(colour, COLOR_OFF, COLOR_PINK)) return;', 'the_drum_notes'),
+ ('Firmware/FirmwareInstance.inc', '    if (which < 0 || which > 2) return;\n    *colours[which] = colour;', '    *colours[which < 0 || which > 2 ? 0 : which] = colour;', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '  int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[drum]; }', '  int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[13 - drum]; }', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '      case displayEditAudienceMessage: return ValueScreen::audienceMessage;', '', 'audience_messages'),
  ('Firmware/FirmwareInstance.inc', '    int length = (int) kept.copy(made, 30);', '    int length = (int) kept.copy(made, 31);', 'audience_messages'),

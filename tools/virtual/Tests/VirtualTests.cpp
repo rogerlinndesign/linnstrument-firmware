@@ -189,8 +189,11 @@ void the_keyboard_toggles_a_cell() {
 // the instrument, booted once as a 128 for every test that needs one
 
 // its flash in a folder of its own, so that the app's saved settings never reach the tests
+// one of its own for each run of the tests, so that shares run side by side never store into the
+// flash file another is reading
 juce::File testFlash() {
-  return juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("VirtualTestsFlash");
+  static const juce::String run = juce::String::toHexString(juce::Random::getSystemRandom().nextInt64());
+  return juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("VirtualTestsFlash-" + run);
 }
 
 // stopped before the program ends, so that its thread never runs into the shutdown
@@ -272,6 +275,84 @@ void the_bridge_reads_a_screens_values_and_the_small_font() {
   nrpn(e, 30, 3);
   CHECK(waitFor([&e] { return e.firmware().mainColor(0) == 3; }));
   CHECK(e.firmware().settingsColor() == 5);
+}
+
+// Notes view's chosen step's notes lit in the played colour, and only its: a step chosen after another
+// leaves the other's pads as the playing surface lights them, as the instrument's own choosing does
+void the_bridge_lights_only_the_chosen_steps_notes_in_notes_view() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  int special = f.nrpn(35);
+  nrpn(e, 35, 4);
+  CHECK(waitFor([&f] { return f.screen() == firmware::sequencerScreen; }));
+  int s = f.sequencerShown(), p = f.sequencerState(s).pattern;
+  e.onFirmware([s, p](firmware::Instance& i) {
+    i.playSequencer(s, false);
+    i.clearSequencerPattern(s, p);
+    i.setSequencerView(s, 1);
+    i.addSequencerNote(s, 0, 60, 3, 100, 64);
+    i.addSequencerNote(s, 3, 67, 5, 100, 64);
+    i.setSequencerView(s, 0);
+    i.selectSequencerNote(s, 0, 0);
+  });
+  CHECK(waitFor([&f, s] { auto st = f.sequencerState(s); return st.view == 0 && st.selectedStep == 0; }));
+  auto played = f.sequencerColours(s).played;
+  auto litFor = [&f, s, played](int note) {
+    std::vector<std::pair<int, int>> lit;
+    for (int col = 1; col < f.columns(); ++col)
+      for (int row = 1; row < 8; ++row)
+        if (f.padNote(s, col, row) == note && f.led(col, row).color == played) lit.push_back({ col, row });
+    return lit;
+  };
+  CHECK(waitFor([&] { return !litFor(60).empty(); }));
+  auto first = litFor(60);
+  e.onFirmware([s](firmware::Instance& i) { i.selectSequencerNote(s, 3, 0); });
+  CHECK(waitFor([&f, s] { return f.sequencerState(s).selectedStep == 3; }));
+  CHECK(waitFor([&] { return !litFor(67).empty(); }));
+  for (auto [col, row] : first) CHECK(f.led(col, row).color != played);
+  e.onFirmware([s, p](firmware::Instance& i) { i.clearSequencerPattern(s, p); i.setSequencerView(s, 1); i.selectSequencerNote(s, -1, -1); });
+  nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
+  CHECK(waitFor([&f] { return f.screen() != firmware::sequencerScreen; }));
+}
+
+// Global Settings' Scale Select view as the firmware keeps it: its View cell touched, then Main again
+void the_bridge_reads_whether_scale_select_shows() {
+  auto& e = engine();
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  tap(0, 0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::globalScreen; }));
+  // from the lights the tests before left, and back to them
+  bool before = e.firmware().scaleSelectShown();
+  tap(1, 0);
+  CHECK(waitFor([&e] { return !e.firmware().scaleSelectShown(); }));
+  tap(1, 2);
+  CHECK(waitFor([&e] { return e.firmware().scaleSelectShown(); }));
+  tap(1, 0);
+  CHECK(waitFor([&e] { return !e.firmware().scaleSelectShown(); }));
+  if (before) tap(1, 2);
+  tap(0, 0);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
+// a split's CC faders as the firmware keeps them: shown while it's set to play them, the columns
+// they span, and each row's value as a CC to it sets it
+void the_bridge_reads_a_splits_cc_faders() {
+  auto& e = engine();
+  CHECK(!e.firmware().ccFaders(0).shown);
+  nrpn(e, 35, 2);
+  CHECK(waitFor([&e] { return e.firmware().ccFaders(0).shown; }));
+  auto faders = e.firmware().ccFaders(0);
+  CHECK(faders.left == 1 && faders.length == (e.firmware().nrpn(200) == 1 ? e.firmware().nrpn(202) - 2 : e.firmware().columns() - 2));
+  const uint8_t cc[] = { 0xB0, 2, 77 };
+  e.sendMidi(cc, sizeof(cc));
+  CHECK(waitFor([&e] { return e.firmware().ccFaders(0).values[1] == 77; }));
+  nrpn(e, 35, 0);
+  CHECK(waitFor([&e] { return !e.firmware().ccFaders(0).shown; }));
 }
 
 // a settings cell held times its hold as the firmware's handlers do, and stops when it acts: a
@@ -536,6 +617,25 @@ void the_bridge_reads_and_sets_the_drum_notes() {
   CHECK(e.firmware().drumNote(split, 3) == 42);
   e.onFirmware([split](firmware::Instance& f) { f.setDrumNote(split, 2, 37); });
   CHECK(waitFor([&e, split] { return e.firmware().drumNote(split, 2) == 37; }));
+  // the colours page beside them, whose three step colours take any colour but off and black
+  tap(9, 0);
+  CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::sequencerColours; }));
+  auto colours = e.firmware().sequencerColours(split);
+  e.onFirmware([split](firmware::Instance& f) {
+    f.setSequencerColour(split, 0, 9);
+    f.setSequencerColour(split, 1, 7);
+    f.setSequencerColour(split, 2, 0);
+    f.setSequencerColour(split, 3, 2);
+    f.setSequencerColour(split, 2, 11);
+  });
+  CHECK(waitFor([&e, split] { return e.firmware().sequencerColours(split).beyond == 11; }));
+  auto changed = e.firmware().sequencerColours(split);
+  CHECK(changed.empty == 9 && changed.withNotes == colours.withNotes && e.firmware().led(5, 3).color == 9);
+  e.onFirmware([split, colours](firmware::Instance& f) {
+    f.setSequencerColour(split, 0, colours.empty);
+    f.setSequencerColour(split, 2, colours.beyond);
+  });
+  CHECK(waitFor([&e, split, colours] { return e.firmware().sequencerColours(split).empty == colours.empty && e.firmware().sequencerColours(split).beyond == colours.beyond; }));
   tap(0, 3);
   CHECK(waitFor([&e] { return e.firmware().screen() == firmware::sequencerScreen; }));
   nrpn(e, 35, special == firmware::Instance::nrpnUnknown ? 0 : special);
@@ -1391,6 +1491,13 @@ void a_note_sent_on_a_splits_note_channel_lights_its_pads() {
     auto before = lights();
     auto channels = e.firmware().noteChannels(0);
     CHECK(!channels.empty());
+    // every channel the split plays on, its main one first, then its per-note or per-row ones, each
+    // once: the left split's defaults, main channel 1, per-note channels 2 to 8 and rows from channel
+    // 1, which no NRPN query answers
+    std::vector<int> expected = mode == 1 ? std::vector<int> { 1, 2, 3, 4, 5, 6, 7, 8 }
+                              : mode == 2 ? std::vector<int> { 1, 2, 3, 4, 5, 6, 7, 8 } : std::vector<int> { 1 };
+    auto midi = e.firmware().splitMidi(0);
+    CHECK(midi.channels() == expected && midi.mode == mode && midi.main == 1 && midi.mainSends && midi.bendRange == e.firmware().bendRangeOf(0));
     for (int channel : channels) {
       uint8_t on[] = { (uint8_t) (0x90 | (channel - 1)), 60, 100 };
       e.sendMidi(on, sizeof(on));
@@ -1404,6 +1511,12 @@ void a_note_sent_on_a_splits_note_channel_lights_its_pads() {
     }
     CHECK(waitFor([&] { return lights() == before; }));
   }
+  // whether split is on, as NRPN 200 sets it
+  CHECK(!e.firmware().splitMidi(0).splitOn);
+  nrpn(e, 200, 1);
+  CHECK(waitFor([&e] { return e.firmware().splitMidi(0).splitOn && e.firmware().splitMidi(1).splitOn; }));
+  nrpn(e, 200, 0);
+  CHECK(waitFor([&e] { return !e.firmware().splitMidi(0).splitOn; }));
 }
 
 // the velocity of a press on a cell, struck that hard with that pressure to rise to, the cell
@@ -2017,6 +2130,9 @@ Suite bridge("Firmware bridge", {
   { "a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without", a_fresh_flash_starts_with_the_settings_given_and_a_saved_one_without },
   { "an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files", an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files },
   { "the_bridge_reads_a_screens_values_and_the_small_font", the_bridge_reads_a_screens_values_and_the_small_font },
+  { "the_bridge_reads_a_splits_cc_faders", the_bridge_reads_a_splits_cc_faders },
+  { "the_bridge_reads_whether_scale_select_shows", the_bridge_reads_whether_scale_select_shows },
+  { "the_bridge_lights_only_the_chosen_steps_notes_in_notes_view", the_bridge_lights_only_the_chosen_steps_notes_in_notes_view },
   { "the_bridge_times_a_hold_as_the_firmware_does", the_bridge_times_a_hold_as_the_firmware_does },
   { "the_engine_sets_the_bend_range_as_its_screen_does", the_engine_sets_the_bend_range_as_its_screen_does },
   { "the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do", the_bridge_reads_and_sets_the_panels_settings_as_nrpns_do },
@@ -2085,6 +2201,7 @@ int main(int argc, char* argv[]) {
   int failures = 0;
   for (int i = 0; i < runner.getNumResults(); ++i) failures += runner.getResult(i)->failures;
   if (started != nullptr) started->stop();
+  testFlash().deleteRecursively();
   juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
   std::cout << tests << " tests, " << failures << " failed checks" << std::endl;
   return failures == 0 ? 0 : 1;

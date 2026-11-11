@@ -67,6 +67,9 @@ public:
   virtual int columns() = 0;
   virtual int rows() = 0;
   virtual bool userFirmwareMode() = 0;
+  // whether Global Settings' View shows Scale Select, where a hold on custom pattern A, A# or B
+  // opens its light editor
+  virtual bool scaleSelectShown() = 0;
   virtual bool serialMode() = 0;
   // a settings screen or anything else that is not the playing display, which uses every cell
   virtual bool showingSettings() = 0;
@@ -78,7 +81,7 @@ public:
   // the value screen a held settings cell has opened in place of the settings, none on any other
   enum class ValueScreen { none, bendRange, limitsForY, ccForY, initialForRelativeY, limitsForZ, ccForZ, rowOffset, guitarTuning,
                            ccForSwitchSustain, ccForSwitchCC65, switchAssignment, limitsForVelocity, valueForFixedVelocity, drumNotes,
-                           audienceMessage };
+                           audienceMessage, sequencerColours };
   virtual ValueScreen valueScreen() = 0;
   // a split's bend range, 1 to 96 semitones, and setting it as the firmware's bend range screen does
   // on release, telling MPE synths of it in the same way
@@ -124,6 +127,23 @@ public:
   // the channels, 1 to 16, that a note sent in on lights every pad of in a split: the one it takes
   // notes on, or each row's channel in channel per row, where the channel picks the row
   virtual std::vector<int> noteChannels(int split) = 0;
+  // how a split plays over MIDI, read directly, so from the firmware's own thread too: split on, its
+  // mode (0 one channel, 1 a channel per note, 2 a channel per row), its main channel and whether
+  // that sends, the per-note or per-row channels it plays notes on, and its bend range
+  struct SplitMidi {
+    bool splitOn = false;
+    int mode = 0, main = 1, bendRange = 2;
+    bool mainSends = true;
+    std::vector<int> noteChannels;
+    // every channel the split plays on, its main one first
+    std::vector<int> channels() const {
+      std::vector<int> all { main };
+      for (int c : noteChannels)
+        if (c != main) all.push_back(c);
+      return all;
+    }
+  };
+  virtual SplitMidi splitMidi(int split) = 0;
   // the tempo in beats per minute that the arpeggiator and the sequencer play at, tapped, set over
   // MIDI or followed from a MIDI clock
   virtual int tempo() = 0;
@@ -136,6 +156,15 @@ public:
   // a split's program, 1 to 128, and its MIDI volume (CC 7), 0 to 127
   virtual int program(int split) = 0;
   virtual int volume(int split) = 0;
+  // a split's eight CC faders while it plays them in place of notes: the columns they span, from the
+  // first and as many after it as the firmware counts (its fader length), and each row's value, 0 to
+  // 127, -1 for a row without one
+  struct Faders {
+    bool shown = false;
+    int left = 1, length = 0;
+    int values[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+  };
+  virtual Faders ccFaders(int split) = 0;
   // a split's main colour and the colour the global screens draw in, as the firmware's colour codes
   virtual int mainColor(int split) = 0;
   virtual int settingsColor() = 0;
@@ -230,6 +259,9 @@ public:
     int main = 0, accent = 0, played = 0, lowRow = 0, empty = 0, withNotes = 0, beyond = 0;
   };
   virtual SequencerColours sequencerColours(int split) = 0;
+  // a step's colour on the steps bar while empty (0), with notes (1) or past the end (2), as the
+  // sequencer's colours screen cycles them: any colour but off and black
+  virtual void setSequencerColour(int split, int which, int colour) = 0;
   // a new note on a step of the pattern playing, where the firmware's own touch puts one: in the
   // first empty place, or in the last with the oldest let go when the step is full, then selected;
   // its velocity and timbre given, its length the pattern's step size; none where the step has that
