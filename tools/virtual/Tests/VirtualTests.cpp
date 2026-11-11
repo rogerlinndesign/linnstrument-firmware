@@ -277,6 +277,21 @@ void the_bridge_reads_a_screens_values_and_the_small_font() {
   CHECK(e.firmware().settingsColor() == 5);
 }
 
+// each split's special feature read back as it was set: the arpeggiator, CC faders, strum, the
+// sequencer and none
+void the_bridge_reads_each_splits_special_feature() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  for (int parameter : { 35, 135 }) {
+    int before = f.nrpn(parameter);
+    for (int value : { 1, 2, 3, 4, 0 }) {
+      nrpn(e, parameter, value);
+      CHECK(waitFor([&f, parameter, value] { return f.nrpn(parameter) == value; }));
+    }
+    nrpn(e, parameter, before);
+  }
+}
+
 // Notes view's chosen step's notes lit in the played colour, and only its: a step chosen after another
 // leaves the other's pads as the playing surface lights them, as the instrument's own choosing does
 void the_bridge_lights_only_the_chosen_steps_notes_in_notes_view() {
@@ -2155,6 +2170,7 @@ Suite surface("The surface", {
 Suite pace("The instrument's pace", {
   { "a_scan_takes_as_long_as_on_the_instrument", a_scan_takes_as_long_as_on_the_instrument },
   { "the_engine_scans_at_the_instruments_rate", the_engine_scans_at_the_instruments_rate },
+  { "the_bridge_reads_each_splits_special_feature", the_bridge_reads_each_splits_special_feature },
 });
 
 
