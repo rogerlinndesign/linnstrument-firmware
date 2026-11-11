@@ -32,6 +32,8 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
+ ('Firmware/FirmwareInstance.inc', '    if (userFirmwareActive) changeUserFirmwareMode(false);\n    if (Device.serialMode) {', '    if (Device.serialMode) {', 'back_to_midi'),
+ ('Firmware/FirmwareInstance.inc', '      switchSerialMode(false);\n      storeSettings();\n    }\n    updateDisplay();', '      storeSettings();\n    }\n    updateDisplay();', 'back_to_midi'),
  ('Engine.cpp', '  std::vector<uint8_t> image = saveLive ? instance->liveFlashImage() : instance->flashImage();', '  std::vector<uint8_t> image = instance->flashImage();', 'flash_file_saved_live'),
  ('Engine.cpp', '    if (++scansRun % 2000 == 0 || wanted) saveFlash();', '    if (++scansRun % 2000 == 0) saveFlash();', 'flash_file_saved_live'),
  ('Firmware/FirmwareInstance.inc', '      case 35: return Split[split].sequencer ? 4 : Split[split].strum ? 3 : Split[split].ccFaders ? 2 : Split[split].arpeggiator ? 1 : 0;', '      case 35: return Split[split].sequencer ? 4 : 0;', 'reads_each_splits_special'),

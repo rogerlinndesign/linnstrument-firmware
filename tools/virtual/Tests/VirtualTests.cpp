@@ -1765,6 +1765,19 @@ void an_engine_without_ports_opens_none_and_keeps_its_flash_out_of_files() {
   CHECK(e.firmware().bendRange() == 2);
 }
 
+// OS update (serial) mode, which plays nothing over MIDI, and User Firmware Mode left again
+void the_bridge_goes_back_to_midi_from_update_and_user_firmware_mode() {
+  auto& e = engine();
+  nrpn(e, 271, 1);
+  CHECK(waitFor([&e] { return e.firmware().serialMode(); }));
+  e.onFirmware([](firmware::Instance& f) { f.backToMidi(); });
+  CHECK(waitFor([&e] { return !e.firmware().serialMode(); }));
+  nrpn(e, 245, 1);
+  CHECK(waitFor([&e] { return e.firmware().userFirmwareMode(); }));
+  e.onFirmware([](firmware::Instance& f) { f.backToMidi(); });
+  CHECK(waitFor([&e] { return !e.firmware().userFirmwareMode(); }));
+}
+
 // a flash file saved with what the firmware plays with, which it hasn't stored, as while a
 // sequencer runs, at once when asked and when the engine stops
 void a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored() {
@@ -2187,6 +2200,7 @@ Suite bridge("Firmware bridge", {
   { "a_flash_kept_in_memory_keeps_the_tempo_it_plays_at", a_flash_kept_in_memory_keeps_the_tempo_it_plays_at },
   { "a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored", a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored },
   { "a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored", a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored },
+  { "the_bridge_goes_back_to_midi_from_update_and_user_firmware_mode", the_bridge_goes_back_to_midi_from_update_and_user_firmware_mode },
   { "a_boot_flash_of_another_layout_gives_its_settings_converted", a_boot_flash_of_another_layout_gives_its_settings_converted },
   { "a_flash_kept_in_memory_is_whole_and_prompt_while_the_engine_starts_and_stops", a_flash_kept_in_memory_is_whole_and_prompt_while_the_engine_starts_and_stops },
 });

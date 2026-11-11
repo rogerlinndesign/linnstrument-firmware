@@ -71,6 +71,9 @@ public:
   // opens its light editor
   virtual bool scaleSelectShown() = 0;
   virtual bool serialMode() = 0;
+  // out of OS update (serial) mode and User Firmware Mode, back to playing over MIDI, as tapping
+  // UPDATE OS and holding it again would; from the firmware's thread
+  virtual void backToMidi() = 0;
   // a settings screen or anything else that is not the playing display, which uses every cell
   virtual bool showingSettings() = 0;
   virtual Screen screen() = 0;

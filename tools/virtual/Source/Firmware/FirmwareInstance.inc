@@ -160,6 +160,14 @@ public:
   bool userFirmwareMode() override { return userFirmwareActive; }
   bool scaleSelectShown() override { return lightSettings == LIGHTS_ACTIVE; }
   bool serialMode() override { return Device.serialMode; }
+  void backToMidi() override {
+    if (userFirmwareActive) changeUserFirmwareMode(false);
+    if (Device.serialMode) {
+      switchSerialMode(false);
+      storeSettings();
+    }
+    updateDisplay();
+  }
   bool showingSettings() override { return displayMode != displayNormal; }
   firmware::Screen screen() override {
     switch (displayMode) {
