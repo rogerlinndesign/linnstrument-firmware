@@ -422,12 +422,46 @@ std::vector<uint32_t> Surface::shownState() const {
   return state;
 }
 
-bool Surface::repaintIfChanged() {
+// a column of pads at once, as what's drawn over a pad may follow the lights of others in its column
+juce::RectangleList<int> Surface::changedArea(const std::vector<uint32_t>& before, const std::vector<uint32_t>& now) const {
+  juce::RectangleList<int> area;
+  int shown = now.empty() ? 0 : (int) now[0];
+  size_t cells = 2 * 8 * (size_t) shown, first = now.size() - cells - 8;
+  if (before.size() != now.size() || shown != columns || now.size() < cells + 10 || !std::equal(now.begin(), now.begin() + (long) first, before.begin())) {
+    area.add(getLocalBounds());
+    return area;
+  }
+  // the focus ring reaches past its pad
+  float ring = 3.0f;
+  auto switchArea = [this](int row) {
+    juce::Rectangle<float> label, sw;
+    controlSlot(row, label, sw);
+    return padBounds(0, row).getUnion(label).getUnion(sw);
+  };
+  for (int col = 0; col < columns; ++col)
+    for (int row = 0; row < 8; ++row) {
+      size_t at = first + 2 * (size_t) (col * 8 + row);
+      if (now[at] == before[at] && now[at + 1] == before[at + 1]) continue;
+      juce::Rectangle<float> changed;
+      if (col == 0) changed = switchArea(row);
+      else
+        for (int r = 0; r < 8; ++r)
+          if (!outOfSight(col, r)) changed = changed.getUnion(padBounds(col, r));
+      if (changed.isEmpty()) continue;
+      area.add(changed.expanded(ring).getSmallestIntegerContainer());
+    }
+  for (int row = 0; row < 8; ++row)
+    if (now[first + cells + (size_t) row] != before[first + cells + (size_t) row])
+      area.add(switchArea(row).expanded(ring).getSmallestIntegerContainer());
+  return area;
+}
+
+juce::RectangleList<int> Surface::repaintIfChanged() {
   auto state = shownState();
-  if (state == lastShown) return false;
+  auto area = changedArea(lastShown, state);
+  for (auto& r : area) repaint(r);
   lastShown = std::move(state);
-  repaint();
-  return true;
+  return area;
 }
 
 void Surface::timerCallback() {

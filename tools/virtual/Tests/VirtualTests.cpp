@@ -1988,7 +1988,11 @@ void a_copy_booted_again_forgets_the_clock_it_followed() {
 // as storing the settings would, which the firmware doesn't while its clock runs
 void a_flash_kept_in_memory_keeps_the_tempo_it_plays_at() {
   auto& e = engine();
+  // the settings as they play, stored or not, for the start from the file at the end, so that the
+  // tests after this one find them as the ones before left them
+  e.saveLive = true;
   e.stop();
+  e.saveLive = false;
   e.virtualPorts = false;
   e.flashInFile = false;
   e.bootFlash.clear();
@@ -2078,24 +2082,72 @@ void a_touch_lands_on_the_pad_under_it() {
 void an_idle_surface_isnt_repainted() {
   Whole l;
   l.surface.repaintIfChanged();
-  CHECK(!l.surface.repaintIfChanged());
+  CHECK(l.surface.repaintIfChanged().isEmpty());
   engine().press(5, 3, 0.5f, 0.5f);
-  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
+  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged().isEmpty(); }));
   // a held finger moving, its light as it was, once its pressure has settled
-  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged(); }));
+  CHECK(waitFor([&l] { return l.surface.repaintIfChanged().isEmpty(); }));
   engine().move(5, 3, 0.8f, 0.5f);
-  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
+  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged().isEmpty(); }));
   engine().release(5, 3);
-  CHECK(waitFor([&l] { return l.surface.repaintIfChanged(); }));
-  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged(); }));
+  CHECK(waitFor([&l] { return !l.surface.repaintIfChanged().isEmpty(); }));
+  CHECK(waitFor([&l] { return l.surface.repaintIfChanged().isEmpty(); }));
   // a light sent over MIDI
   const uint8_t light[] = { 0xb0, 20, 5, 0xb0, 21, 2, 0xb0, 22, 1 };
   engine().sendMidi(light, sizeof(light));
   CHECK(waitFor([] { return engine().firmware().led(5, 2).color == 1; }));
-  CHECK(l.surface.repaintIfChanged());
+  CHECK(!l.surface.repaintIfChanged().isEmpty());
   const uint8_t off[] = { 0xb0, 20, 5, 0xb0, 21, 2, 0xb0, 22, 0 };
   engine().sendMidi(off, sizeof(off));
   CHECK(waitFor([] { return engine().firmware().led(5, 2).color == 0; }));
+}
+
+// a light that changes repaints its column of pads and a switch's light or label its switch, not
+// the whole surface; anything else, such as the screen, everything
+void a_changed_light_repaints_only_its_column() {
+  Whole l;
+  auto before = l.surface.shownState();
+  int columns = engine().columnCount();
+  size_t first = before.size() - 2 * 8 * (size_t) columns - 8;
+  auto at = [&](int col, int row) { return first + 2 * (size_t) (col * 8 + row); };
+  auto covers = [](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.containsRectangle(pad.getSmallestIntegerContainer()); };
+  auto touches = [](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.intersectsRectangle(pad.reduced(4).getSmallestIntegerContainer()); };
+  auto now = before;
+  now[at(5, 2)] ^= 1;
+  auto area = l.surface.changedArea(before, now);
+  for (int row = 0; row < 8; ++row) CHECK(covers(area, l.surface.padBounds(5, row)));
+  CHECK(!touches(area, l.surface.padBounds(4, 2)) && !touches(area, l.surface.padBounds(6, 2)) && !touches(area, l.surface.padBounds(0, 2)));
+  // a touch too
+  now = before;
+  now[at(7, 4) + 1] = 0x80000001u;
+  area = l.surface.changedArea(before, now);
+  CHECK(covers(area, l.surface.padBounds(7, 4)) && !touches(area, l.surface.padBounds(8, 4)));
+  // a switch's light, and its label
+  now = before;
+  now[at(0, 3)] ^= 1;
+  area = l.surface.changedArea(before, now);
+  CHECK(covers(area, l.surface.padBounds(0, 3)) && !touches(area, l.surface.padBounds(0, 1)) && !touches(area, l.surface.padBounds(1, 3)));
+  now = before;
+  now[now.size() - 8 + 6] ^= 1;
+  area = l.surface.changedArea(before, now);
+  CHECK(covers(area, l.surface.padBounds(0, 6)) && !touches(area, l.surface.padBounds(0, 4)) && !touches(area, l.surface.padBounds(1, 6)));
+  // the screen, the whole surface
+  now = before;
+  now[1] ^= 1;
+  CHECK(l.surface.changedArea(before, now).containsRectangle(l.surface.getLocalBounds()));
+  // and a light sent over MIDI, as a timer tick finds it, the surface's own held off meanwhile
+  {
+    const juce::MessageManagerLock held;
+    l.surface.repaintIfChanged();
+    const uint8_t light[] = { 0xb0, 20, 9, 0xb0, 21, 1, 0xb0, 22, 5 };
+    engine().sendMidi(light, sizeof(light));
+    CHECK(waitFor([] { return engine().firmware().led(9, 1).color == 5; }));
+    area = l.surface.repaintIfChanged();
+  }
+  CHECK(covers(area, l.surface.padBounds(9, 1)) && !touches(area, l.surface.padBounds(10, 1)) && !touches(area, l.surface.padBounds(8, 1)));
+  const uint8_t off[] = { 0xb0, 20, 9, 0xb0, 21, 1, 0xb0, 22, 0 };
+  engine().sendMidi(off, sizeof(off));
+  CHECK(waitFor([] { return engine().firmware().led(9, 1).color != 5; }));
 }
 
 juce::MouseEvent mouseAt(Surface& surface, juce::Point<float> at) {
@@ -2250,6 +2302,7 @@ Suite bridge("Firmware bridge", {
 Suite surface("The surface", {
   { "a_touch_lands_on_the_pad_under_it", a_touch_lands_on_the_pad_under_it },
   { "an_idle_surface_isnt_repainted", an_idle_surface_isnt_repainted },
+  { "a_changed_light_repaints_only_its_column", a_changed_light_repaints_only_its_column },
   { "a_press_is_told_after_the_engine_has_it", a_press_is_told_after_the_engine_has_it },
   { "the_focus_ring_shows_only_while_the_keyboard_moves_it", the_focus_ring_shows_only_while_the_keyboard_moves_it },
 });

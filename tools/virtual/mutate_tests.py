@@ -32,7 +32,12 @@ def build(copies):
     return subprocess.run(['cmake', '--build', build_dir(copies), '--config', 'Release', '--target', 'VirtualTests', '-j8'], capture_output=True, text=True)
 # the file under Source/, its text that occurs once, the broken text, part of the test's name
 M = [
- ('Surface.cpp', '  if (state == lastShown) return false;\n', '', 'idle_surface_isnt_repainted'),
+ ('Surface.cpp', '          if (!outOfSight(col, r)) changed = changed.getUnion(padBounds(col, r));', '          changed = getLocalBounds().toFloat();', 'changed_light_repaints_only_its_column'),
+ ('Surface.cpp', '          if (!outOfSight(col, r)) changed = changed.getUnion(padBounds(col, r));', '          if (r == row) changed = padBounds(col, row);', 'changed_light_repaints_only_its_column'),
+ ('Surface.cpp', '      if (col == 0) changed = switchArea(row);', '      if (col == 0) changed = {};', 'changed_light_repaints_only_its_column'),
+ ('Surface.cpp', '      area.add(switchArea(row).expanded(ring).getSmallestIntegerContainer());', '      area.add(padBounds(1, row).getSmallestIntegerContainer());', 'changed_light_repaints_only_its_column'),
+ ('Surface.cpp', '!std::equal(now.begin(), now.begin() + (long) first, before.begin())) {', 'false) {', 'changed_light_repaints_only_its_column'),
+ ('Surface.cpp', '  auto area = changedArea(lastShown, state);', '  juce::RectangleList<int> area(getLocalBounds());', 'changed_light_repaints_only_its_column'),
  ('Surface.cpp', '      state.push_back((uint32_t) led.color | (uint32_t) (lit ? 0x100 : 0));', '      state.push_back(0);', 'idle_surface_isnt_repainted'),
  ('Surface.cpp', '      if (engine.touchAt(col, row, touch))\n', '      if (false)\n', 'idle_surface_isnt_repainted'),
  ('Firmware/FirmwareInstance.inc', '    if (userFirmwareActive) changeUserFirmwareMode(false);\n    if (Device.serialMode) {', '    if (Device.serialMode) {', 'back_to_midi'),

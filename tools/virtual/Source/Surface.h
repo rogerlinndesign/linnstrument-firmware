@@ -48,8 +48,11 @@ public:
   // what the surface shows that changes with the firmware and the touches, which a timer tick
   // repaints for only when it changed, since a full repaint of an idle surface costs dearly
   std::vector<uint32_t> shownState() const;
-  // a timer tick: a repaint where that changed, and whether it did
-  bool repaintIfChanged();
+  // a timer tick: a repaint where that changed, and where that was, empty for nowhere
+  juce::RectangleList<int> repaintIfChanged();
+  // where the surface changed between two of those states: the columns of pads with a light or a
+  // touch that changed, the switches with a light or a label that did, or everything for anything else
+  juce::RectangleList<int> changedArea(const std::vector<uint32_t>& before, const std::vector<uint32_t>& now) const;
   bool darkMaterial() const { return dark; }
   // a pad of the dark material, lit by a colour where it isn't transparent
   static void paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float rounding, juce::Colour lit);
@@ -111,6 +114,8 @@ protected:
   virtual void paintBehind(juce::Graphics& g);
   virtual void paintInFront(juce::Graphics& g);
   virtual void focusMoved(const Cell&) {}
+  // a pad nothing would show a change of, which a change then leaves unrepainted
+  virtual bool outOfSight(int col, int row) const { return hidden && hidden(col, row); }
   // the label printed for a control switch, row 0 at the bottom
   static const char* controlLabel(int row);
   // what a control switch is labelled with now, its printed label unless a subclass names what
