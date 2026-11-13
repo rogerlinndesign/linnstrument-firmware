@@ -1829,7 +1829,11 @@ void a_flash_file_saved_live_keeps_the_settings_the_firmware_hasnt_stored() {
 // changed over MIDI is until a settings screen is left
 void a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored() {
   auto& e = engine();
+  // the settings as they play kept for the start from the file at the end, as
+  // a_flash_kept_in_memory_keeps_the_tempo_it_plays_at keeps them
+  e.saveLive = true;
   e.stop();
+  e.saveLive = false;
   e.virtualPorts = false;
   e.flashInFile = false;
   e.bootFlash.clear();
@@ -1859,7 +1863,11 @@ void a_flash_kept_in_memory_holds_the_settings_the_firmware_hasnt_stored() {
 // flash: they're converted as the Updater's restore converts them, or the flash starts fresh
 void a_boot_flash_of_another_layout_gives_its_settings_converted() {
   auto& e = engine();
+  // the settings as they play kept for the start from the file at the end, as
+  // a_flash_kept_in_memory_keeps_the_tempo_it_plays_at keeps them
+  e.saveLive = true;
   e.stop();
+  e.saveLive = false;
   e.virtualPorts = false;
   e.flashInFile = false;
   e.onFreshFlash = [&e] { configureMpe(e); };
@@ -2111,17 +2119,21 @@ void a_changed_light_repaints_only_its_column() {
   size_t first = before.size() - 2 * 8 * (size_t) columns - 8;
   auto at = [&](int col, int row) { return first + 2 * (size_t) (col * 8 + row); };
   auto covers = [](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.containsRectangle(pad.getSmallestIntegerContainer()); };
-  auto touches = [](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.intersectsRectangle(pad.reduced(4).getSmallestIntegerContainer()); };
+  // as far as a fingertip at a pad's edge reaches, and no further
+  float tip = l.surface.padBounds(1, 0).getWidth() * 0.27f;
+  auto touches = [tip](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.intersectsRectangle(pad.reduced(tip + 2).getSmallestIntegerContainer()); };
+  // a light's own change only as far as the focus ring, its neighbours' edges left alone
+  auto grazes = [](const juce::RectangleList<int>& area, juce::Rectangle<float> pad) { return area.intersectsRectangle(pad.reduced(4).getSmallestIntegerContainer()); };
   auto now = before;
   now[at(5, 2)] ^= 1;
   auto area = l.surface.changedArea(before, now);
   for (int row = 0; row < 8; ++row) CHECK(covers(area, l.surface.padBounds(5, row)));
-  CHECK(!touches(area, l.surface.padBounds(4, 2)) && !touches(area, l.surface.padBounds(6, 2)) && !touches(area, l.surface.padBounds(0, 2)));
+  CHECK(!grazes(area, l.surface.padBounds(4, 2)) && !grazes(area, l.surface.padBounds(6, 2)) && !grazes(area, l.surface.padBounds(0, 2)));
   // a touch too
   now = before;
   now[at(7, 4) + 1] = 0x80000001u;
   area = l.surface.changedArea(before, now);
-  CHECK(covers(area, l.surface.padBounds(7, 4)) && !touches(area, l.surface.padBounds(8, 4)));
+  CHECK(covers(area, l.surface.padBounds(7, 4).expanded(tip - 1)) && !touches(area, l.surface.padBounds(8, 4)));
   // a switch's light, and its label
   now = before;
   now[at(0, 3)] ^= 1;
@@ -2135,6 +2147,12 @@ void a_changed_light_repaints_only_its_column() {
   now = before;
   now[1] ^= 1;
   CHECK(l.surface.changedArea(before, now).containsRectangle(l.surface.getLocalBounds()));
+  // nothing for a column whose pads all lie under what covers them, which repaints itself
+  l.surface.hidden = [](int col, int) { return col == 9; };
+  now = before;
+  now[at(9, 2)] ^= 1;
+  CHECK(l.surface.changedArea(before, now).isEmpty());
+  l.surface.hidden = nullptr;
   // and a light sent over MIDI, as a timer tick finds it, the surface's own held off meanwhile
   {
     const juce::MessageManagerLock held;

@@ -431,8 +431,9 @@ juce::RectangleList<int> Surface::changedArea(const std::vector<uint32_t>& befor
     area.add(getLocalBounds());
     return area;
   }
-  // the focus ring reaches past its pad
+  // the focus ring reaches past its pad, and a fingertip at its pad's edge as far as its widest
   float ring = 3.0f;
+  auto reach = [this, ring](int col, int row) { return juce::jmax(ring, padBounds(col, row).getWidth() * 0.27f); };
   auto switchArea = [this](int row) {
     juce::Rectangle<float> label, sw;
     controlSlot(row, label, sw);
@@ -448,7 +449,7 @@ juce::RectangleList<int> Surface::changedArea(const std::vector<uint32_t>& befor
         for (int r = 0; r < 8; ++r)
           if (!outOfSight(col, r)) changed = changed.getUnion(padBounds(col, r));
       if (changed.isEmpty()) continue;
-      area.add(changed.expanded(ring).getSmallestIntegerContainer());
+      area.add(changed.expanded(now[at + 1] != before[at + 1] ? reach(col, row) : ring).getSmallestIntegerContainer());
     }
   for (int row = 0; row < 8; ++row)
     if (now[first + cells + (size_t) row] != before[first + cells + (size_t) row])
