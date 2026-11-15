@@ -306,11 +306,6 @@ public:
   virtual void playSequencer(int split, bool running) = 0;
   // every note of both splits let go, as Global Settings' all notes off cell does with the split on
   virtual void allNotesOff() = 0;
-  // the settings the two settings screens change, as bytes to compare and give back: the global ones,
-  // both splits' and the device's that Global Settings sets, all but the split Per-Split Settings
-  // shows; and some of them given back, applied as recalling a memory applies them
-  virtual std::vector<uint8_t> panelSettings() = 0;
-  virtual void restorePanelSettings(const std::vector<uint8_t>& settings) = 0;
   virtual void moveSequencerPlayhead(int split, int step) = 0;
   // the sixteen projects the flash keeps: one as loading it would read it, the one played now (its
   // tempo the one playing), and the one last loaded, -1 before any; loading one and saving the one played over one,
