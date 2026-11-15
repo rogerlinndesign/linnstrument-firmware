@@ -310,6 +310,43 @@ void the_bridge_lets_go_of_every_note_of_both_splits() {
   CHECK(wanted.size() >= 2);
 }
 
+// the settings screens' settings given back as they were read, a global one and a split's, the split
+// Per-Split Settings shows left as it is
+void the_bridge_gives_back_the_settings_screens_settings() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  auto tap = [&e](int col, int row) {
+    e.press(col, row, 0.5f, 0.5f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    e.release(col, row);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  };
+  std::vector<uint8_t> before;
+  std::atomic<bool> read { false };
+  e.onFirmware([&](firmware::Instance& i) { before = i.panelSettings(); read = true; });
+  CHECK(waitFor([&read] { return read.load(); }));
+  int offset = f.nrpn(227), bend = f.nrpn(119);
+  nrpn(e, 227, offset == 4 ? 7 : 4);
+  nrpn(e, 119, bend == 12 ? 24 : 12);
+  CHECK(waitFor([&] { return f.nrpn(227) != offset && f.nrpn(119) != bend; }));
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::perSplitScreen; }));
+  tap(16, 7);
+  CHECK(waitFor([&f] { return f.shownSplit() == 1; }));
+  e.onFirmware([before](firmware::Instance& i) { i.restorePanelSettings(before); });
+  CHECK(waitFor([&] { return f.nrpn(227) == offset && f.nrpn(119) == bend; }));
+  CHECK(f.shownSplit() == 1);
+  read = false;
+  std::vector<uint8_t> after;
+  e.onFirmware([&](firmware::Instance& i) { after = i.panelSettings(); read = true; });
+  CHECK(waitFor([&read] { return read.load(); }));
+  CHECK(after == before);
+  tap(15, 7);
+  CHECK(waitFor([&f] { return f.shownSplit() == 0; }));
+  tap(0, 7);
+  CHECK(waitFor([&e] { return e.firmware().screen() == firmware::noScreen; }));
+}
+
 // Notes view's chosen step's notes lit in the played colour, and only its: a step chosen after another
 // leaves the other's pads as the playing surface lights them, as the instrument's own choosing does
 void the_bridge_lights_only_the_chosen_steps_notes_in_notes_view() {
@@ -2330,6 +2367,7 @@ Suite pace("The instrument's pace", {
   { "the_engine_scans_at_the_instruments_rate", the_engine_scans_at_the_instruments_rate },
   { "the_bridge_reads_each_splits_special_feature", the_bridge_reads_each_splits_special_feature },
   { "the_bridge_lets_go_of_every_note_of_both_splits", the_bridge_lets_go_of_every_note_of_both_splits },
+  { "the_bridge_gives_back_the_settings_screens_settings", the_bridge_gives_back_the_settings_screens_settings },
 });
 
 

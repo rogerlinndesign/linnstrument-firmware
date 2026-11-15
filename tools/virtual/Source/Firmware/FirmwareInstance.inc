@@ -826,6 +826,47 @@ public:
     midiSendAllNotesOff(LEFT);
     midiSendAllNotesOff(RIGHT);
   }
+  struct PanelSettings {
+    GlobalSettings global;
+    SplitSettings split[NUMSPLITS];
+    boolean operatingLowPower, otherHanded, sleepActive;
+    byte splitHandedness, sleepDelay, sleepAnimationType;
+  };
+  std::vector<uint8_t> panelSettings() override {
+    PanelSettings s;
+    memset(&s, 0, sizeof(s));
+    memcpy(&s.global, &Global, sizeof(GlobalSettings));
+    s.global.currentPerSplit = 0;
+    memcpy(&s.split, &Split, sizeof(s.split));
+    s.operatingLowPower = Device.operatingLowPower;
+    s.otherHanded = Device.otherHanded;
+    s.sleepActive = Device.sleepActive;
+    s.splitHandedness = Device.splitHandedness;
+    s.sleepDelay = Device.sleepDelay;
+    s.sleepAnimationType = Device.sleepAnimationType;
+    auto* bytes = reinterpret_cast<const uint8_t*>(&s);
+    return { bytes, bytes + sizeof(s) };
+  }
+  void restorePanelSettings(const std::vector<uint8_t>& settings) override {
+    if (settings.size() != sizeof(PanelSettings)) return;
+    PanelSettings s;
+    memcpy(&s, settings.data(), sizeof(s));
+    s.global.currentPerSplit = Global.currentPerSplit;
+    memcpy(&Global, &s.global, sizeof(GlobalSettings));
+    memcpy(&Split, &s.split, sizeof(s.split));
+    Device.otherHanded = s.otherHanded;
+    Device.sleepActive = s.sleepActive;
+    Device.splitHandedness = s.splitHandedness;
+    Device.sleepDelay = s.sleepDelay;
+    Device.sleepAnimationType = s.sleepAnimationType;
+    applyPresetSettings();
+    if (Device.operatingLowPower != s.operatingLowPower) {
+      Device.operatingLowPower = s.operatingLowPower;
+      applyLedInterval();
+      applyMidiInterval();
+    }
+    updateDisplay();
+  }
   int sequencerProjects() override { return MAX_PROJECTS; }
   // as loadProject() reads it
   std::vector<uint8_t> storedProject(int slot) override {
