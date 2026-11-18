@@ -136,6 +136,8 @@ M = [
  ('Firmware/FirmwareInstance.inc', '    if (!validSplit(split) || !inRange(colour, COLOR_RED, COLOR_PINK) || colour == COLOR_BLACK) return;', '    if (!validSplit(split) || !inRange(colour, COLOR_OFF, COLOR_PINK)) return;', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '    if (which < 0 || which > 2) return;\n    *colours[which] = colour;', '    *colours[which < 0 || which > 2 ? 0 : which] = colour;', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '  int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[drum]; }', '  int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[13 - drum]; }', 'the_drum_notes'),
+ ('Firmware/FirmwareInstance.inc', '  bool sequencerLegendShown() override { return legendVisible; }', '  bool sequencerLegendShown() override { return false; }', 'the_drum_notes'),
+ ('Firmware/FirmwareInstance.inc', '  bool sequencerLegendShown() override { return legendVisible; }', '  bool sequencerLegendShown() override { return true; }', 'the_drum_notes'),
  ('Firmware/FirmwareInstance.inc', '      case displayEditAudienceMessage: return ValueScreen::audienceMessage;', '', 'audience_messages'),
  ('Firmware/FirmwareInstance.inc', '    int length = (int) kept.copy(made, 30);', '    int length = (int) kept.copy(made, 31);', 'audience_messages'),
  ('Firmware/FirmwareInstance.inc', "      if (c >= ' ' && c <= '~') kept += c;", '      kept += c;', 'audience_messages'),

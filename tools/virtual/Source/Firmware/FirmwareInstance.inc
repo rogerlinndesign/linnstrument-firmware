@@ -334,6 +334,7 @@ public:
     updateDisplay();
   }
   bool animating() override { return animationActive; }
+  bool sequencerLegendShown() override { return legendVisible; }
   int drumNote(int split, int drum) override { return Project.sequencer[split].seqDrumNotes[drum]; }
   void setDrumNote(int split, int drum, int note) override {
     if (drum < 0 || drum >= 14 || !inRange(note, 0, 127)) return;

@@ -624,7 +624,8 @@ void the_bridge_assigns_the_switches_as_the_grid_does() {
   CHECK(waitFor([&] { return e.firmware().switchAssignment(3) == before[3] && e.firmware().switchCC(4, false) == cc65[4]; }));
 }
 
-// the sequencer's drum pages, opened from its settings, set the notes its drum rows play
+// the sequencer's drum pages, opened from its settings after their name shows, set the notes its drum
+// rows play
 void the_bridge_reads_and_sets_the_drum_notes() {
   auto& e = engine();
   auto tap = [&e](int col, int row) {
@@ -644,6 +645,10 @@ void the_bridge_reads_and_sets_the_drum_notes() {
   for (int page : { 7, 8 }) {
     tap(page, 0);
     CHECK(waitFor([&e] { return e.firmware().valueScreen() == firmware::Instance::ValueScreen::drumNotes; }));
+    // the page's name over the cells first, then the page, after a moment or at the next touch
+    CHECK(e.firmware().sequencerLegendShown());
+    if (page == 8) tap(1, 1);
+    CHECK(waitFor([&e] { return !e.firmware().sequencerLegendShown(); }));
   }
   e.onFirmware([split](firmware::Instance& f) { f.setDrumNote(split, 2, 40); f.setDrumNote(split, 3, 128); f.setDrumNote(split, 14, 41); });
   CHECK(waitFor([&e, split] { return e.firmware().drumNote(split, 2) == 40; }));

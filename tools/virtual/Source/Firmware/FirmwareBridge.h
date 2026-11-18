@@ -122,6 +122,9 @@ public:
   virtual void setAudienceMessage(int message, const std::string& text) = 0;
   virtual void showAudienceMessage(int message) = 0;
   virtual bool animating() = 0;
+  // the sequencer settings page's name, shown over rows 1 to 7 for 1.5 s or until the next touch after
+  // one of its bottom row cells picks the page, while the page itself is already the screen
+  virtual bool sequencerLegendShown() = 0;
   // lifts the limits that guard against an instrument's sensor, for a touch screen that has none
   // of its cross talk or phantom touches: more than three touches in a column, the fourth corner
   // of a rectangle, the settings switches while notes are held and the pitch of light touches
