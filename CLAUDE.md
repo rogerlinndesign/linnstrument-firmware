@@ -172,13 +172,14 @@ so a session that cannot see the screen still can. `--script FILE` (or `-` for
 stdin) reads text commands instead, the way to drive it from a terminal:
 `press COL ROW [X Y [Z]]`, `move`, `release`, `slide COL ROW TOCOL [Y]` (a
 held touch into the next cell of its row, as a finger slides), `tap`, `foot`,
-`leds` (the lights as `ROW: c c c ...` lines from the top row down, 0 off, 7
-black), `view` (what part of the instrument the window shows),
-`status`, `send BYTES` (MIDI into the firmware, in hex), `received [SECONDS]`
-(the MIDI it sent since the last call), `screenshot FILE [SCALE]`, `model`,
-`sleep SECONDS`, `quit`. Each answers with its output and `ok`. Touches made
-this way go through the real firmware, so they produce the same MIDI an
-instrument would. The simplest way in from a session is the MCP server:
+`headings [on|off]` (the front panel's printed headings), `leds` (the lights
+as `ROW: c c c ...` lines from the top row down, 0 off, 7 black), `view` (what
+part of the instrument the window shows), `status`, `send BYTES` (MIDI into
+the firmware, in hex), `received [SECONDS]` (the MIDI it sent since the last
+call), `screenshot FILE [SCALE]`, `model`, `sleep SECONDS`, `quit`. Each
+answers with its output and `ok`. Touches made this way go through the real
+firmware, so they produce the same MIDI an instrument would. The simplest way
+in from a session is the MCP server:
 `go run ./tools/linnstrument mcp` serves the app over stdio with those
 commands as tools and screenshots as images, and `.mcp.json` registers it as
 `virtual-linnstrument`, so the tools are there in Claude Code once the app is

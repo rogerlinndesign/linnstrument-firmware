@@ -157,6 +157,91 @@ void Surface::paintBehind(juce::Graphics& g) {
 
 void Surface::paintInFront(juce::Graphics& g) {
   paintBrand(g);
+  if (headingsOn) paintHeadings(g);
+}
+
+const std::vector<Surface::Heading>& Surface::headings() {
+  using P = Place;
+  static const std::vector<Heading> all {
+    { "MIDI MODE", 1, 1, P::above }, { "VIEW", 2, 2, P::above }, { "MIDI CHANNELS", 3, 6, P::above }, { "BEND RANGE", 7, 7, P::above },
+    { "PITCH/X", 8, 8, P::above }, { "TIMBRE/Y", 9, 9, P::above }, { "LOUDNESS/Z", 10, 10, P::above }, { "COLOR", 11, 11, P::above },
+    { "LOW ROW", 12, 13, P::above }, { "SPECIAL", 14, 14, P::above }, { "SELECT SPLIT", 15, 16, P::above },
+    { "SEQUENCER", 20, 25, P::above, 200 },
+    { "VIEW", 1, 1, P::below }, { "NOTE LIGHTS ON/OFF", 2, 4, P::below }, { "ROW OFFSET", 5, 6, P::below }, { "SELECT SW", 7, 7, P::below },
+    { "ASSIGN SWITCH", 8, 9, P::below }, { "VELOCITY SENS", 10, 10, P::below }, { "PRESSURE SENS", 11, 11, P::below },
+    { "ARPEGGIATOR", 12, 14, P::below }, { "POWER/MIDI", 15, 15, P::below }, { "ACTIONS", 16, 16, P::below },
+    { "SEQUENCER", 0, 3, P::right, 200 },
+  };
+  return all;
+}
+
+std::vector<Surface::Heading> Surface::headingsPrinted() const {
+  int model = columns == 17 ? 128 : 200;
+  std::vector<Heading> printed;
+  for (auto& h : headings())
+    if (h.model == 0 || h.model == model) printed.push_back(h);
+  return printed;
+}
+
+void Surface::setHeadingsShown(bool shown) {
+  if (shown == headingsOn) return;
+  headingsOn = shown;
+  repaint();
+}
+
+namespace {
+// the headings' type, and a lane of it on its side
+float headingHeight(float padSize) { return juce::jlimit(6.0f, 11.0f, padSize * 0.2f); }
+float laneWidth(float padSize) { return headingHeight(padSize) * 1.6f; }
+}
+
+juce::Rectangle<float> Surface::headingArea(const Heading& heading) const {
+  float rule = gap * 2.5f;
+  if (heading.place == Place::right) {
+    auto low = padBounds(1, heading.from), high = padBounds(1, heading.to);
+    return { padsArea.getRight() + rule + gap, high.getY(), laneWidth(padSize), low.getBottom() - high.getY() };
+  }
+  auto first = padBounds(heading.from, 0), last = padBounds(heading.to, 0);
+  float x = first.getX() - gap / 2, w = last.getRight() + gap / 2 - x;
+  if (heading.place == Place::above) return { x, steel.getY() + gap, w, padsArea.getY() - rule - steel.getY() - 2 * gap };
+  float y = padsArea.getBottom() + rule + gap;
+  return { x, y, w, steel.getBottom() - gap - y };
+}
+
+juce::Rectangle<float> Surface::brandArea() const {
+  float left = padsArea.getRight() + gap;
+  if (headingsOn)
+    for (auto& h : headingsPrinted())
+      if (h.place == Place::right) left = juce::jmax(left, headingArea(h).getRight() + gap);
+  return { left, padsArea.getY(), steel.getRight() - left, padsArea.getHeight() };
+}
+
+// printed as the panel prints them: small capitals over a rule as wide as the columns, on two lines
+// where a single column is too narrow for one, and sideways beside the rows, reading upwards
+void Surface::paintHeadings(juce::Graphics& g) {
+  g.setFont(labelFontOfHeight(headingHeight(padSize)));
+  auto ink = juce::Colour(0xffe6e6e6);
+  for (auto& heading : headingsPrinted()) {
+    auto area = headingArea(heading);
+    if (heading.place == Place::right) {
+      float ruleX = padsArea.getRight() + gap * 2.5f;
+      g.setColour(ink.withMultipliedAlpha(0.55f));
+      g.fillRect(juce::Rectangle<float>(ruleX, area.getY() + gap, 1, area.getHeight() - 2 * gap));
+      g.saveState();
+      g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, area.getCentreX(), area.getCentreY()));
+      auto turned = area.withSizeKeepingCentre(area.getHeight(), area.getWidth());
+      g.setColour(ink);
+      g.drawFittedText(heading.text, turned.toNearestInt(), juce::Justification::centred, 1, 0.8f);
+      g.restoreState();
+      continue;
+    }
+    float ruleY = heading.place == Place::above ? padsArea.getY() - gap * 2.5f : padsArea.getBottom() + gap * 2.5f;
+    auto rule = area.withY(ruleY).withHeight(1).reduced(gap, 0);
+    g.setColour(ink.withMultipliedAlpha(0.55f));
+    g.fillRect(rule);
+    g.setColour(ink);
+    g.drawFittedText(heading.text, area.reduced(1, 0).toNearestInt(), heading.place == Place::above ? juce::Justification::centredBottom : juce::Justification::centredTop, 2, 0.8f);
+  }
 }
 
 // the printed labels grow with the pads, as on the instrument
@@ -387,14 +472,18 @@ void Surface::paintBrand(juce::Graphics& g) {
   // the name, its rule and its line as the panel prints them, sideways at the right end, as long
   // as the plate allows
   g.saveState();
-  juce::Rectangle<float> brand(padsArea.getRight() + gap, padsArea.getY(), steel.getRight() - padsArea.getRight() - gap, padsArea.getHeight());
-  g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, brand.getCentreX(), brand.getCentreY()));
-  juce::Rectangle<float> turned(brand.getCentreX() - brand.getHeight() / 2, brand.getCentreY() - brand.getWidth() / 2, brand.getHeight(), brand.getWidth());
-  auto plate = nameplate(columns == 17 ? 128 : 200);
-  float scale = juce::jmin(turned.getWidth() * 0.9f / (float) plate.getWidth(), turned.getHeight() * 0.85f / (float) plate.getHeight());
+  auto area = nameplateArea();
+  g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, area.getCentreX(), area.getCentreY()));
   g.setColour(nameplateGrey);
-  g.drawImage(plate, turned.withSizeKeepingCentre((float) plate.getWidth() * scale, (float) plate.getHeight() * scale), juce::RectanglePlacement::stretchToFit, true);
+  g.drawImage(nameplate(columns == 17 ? 128 : 200), area.withSizeKeepingCentre(area.getHeight(), area.getWidth()), juce::RectanglePlacement::stretchToFit, true);
   g.restoreState();
+}
+
+juce::Rectangle<float> Surface::nameplateArea() const {
+  auto brand = brandArea();
+  auto plate = nameplate(columns == 17 ? 128 : 200);
+  float scale = juce::jmin(brand.getHeight() * 0.9f / (float) plate.getWidth(), brand.getWidth() * 0.85f / (float) plate.getHeight());
+  return brand.withSizeKeepingCentre((float) plate.getHeight() * scale, (float) plate.getWidth() * scale);
 }
 
 std::vector<uint32_t> Surface::shownState() const {

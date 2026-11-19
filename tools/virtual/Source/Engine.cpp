@@ -381,15 +381,16 @@ std::vector<std::vector<uint8_t>> Engine::takeMidiOut() {
   return taken;
 }
 
-juce::File Engine::flashFile(int forModel) const {
-  juce::File dir = flashFolder;
-  if (dir == juce::File()) {
-    dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+juce::File Engine::appFolder() {
+  auto dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
 #if JUCE_MAC
-    dir = dir.getChildFile("Application Support");
+  dir = dir.getChildFile("Application Support");
 #endif
-    dir = dir.getChildFile("Virtual LinnStrument");
-  }
+  return dir.getChildFile("Virtual LinnStrument");
+}
+
+juce::File Engine::flashFile(int forModel) const {
+  juce::File dir = flashFolder == juce::File() ? appFolder() : flashFolder;
   return dir.getChildFile("flash-" + juce::String(forModel) + ".bin");
 }
 

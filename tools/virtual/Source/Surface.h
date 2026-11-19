@@ -58,6 +58,27 @@ public:
   // touch that changed, the switches with a light or a label that did, or everything for anything else
   juce::RectangleList<int> changedArea(const std::vector<uint32_t>& before, const std::vector<uint32_t>& now) const;
   bool darkMaterial() const { return dark; }
+  // the headings the front panel prints, not the names of single cells under them: the per-split
+  // settings' above the pads and Global Settings' below them over columns 1 to 16 on both models,
+  // and on a 200 the sequencer's above columns 20 to 25 and sideways right of the bottom four rows
+  enum class Place { above, below, right };
+  struct Heading {
+    const char* text;
+    int from, to;   // columns above and below, rows right and left
+    Place place;
+    int model = 0;  // 200 or 128 where only that model prints it
+  };
+  static const std::vector<Heading>& headings();
+  // the ones the shown model prints
+  std::vector<Heading> headingsPrinted() const;
+  // where the nameplate goes, beside the headings while they show
+  juce::Rectangle<float> brandArea() const;
+  // where the nameplate is drawn, sideways in that
+  juce::Rectangle<float> nameplateArea() const;
+  void setHeadingsShown(bool shown);
+  bool headingsShown() const { return headingsOn; }
+  // where a heading's words go: between its rule and the steel's edge, or in its lane beside the rows
+  juce::Rectangle<float> headingArea(const Heading& heading) const;
   // a pad of the dark material, lit by a colour where it isn't transparent
   static void paintDarkPad(juce::Graphics& g, juce::Rectangle<float> pad, float rounding, juce::Colour lit);
   // the cells something drawn over the surface covers, whose pads it then leaves undrawn
@@ -149,12 +170,14 @@ private:
   void paintCase(juce::Graphics& g);
   void paintPads(juce::Graphics& g);
   void paintBrand(juce::Graphics& g);
+  void paintHeadings(juce::Graphics& g);
 
   TouchTracker touches;
   Cell focusCell;
   // the focus ring shows only while the keyboard moves it, never after a touch or a click
   bool keyboardNavigating = false;
   bool dark = false;
+  bool headingsOn = false;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Surface)
 };

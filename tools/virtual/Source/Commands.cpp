@@ -32,6 +32,7 @@ const char* Commands::help() {
     "slide COL ROW TOCOL [Y]   a held touch slides into the next cell of its row\n"
     "tap COL ROW [MS]          press and release after MS milliseconds (default 120, at least 20)\n"
     "foot left|right down|up   a foot switch\n"
+    "headings [on|off]         the front panel's printed headings, shown or not\n"
     "leds                      the lights as \"ROW: c c c ...\" per row from the top, a color number per\n"
     "                          column, 0 off, 7 black (dark)\n"
     "status                    the instrument's status line\n"
@@ -212,6 +213,15 @@ juce::String Commands::execute(const juce::StringArray& words) {
     if (which < 0 || (action != "down" && action != "up")) return "error: foot needs left|right down|up";
     bool down = action == "down";
     return onMessageThread([this, state = reader, which, down] { if (state->stop) return juce::String("error: stopped"); main.setFootSwitch(which, down); return juce::String("ok"); });
+  }
+  if (command == "headings") {
+    juce::String action = words.size() > 1 ? words[1].toLowerCase() : juce::String();
+    if (words.size() > 2 || (action.isNotEmpty() && action != "on" && action != "off")) return "error: headings takes on or off";
+    return onMessageThread([this, state = reader, action] {
+      if (state->stop) return juce::String("error: stopped");
+      if (action.isNotEmpty() && !main.setHeadingsShown(action == "on")) return juce::String("error: no headings to show here");
+      return juce::String("headings ") + (main.headingsShown() ? "on" : "off") + "\nok";
+    });
   }
   if (command == "leds") {
     return onMessageThread([this, state = reader] {

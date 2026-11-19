@@ -36,6 +36,12 @@ public:
   virtual bool saveScreenshot(const juce::File& file, float scale) = 0;
   virtual void setModel(int model) = 0;
   virtual void setFootSwitch(int which, bool down) = 0;
+  // the front panel's printed headings, false where the app has no such option
+  virtual bool setHeadingsShown(bool shown) {
+    juce::ignoreUnused(shown);
+    return false;
+  }
+  virtual bool headingsShown() { return false; }
   // what part of the instrument the window shows
   virtual juce::String describeView() { return "the whole instrument"; }
   // An app's own commands: the names it has, tried before the ones here, and each run on the

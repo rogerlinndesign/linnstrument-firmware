@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <JuceHeader.h>
 
+#include "Choices.h"
 #include "Commands.h"
 #include "Engine.h"
 #include "Surface.h"
@@ -36,6 +37,9 @@ public:
   bool saveScreenshot(const juce::File& file, float scale = 2.0f) override;
   void setModel(int model) override;
   void setFootSwitch(int which, bool down) override;
+  bool setHeadingsShown(bool shown) override;
+  bool headingsShown() override { return surface.headingsShown(); }
+  void keep(Choices& choices) { choices.follow(modelBox, headingsButton); }
 
 private:
   void timerCallback() override;
@@ -55,6 +59,7 @@ private:
   juce::Slider pressureSlider;
   juce::Label velocityLabel { {}, "Velocity" };
   juce::Slider velocitySlider;
+  juce::TextButton headingsButton { "Headings" };
   juce::TextButton footLeft { "Foot L" };
   juce::TextButton footRight { "Foot R" };
   juce::Label hintLabel;

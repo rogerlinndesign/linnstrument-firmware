@@ -108,6 +108,8 @@ public:
   std::function<void()> onFreshFlash;
   // where each model's flash is saved, the app's data folder unless set before start()
   juce::File flashFolder;
+  // where the app keeps what it remembers between runs
+  static juce::File appFolder();
   // an engine whose MIDI and settings the program that made it carries has no virtual port and no
   // flash file: set before start(), it then boots with bootFlash, a fresh flash when that's
   // empty, and keeps the flash there when it stops

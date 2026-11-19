@@ -81,6 +81,9 @@ Using it
   macOS). They're written on quit, on a model switch and periodically while they change. Delete
   the file for a factory-fresh unit, and also before judging a change to default settings, since
   an old file would hide it.
+* The app starts as the model and with the headings you left it with, kept in `choices.xml` in
+  the same folder. A run with `--script` or `--screenshot` starts as a 200 without headings
+  instead, unless its arguments say otherwise, and leaves your choice alone.
 * The zip from a GitHub Actions run of this repository, `virtual-linnstrument-macos-` followed
   by the firmware version and the commit, holds an app signed with a Developer ID and notarised
   by Apple, so it opens like any downloaded app. Its window title and status line show the same
@@ -108,8 +111,9 @@ Using it
     --screenshot build/shot.png --after 6
   ```
 
-  `--model 128` starts as a 128. `--screenshot` writes the window to a PNG after `--after`
-  seconds (2.5 by default) and quits, which is handy for a session that can't see the screen.
+  `--model 128` starts as a 128 and `--headings` starts with the headings printed.
+  `--screenshot` writes the window to a PNG after `--after` seconds (2.5 by default) and quits,
+  which is handy for a session that can't see the screen.
   Note that the path is relative to the current directory.
 * `--script FILE` reads text commands from a file, or from stdin with `-`, so that a script or an
   AI session can touch the instrument and read it back without a mouse or a screen:
@@ -122,6 +126,7 @@ Using it
   slide COL ROW TOCOL [Y]   a held touch slides into the next cell of its row
   tap COL ROW [MS]          press and release after MS milliseconds (default 120, at least 20)
   foot left|right down|up   a foot switch
+  headings [on|off]         the front panel's printed headings, shown or not
   leds                      the lights as "ROW: c c c ..." per row from the top, a color number
                             per column, 0 off, 7 black (dark)
   status                    the instrument's status line
@@ -177,7 +182,7 @@ Using it
   that a sketch before 2.4.0 doesn't have. 2.3.4 is the oldest release tried.
 * `go run ./tools/linnstrument mcp [200|128]` serves the app to an AI assistant as an MCP server
   over stdio. The commands above are its tools (`press`, `move`, `release`, `tap`, `foot`,
-  `leds`, `status`, `screenshot`, `model`, `send_midi`, `received_midi`, `wait`), and a
+  `headings`, `leds`, `status`, `screenshot`, `model`, `send_midi`, `received_midi`, `wait`), and a
   screenshot is returned as an image. The app starts on the first tool call and quits with the
   session. When its window was closed or the app was rebuilt, the next tool call starts it
   again, which releases any touch held down, and the reply says so. `.mcp.json` registers it for
@@ -185,6 +190,11 @@ Using it
   names the binary when it's not the one built under `build/virtual`.
 * Pressure sets how hard every touch presses, and Velocity how fast the strike arrives.
 * Foot L and Foot R are the two foot switches.
+* Headings prints the headings the front panel has: the per-split settings' above the pads,
+  Global Settings' below them, and on a 200 the sequencer's, above its last six columns and
+  sideways right of the bottom four rows. That way you can tell what a column sets without the
+  manual. The names of single cells under them aren't printed. They're off at first, since the
+  window then looks like the instrument's playing surface.
 * MIDI goes out on "Virtual LinnStrument" and comes in on the port of the same name, so the
   pages in `examples/browser/`, `sendmidi`, `receivemidi` and RouteMIDI talk to it just as they
   would to the instrument. The quickest tour of User Firmware Mode on it is

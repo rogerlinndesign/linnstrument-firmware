@@ -30,6 +30,7 @@ limitations under the License.
 #include <thread>
 #include <vector>
 
+#include "Choices.h"
 #include "Engine.h"
 #include "Firmware/FirmwareBridge.h"
 #include "LinnLookAndFeel.h"
@@ -2091,6 +2092,127 @@ void a_touch_lands_on_the_pad_under_it() {
   }
 }
 
+// the front panel's printed headings: on each model every settings column under one heading above
+// and below, and on a 200 the sequencer's columns under one more and its slider rows under one
+// right of them; each in the panel's room and over neither a pad nor a switch, the nameplate moved
+// aside for the one on the right, and printed only while they're shown
+void the_headings_print_over_the_settings_columns() {
+  using P = Surface::Place;
+  int was = engine().firmware().columns() == 17 ? 128 : 200;
+  for (int model : { 200, 128 }) {
+    engine().start(model);
+    Whole l;
+    auto printed = l.surface.headingsPrinted();
+    for (auto place : { P::above, P::below, P::right }) {
+      std::vector<int> under(26, 0);
+      for (auto& h : printed)
+        if (h.place == place)
+          for (int i = h.from; i <= h.to; ++i) ++under[(size_t) i];
+      for (int i = 0; i < 26; ++i) {
+        bool settings = (place == P::above || place == P::below) && i >= 1 && i <= 16;
+        bool sequencer = model == 200 && ((place == P::above && i >= 20 && i <= 25) || (place == P::right && i <= 3));
+        CHECK(under[(size_t) i] == (settings || sequencer ? 1 : 0));
+      }
+    }
+    auto plain = l.surface.brandArea();
+    l.surface.setHeadingsShown(true);
+    auto brand = l.surface.brandArea();
+    CHECK(juce::exactlyEqual(brand.getRight(), plain.getRight()) && (model == 200 ? brand.getX() > plain.getX() : brand == plain));
+    auto plate = l.surface.nameplateArea();
+    CHECK(brand.contains(plate) && std::abs(plate.getCentreX() - brand.getCentreX()) < 0.01f);
+    std::vector<juce::Rectangle<float>> areas;
+    for (auto& h : printed) {
+      auto area = l.surface.headingArea(h);
+      CHECK(area.getWidth() >= 9 && area.getHeight() >= 9 && l.surface.getLocalBounds().toFloat().contains(area) && !area.intersects(brand));
+      CHECK(!area.intersects(l.surface.nameplateArea()));
+      for (int col = 0; col < engine().firmware().columns(); ++col)
+        for (int row = 0; row < 8; ++row) CHECK(!area.intersects(l.surface.padBounds(col, row)));
+      if (h.place == P::above || h.place == P::below) {
+        auto first = l.surface.padBounds(h.from, 0), end = l.surface.padBounds(h.to, 0);
+        CHECK(area.getX() <= first.getX() && area.getRight() >= end.getRight());
+        CHECK(h.place == P::above ? area.getBottom() < l.surface.padBounds(h.from, 7).getY() : area.getY() > first.getBottom());
+      }
+      else {
+        auto high = l.surface.padBounds(1, h.to), low = l.surface.padBounds(1, h.from);
+        CHECK(area.getY() <= high.getY() + 0.01f && area.getBottom() >= low.getBottom() - 0.01f);
+      }
+      for (auto& other : areas) CHECK(!area.reduced(0.5f).intersects(other));
+      areas.push_back(area);
+    }
+    l.surface.setHeadingsShown(false);
+    CHECK(l.surface.brandArea() == plain);
+    auto lit = [&](juce::Rectangle<float> where) {
+      auto image = l.surface.createComponentSnapshot(where.toNearestInt(), true, 1.0f);
+      int bright = 0;
+      for (int y = 0; y < image.getHeight(); ++y)
+        for (int x = 0; x < image.getWidth(); ++x) bright += image.getPixelAt(x, y).getBrightness() > 0.6f ? 1 : 0;
+      return bright;
+    };
+    CHECK(!l.surface.headingsShown());
+    for (auto& h : printed) CHECK(lit(l.surface.headingArea(h)) == 0);
+    l.surface.setHeadingsShown(true);
+    CHECK(l.surface.headingsShown());
+    for (auto& h : printed) CHECK(lit(l.surface.headingArea(h)) > 8);
+  }
+  engine().start(was);
+}
+
+// the window's model and headings kept between launches, unless the launch says otherwise, and
+// never read or written by a run driven by a script or taking a screenshot
+void the_window_keeps_its_model_and_headings_between_launches() {
+  auto file = juce::File::createTempFile("choices.xml");
+  auto launch = [&file](const juce::String& line) { return Choices(juce::StringArray::fromTokens(line, true), file); };
+  {
+    auto first = launch("");
+    CHECK(first.keeps() && first.model() == 200 && !first.headings());
+    juce::ComboBox box;
+    box.addItem("200", 200);
+    box.addItem("128", 128);
+    box.setSelectedId(200, juce::dontSendNotification);
+    juce::TextButton button;
+    button.setClickingTogglesState(true);
+    first.follow(box, button);
+    box.setSelectedId(128, juce::sendNotificationSync);
+    CHECK(launch("").model() == 128 && !launch("").headings());
+    button.setToggleState(true, juce::sendNotificationSync);
+    CHECK(launch("").headings());
+  }
+  auto second = launch("");
+  CHECK(second.model() == 128 && second.headings());
+  CHECK(launch("--model 200").model() == 200 && launch("--model 200").headings());
+  for (auto line : { "--script -", "--screenshot shot.png" }) {
+    auto scripted = launch(line);
+    CHECK(!scripted.keeps() && scripted.model() == 200 && !scripted.headings());
+    juce::ComboBox box;
+    box.addItem("200", 200);
+    box.addItem("128", 128);
+    box.setSelectedId(128, juce::dontSendNotification);
+    juce::TextButton button;
+    button.setClickingTogglesState(true);
+    button.setToggleState(true, juce::dontSendNotification);
+    scripted.follow(box, button);
+    box.setSelectedId(200, juce::sendNotificationSync);
+    button.setToggleState(false, juce::sendNotificationSync);
+  }
+  CHECK(launch("").model() == 128 && launch("").headings());
+  CHECK(launch("--script - --model 128 --headings").model() == 128 && launch("--script - --headings").headings());
+  {
+    auto third = launch("");
+    juce::ComboBox box;
+    box.addItem("200", 200);
+    box.addItem("128", 128);
+    box.setSelectedId(128, juce::dontSendNotification);
+    juce::TextButton button;
+    button.setClickingTogglesState(true);
+    button.setToggleState(true, juce::dontSendNotification);
+    third.follow(box, button);
+    box.setSelectedId(200, juce::sendNotificationSync);
+    button.setToggleState(false, juce::sendNotificationSync);
+  }
+  CHECK(launch("").model() == 200 && !launch("").headings());
+  file.deleteFile();
+}
+
 // an idle surface left as it is between timer ticks, repainted once a light or a touch changes
 void an_idle_surface_isnt_repainted() {
   Whole l;
@@ -2324,6 +2446,8 @@ Suite bridge("Firmware bridge", {
 
 Suite surface("The surface", {
   { "a_touch_lands_on_the_pad_under_it", a_touch_lands_on_the_pad_under_it },
+  { "the_headings_print_over_the_settings_columns", the_headings_print_over_the_settings_columns },
+  { "the_window_keeps_its_model_and_headings_between_launches", the_window_keeps_its_model_and_headings_between_launches },
   { "an_idle_surface_isnt_repainted", an_idle_surface_isnt_repainted },
   { "a_changed_light_repaints_only_its_column", a_changed_light_repaints_only_its_column },
   { "a_press_is_told_after_the_engine_has_it", a_press_is_told_after_the_engine_has_it },

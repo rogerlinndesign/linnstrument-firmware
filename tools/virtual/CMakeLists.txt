@@ -65,6 +65,7 @@ juce_add_binary_data(VirtualLinnStrumentData SOURCES
 
 target_sources(VirtualLinnStrument PRIVATE
   Source/Main.cpp
+  Source/Choices.cpp
   Source/MainComponent.cpp
   Source/Surface.cpp
   Source/TouchTracker.cpp
@@ -98,6 +99,7 @@ juce_generate_juce_header(VirtualTests)
 add_dependencies(VirtualTests MergedSketch BuildInfo)
 target_sources(VirtualTests PRIVATE
   Tests/VirtualTests.cpp
+  Source/Choices.cpp
   Source/Surface.cpp
   Source/TouchTracker.cpp
   Source/Engine.cpp

@@ -18,6 +18,7 @@ limitations under the License.
 #include <iostream>
 
 #include "BuildInfo.h"
+#include "Choices.h"
 #include "Commands.h"
 #include "Firmware/FirmwareBridge.h"
 #include "LinnLookAndFeel.h"
@@ -29,15 +30,19 @@ public:
   const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
   bool moreThanOneInstanceAllowed() override { return false; }
 
-  // --model 128 starts as a 128; --screenshot FILE.png writes the window to a file and quits,
-  // after --after SECONDS (default 2.5), for a session that cannot see the screen;
-  // --script FILE (or - for stdin) reads the commands Commands.cpp lists
+  // --model 128 starts as a 128; --headings prints the front panel's headings; --screenshot
+  // FILE.png writes the window to a file and quits, after --after SECONDS (default 2.5), for a
+  // session that cannot see the screen;
+  // --script FILE (or - for stdin) reads the commands Commands.cpp lists; without either the
+  // window starts with the model and headings it was left with
   void initialise(const juce::String& commandLine) override {
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     juce::StringArray args = juce::StringArray::fromTokens(commandLine, true);
-    int model = args.contains("--model") && args[args.indexOf("--model") + 1] == "128" ? 128 : 200;
-    window = std::make_unique<MainWindow>(getApplicationName() + " " + firmware::version() + "-" + VIRTUAL_COMMIT, model);
+    choices = std::make_unique<Choices>(args, Engine::appFolder().getChildFile("choices.xml"));
+    window = std::make_unique<MainWindow>(getApplicationName() + " " + firmware::version() + "-" + VIRTUAL_COMMIT, choices->model());
     auto* main = dynamic_cast<MainComponent*>(window->getContentComponent());
+    if (choices->headings()) main->setHeadingsShown(true);
+    main->keep(*choices);
     int at = args.indexOf("--screenshot");
     if (at >= 0 && at + 1 < args.size()) {
       juce::File file(juce::File::getCurrentWorkingDirectory().getChildFile(args[at + 1].unquoted()));
@@ -61,6 +66,7 @@ public:
   void shutdown() override {
     commands.reset();
     window.reset();
+    choices.reset();
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
   }
 
@@ -88,6 +94,7 @@ private:
   };
 
   LinnLookAndFeel lookAndFeel;
+  std::unique_ptr<Choices> choices;
   std::unique_ptr<MainWindow> window;
   std::unique_ptr<Commands> commands;
 };

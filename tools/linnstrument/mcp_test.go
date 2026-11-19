@@ -154,8 +154,11 @@ func TestMcpSessionTurnsToolCallsIntoAppCommands(t *testing.T) {
 		call(8, "foot", `{"switch":"left","down":true}`),
 		call(9, "received_midi", `{"wait_seconds":0.5}`),
 		call(10, "slide", `{"col":3,"row":4,"to_col":4,"y":0.25}`),
+		call(11, "headings", `{"shown":true}`),
+		call(12, "headings", `{}`),
+		call(13, "headings", `{"shown":"yes"}`),
 	)
-	if len(replies) != 10 {
+	if len(replies) != 13 {
 		t.Fatalf("%d replies", len(replies))
 	}
 	if replies[0].Result.ProtocolVersion != "2024-11-05" {
@@ -164,9 +167,12 @@ func TestMcpSessionTurnsToolCallsIntoAppCommands(t *testing.T) {
 	if len(replies[1].Result.Tools) != len(mcpTools()) || replies[1].Result.Tools[0]["name"] != "press" {
 		t.Fatalf("tools %v", replies[1].Result.Tools)
 	}
-	want := []string{"press 3 4 0.5 0.5 900", "move 3 4 0.25 1", "leds", "send B0 14 05", "send zz", "foot left down", "received 0.5", "slide 3 4 4 0.25", "quit"}
+	want := []string{"press 3 4 0.5 0.5 900", "move 3 4 0.25 1", "leds", "send B0 14 05", "send zz", "foot left down", "received 0.5", "slide 3 4 4 0.25", "headings on", "headings", "quit"}
 	if strings.Join(fake.given(), "|") != strings.Join(want, "|") {
 		t.Fatalf("commands %v", fake.given())
+	}
+	if !replies[12].Result.IsError || replies[12].Result.Content[0]["text"] != "shown is true or false" {
+		t.Fatalf("bad headings reply %v", replies[12].Result)
 	}
 	if replies[4].Result.Content[0]["text"] != "7: 0 1 2\n6: 0 0 0" {
 		t.Fatalf("leds reply %v", replies[4].Result.Content)

@@ -88,6 +88,13 @@ MainComponent::MainComponent(int model) {
   footLeft.onClick = [this] { footSwitchChanged(0); };
   footRight.onClick = [this] { footSwitchChanged(1); };
 
+  headingsButton.setClickingTogglesState(true);
+  headingsButton.setTitle("Headings");
+  headingsButton.setTooltip("Prints the headings the front panel has over and beside the pads");
+  headingsButton.setHelpText(headingsButton.getTooltip());
+  headingsButton.onClick = [this] { surface.setHeadingsShown(headingsButton.getToggleState()); };
+  addAndMakeVisible(headingsButton);
+
   hintLabel.setText("Click or press Space on a pad to play, drag to slide or bend, shift-click holds a touch. Arrow keys move between pads.", juce::dontSendNotification);
   hintLabel.setColour(juce::Label::textColourId, linn::dim);
   hintLabel.setFont(juce::Font(juce::FontOptions(12.0f)));
@@ -147,6 +154,11 @@ void MainComponent::setFootSwitch(int which, bool down) {
   footSwitchChanged(which);
 }
 
+bool MainComponent::setHeadingsShown(bool shown) {
+  headingsButton.setToggleState(shown, juce::sendNotificationSync);
+  return true;
+}
+
 void MainComponent::setModel(int model) {
   if (modelBox.getSelectedId() == model) return;
   modelBox.setSelectedId(model, juce::sendNotificationSync);
@@ -184,7 +196,7 @@ void MainComponent::resized() {
   // the LinnStrument name (the panel carries it too), then the sliders down to 60, then the
   // model menu down to 136
   int brand = 138, sub = 82, slider = 130, model = 176;
-  int deficit = brand + sub + model + 20 + 2 * slider + 70 + 16 + 66 + 28 + 74 + 8 + 74 - top.getWidth();
+  int deficit = brand + sub + model + 12 + 96 + 20 + 2 * slider + 70 + 16 + 66 + 28 + 74 + 8 + 74 - top.getWidth();
   if (deficit > 0) { sub = 0; deficit -= 82; }
   if (deficit > 0) { brand = 0; deficit -= 138; }
   if (deficit > 0) { int cut = juce::jmin(deficit, 2 * (130 - 60)); slider -= (cut + 1) / 2; deficit -= cut; }
@@ -197,6 +209,8 @@ void MainComponent::resized() {
     top.removeFromLeft(12);
   }
   modelBox.setBounds(top.removeFromLeft(model));
+  top.removeFromLeft(12);
+  headingsButton.setBounds(top.removeFromLeft(96));
   top.removeFromLeft(20);
   footRight.setBounds(top.removeFromRight(74));
   footLeft.setBounds(top.removeFromRight(74));

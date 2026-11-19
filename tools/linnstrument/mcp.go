@@ -284,6 +284,22 @@ func mcpTools() []mcpTool {
 				}
 				return "foot " + side + " " + action, nil
 			})},
+		{Name: "headings", Description: "Show or hide the headings the front panel prints: the per-split settings' above the pads, Global Settings' below them, and on a 200 the sequencer's, above its last six columns and sideways right of the bottom four rows. For screenshots of a settings or sequencer screen. Without shown it only says whether they show.",
+			InputSchema: schema(nil, `"shown":{"type":"boolean","description":"true prints them, false hides them"}`),
+			run: simple(func(args map[string]any) (string, error) {
+				shown, given := args["shown"]
+				if !given {
+					return "headings", nil
+				}
+				on, ok := shown.(bool)
+				if !ok {
+					return "", errors.New("shown is true or false")
+				}
+				if on {
+					return "headings on", nil
+				}
+				return "headings off", nil
+			})},
 		{Name: "leds", Description: "The lights of every cell as one line per row, the top row first: \"ROW: c c c ...\" with a color number per column from the control column at 0. Colors: 0 off, 1 red, 2 yellow, 3 green, 4 cyan, 5 blue, 6 magenta, 7 black, 8 white, 9 orange, 10 lime, 11 pink.",
 			InputSchema: schema(nil, ""),
 			run:         simple(func(map[string]any) (string, error) { return "leds", nil })},
