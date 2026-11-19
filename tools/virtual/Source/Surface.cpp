@@ -160,6 +160,8 @@ void Surface::paintInFront(juce::Graphics& g) {
 }
 
 // the printed labels grow with the pads, as on the instrument
+firmware::Led Surface::ledShown(int col, int row) const { return engine.firmware().led(col, row); }
+
 float Surface::switchLabelHeight() const {
   return juce::jlimit(7.0f, 13.0f, padSize * 0.27f);
 }
@@ -264,7 +266,7 @@ void Surface::paintPads(juce::Graphics& g) {
       // none where what's drawn over the surface covers it anyway
       if (col > 0 && hidden && hidden(col, row)) continue;
       float rounding = col == 0 ? switchCorner() : radius;
-      firmware::Led led = engine.firmware().led(col, row);
+      firmware::Led led = ledShown(col, row);
       bool lit = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
       juce::Colour colour = lit ? ledColour(led.color) : juce::Colours::transparentBlack;
       if (int split = col > 0 ? faderOf(col, row) : -1; split >= 0) {
@@ -346,7 +348,7 @@ void Surface::paintPads(juce::Graphics& g) {
     if (sw.isEmpty()) continue;
     // on the dark material light on an unlit switch, dark on its light
     if (dark && onSwitches) {
-      auto led = engine.firmware().led(0, row);
+      auto led = ledShown(0, row);
       bool on = led.color != 0 && led.color != 7 && engine.firmware().pulseOn(led.display);
       ink = on ? switchInk() : juce::Colour(0xffe6e5e1);
     }

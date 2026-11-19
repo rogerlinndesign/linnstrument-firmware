@@ -28,6 +28,10 @@ limitations under the License.
 #include "Engine.h"
 #include "TouchTracker.h"
 
+namespace firmware {
+struct Led;
+}
+
 class Surface : public juce::Component,
                 private juce::Timer {
 public:
@@ -116,6 +120,8 @@ protected:
   virtual void focusMoved(const Cell&) {}
   // a pad nothing would show a change of, which a change then leaves unrepainted
   virtual bool outOfSight(int col, int row) const { return hidden && hidden(col, row); }
+  // the light a pad or switch is painted with, the firmware's own unless a subclass keeps another
+  virtual firmware::Led ledShown(int col, int row) const;
   // the label printed for a control switch, row 0 at the bottom
   static const char* controlLabel(int row);
   // what a control switch is labelled with now, its printed label unless a subclass names what
