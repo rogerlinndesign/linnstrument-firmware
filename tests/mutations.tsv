@@ -73,8 +73,8 @@ phantom_needs_a_complete_rectangle	ls_handleTouches.ino	        if (rowsInColsTo
 phantom_fourth_corner_of_three_sounding_notes_does_not_sound	ls_handleTouches.ino	      if (isPhantomTouchIndividual() || isPhantomTouchContextual()) {	      if (false) {
 playing_moving_a_finger_sends_pitch_bend	ls_handleTouches.ino	        int pitch = valueX;	        int pitch = -valueX;
 serial_command_without_handshake_is_ignored	ls_serial.ino	  if (waitingForCommands) {	  if (true) {
-upgrade_copies_the_current_version_as_is	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (false) {
-settings_defaults	ls_settings.ino	  Device.version = 17;	  Device.version = 18;
+upgrade_copies_the_current_version_as_is	ls_extstorage.ino	      case 18:\n        if (confSize == sizeof(Configuration)) {	      case 18:\n        if (false) {
+settings_defaults	ls_settings.ino	  Device.version = 18;	  Device.version = 19;
 settings_second_store_keeps_the_newest_copy	ls_settings.ino	  dueFlashStorage.write(SETTINGS_OFFSET, marker);	  dueFlashStorage.write(SETTINGS_OFFSET, 0);
 switch_cc65_sends_the_configured_controller	ls_switches.ino	      preSendSwitchCC65(whichSwitch, split, 127);	      preSendSwitchCC65(whichSwitch, split, 126);
 switch_foot_pedal_follows_the_pedal_and_its_polarity	ls_switches.ino	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = !state_right;	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = state_right;
@@ -115,6 +115,10 @@ upgrade_from_v13	ls_extstorage.ino	  ConfigurationV13* s = (ConfigurationV13*)so
 upgrade_from_v14	ls_extstorage.ino	  ConfigurationV14* s = (ConfigurationV14*)source;	  ConfigurationV14* s = (ConfigurationV14*)source; s->settings.global.rowOffset = 0;
 upgrade_from_v15	ls_extstorage.ino	  ConfigurationV15* s = (ConfigurationV15*)source;	  ConfigurationV15* s = (ConfigurationV15*)source; s->settings.global.rowOffset = 0;
 upgrade_from_v16	ls_extstorage.ino	  ConfigurationV16* s = (ConfigurationV16*)source;	  ConfigurationV16* s = (ConfigurationV16*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v17	ls_extstorage.ino	  ConfigurationV17* s = (ConfigurationV17*)source;	  ConfigurationV17* s = (ConfigurationV17*)source; s->settings.global.rowOffset = 0;
+upgrade_from_v17	ls_extstorage.ino	      memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));	
+upgrade_from_v17	ls_extstorage.ino	  memcpy(t->split, s->split, sizeof(t->split));	
+upgrade_global_settings_keep_the_layout_of_version_17	linnstrument-firmware.ino	  boolean splitActive;                       // false = split off, true = split on\n  unsigned short removedNotes[12];	  byte paddingForTheMutation;\n  boolean splitActive;                       // false = split off, true = split on\n  unsigned short removedNotes[12];
 upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	      case 9:\n        if (confSize == sizeof(ConfigurationV9)) {	      case 9:\n        if (true) {
 ufm_query_272_to_274_report_the_model_the_version_and_the_build	ls_midi.ino	      value = LINNMODEL;	      value = NUMCOLS;
 ufm_query_272_to_274_are_read_only	ls_midi.ino	    case 299:\n      sendNrpnParameter(value, channel);	    case 272:\n      LINNMODEL = value;\n      break;\n    case 299:\n      sendNrpnParameter(value, channel);
@@ -136,7 +140,7 @@ ufm_query_reply_arrives_on_the_channel_of_the_query	ls_midi.ino	    midiSendNRPN
 ufm_query_275_reports_whether_the_instrument_is_calibrated	ls_midi.ino	      value = Device.calibrated;	      value = 1;
 serial_r_command_restores_the_settings_and_leaves_serial_mode	ls_serial.ino	  boolean settingsApplied = upgradeConfigurationSettings(settingsSize, dueFlashStorage.readAddress(SETTINGS_OFFSET));	  boolean settingsApplied = false;
 serial_restore_asks_again_for_a_batch_whose_crc_is_wrong	ls_serial.ino	  if (local_crc != remote_crc) {	  if (false) {
-serial_restore_refuses_a_blob_of_the_wrong_size_and_asks_for_calibration	ls_extstorage.ino	      case 17:\n        if (confSize == sizeof(Configuration)) {	      case 17:\n        if (true) {
+serial_restore_refuses_a_blob_of_the_wrong_size_and_asks_for_calibration	ls_extstorage.ino	      case 18:\n        if (confSize == sizeof(Configuration)) {	      case 18:\n        if (true) {
 serial_restore_gives_up_after_two_seconds_without_data	ls_serial.ino	    if (calcTimeDelta(millis(), lastSerialMoment) > 2000) {\n      waitingForCommands = false;	    if (calcTimeDelta(millis(), lastSerialMoment) > 2000) {
 ufm_repeat_press_at_the_same_spot_sends_its_values_again	ls_handleTouches.ino	  resetLastMidiPolyPressure(sensorCell->note, sensorCell->channel);\n  resetLastMidiCC(sensorCol, sensorCell->channel);\n  resetLastMidiCC(sensorCol+32, sensorCell->channel);\n  resetLastMidiCC(sensorCol+64, sensorCell->channel);\n  midiSendNoteOn(LEFT,	  midiSendNoteOn(LEFT,
 midi_queue_drops_whole_messages_when_full_instead_of_lapping_itself	ls_midi.ino	  if (!midiOutQueue.hasRoom(4)) {	  if (false) {
@@ -145,3 +149,78 @@ limits_take_three_touches_in_a_column_unless_lifted	ls_handleTouches.ino	else if
 limits_silence_the_fourth_corner_of_a_rectangle_unless_lifted	ls_handleTouches.ino	if (!sensorLimitsLifted && (isPhantomTouchIndividual() || isPhantomTouchContextual())) {	if ((isPhantomTouchIndividual() || isPhantomTouchContextual())) {
 limits_keep_the_settings_switches_away_from_a_playing_hand_unless_lifted	ls_handleTouches.ino	      if (!sensorLimitsLifted &&\n          sensorRow != SWITCH_1_ROW &&	      if (sensorRow != SWITCH_1_ROW &&
 limits_hold_back_the_pitch_of_a_light_touch_sharing_a_column_unless_lifted	ls_handleTouches.ino	  if ((sensorLimitsLifted || countTouchesInColumn() < 2 ||	  if ((countTouchesInColumn() < 2 ||
+scale_rows_play_consecutive_notes_of_the_scale	ls_handleTouches.ino	(removed & (1 << pitchClass(lowest))); ++s) {\n    lowest++;	(removed & (1 << pitchClass(lowest))); ++s) {\n    lowest--;
+scale_rows_count_the_row_offset_in_scale_notes	ls_handleTouches.ino	  else if (Global.rowOffset < ROWOFFSET_OCTAVECUSTOM) {\n    offset = Global.rowOffset;	  else if (Global.rowOffset < ROWOFFSET_OCTAVECUSTOM) {\n    offset = 5;
+scale_rows_keep_an_octave_between_rows_an_octave	ls_handleTouches.ino	  if (offset == 12) {\n    offset = scale.size;	  if (offset == 12) {\n    offset = 12;
+scale_rows_keep_an_octave_between_rows_an_octave	ls_handleTouches.ino	    offset = -scale.size;	    offset = -12;
+scale_rows_go_down_with_a_negative_custom_row_offset	ls_handleTouches.ino	  if (rest < 0) {\n    rest += scale.size;\n    octaves -= 1;	  if (rest < 0) {\n    rest += scale.size;
+scale_rows_repeat_with_a_zero_row_offset	ls_handleTouches.ino	  else {\n    offset = 0;\n  }	  else {\n    offset = 1;\n  }
+scale_rows_leave_guitar_tuning_and_no_overlap_chromatic	ls_handleTouches.ino	  if (Global.rowOffset == ROWOFFSET_NOOVERLAP || Global.rowOffset == ROWOFFSET_GUITAR) {\n    return false;	  if (Global.rowOffset == ROWOFFSET_NOOVERLAP) {\n    return false;
+scale_rows_leave_guitar_tuning_and_no_overlap_chromatic	ls_handleTouches.ino	  if (Global.rowOffset == ROWOFFSET_NOOVERLAP || Global.rowOffset == ROWOFFSET_GUITAR) {\n    return false;	  if (Global.rowOffset == ROWOFFSET_GUITAR) {\n    return false;
+scale_rows_leave_guitar_tuning_and_no_overlap_chromatic	ls_handleTouches.ino	    if (Global.customRowOffset == -17) {	    if (false) {
+scale_rows_need_a_scale_preset_with_something_left_out	ls_handleTouches.ino	  if (removed == 0 || removed == 0xfff) {	  if (removed == 0) {
+scale_rows_need_a_scale_preset_with_something_left_out	ls_handleTouches.ino	  if (getActiveCustomLedPattern() >= 0) {\n    return 0;	  if (false) {\n    return 0;
+scale_rows_belong_to_their_note_lights_preset	ls_handleTouches.ino	  return Global.removedNotes[Global.activeNotes] & 0xfff;	  return Global.removedNotes[0] & 0xfff;
+scale_rows_transpose_by_semitones_on_top_of_the_scale	ls_handleTouches.ino	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol));	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol)) - Split[split].transposePitch - Split[split].transposeOctave;
+scale_rows_follow_the_transposed_lights_into_another_key	ls_handleTouches.ino	  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;	  int lowest = determineRowOffsetNote(split, 0);
+scale_rows_follow_the_left_handed_layout	ls_handleTouches.ino	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol));	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, col));
+scale_rows_fit_the_128	ls_handleTouches.ino	    noteCol = (NUMCOLS - col);	    noteCol = (26 - col);
+scale_rows_carry_on_into_the_right_split	ls_handleTouches.ino	  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;	  int lowest = determineRowOffsetNote(split, 0) - Split[LEFT].transposeLights;
+scale_rows_past_the_midi_range_are_off	ls_handleTouches.ino	    if (note < 0 || note > 255) {\n      return 255;	    if (false) {\n      return 255;
+scale_rows_send_the_cells_notes	ls_handleTouches.ino	      return 255;\n    }\n    return note;	      return 255;\n    }\n    return note + 1;
+scale_rows_change_while_a_note_is_held	ls_midi.ino	removed = value ? removed | (1 << (parameter-276)) :	removed = value ? removed :
+scale_rows_find_the_cells_of_every_note	ls_midi.ino	    col = position - row * scale.rowSteps + 1;	    col = position - row * scale.rowSteps + 2;
+scale_rows_find_the_cells_of_every_note	ls_midi.ino	    if (!scaleRowsPositionOfNote(scale, notenum - Split[split].transposeOctave - Split[split].transposePitch, position)) {	    if (!scaleRowsPositionOfNote(scale, notenum - Split[split].transposeOctave, position)) {
+scale_rows_find_no_cell_for_a_note_left_out	ls_midi.ino	      return -1;\n    }\n    col = position	      position = 0;\n    }\n    col = position
+scale_rows_light_the_other_cells_of_a_played_note	ls_midi.ino	  if (scaleRowsOf(split, scale)) {\n    int position;	  if (false) {\n    int position;
+scale_rows_paint_only_notes_of_the_scale	ls_handleTouches.ino	  ScaleRows scale;\n  if (scaleRowsOf(split, scale)) {\n    int note	  ScaleRows scale;\n  if (false) {\n    int note
+scale_rows_slide_by_the_interval_to_the_next_cell	ls_handleTouches.ino	  int32_t fxdPitch = constrain(at - from, -128, 128) * FXD_CALX_FULL_UNIT	  int32_t fxdPitch = constrain(cells, -128, 128) * FXD_CALX_FULL_UNIT
+scale_rows_slide_part_of_the_way_to_part_of_the_interval	ls_handleTouches.ino	 + rest * (next - at);	 + rest;
+scale_rows_widen_vibrato_towards_the_bigger_step	ls_handleTouches.ino	    rest += FXD_CALX_FULL_UNIT;\n    cells -= 1;	    rest += FXD_CALX_FULL_UNIT;
+scale_rows_slide_the_same_as_chromatic_rows_without_a_scale	ls_handleTouches.ino	  if (!scaleRowsOf(sensorSplit, scale)) {\n    return valueX;	  if (!scaleRowsOf(sensorSplit, scale)) {\n    return valueX * 2;
+scale_rows_slide_with_the_left_handed_layout	ls_handleTouches.ino	  if (isLeftHandedSplit(sensorSplit)) {\n    noteCol = NUMCOLS - noteCol;\n  }\n  int start	  int start
+scale_rows_slide_on_the_128	ls_handleTouches.ino	    noteCol = NUMCOLS - noteCol;\n  }\n  int start	    noteCol = 26 - noteCol;\n  }\n  int start
+scale_rows_slide_by_the_interval_to_the_next_cell	ls_handleTouches.ino	  short noteCol = sensorCell->initialColumn == -1 ? sensorCol : sensorCell->initialColumn;	  short noteCol = sensorCol;
+scale_rows_quantize_a_slide_to_the_next_note	ls_handleTouches.ino	  int at = scaleRowsNote(scale, start + cells);	  int at = scaleRowsNote(scale, start + cells) + (cells > 0);
+scale_rows_slide_stops_at_the_end_of_the_bend_range	ls_handleTouches.ino	  return FXD_TO_INT(constrain(fxdPitch, -limit, limit));	  return FXD_TO_INT(fxdPitch);
+scale_rows_leave_the_low_row_bend_chromatic	ls_handleTouches.ino	    if (valueX != INVALID_DATA && !userFirmwareActive && !isLowRow()) {	    if (valueX != INVALID_DATA && !userFirmwareActive) {
+scale_rows_leave_user_firmware_mode_x_alone	ls_handleTouches.ino	    if (valueX != INVALID_DATA && !userFirmwareActive && !isLowRow()) {	    if (valueX != INVALID_DATA && !isLowRow()) {
+scale_rows_tapping_a_note_light_toggles_it_when_the_finger_lifts	ls_settings.ino	      toggleNoteLights(lightSettings == LIGHTS_MAIN ? Global.mainNotes[Global.activeNotes] : Global.accentNotes[Global.activeNotes]);	      toggleNoteLights(Global.mainNotes[Global.activeNotes]);
+scale_rows_tapping_a_note_light_toggles_it_when_the_finger_lifts	ls_settings.ino	    if (ensureCellBeforeHoldWait(globalColor, cellOff)) {\n      // a note left out	    if (true) {\n      // a note left out
+scale_rows_tapping_a_note_light_toggles_it_when_the_finger_lifts	ls_settings.ino	    if (ensureCellBeforeHoldWait(globalColor, cellOff)) {\n      // a note left out	    if (false) {\n      // a note left out
+scale_rows_holding_a_note_light_leaves_the_note_out_and_back_in	ls_settings.ino	          toggleRemovedNote();\n          updateDisplay();	          updateDisplay();
+scale_rows_holding_a_note_light_leaves_the_note_out_and_back_in	ls_settings.ino	isNoteLightRemoved() ? COLOR_RED : globalColor, cellSlowPulse);	isNoteLightRemoved() ? COLOR_RED : globalColor, cellOn);
+scale_rows_holding_a_note_light_leaves_the_note_out_and_back_in	ls_settings.ino	isNoteLightRemoved() ? COLOR_RED : globalColor, cellSlowPulse);	globalColor, cellSlowPulse);
+scale_rows_holding_a_note_light_leaves_the_note_out_and_back_in	ls_displayModes.ino	        setLed(2+col, row, COLOR_RED, cellOn);	        setLed(2+col, row, COLOR_RED, cellSlowPulse);
+scale_rows_holding_a_note_light_leaves_the_note_out_and_back_in	ls_displayModes.ino	          displayNoteLights(Global.accentNotes[Global.activeNotes]);\n          displayRemovedNotes();	          displayNoteLights(Global.accentNotes[Global.activeNotes]);
+scale_rows_tapping_a_note_left_out_brings_it_back_with_its_light	ls_settings.ino	      if (isNoteLightRemoved()) {\n        toggleRemovedNote();\n      }	      if (isNoteLightRemoved()) {\n      }
+scale_rows_tapping_a_note_left_out_brings_it_back_with_its_light	ls_settings.ino	        toggleRemovedNote();\n      }\n      else {	        toggleRemovedNote();\n      }\n      {
+scale_rows_keep_at_least_one_note	ls_settings.ino	  if ((removed & 0xfff) != 0xfff) {	  if (true) {
+scale_rows_cannot_be_set_on_a_custom_light_pattern	ls_settings.ino	sensorRow > 3 || getActiveCustomLedPattern() >= 0) {	sensorRow > 3) {
+scale_rows_cannot_be_set_on_a_custom_light_pattern	ls_displayModes.ino	void displayRemovedNotes() {\n  if (getActiveCustomLedPattern() >= 0) {	void displayRemovedNotes() {\n  if (false) {
+scale_rows_cannot_be_set_on_a_custom_light_pattern	ls_settings.ino	(lightSettings == LIGHTS_MAIN || lightSettings == LIGHTS_ACCENT) && !customLedPatternActive) {	(lightSettings == LIGHTS_MAIN || lightSettings == LIGHTS_ACCENT)) {
+scale_rows_selecting_a_preset_still_happens_at_the_touch	ls_settings.ino	        else if ((lightSettings == LIGHTS_MAIN || lightSettings == LIGHTS_ACCENT) && sensorRow <= 3 && !userFirmwareActive) {	        else if (sensorRow <= 3 && !userFirmwareActive) {
+scale_rows_selecting_a_preset_still_happens_at_the_touch	ls_settings.ino	            case LIGHTS_ACTIVE:\n              Global.activeNotes = sensorCol-2 + (sensorRow*3);\n              loadCustomLedLayer(getActiveCustomLedPattern());\n              break;\n          }\n        }\n        break;	            case LIGHTS_ACTIVE:\n              break;\n          }\n        }\n        break;
+scale_rows_cannot_be_edited_in_user_firmware_mode	ls_settings.ino	  if (sensorCol >= 2 && sensorCol <= 4 && sensorRow <= 3 && !userFirmwareActive &&	  if (sensorCol >= 2 && sensorCol <= 4 && sensorRow <= 3 &&
+scale_rows_cannot_be_edited_in_user_firmware_mode	ls_settings.ino	sensorRow <= 3 && !userFirmwareActive) {\n          toggleRemovedNote();	sensorRow <= 3) {\n          toggleRemovedNote();
+scale_rows_nrpn_276_to_287_leave_notes_out_of_the_active_preset	ls_midi.ino	      value = (Global.removedNotes[Global.activeNotes] & (1 << (param-276))) != 0;	      value = 0;
+scale_rows_nrpn_276_to_287_leave_notes_out_of_the_active_preset	ls_midi.ino	      if (inRange(value, 0, 1) && getActiveCustomLedPattern() < 0) {\n        unsigned short removed	      if (inRange(value, 0, 2) && getActiveCustomLedPattern() < 0) {\n        unsigned short removed
+scale_rows_nrpn_276_to_287_leave_notes_out_of_the_active_preset	ls_midi.ino	      if (inRange(value, 0, 1) && getActiveCustomLedPattern() < 0) {\n        unsigned short removed	      if (inRange(value, 0, 1)) {\n        unsigned short removed
+scale_rows_nrpn_276_to_287_leave_notes_out_of_the_active_preset	ls_midi.ino	        if ((removed & 0xfff) != 0xfff) {	        if (true) {
+scale_rows_are_stored_in_the_settings_presets	ls_settings.ino	  memcpy(&Global, &config.preset[p].global, sizeof(GlobalSettings));	  memcpy(&Global, &config.preset[p].global, sizeof(GlobalSettings) - sizeof(Global.removedNotes));
+scale_rows_leave_notes_out_of_the_sequencer_scale_view	ls_sequencer.ino	            !((removedScaleNotes() >> (i % 12)) & 1)) {	            true) {
+scale_rows_holding_main_leaves_out_the_dark_notes_and_brings_them_back	ls_settings.ino	(Global.mainNotes[Global.activeNotes] | Global.accentNotes[Global.activeNotes])	(Global.mainNotes[Global.activeNotes])
+scale_rows_holding_main_leaves_out_the_dark_notes_and_brings_them_back	ls_settings.ino	    removed &= ~0xfff;	    removed &= ~0x0ff;
+scale_rows_holding_main_leaves_out_the_dark_notes_and_brings_them_back	ls_settings.ino	          if (lightSettings == sensorRow && getActiveCustomLedPattern() < 0 && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);	          if (lightSettings == sensorRow && getActiveCustomLedPattern() < 0 && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellOn);
+scale_rows_holding_main_leaves_out_the_dark_notes_and_brings_them_back	ls_settings.ino	          case LIGHTS_MAIN:\n          case LIGHTS_ACCENT:\n            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {	          case 14:\n          case LIGHTS_ACCENT:\n            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {
+scale_rows_holding_accent_leaves_out_the_same_dark_notes	ls_settings.ino	          case LIGHTS_ACCENT:\n            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {\n              toggleRemovedUnlitNotes();	          case 15:\n            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {\n              toggleRemovedUnlitNotes();
+scale_rows_holding_main_does_nothing_with_every_light_on_or_off	ls_settings.ino	    if (unlit != 0xfff) {	    if (true) {
+scale_rows_cannot_be_set_on_a_custom_light_pattern	ls_settings.ino	void toggleRemovedUnlitNotes() {\n  if (getActiveCustomLedPattern() >= 0) {	void toggleRemovedUnlitNotes() {\n  if (false) {
+scale_rows_cannot_be_edited_in_user_firmware_mode	ls_settings.ino	            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {\n              toggleRemovedUnlitNotes();	            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow) {\n              toggleRemovedUnlitNotes();
+scale_rows_holding_main_needs_the_view_its_touch_selected	ls_settings.ino	            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (lightSettings == sensorRow && !userFirmwareActive) {\n              toggleRemovedUnlitNotes();	            // only once the touch selected the view, which a stale custom pattern flag refuses\n            if (!userFirmwareActive) {\n              toggleRemovedUnlitNotes();
+scale_rows_holding_main_needs_the_view_its_touch_selected	ls_settings.ino	          if (lightSettings == sensorRow && getActiveCustomLedPattern() < 0 && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);	          if (getActiveCustomLedPattern() < 0 && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+scale_rows_cannot_be_set_on_a_custom_light_pattern	ls_settings.ino	          if (lightSettings == sensorRow && getActiveCustomLedPattern() < 0 && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);	          if (lightSettings == sensorRow && !userFirmwareActive) {\n            setLed(sensorCol, sensorRow, globalColor, cellSlowPulse);
+upgrade_from_v5	ls_extstorage.ino	        memset(config.preset[p].global.removedNotes, 0, sizeof(config.preset[p].global.removedNotes));	
+upgrade_copies_the_current_version_as_is	ls_extstorage.ino	          memcpy(&config, buff2, confSize);\n          result = true;	          memcpy(&config, buff2, confSize);\n          memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));\n          result = true;
+upgrade_refuses_a_newer_version	ls_extstorage.ino	  byte settingsVersion = buff2[0];	  byte settingsVersion = buff2[0];\n  memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));
+upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	    void* sourceConfig = buff2;	    void* sourceConfig = buff2;\n    memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));

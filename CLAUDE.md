@@ -452,7 +452,7 @@ Rules that follow:
 All persistent state lives in the `Configuration` struct (device, global and
 per-split settings, presets, sequencer project), stored in the Due's flash via
 `DueFlashStorage` and exchanged with the updater over serial during upgrades.
-The layout is versioned by `Device.version` (currently 17). On upgrade the
+The layout is versioned by `Device.version` (currently 18). On upgrade the
 firmware receives the old blob and converts it through
 `upgradeConfigurationSettings()` in `ls_extstorage.ino`, which selects a
 converter by version number and then checks `confSize ==
@@ -464,24 +464,24 @@ Changing any field of `DeviceSettings`, `GlobalSettings`, `SplitSettings` or
 `ls_extstorage.ino`:
 
 1. Snapshot the struct you are changing as it is now, under the next number of
-   its own series (`DeviceSettingsV13`, `GlobalSettingsV10`, `SplitSettingsV8`,
-   `PresetSettingsV12`). The series are independent of each other and of
+   its own series (`DeviceSettingsV13`, `GlobalSettingsV11`, `SplitSettingsV8`,
+   `PresetSettingsV13`). The series are independent of each other and of
    `Device.version`.
 2. Repoint every older snapshot that still names the live type to the new
-   snapshot. `ConfigurationV16` for example holds a live `DeviceSettings`,
+   snapshot. `ConfigurationV17` for example holds a live `DeviceSettings`,
    which is only correct while `DeviceSettings` is unchanged.
-3. Add `ConfigurationV17`, the layout version 17 had, built from snapshots.
-4. Write `copyConfigurationV17()` mapping it onto the live `Configuration`,
+3. Add `ConfigurationV18`, the layout version 18 had, built from snapshots.
+4. Write `copyConfigurationV18()` mapping it onto the live `Configuration`,
    give the new field its default there, and give it a default in
    `initializeDeviceSettings()` or `initializePresetSettings()` in
    `ls_settings.ino` as well.
-5. In `upgradeConfigurationSettings()`, make `case 17` use
-   `sizeof(ConfigurationV17)` and `copyConfigurationV17`, and add `case 18`
+5. In `upgradeConfigurationSettings()`, make `case 18` use
+   `sizeof(ConfigurationV18)` and `copyConfigurationV18`, and add `case 19`
    with the plain `memcpy` the newest version gets.
-6. Set `Device.version = 18` in `initializeDeviceSettings()`.
+6. Set `Device.version = 19` in `initializeDeviceSettings()`.
 7. If the setting should be reachable over MIDI, add the NRPN in `ls_midi.ino`
    and document it in `midi.md`.
-8. Add `upgrade_from_v17` to `tests/test_upgrade.cpp`, which already upgrades
+8. Add `upgrade_from_v18` to `tests/test_upgrade.cpp`, which already upgrades
    a blob of every earlier layout and checks that planted values arrive, and
    give it a mutation line.
 

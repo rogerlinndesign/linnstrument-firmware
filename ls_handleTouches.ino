@@ -899,6 +899,9 @@ boolean handleXYZupdate() {
     if (valueX != INVALID_DATA && isLeftHandedSplit(sensorSplit)) {
       valueX = -1 * valueX;
     }
+    if (valueX != INVALID_DATA && !userFirmwareActive && !isLowRow()) {
+      valueX = scaleRowsPitchX(valueX);
+    }
 
     performContinuousTasks();
     sensorCell->lastValueX = valueX;
@@ -1947,9 +1950,144 @@ byte getNoteNumber(byte split, byte col, byte row) {
     noteCol = (NUMCOLS - col);
   }
 
+  ScaleRows scale;
+  if (scaleRowsOf(split, scale)) {
+    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol));
+    if (note < 0 || note > 255) {
+      return 255;
+    }
+    return note;
+  }
+
   notenum = determineRowOffsetNote(split, row) + noteCol - 1;
 
   return notenum - Split[split].transposeLights;
+}
+
+// the pitches that the active note lights leave out of the playing rows, the custom light patterns leave none out
+int removedScaleNotes() {
+  if (getActiveCustomLedPattern() >= 0) {
+    return 0;
+  }
+  return Global.removedNotes[Global.activeNotes] & 0xfff;
+}
+
+byte pitchClass(int note) {
+  return ((note % 12) + 12) % 12;
+}
+
+// guitar tuning and no overlap keep chromatic rows
+boolean scaleRowsOf(byte split, ScaleRows& scale) {
+  int removed = removedScaleNotes();
+  if (removed == 0 || removed == 0xfff) {
+    return false;
+  }
+
+  short offset;
+  if (Global.rowOffset == ROWOFFSET_NOOVERLAP || Global.rowOffset == ROWOFFSET_GUITAR) {
+    return false;
+  }
+  else if (Global.rowOffset == ROWOFFSET_OCTAVECUSTOM) {
+    if (Global.customRowOffset == -17) {
+      return false;
+    }
+    offset = Global.customRowOffset;
+  }
+  else if (Global.rowOffset < ROWOFFSET_OCTAVECUSTOM) {
+    offset = Global.rowOffset;
+  }
+  else {
+    offset = 0;
+  }
+
+  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;
+  for (byte s = 0; s < 12 && (removed & (1 << pitchClass(lowest))); ++s) {
+    lowest++;
+  }
+  scale.lowest = lowest;
+
+  scale.size = 0;
+  for (byte s = 0; s < 12; ++s) {
+    if (!(removed & (1 << pitchClass(lowest + s)))) {
+      scale.steps[scale.size++] = s;
+    }
+  }
+
+  // an octave between rows stays an octave, other row offsets count scale notes
+  if (offset == 12) {
+    offset = scale.size;
+  }
+  else if (offset == -12) {
+    offset = -scale.size;
+  }
+  scale.rowSteps = offset;
+
+  return true;
+}
+
+int scaleRowsPosition(ScaleRows& scale, byte row, short noteCol) {
+  return row * scale.rowSteps + noteCol - 1;
+}
+
+// the note at a position counted in scale notes from the first cell of the first row, positions outside the surface included
+int scaleRowsNote(ScaleRows& scale, int position) {
+  int octaves = position / scale.size;
+  int rest = position % scale.size;
+  if (rest < 0) {
+    rest += scale.size;
+    octaves -= 1;
+  }
+  return scale.lowest + 12 * octaves + scale.steps[rest];
+}
+
+// the position of a note in the scale rows, false when the scale leaves the note out
+boolean scaleRowsPositionOfNote(ScaleRows& scale, int note, int& position) {
+  int distance = note - scale.lowest;
+  int octaves = distance / 12;
+  int rest = distance % 12;
+  if (rest < 0) {
+    rest += 12;
+    octaves -= 1;
+  }
+  for (byte i = 0; i < scale.size; ++i) {
+    if (scale.steps[i] == rest) {
+      position = octaves * scale.size + i;
+      return true;
+    }
+  }
+  return false;
+}
+
+// a move along the row, measured in cells, becomes the semitones between the scale notes it crosses,
+// part of the way to the next cell is the same part of the way to its note
+short scaleRowsPitchX(short valueX) {
+  ScaleRows scale;
+  if (!scaleRowsOf(sensorSplit, scale)) {
+    return valueX;
+  }
+
+  short noteCol = sensorCell->initialColumn == -1 ? sensorCol : sensorCell->initialColumn;
+  if (isLeftHandedSplit(sensorSplit)) {
+    noteCol = NUMCOLS - noteCol;
+  }
+  int start = scaleRowsPosition(scale, sensorRow, noteCol);
+
+  int32_t fxdMoved = FXD_FROM_INT((int32_t)valueX);
+  int32_t cells = fxdMoved / FXD_CALX_FULL_UNIT;
+  int32_t rest = fxdMoved % FXD_CALX_FULL_UNIT;
+  if (rest < 0) {
+    rest += FXD_CALX_FULL_UNIT;
+    cells -= 1;
+  }
+
+  int from = scaleRowsNote(scale, start);
+  int at = scaleRowsNote(scale, start + cells);
+  int next = scaleRowsNote(scale, start + cells + 1);
+
+  // beyond the bend range the pitch bend can't change anymore, and the scaling of the pitch bend would overflow
+  int32_t limit = (getBendRange(sensorSplit) + 1) * FXD_CALX_FULL_UNIT;
+  int32_t fxdPitch = constrain(at - from, -128, 128) * FXD_CALX_FULL_UNIT + rest * (next - at);
+  return FXD_TO_INT(constrain(fxdPitch, -limit, limit));
 }
 
 short determineRowOffsetNote(byte split, byte row) {

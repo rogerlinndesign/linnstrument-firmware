@@ -110,6 +110,7 @@ M = [
 ('Firmware/FirmwareInstance.inc', '!inRange(slot, 0, MAX_PROJECTS - 1) || !sequencerProjectValid(project)', '!inRange(slot, 0, MAX_PROJECTS - 1) || project.size() != sizeof(SequencerProject)', 'loads_saves'),
 ('Firmware/FirmwareInstance.inc', '    if (!sequencerProjectValid(project) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;', '    if (project.size() != sizeof(SequencerProject) || !inRange(loaded, -1, MAX_PROJECTS - 1)) return;', 'loads_saves'),
 ('Firmware/FirmwareInstance.inc', '  int settingsVersion() override { return Device.version; }', '  int settingsVersion() override { return Device.version - 1; }', 'loads_saves'),
+('Firmware/FirmwareInstance.inc', ' &&\n              !((removedScaleNotes() >> (i % 12)) & 1)) found += 1;', ') found += 1;', 'sequencers_patterns'),
  ('Firmware/FirmwareInstance.inc', '      target.events[e] = source.events[e];\n      state.steps[to].events[e].focused = false;', '      state.steps[to].events[e].focused = false;', 'sequencers_notes'),
  ('Firmware/FirmwareInstance.inc', '    if (isVisibleSequencerForSplit(split)) seqState[split].paintSequencer();', '    if (false) seqState[split].paintSequencer();', 'sequencers_notes'),
  ('Firmware/FirmwareInstance.inc', '      read.selectedStep = s;\n', '', 'sequencers_notes'),

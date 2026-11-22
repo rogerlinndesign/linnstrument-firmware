@@ -107,10 +107,30 @@ static void checkPreset(const PresetSettings& p, int seed) {
   CHECK(!p.split[LEFT].strum);
 }
 
+// fields no layout before 18 stored
+static void checkNoRemovedNotes(const PresetSettings& p) {
+  for (int n = 0; n < 12; ++n) CHECK_EQ(p.global.removedNotes[n], 0);
+}
+
+// a restore onto a unit that already leaves notes out, in its settings and in every preset,
+// including the presets an older layout doesn't have
+static void plantLiveRemovedNotes() {
+  for (int n = 0; n < 12; ++n) {
+    Global.removedNotes[n] = 0x0f0;
+    for (int p = 0; p < NUMPRESETS; ++p) config.preset[p].global.removedNotes[n] = 0x00f;
+  }
+}
+
+static void checkNoRemovedNotesAnywhere() {
+  checkNoRemovedNotes(config.settings);
+  for (int p = 0; p < NUMPRESETS; ++p) checkNoRemovedNotes(config.preset[p]);
+}
+
 // fields no layout before 17 stored, so every converter has to give them their default
 static void checkNewFieldDefaults(const PresetSettings& p) {
   CHECK_EQ(p.split[LEFT].lowRowBendBehavior, lowRowBendBend);
   CHECK_EQ(p.split[RIGHT].lowRowBendBehavior, lowRowBendBend);
+  checkNoRemovedNotes(p);
 }
 
 template <typename D>
@@ -121,13 +141,14 @@ static void plantDevice(D& d, byte version) {
 }
 
 static void checkDevice() {
-  CHECK_EQ(Device.version, 17);
+  CHECK_EQ(Device.version, 18);
   CHECK(Device.calibrated);
   CHECK_EQ(Device.sensorRangeZ, 700);
 }
 
 static void checkUpgraded(int presets) {
   checkDevice();
+  checkNoRemovedNotesAnywhere();
   checkPreset(config.settings, 50);
   checkNewFieldDefaults(config.settings);
   for (int p = 0; p < presets; ++p) {
@@ -141,12 +162,14 @@ static void checkUpgraded(int presets) {
 template <typename C>
 static void upgradeWithPresetsOnly(byte version) {
   linn::reset();
+  plantLiveRemovedNotes();
   C old;
   memset(&old, 0, sizeof(old));
   plantDevice(old.device, version);
   for (int p = 0; p < 4; ++p) plantPreset(old.preset[p], 10 + p);
   CHECK(upgradeConfigurationSettings(sizeof(C), (byte*)&old));
   checkDevice();
+  checkNoRemovedNotesAnywhere();
   checkPreset(config.settings, 10);
   checkNewFieldDefaults(config.settings);
   for (int p = 0; p < 4; ++p) {
@@ -167,6 +190,7 @@ static void plantSettings(C& old, byte version, int presets) {
 template <typename C>
 static void upgradeWithSettings(byte version, int presets) {
   linn::reset();
+  plantLiveRemovedNotes();
   C old;
   plantSettings(old, version, presets);
   CHECK(upgradeConfigurationSettings(sizeof(C), (byte*)&old));
@@ -177,6 +201,7 @@ static void upgradeWithSettings(byte version, int presets) {
 template <typename C>
 static void upgradeWithSettingsAndProject(byte version, int presets) {
   linn::reset();
+  plantLiveRemovedNotes();
   C old;
   plantSettings(old, version, presets);
   old.project.tempo = 133;
@@ -187,6 +212,7 @@ static void upgradeWithSettingsAndProject(byte version, int presets) {
 
 TEST(upgrade_from_v1_fills_the_presets_from_the_single_setup) {
   linn::reset();
+  plantLiveRemovedNotes();
   ConfigurationV1 old;
   memset(&old, 0, sizeof(old));
   old.global.version = 1;
@@ -218,6 +244,7 @@ TEST(upgrade_from_v1_fills_the_presets_from_the_single_setup) {
     CHECK_EQ(config.preset[p].split[RIGHT].colorMain, COLOR_PINK);
     checkNewFieldDefaults(config.preset[p]);
   }
+  checkNoRemovedNotesAnywhere();
   CHECK_EQ(Global.rowOffset, 7);
   CHECK_EQ(Split[RIGHT].midiChanMain, 11);
 }
@@ -238,19 +265,59 @@ TEST(upgrade_from_v14) { upgradeWithSettingsAndProject<ConfigurationV14>(14, 4);
 TEST(upgrade_from_v15) { upgradeWithSettingsAndProject<ConfigurationV15>(15, 6); }
 TEST(upgrade_from_v16) { upgradeWithSettingsAndProject<ConfigurationV16>(16, 6); }
 
+// Version 17 is the layout of 2.3.4, the last one without the notes left out of the scale rows.
+TEST(upgrade_from_v17) {
+  linn::reset();
+  plantLiveRemovedNotes();
+  ConfigurationV17 old;
+  plantSettings(old, 17, NUMPRESETS);
+  old.settings.global.splitActive = true;
+  old.preset[2].global.splitActive = true;
+  old.settings.split[LEFT].lowRowBendBehavior = lowRowBendTranspose;
+  old.project.tempo = 133;
+  CHECK(upgradeConfigurationSettings(sizeof(ConfigurationV17), (byte*)&old));
+  checkDevice();
+  checkPreset(config.settings, 50);
+  checkNoRemovedNotes(config.settings);
+  CHECK(Global.splitActive);
+  CHECK_EQ(Split[LEFT].lowRowBendBehavior, lowRowBendTranspose);
+  for (int p = 0; p < NUMPRESETS; ++p) {
+    checkPreset(config.preset[p], 10 + p);
+    checkNoRemovedNotes(config.preset[p]);
+    CHECK_EQ(config.preset[p].global.splitActive, p == 2);
+  }
+  CHECK_EQ(config.project.tempo, 133);
+}
+
+// The converter copies the old global settings up to their last field in one go, which only works
+// while the fields before the removed notes sit where they did.
+TEST(upgrade_global_settings_keep_the_layout_of_version_17) {
+  CHECK_EQ(offsetof(GlobalSettings, splitActive), offsetof(GlobalSettingsV10, splitActive));
+  CHECK_EQ(offsetof(GlobalSettings, guitarTuning), offsetof(GlobalSettingsV10, guitarTuning));
+  CHECK_EQ(offsetof(GlobalSettings, customSwitchAssignment), offsetof(GlobalSettingsV10, customSwitchAssignment));
+  CHECK(offsetof(GlobalSettings, removedNotes) >= offsetof(GlobalSettingsV10, splitActive) + sizeof(boolean));
+}
+
 TEST(upgrade_copies_the_current_version_as_is) {
   linn::reset();
   Configuration same = config;
   same.settings.global.rowOffset = 11;
+  same.settings.global.removedNotes[3] = 0x0f0;
+  same.preset[5].global.removedNotes[2] = 0x00f;
   CHECK(upgradeConfigurationSettings(sizeof(Configuration), (byte*)&same));
   CHECK_EQ(Global.rowOffset, 11);
+  CHECK_EQ(Global.removedNotes[3], 0x0f0);
+  CHECK_EQ(config.preset[5].global.removedNotes[2], 0x00f);
 }
 
 TEST(upgrade_refuses_a_newer_version) {
   linn::reset();
+  plantLiveRemovedNotes();
   Configuration newer = config;
-  newer.device.version = 18;
+  newer.device.version = 19;
   CHECK(!upgradeConfigurationSettings(sizeof(Configuration), (byte*)&newer));
+  CHECK_EQ(Global.removedNotes[0], 0x0f0);
+  CHECK_EQ(config.preset[5].global.removedNotes[0], 0x00f);
 }
 
 // A blob whose size does not match its version's layout is refused and leaves the settings alone.
@@ -260,7 +327,10 @@ TEST(upgrade_refuses_a_size_that_does_not_match_the_version) {
   ConfigurationV9 old;
   plantSettings(old, 9, 4);
   CHECK(!upgradeConfigurationSettings(sizeof(ConfigurationV9) + 1, (byte*)&old));
+  plantLiveRemovedNotes();
   CHECK(!upgradeConfigurationSettings(sizeof(ConfigurationV8), (byte*)&old));
   CHECK_EQ(Global.rowOffset, 3);
-  CHECK_EQ(Device.version, 17);
+  CHECK_EQ(Global.removedNotes[0], 0x0f0);
+  CHECK_EQ(config.preset[5].global.removedNotes[0], 0x00f);
+  CHECK_EQ(Device.version, 18);
 }

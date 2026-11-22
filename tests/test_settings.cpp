@@ -17,7 +17,7 @@ limitations under the License.
 
 TEST(settings_defaults) {
   linn::reset();
-  CHECK_EQ(Device.version, 17);
+  CHECK_EQ(Device.version, 18);
   CHECK(!Device.serialMode);
   CHECK(!Device.calibrated);
 }

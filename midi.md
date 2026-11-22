@@ -288,7 +288,21 @@ words, and the named values are written as `n: label` pairs in parentheses.
 | 273  | -     | Device Firmware Version (read-only, 240 for firmware 2.4.0)
 | 274  | -     | Device Firmware Build (read-only, 75 for the build the instrument shows as .075)
 | 275  | -     | Device Calibrated (0: No, 1: Yes), read-only
+| 276  | 0-1   | Global Note Left Out Of The Rows C (0: Played, 1: Left out)
+| 277  | 0-1   | Global Note Left Out Of The Rows C# (0: Played, 1: Left out)
+| 278  | 0-1   | Global Note Left Out Of The Rows D (0: Played, 1: Left out)
+| 279  | 0-1   | Global Note Left Out Of The Rows D# (0: Played, 1: Left out)
+| 280  | 0-1   | Global Note Left Out Of The Rows E (0: Played, 1: Left out)
+| 281  | 0-1   | Global Note Left Out Of The Rows F (0: Played, 1: Left out)
+| 282  | 0-1   | Global Note Left Out Of The Rows F# (0: Played, 1: Left out)
+| 283  | 0-1   | Global Note Left Out Of The Rows G (0: Played, 1: Left out)
+| 284  | 0-1   | Global Note Left Out Of The Rows G# (0: Played, 1: Left out)
+| 285  | 0-1   | Global Note Left Out Of The Rows A (0: Played, 1: Left out)
+| 286  | 0-1   | Global Note Left Out Of The Rows A# (0: Played, 1: Left out)
+| 287  | 0-1   | Global Note Left Out Of The Rows B (0: Played, 1: Left out)
 | 299  | any   | Send the current value of a particular NRPN configuration parameter, when possible, on the channel of the query
+
+NRPNs 276 to 287 leave notes out of the rows of the active Note Lights preset, as holding its note in the Note Lights settings does. They do nothing while a custom light pattern is active, and never leave out the last note that's still played. While notes are left out, the row offsets of NRPNs 227 and 253 count notes of the scale instead of semitones, except that an octave stays an octave, and No Overlap, Guitar and inverted Guitar keep chromatic rows.
 
 Color Values
 ============

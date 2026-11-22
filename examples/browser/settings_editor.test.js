@@ -23,7 +23,7 @@ const by = {};
 table.parameters.forEach((p) => { by[p.number] = p; });
 
 test("the generated table holds every NRPN of midi.md but the query itself", () => {
-  assert.equal(table.parameters.length, 210);
+  assert.equal(table.parameters.length, 222);
   assert.equal(by[299], undefined);
   assert.equal(table.parameters.filter((p) => p.group === "Split Left").length, 67);
   assert.equal(table.parameters.filter((p) => p.group === "Split Right").length, 67);
@@ -76,7 +76,7 @@ test("a query is NRPN 299 with the parameter as its value, a write adds the null
 
 test("every parameter but the actions is queried", () => {
   const numbers = editor.queryable().map((p) => p.number);
-  assert.equal(numbers.length, 201);
+  assert.equal(numbers.length, 213);
   assert.ok(!numbers.includes(62) && !numbers.includes(271));
   assert.ok(numbers.includes(243) && numbers.includes(272));
 });
@@ -122,6 +122,11 @@ test("the form pairs the splits, folds runs of toggles and keeps the actions apa
   assert.equal(channels.right.items[15].parameter.number, 117);
   const lights = sections[0].rows.find((r) => r.name === "Main Note Light");
   assert.deepEqual(lights.items.map((i) => i.label).slice(0, 3), ["C", "C#", "D"]);
+  const leftOut = sections[0].rows.find((r) => r.name === "Note Left Out Of The Rows");
+  assert.equal(leftOut.kind, "toggles");
+  assert.equal(leftOut.items.length, 12);
+  assert.equal(leftOut.items[11].label, "B");
+  assert.equal(leftOut.items[11].parameter.number, 287);
   assert.ok(sections[3].rows.some((r) => r.parameter.number === 243));
   assert.ok(!sections[0].rows.some((r) => r.parameter && r.parameter.number === 243));
 });
@@ -137,8 +142,8 @@ test("the search matches names, numbers and descriptions", () => {
 
 test("only the parameters firmware 2.4.0 added are marked as needing it", () => {
   const marked = editor.parameters.filter((p) => editor.needsNewerFirmware(p.number)).map((p) => p.number);
-  assert.deepEqual(marked, [271, 272, 273, 274, 275]);
-  [245, 270, 299, 66].forEach((n) => assert.equal(editor.needsNewerFirmware(n), false));
+  assert.deepEqual(marked, [271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287]);
+  [245, 270, 288, 299, 66].forEach((n) => assert.equal(editor.needsNewerFirmware(n), false));
 });
 
 test("switching MIDI to the jacks, which cuts the page off, asks for a second click", () => {

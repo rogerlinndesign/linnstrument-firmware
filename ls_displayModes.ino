@@ -1577,6 +1577,20 @@ void displayNoteLights(int notelights) {
   }
 }
 
+void displayRemovedNotes() {
+  if (getActiveCustomLedPattern() >= 0) {
+    return;
+  }
+  for (byte row = 0; row < 4; ++row) {
+    for (byte col = 0; col < 3; ++col) {
+      byte light = col + (row * 3);
+      if (Global.removedNotes[Global.activeNotes] & 1 << light) {
+        setLed(2+col, row, COLOR_RED, cellOn);
+      }
+    }
+  }
+}
+
 void displayActiveNotes() {
   for (byte row = 0; row < 4; ++row) {
     for (byte col = 0; col < 3; ++col) {
@@ -1725,12 +1739,14 @@ void paintGlobalSettingsDisplay() {
         if (!customLedPatternActive) {
           lightLed(1, 0);
           displayNoteLights(Global.mainNotes[Global.activeNotes]);
+          displayRemovedNotes();
         }
         break;
       case LIGHTS_ACCENT:
         if (!customLedPatternActive) {
           lightLed(1, 1);
           displayNoteLights(Global.accentNotes[Global.activeNotes]);
+          displayRemovedNotes();
         }
         break;
       case LIGHTS_ACTIVE:

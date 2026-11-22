@@ -785,8 +785,17 @@ struct GlobalSettings {
   signed char arpOctave;                     // the number of octaves that the arpeggiator has to operate over: 0, +1, or +2
   SustainBehavior sustainBehavior;           // the way the sustain pedal influences the notes
   boolean splitActive;                       // false = split off, true = split on
+  unsigned short removedNotes[12];           // bitmask array per note lights preset of the notes that are left out of the playing rows
 };
 #define Global config.settings.global
+
+// rows of consecutive scale notes, in the note numbers of the lights, before the octave and pitch transposition
+struct ScaleRows {
+  int lowest;                                // the note of the first cell of the first row
+  byte size;                                 // the number of notes in an octave
+  byte steps[12];                            // the semitones of each of those notes above the one they start from
+  short rowSteps;                            // the scale notes between the first cells of consecutive rows
+};
 
 struct PresetSettings {
   GlobalSettings global;

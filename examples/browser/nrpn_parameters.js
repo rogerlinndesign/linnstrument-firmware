@@ -4373,6 +4373,234 @@ limitations under the License.
         ],
         "note": "(0: No, 1: Yes), read-only",
         "description": "Device Calibrated (0: No, 1: Yes), read-only"
+      },
+      {
+        "number": 276,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows C",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows C (0: Played, 1: Left out)"
+      },
+      {
+        "number": 277,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows C#",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows C# (0: Played, 1: Left out)"
+      },
+      {
+        "number": 278,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows D",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows D (0: Played, 1: Left out)"
+      },
+      {
+        "number": 279,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows D#",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows D# (0: Played, 1: Left out)"
+      },
+      {
+        "number": 280,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows E",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows E (0: Played, 1: Left out)"
+      },
+      {
+        "number": 281,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows F",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows F (0: Played, 1: Left out)"
+      },
+      {
+        "number": 282,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows F#",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows F# (0: Played, 1: Left out)"
+      },
+      {
+        "number": 283,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows G",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows G (0: Played, 1: Left out)"
+      },
+      {
+        "number": 284,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows G#",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows G# (0: Played, 1: Left out)"
+      },
+      {
+        "number": 285,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows A",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows A (0: Played, 1: Left out)"
+      },
+      {
+        "number": 286,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows A#",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows A# (0: Played, 1: Left out)"
+      },
+      {
+        "number": 287,
+        "group": "Global",
+        "name": "Note Left Out Of The Rows B",
+        "kind": "toggle",
+        "min": 0,
+        "max": 1,
+        "options": [
+          {
+            "value": 0,
+            "label": "Played"
+          },
+          {
+            "value": 1,
+            "label": "Left out"
+          }
+        ],
+        "description": "Global Note Left Out Of The Rows B (0: Played, 1: Left out)"
       }
     ],
     "tables": {

@@ -169,9 +169,9 @@ limitations under the License.
     return null;
   }
 
-  // 271 to 275 arrived with firmware 2.4.0; an older one neither answers nor acts on them
+  // 271 to 287 arrived with firmware 2.4.0; an older one neither answers nor acts on them
   function needsNewerFirmware(number) {
-    return number >= 271 && number <= 275;
+    return number >= 271 && number <= 287;
   }
 
   return {

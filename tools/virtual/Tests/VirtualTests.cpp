@@ -1165,6 +1165,11 @@ void the_bridge_sets_the_sequencers_patterns_and_settings() {
   CHECK(!kept.empty());
   // scales from the scale's notes, drums from the drum notes
   CHECK(f.sequencerRowNote(s, 0) == 48 && f.sequencerRowNote(s, 1) == 50 && f.sequencerRowNote(s, 7) == 60 && f.sequencerRowNote(s, 14) == -1);
+  // without the notes left out of the rows, as the firmware's scale view skips them
+  nrpn(e, 278, 1);
+  CHECK(waitFor([&f, s] { return f.sequencerRowNote(s, 1) == 52; }) && f.sequencerRowNote(s, 0) == 48);
+  nrpn(e, 278, 0);
+  CHECK(waitFor([&f, s] { return f.sequencerRowNote(s, 1) == 50; }));
   e.onFirmware([s](firmware::Instance& i) { i.setSequencerView(s, 2); });
   CHECK(waitFor([&f, s] { return f.sequencerState(s).view == 2; }));
   CHECK(f.sequencerRowNote(s, 0) == f.drumNote(s, 0) && f.sequencerRowNote(s, 6) == f.drumNote(s, 6));
@@ -1359,7 +1364,7 @@ void the_bridge_loads_saves_and_stores_projects() {
   auto other = f.currentProject();
   e.onFirmware([](firmware::Instance& i) { i.loadSequencerProject(5); });
   CHECK(waitFor([&f] { return f.loadedProject() == 5 && f.tempo() == 140; }));
-  CHECK(f.settingsVersion() == 17);
+  CHECK(f.settingsVersion() == 18);
   CHECK(f.currentProject() == played && !f.sequencerState(s).running);
   // another project stored with its own tempo, the one played left as it was
   e.onFirmware([other](firmware::Instance& i) { i.storeSequencerProject(6, other); });

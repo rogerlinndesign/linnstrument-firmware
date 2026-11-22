@@ -577,7 +577,8 @@ public:
       case sequencerScales: {
         int found = -1;
         for (int i = 0; i < 128; ++i) {
-          if (((Global.mainNotes[Global.activeNotes] >> (i % 12)) & 1) || ((Global.accentNotes[Global.activeNotes] >> (i % 12)) & 1)) found += 1;
+          if ((((Global.mainNotes[Global.activeNotes] >> (i % 12)) & 1) || ((Global.accentNotes[Global.activeNotes] >> (i % 12)) & 1)) &&
+              !((removedScaleNotes() >> (i % 12)) & 1)) found += 1;
           if (found == row) return min(max(i + 48, 0), 127);
         }
         return -1;
