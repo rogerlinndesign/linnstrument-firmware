@@ -61,6 +61,7 @@ layout_no_overlap_offsets_each_row_by_the_width	ls_handleTouches.ino	      offse
 layout_transpose_lights_shifts_the_whole_layout	ls_handleTouches.ino	  return notenum - Split[split].transposeLights;	  return notenum;
 lowrow_cc_x_sends_the_configured_controller	ls_lowRow.ino	  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, x, false);	  preSendControlChange(sensorSplit, Split[sensorSplit].ccForLowRow, 0, false);
 lowrow_normal_mode_plays_notes_on_the_bottom_row	ls_lowRow.ino	  if (Split[sensorSplit].lowRowMode == lowRowNormal) return false;	  if (false) return false;
+lowrow_transpose_hides_the_note_lights_under_it	ls_displayModes.ino	    setLed(col, row, COLOR_BLACK, cellOn, LED_LAYER_LOWROW);	    setLed(col, row, COLOR_BLACK, cellOff, LED_LAYER_LOWROW);
 midi_messages_keep_their_order	ls_midi.ino	      Serial.write(outMsgBuffer, outMsgIndex);	      Serial.write(outMsgBuffer, 1);
 notes_row_offset_changes_the_layout	ls_handleTouches.ino	    return lowest + (row * offset);	    return lowest + (row * 5);
 notes_same_formula_on_the_128	ls_handleTouches.ino	  notenum = determineRowOffsetNote(split, row) + noteCol - 1;	  notenum = determineRowOffsetNote(split, row) + noteCol;

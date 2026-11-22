@@ -481,7 +481,7 @@ void paintLowRowTranspose(byte split) {
 
   // ensure that no LEDs from lower layers can shine through
   for (byte col = lowCol; col < highCol; ++col) {
-    setLed(col, row, COLOR_BLACK, cellOff, LED_LAYER_LOWROW);
+    setLed(col, row, COLOR_BLACK, cellOn, LED_LAYER_LOWROW);
   }
 
   // calculate the sensor cell position

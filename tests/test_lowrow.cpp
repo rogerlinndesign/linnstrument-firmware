@@ -74,3 +74,45 @@ TEST(lowrow_cc_x_sends_the_configured_controller) {
   CHECK(before >= 0);
   CHECK(after > before);
 }
+
+static int litBesideTransposeCenter() {
+  byte center = 1 + (NUMCOLS - 2) / 2;
+  int lit = 0;
+  for (byte col = 1; col < NUMCOLS; ++col) {
+    byte color = getLedColor(col, 0, LED_LAYER_COMBINED);
+    if (col == center) CHECK_EQ(color, Split[LEFT].colorAccent);
+    else if (color != COLOR_OFF && color != COLOR_BLACK) ++lit;
+  }
+  return lit;
+}
+
+TEST(lowrow_transpose_hides_the_note_lights_under_it) {
+  for (byte model : {200, 128}) {
+    linn::reset(model);
+    setDisplayMode(displayPerSplit);
+    updateDisplay();
+    Split[LEFT].lowRowMode = lowRowBend;
+    Split[LEFT].lowRowBendBehavior = lowRowBendTranspose;
+    setDisplayMode(displayNormal);
+    updateDisplay();
+    CHECK_EQ(litBesideTransposeCenter(), 0);
+
+    linn::press(0, SPLIT_ROW, 2000, 2000, 600);
+    linn::release(0, SPLIT_ROW);
+    CHECK(Global.splitActive);
+    host::advanceMicros(2000000);
+    linn::press(0, SPLIT_ROW, 2000, 2000, 600);
+    linn::release(0, SPLIT_ROW);
+    CHECK(!Global.splitActive);
+    CHECK_EQ(Global.currentPerSplit, LEFT);
+    CHECK_EQ(litBesideTransposeCenter(), 0);
+
+    setDisplayMode(displayGlobal);
+    updateDisplay();
+    activateSleepMode();
+    linn::press(5, 3, 2000, 2000, 600);
+    linn::release(5, 3);
+    CHECK_EQ(displayMode, displayNormal);
+    CHECK_EQ(litBesideTransposeCenter(), 0);
+  }
+}
