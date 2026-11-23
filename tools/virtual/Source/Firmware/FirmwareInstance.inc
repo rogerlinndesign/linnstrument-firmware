@@ -162,6 +162,10 @@ public:
   int rows() override { return NUMROWS; }
   bool userFirmwareMode() override { return userFirmwareActive; }
   bool scaleSelectShown() override { return lightSettings == LIGHTS_ACTIVE; }
+  void noteLights(int set, int& main, int& accent) override {
+    main = Global.mainNotes[set];
+    accent = Global.accentNotes[set];
+  }
   bool serialMode() override { return Device.serialMode; }
   void backToMidi() override {
     if (userFirmwareActive) changeUserFirmwareMode(false);

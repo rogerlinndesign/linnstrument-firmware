@@ -349,6 +349,47 @@ void the_bridge_lights_only_the_chosen_steps_notes_in_notes_view() {
   CHECK(waitFor([&f] { return f.screen() != firmware::sequencerScreen; }));
 }
 
+// a note light set's pitches as the firmware keeps them: C# of the active set, whichever it is,
+// turned on over NRPN 204, or off where it already was, changes that one bit of that set alone,
+// and is turned back
+void the_bridge_reads_a_note_light_set() {
+  auto& e = engine();
+  auto& f = e.firmware();
+  auto sets = [&f] {
+    std::vector<int> all;
+    for (int set = 0; set < 12; ++set) {
+      int main = 0, accent = 0;
+      f.noteLights(set, main, accent);
+      all.push_back(main);
+      all.push_back(accent);
+    }
+    return all;
+  };
+  auto before = sets();
+  int turned = 1;
+  e.onFirmware([](firmware::Instance& i) { i.setNrpn(204, 1); });
+  bool changed = false;
+  for (int wait = 0; wait < 30 && !changed; ++wait) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    changed = sets() != before;
+  }
+  if (!changed) {
+    turned = 0;
+    e.onFirmware([](firmware::Instance& i) { i.setNrpn(204, 0); });
+    CHECK(waitFor([&] { return sets() != before; }));
+  }
+  auto after = sets();
+  int differing = 0;
+  for (size_t k = 0; k < after.size(); ++k) {
+    if (after[k] == before[k]) continue;
+    ++differing;
+    CHECK(k % 2 == 0 && (after[k] ^ before[k]) == 2 && ((after[k] >> 1) & 1) == turned);
+  }
+  CHECK(differing == 1);
+  e.onFirmware([turned](firmware::Instance& i) { i.setNrpn(204, 1 - turned); });
+  CHECK(waitFor([&] { return sets() == before; }));
+}
+
 // Global Settings' Scale Select view as the firmware keeps it: its View cell touched, then Main again
 void the_bridge_reads_whether_scale_select_shows() {
   auto& e = engine();
@@ -2433,6 +2474,7 @@ Suite bridge("Firmware bridge", {
   { "the_bridge_reads_a_screens_values_and_the_small_font", the_bridge_reads_a_screens_values_and_the_small_font },
   { "the_bridge_reads_a_splits_cc_faders", the_bridge_reads_a_splits_cc_faders },
   { "the_bridge_reads_whether_scale_select_shows", the_bridge_reads_whether_scale_select_shows },
+  { "the_bridge_reads_a_note_light_set", the_bridge_reads_a_note_light_set },
   { "the_bridge_lights_only_the_chosen_steps_notes_in_notes_view", the_bridge_lights_only_the_chosen_steps_notes_in_notes_view },
   { "the_bridge_times_a_hold_as_the_firmware_does", the_bridge_times_a_hold_as_the_firmware_does },
   { "the_engine_sets_the_bend_range_as_its_screen_does", the_engine_sets_the_bend_range_as_its_screen_does },

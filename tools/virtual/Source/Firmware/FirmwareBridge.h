@@ -70,6 +70,9 @@ public:
   // whether Global Settings' View shows Scale Select, where a hold on custom pattern A, A# or B
   // opens its light editor
   virtual bool scaleSelectShown() = 0;
+  // which pitches note light set 0 to 11 lights in main and in accent colours, a bit each from C,
+  // the sets that Scale Select picks from
+  virtual void noteLights(int set, int& main, int& accent) = 0;
   virtual bool serialMode() = 0;
   // out of OS update (serial) mode and User Firmware Mode, back to playing over MIDI, as tapping
   // UPDATE OS and holding it again would; from the firmware's thread
