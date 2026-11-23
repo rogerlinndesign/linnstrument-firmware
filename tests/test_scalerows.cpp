@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 // Notes left out of the rows: each Note Lights preset can leave pitches out, so that the rows
-// play consecutive notes of a scale. The row offset counts scale notes, an octave stays an
-// octave, pitch slides follow the interval to the next cell, and guitar tuning, no overlap and
-// the custom light patterns keep chromatic rows.
+// play consecutive notes of a scale. The row offset and Transpose Lights count scale notes, an
+// octave stays an octave, pitch slides follow the interval to the next cell, and guitar tuning, no
+// overlap and the custom light patterns keep chromatic rows.
 
 static const int SR_C_MAJOR = 0x54A;          // C# D# F# G# A# left out
 static const int SR_C_PENTATONIC = 0xD6A;     // only C D E G A kept
@@ -1012,4 +1012,57 @@ TEST(scale_rows_leave_notes_out_of_the_sequencer_scale_view) {
   CHECK_EQ(seqState[LEFT].getRowNoteNum(0), 48);
   CHECK_EQ(seqState[LEFT].getRowNoteNum(1), 52);
   CHECK_EQ(seqState[LEFT].getRowNoteNum(2), 53);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Transpose Lights, counted in pads: with a row offset of +5 the first row of chromatic rows starts
+// on F#, 30, so in C major it starts on G, and each Lights value moves that start by a note of the
+// scale, as many as there are pads in the value, the way chromatic rows move by a semitone a pad
+
+static int srScaleNoteAbove(int note, int kept) {
+  do {
+    note++;
+  } while (!srInMask(note, kept));
+  return note;
+}
+
+TEST(scale_rows_transpose_lights_move_the_layout_by_pads) {
+  srSetup(SR_C_MAJOR);
+  srUseRowOffset(5);
+  int kept = ~SR_C_MAJOR & 0xFFF;
+  CHECK_EQ(srNote(1, 0), 31);
+  // C into the corner, three pads along G A B C
+  Split[LEFT].transposeLights = -3;
+  CHECK_EQ(srNote(1, 0), 36);
+  Split[LEFT].transposeLights = 1;
+  CHECK_EQ(srNote(1, 0), 29);
+  Split[LEFT].transposeLights = 3;
+  CHECK_EQ(srNote(1, 0), 26);
+  Split[LEFT].transposeLights = -7;
+  CHECK_EQ(srNote(1, 0), 43);
+  // every value a pad from the next, none of them the same
+  for (int lights = 7; lights > -7; --lights) {
+    Split[LEFT].transposeLights = lights;
+    int start = srNote(1, 0);
+    Split[LEFT].transposeLights = lights - 1;
+    CHECK_EQ(srNote(1, 0), srScaleNoteAbove(start, kept));
+    for (byte col = 2; col < NUMCOLS; ++col) CHECK_EQ(srNote(col, 0), srScaleNoteAbove(srNote(col - 1, 0), kept));
+  }
+}
+
+// the value chosen is kept and counts pads of whichever scale is there, or semitones without one
+TEST(scale_rows_transpose_lights_follow_the_scale_as_it_changes) {
+  srSetup(SR_C_MAJOR);
+  srUseRowOffset(5);
+  Split[LEFT].transposeLights = -3;
+  CHECK_EQ(srNote(1, 0), 36);
+  Global.removedNotes[0] = SR_C_PENTATONIC;
+  CHECK_EQ(srNote(1, 0), 38);
+  Split[LEFT].transposeLights = 2;
+  CHECK_EQ(srNote(1, 0), 26);
+  Global.removedNotes[0] = SR_ONLY_C;
+  CHECK_EQ(srNote(1, 0), 12);
+  Global.removedNotes[0] = 0;
+  CHECK_EQ(srNote(1, 0), 28);
+  CHECK_EQ(Split[LEFT].transposeLights, 2);
 }

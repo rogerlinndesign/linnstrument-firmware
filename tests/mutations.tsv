@@ -164,10 +164,10 @@ scale_rows_need_a_scale_preset_with_something_left_out	ls_handleTouches.ino	  if
 scale_rows_need_a_scale_preset_with_something_left_out	ls_handleTouches.ino	  if (getActiveCustomLedPattern() >= 0) {\n    return 0;	  if (false) {\n    return 0;
 scale_rows_belong_to_their_note_lights_preset	ls_handleTouches.ino	  return Global.removedNotes[Global.activeNotes] & 0xfff;	  return Global.removedNotes[0] & 0xfff;
 scale_rows_transpose_by_semitones_on_top_of_the_scale	ls_handleTouches.ino	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol));	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol)) - Split[split].transposePitch - Split[split].transposeOctave;
-scale_rows_follow_the_transposed_lights_into_another_key	ls_handleTouches.ino	  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;	  int lowest = determineRowOffsetNote(split, 0);
+scale_rows_follow_the_transposed_lights_into_another_key	ls_handleTouches.ino	  for (int pads = Split[split].transposeLights; pads != 0;	  for (int pads = 0; pads != 0;
 scale_rows_follow_the_left_handed_layout	ls_handleTouches.ino	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, noteCol));	    int note = scaleRowsNote(scale, scaleRowsPosition(scale, row, col));
 scale_rows_fit_the_128	ls_handleTouches.ino	    noteCol = (NUMCOLS - col);	    noteCol = (26 - col);
-scale_rows_carry_on_into_the_right_split	ls_handleTouches.ino	  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;	  int lowest = determineRowOffsetNote(split, 0) - Split[LEFT].transposeLights;
+scale_rows_carry_on_into_the_right_split	ls_handleTouches.ino	  for (int pads = Split[split].transposeLights; pads != 0;	  for (int pads = Split[LEFT].transposeLights; pads != 0;
 scale_rows_past_the_midi_range_are_off	ls_handleTouches.ino	    if (note < 0 || note > 255) {\n      return 255;	    if (false) {\n      return 255;
 scale_rows_send_the_cells_notes	ls_handleTouches.ino	      return 255;\n    }\n    return note;	      return 255;\n    }\n    return note + 1;
 scale_rows_change_while_a_note_is_held	ls_midi.ino	removed = value ? removed | (1 << (parameter-276)) :	removed = value ? removed :
@@ -243,3 +243,5 @@ playing_channel_per_row_pressure_follows_the_hardest_touch_of_a_row	ls_handleTou
 settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_settings.ino	          setLed(sensorCol, sensorRow, getLoudnessSourceColor(sensorSplit), cellSlowPulse);	
 playing_channel_per_row_pressure_stays_apart_between_rows	ls_handleTouches.ino	other.hasNote() && other.channel == channel &&	other.hasNote() &&
 playing_one_channel_pressure_leaves_the_other_split_out	ls_handleTouches.ino	          getSplitOf(touchedCol) == split) {	          true) {
+scale_rows_transpose_lights_move_the_layout_by_pads	ls_handleTouches.ino	      lowest += pads > 0 ? -1 : 1;	      lowest += pads > 0 ? 1 : -1;
+scale_rows_transpose_lights_follow_the_scale_as_it_changes	ls_handleTouches.ino	    } while (removed & (1 << pitchClass(lowest)));	    } while (false);

@@ -2060,9 +2060,16 @@ boolean scaleRowsOf(byte split, ScaleRows& scale) {
     offset = 0;
   }
 
-  int lowest = determineRowOffsetNote(split, 0) - Split[split].transposeLights;
+  // the first row starts on the first note of the scale from where chromatic rows would, then
+  // Transpose Lights moves it by as many pads, a note of the scale each
+  int lowest = determineRowOffsetNote(split, 0);
   for (byte s = 0; s < 12 && (removed & (1 << pitchClass(lowest))); ++s) {
     lowest++;
+  }
+  for (int pads = Split[split].transposeLights; pads != 0; pads += pads > 0 ? -1 : 1) {
+    do {
+      lowest += pads > 0 ? -1 : 1;
+    } while (removed & (1 << pitchClass(lowest)));
   }
   scale.lowest = lowest;
 
