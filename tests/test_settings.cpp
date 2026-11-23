@@ -22,6 +22,25 @@ TEST(settings_defaults) {
   CHECK(!Device.calibrated);
 }
 
+// a hard reset gives a 128 a higher prescale, while the buttons held at power on are read with
+// the one both models start with
+TEST(settings_sensor_prescale_default_per_model) {
+  for (int model : { 200, 128 }) {
+    linn::reset(model);
+    initializeSensors();
+    CHECK_EQ(Device.sensorSensitivityZ, 75);
+    dueFlashStorage.write(0, 254);
+    initializeStorage();
+    CHECK_EQ(Device.sensorSensitivityZ, model == 128 ? 90 : 75);
+    // kept as stored on the next boot
+    Device.sensorSensitivityZ = 60;
+    storeSettings();
+    initializeSensors();
+    initializeStorage();
+    CHECK_EQ(Device.sensorSensitivityZ, 60);
+  }
+}
+
 TEST(settings_survive_flash_round_trip) {
   linn::reset();
   Global.rowOffset = 7;

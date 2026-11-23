@@ -75,6 +75,8 @@ playing_moving_a_finger_sends_pitch_bend	ls_handleTouches.ino	        int pitch 
 serial_command_without_handshake_is_ignored	ls_serial.ino	  if (waitingForCommands) {	  if (true) {
 upgrade_copies_the_current_version_as_is	ls_extstorage.ino	      case 18:\n        if (confSize == sizeof(Configuration)) {	      case 18:\n        if (false) {
 settings_defaults	ls_settings.ino	  Device.version = 18;	  Device.version = 19;
+settings_sensor_prescale_default_per_model	ls_settings.ino	    Device.sensorSensitivityZ = LINNMODEL == 128 ? DEFAULT_SENSOR_SENSITIVITY_Z_128 : DEFAULT_SENSOR_SENSITIVITY_Z;	    Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
+settings_sensor_prescale_default_per_model	ls_sensor.ino	  Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;	  Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z_128;
 settings_second_store_keeps_the_newest_copy	ls_settings.ino	  dueFlashStorage.write(SETTINGS_OFFSET, marker);	  dueFlashStorage.write(SETTINGS_OFFSET, 0);
 switch_cc65_sends_the_configured_controller	ls_switches.ino	      preSendSwitchCC65(whichSwitch, split, 127);	      preSendSwitchCC65(whichSwitch, split, 126);
 switch_foot_pedal_follows_the_pedal_and_its_polarity	ls_switches.ino	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = !state_right;	  if (footSwitchOffState[SWITCH_FOOT_R] == HIGH)  state_right = state_right;

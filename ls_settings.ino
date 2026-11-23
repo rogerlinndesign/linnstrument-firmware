@@ -118,6 +118,9 @@ void initializeStorage() {
       Device.serialMode = false;
     }
 
+    // here rather than in initializeSensors(), whose value the buttons held at power on are read with
+    Device.sensorSensitivityZ = LINNMODEL == 128 ? DEFAULT_SENSOR_SENSITIVITY_Z_128 : DEFAULT_SENSOR_SENSITIVITY_Z;
+
     writeInitialProjectSettings();
     writeSettingsToFlash();                               // Store the initial default settings
 

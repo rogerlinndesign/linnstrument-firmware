@@ -111,6 +111,9 @@ public:
     }
 
     if (fresh) {
+      // the 128's higher pressure prescale makes up for its sensor, which a screen doesn't have,
+      // so that a strike plays alike on both models
+      Device.sensorSensitivityZ = DEFAULT_SENSOR_SENSITIVITY_Z;
       controlButton = -1;
       setDisplayMode(displayNormal);
       updateDisplay();
