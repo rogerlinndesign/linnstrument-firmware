@@ -34,6 +34,7 @@ displayCCForY                 : custom CC number selection for Y expression
 displayInitialForRelativeY    : initial value for relative Y
 displayLimitsForZ             : min and max value selection for Z expression
 displayCCForZ                 : custom CC number selection for Z expression
+displayLoudnessSource         : which touch channel pressure follows when touches share a channel
 displayPlayedTouchModeConfig  : custom display mode for played notes upon touch
 displayCCForFader             : custom CC number selection for a CC fader
 displayLowRowBendConfig       : low row bend configuration
@@ -149,6 +150,9 @@ void updateDisplay() {
       break;
     case displayCCForZ:
       paintCCForZDisplay(Global.currentPerSplit);
+      break;
+    case displayLoudnessSource:
+      paintLoudnessSourceDisplay(Global.currentPerSplit);
       break;
     case displayPlayedTouchModeConfig:
       paintPlayedTouchModeDisplay(Global.currentPerSplit);
@@ -732,7 +736,7 @@ void paintPerSplitDisplay(byte side) {
       setLed(10, 6, Split[side].colorMain, cellOn);
       break;
     case loudnessChannelPressure:
-      setLed(10, 5, Split[side].colorMain, cellOn);
+      setLed(10, 5, getLoudnessSourceColor(side), cellOn);
       break;
     case loudnessCC11:
       setLed(10, 4, getCCForZColor(side), cellOn);
@@ -848,6 +852,14 @@ byte getRelativeYColor(byte side) {
 byte getLimitsForZColor(byte side) {
   byte color = Split[side].colorMain;
   if (Split[side].minForZ != 0 || Split[side].maxForZ != 127 || Split[side].ccForZ14Bit) {
+    color = Split[side].colorAccent;
+  }
+  return color;
+}
+
+byte getLoudnessSourceColor(byte side) {
+  byte color = Split[side].colorMain;
+  if (Split[side].sourceForZ != loudnessSourceLast) {
     color = Split[side].colorAccent;
   }
   return color;
@@ -1039,6 +1051,22 @@ void paintLimitsForZDisplay(byte side) {
       paintShowSplitSelection(side);
       break;
   }
+}
+
+void paintLoudnessSourceDisplay(byte side) {
+  clearDisplay();
+  switch (Split[side].sourceForZ) {
+    case loudnessSourceLast:
+      condfont_draw_string(0, 0, "LAST", Split[side].colorMain, true);
+      break;
+    case loudnessSourceFirst:
+      condfont_draw_string(0, 0, "FRST", Split[side].colorMain, true);
+      break;
+    case loudnessSourceHighest:
+      condfont_draw_string(0, 0, "HIGH", Split[side].colorMain, true);
+      break;
+  }
+  paintShowSplitSelection(side);
 }
 
 void paintCCForZDisplay(byte side) {

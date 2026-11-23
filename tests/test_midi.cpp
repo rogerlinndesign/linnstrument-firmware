@@ -120,3 +120,27 @@ TEST(nrpn_query_answers_with_the_value_and_a_null_rpn) {
     CHECK_EQ(out[16], 100);
   }
 }
+
+TEST(nrpn_sets_the_channel_pressure_source) {
+  linn::reset();
+  CHECK_EQ(Split[RIGHT].sourceForZ, loudnessSourceLast);
+  receivedNrpn(167, 1, 0);
+  CHECK_EQ(Split[RIGHT].sourceForZ, loudnessSourceFirst);
+  receivedNrpn(67, 2, 0);
+  CHECK_EQ(Split[LEFT].sourceForZ, loudnessSourceHighest);
+  receivedNrpn(67, 3, 0);
+  CHECK_EQ(Split[LEFT].sourceForZ, loudnessSourceHighest);
+}
+
+TEST(nrpn_query_answers_the_channel_pressure_source) {
+  linn::reset();
+  Split[RIGHT].sourceForZ = loudnessSourceFirst;
+  receivedNrpn(299, 167, 0);
+  linn::drainMidi();
+  std::vector<uint8_t> out = host::serialOutput();
+  CHECK_EQ(out.size(), 18);
+  if (out.size() == 18) {
+    CHECK_EQ(out[2] * 128 + out[5], 167);
+    CHECK_EQ(out[8] * 128 + out[11], loudnessSourceFirst);
+  }
+}

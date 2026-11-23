@@ -471,6 +471,7 @@ enum DisplayMode {
   displayInitialForRelativeY,
   displayLimitsForZ,
   displayCCForZ,
+  displayLoudnessSource,
   displayPlayedTouchModeConfig,
   displayCCForFader,
   displayLowRowBendConfig,
@@ -608,6 +609,12 @@ enum LoudnessExpression {
   loudnessCC11
 };
 
+enum LoudnessSource {
+  loudnessSourceLast,
+  loudnessSourceFirst,
+  loudnessSourceHighest
+};
+
 enum SequencerView {
   sequencerNotes,
   sequencerScales,
@@ -647,6 +654,7 @@ struct SplitSettings {
   unsigned short minForZ;                 // 0-127
   unsigned short maxForZ;                 // 0-127
   boolean ccForZ14Bit;                    // true when 14-bit messages should be sent when Z CC is between 0-31, false when only 7-bit messages should be sent
+  byte sourceForZ;                        // see LoudnessSource values, which touch channel pressure follows when touches share a channel
   unsigned short ccForFader[8];           // each fader can control a CC number ranging from 0-128 (with 128 being placeholder for ChannelPressure)
   byte colorMain;                         // color for non-accented cells
   byte colorAccent;                       // color for accented cells

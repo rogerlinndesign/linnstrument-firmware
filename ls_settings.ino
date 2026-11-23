@@ -632,6 +632,7 @@ void initializePresetSettings() {
         p.split[s].maxForZ = 127;
         p.split[s].customCCForZ = 11;
         p.split[s].ccForZ14Bit = false;
+        p.split[s].sourceForZ = loudnessSourceLast;
         memcpy(&p.split[s].ccForFader, ccFaderDefaults, sizeof(unsigned short)*8);
         p.split[s].colorAccent = COLOR_CYAN;
         p.split[s].colorLowRow = COLOR_YELLOW;
@@ -1505,6 +1506,9 @@ void handlePerSplitSettingNewTouch() {
         case 7:
           setLed(sensorCol, sensorRow, getLimitsForZColor(sensorSplit), cellSlowPulse);
           break;
+        case 5:
+          setLed(sensorCol, sensorRow, getLoudnessSourceColor(sensorSplit), cellSlowPulse);
+          break;
         case 4:
           setLed(sensorCol, sensorRow, getCCForZColor(sensorSplit), cellSlowPulse);
           break;
@@ -1606,6 +1610,11 @@ void handlePerSplitSettingHold() {
             Split[Global.currentPerSplit].sendZ = true;
             resetNumericDataChange();
             setDisplayMode(displayLimitsForZ);
+            updateDisplay();
+            break;
+          case 5:
+            resetNumericDataChange();
+            setDisplayMode(displayLoudnessSource);
             updateDisplay();
             break;
           case 4:
@@ -1975,6 +1984,14 @@ void handleCCForZNewTouch() {
 }
 
 void handleCCForZRelease() {
+  handleNumericDataReleaseCol(true);
+}
+
+void handleLoudnessSourceNewTouch() {
+  handleNumericDataNewTouchCol(Split[Global.currentPerSplit].sourceForZ, loudnessSourceLast, loudnessSourceHighest, false);
+}
+
+void handleLoudnessSourceRelease() {
   handleNumericDataReleaseCol(true);
 }
 

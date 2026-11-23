@@ -157,3 +157,180 @@ TEST(playing_disabling_x_stops_pitch_bend) {
     CHECK((out[i] & 0xF0) != 0xE0);
   }
 }
+
+static std::vector<int> channelPressures(const std::vector<uint8_t>& out) {
+  std::vector<int> values;
+  for (size_t i = 0; i + 1 < out.size(); ++i) {
+    if ((out[i] & 0xF0) == 0xD0) {
+      values.push_back(out[i + 1]);
+      ++i;
+    }
+  }
+  return values;
+}
+
+static void oneChannelPressure() {
+  fixedVelocity(77);
+  Split[LEFT].midiMode = oneChannel;
+  Split[LEFT].expressionForZ = loudnessChannelPressure;
+  Split[LEFT].sourceForZ = loudnessSourceHighest;
+  Split[LEFT].sendZ = true;
+  updateSplitMidiChannels(LEFT);
+  sent();
+}
+
+static void holdBoth(int passes) {
+  for (int i = 0; i < passes; ++i) {
+    linn::hold(5, 3, 2000, 2000, 1400, 1);
+    linn::hold(8, 3, 2000, 2000, 300, 1);
+  }
+}
+
+TEST(playing_one_channel_pressure_follows_the_hardest_touch) {
+  linn::reset();
+  oneChannelPressure();
+  linn::press(8, 3, 2000, 2000, 300);
+  linn::hold(8, 3, 2000, 2000, 300, 20);
+  std::vector<int> light = channelPressures(sent());
+  linn::release(8, 3);
+  sent();
+
+  linn::press(5, 3, 2000, 2000, 1400);
+  linn::press(8, 3, 2000, 2000, 300);
+  holdBoth(20);
+  std::vector<int> both = channelPressures(sent());
+  CHECK(!light.empty());
+  CHECK(!both.empty());
+  if (!light.empty() && !both.empty()) {
+    CHECK(both.back() > light.back() + 20);
+  }
+}
+
+TEST(playing_one_channel_pressure_stays_up_while_a_touch_remains) {
+  linn::reset();
+  oneChannelPressure();
+  linn::press(5, 3, 2000, 2000, 1400);
+  linn::press(8, 3, 2000, 2000, 300);
+  holdBoth(20);
+  sent();
+  linn::release(8, 3);
+  linn::hold(5, 3, 2000, 2000, 1400, 5);
+  std::vector<int> after = channelPressures(sent());
+  for (int value : after) {
+    CHECK(value > 0);
+  }
+  linn::release(5, 3);
+  std::vector<int> end = channelPressures(sent());
+  CHECK(!end.empty());
+  if (!end.empty()) CHECK_EQ(end.back(), 0);
+}
+
+// a new note on the channel starts from what the touches already held press, not from silence
+TEST(playing_one_channel_pressure_stays_up_when_another_note_starts) {
+  linn::reset();
+  oneChannelPressure();
+  linn::press(5, 3, 2000, 2000, 1400);
+  linn::hold(5, 3, 2000, 2000, 1400, 20);
+  CHECK(!channelPressures(sent()).empty());
+  linn::press(8, 3, 2000, 2000, 300);
+  for (int value : channelPressures(sent())) {
+    CHECK(value > 0);
+  }
+}
+
+static int lastPressureAlone(byte col, uint16_t z) {
+  linn::press(col, 3, 2000, 2000, z);
+  linn::hold(col, 3, 2000, 2000, z, 20);
+  std::vector<int> values = channelPressures(sent());
+  linn::release(col, 3);
+  sent();
+  CHECK(!values.empty());
+  return values.empty() ? -1 : values.back();
+}
+
+static int lastPressureOfBoth(byte firstCol, uint16_t firstZ, byte secondCol, uint16_t secondZ) {
+  linn::press(firstCol, 3, 2000, 2000, firstZ);
+  linn::press(secondCol, 3, 2000, 2000, secondZ);
+  for (int i = 0; i < 20; ++i) {
+    linn::hold(firstCol, 3, 2000, 2000, firstZ, 1);
+    linn::hold(secondCol, 3, 2000, 2000, secondZ, 1);
+  }
+  std::vector<int> values = channelPressures(sent());
+  CHECK(!values.empty());
+  return values.empty() ? -1 : values.back();
+}
+
+TEST(playing_one_channel_pressure_can_follow_the_first_touch) {
+  linn::reset();
+  oneChannelPressure();
+  Split[LEFT].sourceForZ = loudnessSourceFirst;
+  int light = lastPressureAlone(8, 300);
+  int both = lastPressureOfBoth(8, 300, 5, 1400);
+  CHECK(abs(both - light) <= 2);
+}
+
+// touches in one row share its channel in Channel Per Row, so its pressure follows the same choice
+TEST(playing_channel_per_row_pressure_follows_the_hardest_touch_of_a_row) {
+  linn::reset();
+  oneChannelPressure();
+  Split[LEFT].midiMode = channelPerRow;
+  updateSplitMidiChannels(LEFT);
+  sent();
+  int light = lastPressureAlone(8, 300);
+  int both = lastPressureOfBoth(5, 1400, 8, 300);
+  CHECK(both > light + 20);
+}
+
+// each row is a channel of its own in Channel Per Row, so a touch in another row never raises it
+TEST(playing_channel_per_row_pressure_stays_apart_between_rows) {
+  linn::reset();
+  oneChannelPressure();
+  Split[LEFT].midiMode = channelPerRow;
+  updateSplitMidiChannels(LEFT);
+  sent();
+  linn::press(5, 2, 2000, 2000, 1400);
+  linn::press(8, 3, 2000, 2000, 300);
+  for (int i = 0; i < 20; ++i) {
+    linn::hold(5, 2, 2000, 2000, 1400, 1);
+    linn::hold(8, 3, 2000, 2000, 300, 1);
+  }
+  sent();
+  unsigned short apart = sharedChannelPressure(LEFT, cell(8, 3).channel, false, 0);
+  unsigned short hard = sharedChannelPressure(LEFT, cell(5, 2).channel, false, 0);
+  CHECK(cell(8, 3).channel != cell(5, 2).channel);
+  CHECK(apart + 100 < hard);
+}
+
+// a touch of the other split on the same channel is that split's own
+TEST(playing_one_channel_pressure_leaves_the_other_split_out) {
+  linn::reset();
+  oneChannelPressure();
+  Global.splitActive = true;
+  Global.splitPoint = 12;
+  Split[RIGHT].midiMode = oneChannel;
+  Split[RIGHT].midiChanMain = Split[LEFT].midiChanMain;
+  Split[RIGHT].expressionForZ = loudnessChannelPressure;
+  Split[RIGHT].sendZ = true;
+  updateSplitMidiChannels(RIGHT);
+  sent();
+  linn::press(15, 3, 2000, 2000, 1400);
+  linn::press(8, 3, 2000, 2000, 300);
+  for (int i = 0; i < 20; ++i) {
+    linn::hold(15, 3, 2000, 2000, 1400, 1);
+    linn::hold(8, 3, 2000, 2000, 300, 1);
+  }
+  sent();
+  CHECK_EQ(cell(8, 3).channel, cell(15, 3).channel);
+  unsigned short left = sharedChannelPressure(LEFT, cell(8, 3).channel, false, 0);
+  unsigned short right = sharedChannelPressure(RIGHT, cell(15, 3).channel, false, 0);
+  CHECK(left + 100 < right);
+}
+
+TEST(playing_one_channel_pressure_can_follow_the_last_touch) {
+  linn::reset();
+  oneChannelPressure();
+  Split[LEFT].sourceForZ = loudnessSourceLast;
+  int light = lastPressureAlone(8, 300);
+  int both = lastPressureOfBoth(5, 1400, 8, 300);
+  CHECK(abs(both - light) <= 2);
+}

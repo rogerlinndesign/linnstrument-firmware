@@ -62,6 +62,56 @@ byte countTouchesForMidiChannel(byte split, byte col, byte row) {
   return noteTouchMapping[split].getMusicalTouchCount(cell(col, row).channel);
 }
 
+// channel pressure has one value for all the touches sharing a channel, it follows either the touch pressing
+// hardest or the earliest one still held, the latest one is the focused cell that sends it
+unsigned short sharedChannelPressure(byte split, signed char channel, boolean includeSensorCell, unsigned short sensorPressure) {
+  boolean first = (Split[split].sourceForZ == loudnessSourceFirst);
+  boolean found = includeSensorCell;
+  unsigned long earliest = sensorCell->lastTouch;
+  unsigned short result = includeSensorCell ? sensorPressure : 0;
+  for (byte row = 0; row < NUMROWS; ++row) {
+    int32_t colsInRowTouched = colsInRowsTouched[row];
+    if (row == sensorRow) {
+      colsInRowTouched &= ~(1 << sensorCol);
+    }
+
+    while (colsInRowTouched) {
+      byte touchedCol = 31 - __builtin_clz(colsInRowTouched);
+      TouchInfo& other = cell(touchedCol, row);
+      if (other.touched == touchedCell && other.hasNote() && other.channel == channel &&
+          getSplitOf(touchedCol) == split) {
+        unsigned short pressure = constrain(FXD_TO_INT(other.fxdPrevPressure), 0, 1016);
+        if (first) {
+          if (!found || other.lastTouch < earliest) {
+            earliest = other.lastTouch;
+            result = pressure;
+            found = true;
+          }
+        }
+        else if (pressure > result) {
+          result = pressure;
+        }
+      }
+      colsInRowTouched &= ~(1 << touchedCol);
+    }
+  }
+
+  return result;
+}
+
+boolean isSharedChannelPressure(byte split) {
+  return Split[split].expressionForZ == loudnessChannelPressure && Split[split].sourceForZ != loudnessSourceLast;
+}
+
+// the loudness when a note starts or ends, zero unless other touches still hold channel pressure up
+void preSendRestingLoudness(byte split, byte note, signed char channel) {
+  unsigned short pressure = 0;
+  if (isSharedChannelPressure(split)) {
+    pressure = sharedChannelPressure(split, channel, false, 0);
+  }
+  preSendLoudness(split, scale1016to127(pressure, true), pressure, note, channel);
+}
+
 const int32_t PENDING_RELEASE_RATE_X = FXD_FROM_INT(5);
 
 boolean potentialSlideTransferCandidate(byte col) {
@@ -614,6 +664,9 @@ void handleNonPlayingTouch() {
     case displayCCForZ:
       handleCCForZNewTouch();
       break;
+    case displayLoudnessSource:
+      handleLoudnessSourceNewTouch();
+      break;
     case displayPlayedTouchModeConfig:
       handlePlayedTouchModeNewTouch();
       break;
@@ -1056,6 +1109,10 @@ boolean handleXYZupdate() {
       // if sensing Z is enabled...
       // send different pressure update depending on midiMode
       if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
+        if (isSharedChannelPressure(sensorSplit)) {
+          valueZHi = sharedChannelPressure(sensorSplit, sensorCell->channel, true, valueZHi);
+          valueZ = scale1016to127(valueZHi, true);
+        }
         preSendLoudness(sensorSplit, valueZ, valueZHi, sensorCell->note, sensorCell->channel);
       }
 
@@ -1259,7 +1316,7 @@ void sendNewNote() {
     // reset pressure to 0 before sending the note, the actually pressure value will
     // be sent right after the note on
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      preSendRestingLoudness(sensorSplit, sensorCell->note, sensorCell->channel);
     }
 
     // if the same channel and note is already active, send a note off first
@@ -1559,6 +1616,9 @@ boolean handleNonPlayingRelease() {
       case displayCCForZ:
         handleCCForZRelease();
         break;
+      case displayLoudnessSource:
+        handleLoudnessSourceRelease();
+        break;
       case displayPlayedTouchModeConfig:
         handlePlayedTouchModeRelease();
         break;
@@ -1752,7 +1812,7 @@ void handleTouchRelease() {
 
     // reset the pressure when the note is released and that setting is active
     if (Split[sensorSplit].sendZ && isZExpressiveCell()) {
-      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);
+      preSendRestingLoudness(sensorSplit, sensorCell->note, sensorCell->channel);
     }
 
     // unregister the note <> cell mapping

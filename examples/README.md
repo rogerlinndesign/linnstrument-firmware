@@ -25,7 +25,8 @@ released yet, and it adds things the pages use when it's there. On 2.3.4 the hea
 * The designer lights the cells one by one, which is slower to repaint the whole surface.
 * The console's text controls wait for 2.4.0, with a line saying why.
 * The settings editor marks the settings that only 2.4.0 has (model, firmware version, build,
-  calibrated, and the notes left out of the rows) as needing it.
+  calibrated, the notes left out of the rows, and which touch a shared channel's pressure follows)
+  as needing it.
 
 These are the pages:
 

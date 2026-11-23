@@ -464,7 +464,7 @@ Changing any field of `DeviceSettings`, `GlobalSettings`, `SplitSettings` or
 `ls_extstorage.ino`:
 
 1. Snapshot the struct you are changing as it is now, under the next number of
-   its own series (`DeviceSettingsV13`, `GlobalSettingsV11`, `SplitSettingsV8`,
+   its own series (`DeviceSettingsV13`, `GlobalSettingsV11`, `SplitSettingsV9`,
    `PresetSettingsV13`). The series are independent of each other and of
    `Device.version`.
 2. Repoint every older snapshot that still names the live type to the new
@@ -472,7 +472,9 @@ Changing any field of `DeviceSettings`, `GlobalSettings`, `SplitSettings` or
    which is only correct while `DeviceSettings` is unchanged.
 3. Add `ConfigurationV18`, the layout version 18 had, built from snapshots.
 4. Write `copyConfigurationV18()` mapping it onto the live `Configuration`,
-   give the new field its default there, and give it a default in
+   give the new field its default there and in every older
+   `copySplitSettingsVN()` (or its series' equivalent), since each of them
+   writes into the live struct field by field, and give it a default in
    `initializeDeviceSettings()` or `initializePresetSettings()` in
    `ls_settings.ino` as well.
 5. In `upgradeConfigurationSettings()`, make `case 18` use

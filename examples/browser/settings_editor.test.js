@@ -23,10 +23,10 @@ const by = {};
 table.parameters.forEach((p) => { by[p.number] = p; });
 
 test("the generated table holds every NRPN of midi.md but the query itself", () => {
-  assert.equal(table.parameters.length, 222);
+  assert.equal(table.parameters.length, 224);
   assert.equal(by[299], undefined);
-  assert.equal(table.parameters.filter((p) => p.group === "Split Left").length, 67);
-  assert.equal(table.parameters.filter((p) => p.group === "Split Right").length, 67);
+  assert.equal(table.parameters.filter((p) => p.group === "Split Left").length, 68);
+  assert.equal(table.parameters.filter((p) => p.group === "Split Right").length, 68);
   assert.equal(table.tables.color.length, 12);
   assert.equal(table.tables.switchAssignment.length, 20);
   assert.equal(table.tables.touchAnimation.length, 15);
@@ -76,7 +76,7 @@ test("a query is NRPN 299 with the parameter as its value, a write adds the null
 
 test("every parameter but the actions is queried", () => {
   const numbers = editor.queryable().map((p) => p.number);
-  assert.equal(numbers.length, 213);
+  assert.equal(numbers.length, 215);
   assert.ok(!numbers.includes(62) && !numbers.includes(271));
   assert.ok(numbers.includes(243) && numbers.includes(272));
 });
@@ -142,8 +142,8 @@ test("the search matches names, numbers and descriptions", () => {
 
 test("only the parameters firmware 2.4.0 added are marked as needing it", () => {
   const marked = editor.parameters.filter((p) => editor.needsNewerFirmware(p.number)).map((p) => p.number);
-  assert.deepEqual(marked, [271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287]);
-  [245, 270, 288, 299, 66].forEach((n) => assert.equal(editor.needsNewerFirmware(n), false));
+  assert.deepEqual(marked, [67, 167, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287]);
+  [245, 270, 288, 299, 66, 68, 166, 168].forEach((n) => assert.equal(editor.needsNewerFirmware(n), false));
 });
 
 test("switching MIDI to the jacks, which cuts the page off, asks for a second click", () => {

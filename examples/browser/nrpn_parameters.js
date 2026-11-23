@@ -1430,6 +1430,29 @@ limitations under the License.
         "description": "Split Left Sequencer Toggle Mute"
       },
       {
+        "number": 67,
+        "group": "Split Left",
+        "name": "Channel Aftertouch Source For Z",
+        "kind": "enum",
+        "min": 0,
+        "max": 2,
+        "options": [
+          {
+            "value": 0,
+            "label": "Last Touch"
+          },
+          {
+            "value": 1,
+            "label": "First Touch"
+          },
+          {
+            "value": 2,
+            "label": "Highest Pressure"
+          }
+        ],
+        "description": "Split Left Channel Aftertouch Source For Z (0: Last Touch, 1: First Touch, 2: Highest Pressure)"
+      },
+      {
         "number": 100,
         "group": "Split Right",
         "name": "MIDI Mode",
@@ -2831,6 +2854,29 @@ limitations under the License.
         "min": 1,
         "max": 1,
         "description": "Split Right Sequencer Toggle Mute"
+      },
+      {
+        "number": 167,
+        "group": "Split Right",
+        "name": "Channel Aftertouch Source For Z",
+        "kind": "enum",
+        "min": 0,
+        "max": 2,
+        "options": [
+          {
+            "value": 0,
+            "label": "Last Touch"
+          },
+          {
+            "value": 1,
+            "label": "First Touch"
+          },
+          {
+            "value": 2,
+            "label": "Highest Pressure"
+          }
+        ],
+        "description": "Split Right Channel Aftertouch Source For Z (0: Last Touch, 1: First Touch, 2: Highest Pressure)"
       },
       {
         "number": 200,

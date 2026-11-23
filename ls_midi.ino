@@ -1035,6 +1035,12 @@ void receivedNrpn(int parameter, int value, int channel) {
         sequencerToggleMute(split);
       }
       break;
+    // Split Channel Pressure Source For Z
+    case 67:
+      if (inRange(value, 0, 2)) {
+        Split[split].sourceForZ = value;
+      }
+      break;
     // Global Split Active
     case 200:
       if (inRange(value, 0, 1)) {
@@ -1578,6 +1584,9 @@ void sendNrpnParameter(int parameter, int channel) {
       break;
     case 65:
       value = sequencerCurrentPatternNumber(split);
+      break;
+    case 67:
+      value = Split[split].sourceForZ;
       break;
     case 200:
       value = Global.splitActive;

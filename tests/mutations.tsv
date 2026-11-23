@@ -119,7 +119,7 @@ upgrade_from_v15	ls_extstorage.ino	  ConfigurationV15* s = (ConfigurationV15*)so
 upgrade_from_v16	ls_extstorage.ino	  ConfigurationV16* s = (ConfigurationV16*)source;	  ConfigurationV16* s = (ConfigurationV16*)source; s->settings.global.rowOffset = 0;
 upgrade_from_v17	ls_extstorage.ino	  ConfigurationV17* s = (ConfigurationV17*)source;	  ConfigurationV17* s = (ConfigurationV17*)source; s->settings.global.rowOffset = 0;
 upgrade_from_v17	ls_extstorage.ino	      memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));	
-upgrade_from_v17	ls_extstorage.ino	  memcpy(t->split, s->split, sizeof(t->split));	
+upgrade_from_v17	ls_extstorage.ino	  copyGlobalSettingsV10(&t->global, &s->global);\n\n  copySplitSettingsV8(&t->split[LEFT], &s->split[LEFT]);	  copyGlobalSettingsV10(&t->global, &s->global);\n
 upgrade_global_settings_keep_the_layout_of_version_17	linnstrument-firmware.ino	  boolean splitActive;                       // false = split off, true = split on\n  unsigned short removedNotes[12];	  byte paddingForTheMutation;\n  boolean splitActive;                       // false = split off, true = split on\n  unsigned short removedNotes[12];
 upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	      case 9:\n        if (confSize == sizeof(ConfigurationV9)) {	      case 9:\n        if (true) {
 ufm_query_272_to_274_report_the_model_the_version_and_the_build	ls_midi.ino	      value = LINNMODEL;	      value = NUMCOLS;
@@ -227,3 +227,19 @@ upgrade_copies_the_current_version_as_is	ls_extstorage.ino	          memcpy(&con
 upgrade_refuses_a_newer_version	ls_extstorage.ino	  byte settingsVersion = buff2[0];	  byte settingsVersion = buff2[0];\n  memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));
 upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	    void* sourceConfig = buff2;	    void* sourceConfig = buff2;\n    memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));
 manufacturing_control_buttons_light_all_leds_in_row_colors	ls_test.ino	color = COLOR_WHITE;	color = COLOR_ORANGE;
+playing_one_channel_pressure_follows_the_hardest_touch	ls_handleTouches.ino	valueZHi = sharedChannelPressure(sensorSplit, sensorCell->channel, true, valueZHi);	valueZHi = valueZHi + 0;
+playing_one_channel_pressure_stays_up_while_a_touch_remains	ls_handleTouches.ino	pressure = sharedChannelPressure(split, channel, false, 0);	pressure = 0;
+playing_one_channel_pressure_can_follow_the_first_touch	ls_handleTouches.ino	  boolean first = (Split[split].sourceForZ == loudnessSourceFirst);	  boolean first = false;
+playing_one_channel_pressure_can_follow_the_last_touch	ls_handleTouches.ino	 && Split[split].sourceForZ != loudnessSourceLast;	;
+nrpn_sets_the_channel_pressure_source	ls_midi.ino	        Split[split].sourceForZ = value;	        Split[split].sourceForZ = loudnessSourceLast;
+upgrade_from_v17	ls_extstorage.ino	  t->lowRowBendBehavior = s->lowRowBendBehavior;\n  t->sourceForZ = loudnessSourceLast;	  t->lowRowBendBehavior = s->lowRowBendBehavior;
+nrpn_query_answers_the_channel_pressure_source	ls_midi.ino	      value = Split[split].sourceForZ;	      value = loudnessSourceHighest;
+playing_one_channel_pressure_stays_up_when_another_note_starts	ls_handleTouches.ino	      preSendRestingLoudness(sensorSplit, sensorCell->note, sensorCell->channel);\n    }\n\n    // if the same channel and note is already active	      preSendLoudness(sensorSplit, 0, 0, sensorCell->note, sensorCell->channel);\n    }\n\n    // if the same channel and note is already active
+settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_settings.ino	            setDisplayMode(displayLoudnessSource);	
+settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_settings.ino	handleNumericDataNewTouchCol(Split[Global.currentPerSplit].sourceForZ, loudnessSourceLast, loudnessSourceHighest, false);	handleNumericDataNewTouchCol(Split[Global.currentPerSplit].sourceForZ, loudnessSourceLast, loudnessSourceFirst, false);
+settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_displayModes.ino	  if (Split[side].sourceForZ != loudnessSourceLast) {	  if (false) {
+settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_settings.ino	        p.split[s].sourceForZ = loudnessSourceLast;	        p.split[s].sourceForZ = loudnessSourceHighest;
+playing_channel_per_row_pressure_follows_the_hardest_touch_of_a_row	ls_handleTouches.ino	valueZHi = sharedChannelPressure(sensorSplit, sensorCell->channel, true, valueZHi);	valueZHi = valueZHi + 0;
+settings_holding_channel_pressure_chooses_which_touch_it_follows	ls_settings.ino	          setLed(sensorCol, sensorRow, getLoudnessSourceColor(sensorSplit), cellSlowPulse);	
+playing_channel_per_row_pressure_stays_apart_between_rows	ls_handleTouches.ino	other.hasNote() && other.channel == channel &&	other.hasNote() &&
+playing_one_channel_pressure_leaves_the_other_split_out	ls_handleTouches.ino	          getSplitOf(touchedCol) == split) {	          true) {

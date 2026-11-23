@@ -112,12 +112,16 @@ static void checkNoRemovedNotes(const PresetSettings& p) {
   for (int n = 0; n < 12; ++n) CHECK_EQ(p.global.removedNotes[n], 0);
 }
 
-// a restore onto a unit that already leaves notes out, in its settings and in every preset,
-// including the presets an older layout doesn't have
-static void plantLiveRemovedNotes() {
+// a restore onto a unit whose settings an older layout doesn't hold: notes left out, and channel
+// pressure following the first touch, in its settings and in every preset
+static void plantLiveSettings() {
   for (int n = 0; n < 12; ++n) {
     Global.removedNotes[n] = 0x0f0;
     for (int p = 0; p < NUMPRESETS; ++p) config.preset[p].global.removedNotes[n] = 0x00f;
+  }
+  for (int s = 0; s < NUMSPLITS; ++s) {
+    Split[s].sourceForZ = loudnessSourceFirst;
+    for (int p = 0; p < NUMPRESETS; ++p) config.preset[p].split[s].sourceForZ = loudnessSourceFirst;
   }
 }
 
@@ -126,11 +130,15 @@ static void checkNoRemovedNotesAnywhere() {
   for (int p = 0; p < NUMPRESETS; ++p) checkNoRemovedNotes(config.preset[p]);
 }
 
-// fields no layout before 17 stored, so every converter has to give them their default
-static void checkNewFieldDefaults(const PresetSettings& p) {
-  CHECK_EQ(p.split[LEFT].lowRowBendBehavior, lowRowBendBend);
-  CHECK_EQ(p.split[RIGHT].lowRowBendBehavior, lowRowBendBend);
+// fields an older layout did not store, so every converter has to give them their default
+static void checkNewFieldDefaults(const PresetSettings& p, byte version = 1) {
+  if (version < 17) {
+    CHECK_EQ(p.split[LEFT].lowRowBendBehavior, lowRowBendBend);
+    CHECK_EQ(p.split[RIGHT].lowRowBendBehavior, lowRowBendBend);
+  }
   checkNoRemovedNotes(p);
+  CHECK_EQ(p.split[LEFT].sourceForZ, loudnessSourceLast);
+  CHECK_EQ(p.split[RIGHT].sourceForZ, loudnessSourceLast);
 }
 
 template <typename D>
@@ -162,7 +170,7 @@ static void checkUpgraded(int presets) {
 template <typename C>
 static void upgradeWithPresetsOnly(byte version) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   C old;
   memset(&old, 0, sizeof(old));
   plantDevice(old.device, version);
@@ -190,7 +198,7 @@ static void plantSettings(C& old, byte version, int presets) {
 template <typename C>
 static void upgradeWithSettings(byte version, int presets) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   C old;
   plantSettings(old, version, presets);
   CHECK(upgradeConfigurationSettings(sizeof(C), (byte*)&old));
@@ -201,7 +209,7 @@ static void upgradeWithSettings(byte version, int presets) {
 template <typename C>
 static void upgradeWithSettingsAndProject(byte version, int presets) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   C old;
   plantSettings(old, version, presets);
   old.project.tempo = 133;
@@ -212,7 +220,7 @@ static void upgradeWithSettingsAndProject(byte version, int presets) {
 
 TEST(upgrade_from_v1_fills_the_presets_from_the_single_setup) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   ConfigurationV1 old;
   memset(&old, 0, sizeof(old));
   old.global.version = 1;
@@ -268,24 +276,28 @@ TEST(upgrade_from_v16) { upgradeWithSettingsAndProject<ConfigurationV16>(16, 6);
 // Version 17 is the layout of 2.3.4, the last one without the notes left out of the scale rows.
 TEST(upgrade_from_v17) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   ConfigurationV17 old;
   plantSettings(old, 17, NUMPRESETS);
   old.settings.global.splitActive = true;
   old.preset[2].global.splitActive = true;
   old.settings.split[LEFT].lowRowBendBehavior = lowRowBendTranspose;
+  old.settings.split[RIGHT].lowRowBendBehavior = lowRowBendTranspose;
+  old.preset[5].split[LEFT].lowRowBendBehavior = lowRowBendTranspose;
   old.project.tempo = 133;
   CHECK(upgradeConfigurationSettings(sizeof(ConfigurationV17), (byte*)&old));
   checkDevice();
   checkPreset(config.settings, 50);
-  checkNoRemovedNotes(config.settings);
+  checkNewFieldDefaults(config.settings, 17);
   CHECK(Global.splitActive);
   CHECK_EQ(Split[LEFT].lowRowBendBehavior, lowRowBendTranspose);
+  CHECK_EQ(Split[RIGHT].lowRowBendBehavior, lowRowBendTranspose);
   for (int p = 0; p < NUMPRESETS; ++p) {
     checkPreset(config.preset[p], 10 + p);
-    checkNoRemovedNotes(config.preset[p]);
+    checkNewFieldDefaults(config.preset[p], 17);
     CHECK_EQ(config.preset[p].global.splitActive, p == 2);
   }
+  CHECK_EQ(config.preset[5].split[LEFT].lowRowBendBehavior, lowRowBendTranspose);
   CHECK_EQ(config.project.tempo, 133);
 }
 
@@ -312,7 +324,7 @@ TEST(upgrade_copies_the_current_version_as_is) {
 
 TEST(upgrade_refuses_a_newer_version) {
   linn::reset();
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   Configuration newer = config;
   newer.device.version = 19;
   CHECK(!upgradeConfigurationSettings(sizeof(Configuration), (byte*)&newer));
@@ -327,7 +339,7 @@ TEST(upgrade_refuses_a_size_that_does_not_match_the_version) {
   ConfigurationV9 old;
   plantSettings(old, 9, 4);
   CHECK(!upgradeConfigurationSettings(sizeof(ConfigurationV9) + 1, (byte*)&old));
-  plantLiveRemovedNotes();
+  plantLiveSettings();
   CHECK(!upgradeConfigurationSettings(sizeof(ConfigurationV8), (byte*)&old));
   CHECK_EQ(Global.rowOffset, 3);
   CHECK_EQ(Global.removedNotes[0], 0x0f0);
