@@ -117,7 +117,8 @@ Each file covers one topic: `test_notes.cpp` (note mapping and layouts),
 `test_phantom.cpp`, `test_lowrow.cpp`, `test_arpeggiator.cpp`,
 `test_switches.cpp`, `test_presets.cpp`, `test_settings.cpp`,
 `test_upgrade.cpp` (every settings layout since version 1),
-`test_calibration.cpp`, `test_channelbucket.cpp`, `test_midi.cpp` (framing,
+`test_calibration.cpp`, `test_channelbucket.cpp`, `test_manufacturing.cpp`
+(the manufacturing test's colors), `test_midi.cpp` (framing,
 NRPNs, clock), `test_serialmode.cpp` (the Updater's protocol) and
 `test_userfirmware.cpp` (every claim of `user_firmware_mode.md`).
 

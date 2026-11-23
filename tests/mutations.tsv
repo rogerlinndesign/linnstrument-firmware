@@ -224,3 +224,4 @@ upgrade_from_v5	ls_extstorage.ino	        memset(config.preset[p].global.removed
 upgrade_copies_the_current_version_as_is	ls_extstorage.ino	          memcpy(&config, buff2, confSize);\n          result = true;	          memcpy(&config, buff2, confSize);\n          memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));\n          result = true;
 upgrade_refuses_a_newer_version	ls_extstorage.ino	  byte settingsVersion = buff2[0];	  byte settingsVersion = buff2[0];\n  memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));
 upgrade_refuses_a_size_that_does_not_match_the_version	ls_extstorage.ino	    void* sourceConfig = buff2;	    void* sourceConfig = buff2;\n    memset(config.settings.global.removedNotes, 0, sizeof(config.settings.global.removedNotes));
+manufacturing_control_buttons_light_all_leds_in_row_colors	ls_test.ino	color = COLOR_WHITE;	color = COLOR_ORANGE;

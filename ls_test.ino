@@ -196,21 +196,25 @@ void modeLoopManufacturingTest() {
       switch (sensorRow)
       {
         case 0:
+          color = COLOR_ORANGE;
+          break;
         case 1:
-          color = COLOR_YELLOW;
+          color = COLOR_WHITE;
           break;
         case 2:
           color = COLOR_MAGENTA;
           break;
         case 3:
-          color = COLOR_CYAN;
-          break;
-        case 4:
-        case 5:
           color = COLOR_BLUE;
           break;
-        case 6:
+        case 4:
+          color = COLOR_CYAN;
+          break;
+        case 5:
           color = COLOR_GREEN;
+          break;
+        case 6:
+          color = COLOR_YELLOW;
           break;
         case 7:
           color = COLOR_RED;
